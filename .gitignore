@@ -1,0 +1,29 @@
+# 로컬 전용 설정
+.claude/settings.local.json
+
+# MCP 서버 설정 — Figma API 키가 평문으로 들어 있어 추적하지 않는다.
+# 팀 공유가 필요하면 키를 환경변수로 빼고 .mcp.json 을 다시 추적할 것.
+.mcp.json
+
+# 환경 변수
+.env
+.env.*
+!.env.example
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+dist/
+build/
+*.tsbuildinfo
+
+# 테스트 산출물
+coverage/
+playwright-report/
+test-results/
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
