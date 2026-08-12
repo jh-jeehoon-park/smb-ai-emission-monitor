@@ -31,7 +31,7 @@ export const STATUS_VISUAL: Record<StatusLevel, StatusVisual> = {
   normal: {
     token: 'normal',
     text: 'text-normal-ink',
-    bg: 'bg-normal/10',
+    bg: 'bg-chip-normal',
     border: 'border-normal/30',
     hex: 'var(--normal)',
     ink: 'var(--normal-ink)',
@@ -41,7 +41,7 @@ export const STATUS_VISUAL: Record<StatusLevel, StatusVisual> = {
   caution: {
     token: 'caution',
     text: 'text-caution-ink',
-    bg: 'bg-caution/10',
+    bg: 'bg-chip-caution',
     border: 'border-caution/35',
     hex: 'var(--caution)',
     ink: 'var(--caution-ink)',
@@ -51,7 +51,7 @@ export const STATUS_VISUAL: Record<StatusLevel, StatusVisual> = {
   warning: {
     token: 'warning',
     text: 'text-warning-ink',
-    bg: 'bg-warning/12',
+    bg: 'bg-chip-warning',
     border: 'border-warning/35',
     hex: 'var(--warning)',
     ink: 'var(--warning-ink)',
@@ -61,7 +61,7 @@ export const STATUS_VISUAL: Record<StatusLevel, StatusVisual> = {
   critical: {
     token: 'critical',
     text: 'text-critical-ink',
-    bg: 'bg-critical/14',
+    bg: 'bg-chip-critical',
     border: 'border-critical/45',
     hex: 'var(--critical)',
     ink: 'var(--critical-ink)',

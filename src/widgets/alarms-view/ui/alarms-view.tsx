@@ -33,9 +33,10 @@ import {
   STATE_QUERY_KEY,
 } from '../config/constants';
 
+/* 마크 색(--{level})은 3:1만 만족한다. 글자에는 4.5:1을 맞춘 --{level}-ink를 쓴다 */
 const PRIORITY_CHIP: Record<AlarmPriority, string> = {
-  urgent: 'border-critical/45 bg-critical/14 text-critical',
-  caution: 'border-warning/35 bg-warning/12 text-warning',
+  urgent: 'border-critical/45 bg-chip-critical text-critical-ink',
+  caution: 'border-warning/35 bg-chip-warning text-warning-ink',
   info: 'border-border-strong bg-surface-3 text-fg-muted',
 };
 
@@ -183,17 +184,17 @@ function AlarmRow({
         {ALARM_PRIORITY_LABELS[alarm.priority]}
       </span>
 
-      <div className="min-w-[220px] flex-1">
+      <div className="min-w-0 flex-1 basis-[220px]">
         <p className="text-[12px] text-fg">{alarm.title}</p>
         <p className="mt-0.5 text-[11px] leading-relaxed text-fg-subtle">{alarm.detail}</p>
       </div>
 
-      <div className="w-[132px] shrink-0 text-[11px] text-fg-subtle">
+      <div className="w-[124px] shrink-0 text-[11px] text-fg-subtle">
         <p className="truncate text-fg-muted">{alarm.siteName}</p>
         <p className="truncate">{ALARM_CONDITION_LABELS[alarm.condition]}</p>
       </div>
 
-      <div className="w-[128px] shrink-0 text-right text-[11px] text-fg-subtle">
+      <div className="w-[120px] shrink-0 text-right text-[11px] text-fg-subtle">
         <p className="num">{formatDateTime(alarm.raisedAtIso)}</p>
         <p>
           {formatRelative(alarm.raisedAtIso, DEMO_NOW_ISO)} · {DISPLAY_TIMEZONE}

@@ -16,9 +16,22 @@ import {
  * 등급 4단계와 우선순위 3단계의 대응 관계는 원문에 없다(TBD-21).
  */
 const PRIORITY_STYLE: Record<AlarmPriority, { hex: string; chip: string; glyph: string }> = {
-  urgent: { hex: 'var(--critical)', chip: 'bg-critical/14 text-critical border-critical/45', glyph: '■' },
-  caution: { hex: 'var(--warning)', chip: 'bg-warning/12 text-warning border-warning/35', glyph: '▲' },
-  info: { hex: 'var(--missing)', chip: 'bg-surface-3 text-fg-muted border-border-strong', glyph: '●' },
+  urgent: {
+    hex: 'var(--critical-ink)',
+    chip: 'bg-chip-critical text-critical-ink border-critical/45',
+    glyph: '■',
+  },
+  caution: {
+    hex: 'var(--warning-ink)',
+    chip: 'bg-chip-warning text-warning-ink border-warning/35',
+    glyph: '▲',
+  },
+  // 정보 등급에 상태색을 주면 '정상'과 헷갈린다. 중립 잉크로 둔다.
+  info: {
+    hex: 'var(--fg-muted)',
+    chip: 'bg-surface-3 text-fg-muted border-border-strong',
+    glyph: '●',
+  },
 };
 
 export function AlarmList({

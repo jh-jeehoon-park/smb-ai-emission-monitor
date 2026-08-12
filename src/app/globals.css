@@ -22,15 +22,33 @@
   --fg-subtle: #5b6771;
 
   --normal: #15803d;
-  --caution: #eab308;
+  /**
+   * 밝은 노랑(#eab308)은 흰 배경에서 1.87:1이라 스파크라인·지도 핀이 사라진다.
+   * dataviz 검증기의 명도 밴드도 통과하지 못했다. 여기까지 낮추면 밴드를 통과하고
+   * 대비도 2.67:1로 오른다. **더 어둡게는 못 간다** — 경고(#d1490a)와 적록색약에서
+   * 뭉친다(ΔE 11.7 → 8.9 이하로 떨어짐). 3:1을 채우면서 분리를 지키는 조합은 없다.
+   * 검증기가 허용하는 대로 색 옆에 늘 라벨과 글리프를 함께 둔다.
+   */
+  --caution: #cf9500;
   --warning: #d1490a;
   --critical: #9f1239;
 
   /* 글자용. 마크는 3:1이면 되지만 글자는 4.5:1이 필요하다 */
-  --normal-ink: #15803d;
+  --normal-ink: #136c33;
   --caution-ink: #854d0e;
   --warning-ink: #b8400a;
   --critical-ink: #9f1239;
+
+  /**
+   * 상태 칩 배경은 **불투명**하다. 반투명 틴트를 쓰면 칩 뒤에 무엇이 오느냐에 따라
+   * 같은 글자의 대비가 흔들린다(측정값 3.60~4.23:1). 배경을 고정해야 대비도 고정된다.
+   * 밝은 배경에서는 같은 색상의 틴트가 글자와 배경을 함께 어둡게 만들어 대비를 깎으므로
+   * 라이트 쪽 농도를 더 낮게 잡는다.
+   */
+  --chip-normal: color-mix(in srgb, var(--normal) 8%, var(--surface));
+  --chip-caution: color-mix(in srgb, var(--caution) 14%, var(--surface));
+  --chip-warning: color-mix(in srgb, var(--warning) 9%, var(--surface));
+  --chip-critical: color-mix(in srgb, var(--critical) 9%, var(--surface));
 
   /* 상태색 '위에' 올리는 글자·글리프 색. 색마다 밝기가 달라 하나로 정할 수 없다 */
   --normal-on: #ffffff;
@@ -76,6 +94,12 @@
   /* 위험색은 밝히면 경고 주황과 구분이 안 되고, 어두우면 본문 대비가 모자란다 */
   --critical-ink: #ff8fa3;
 
+  /* 어두운 배경에서는 틴트가 배경을 밝히고 글자는 밝은 잉크라 농도를 더 줄 수 있다 */
+  --chip-normal: color-mix(in srgb, var(--normal) 14%, var(--surface));
+  --chip-caution: color-mix(in srgb, var(--caution) 14%, var(--surface));
+  --chip-warning: color-mix(in srgb, var(--warning) 14%, var(--surface));
+  --chip-critical: color-mix(in srgb, var(--critical) 16%, var(--surface));
+
   --normal-on: #06231a;
   --caution-on: #3f2d02;
   --warning-on: #3d1a02;
@@ -115,6 +139,11 @@
   --color-caution-ink: var(--caution-ink);
   --color-warning-ink: var(--warning-ink);
   --color-critical-ink: var(--critical-ink);
+
+  --color-chip-normal: var(--chip-normal);
+  --color-chip-caution: var(--chip-caution);
+  --color-chip-warning: var(--chip-warning);
+  --color-chip-critical: var(--chip-critical);
 
   --color-ai: var(--ai);
   --color-actual: var(--actual);

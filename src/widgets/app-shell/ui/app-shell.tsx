@@ -19,6 +19,14 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-screen bg-bg">
+      {/* 사이드바가 모든 화면에 고정이라 키보드 사용자는 매번 링크 7개를 지나야 본문에 닿는다 */}
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50 focus:rounded-[4px] focus:border focus:border-border-strong focus:bg-surface focus:px-3 focus:py-2 focus:text-[12px] focus:text-fg"
+      >
+        본문으로 건너뛰기
+      </a>
+
       <aside className="sticky top-0 hidden h-screen w-[212px] shrink-0 flex-col border-r border-border bg-surface lg:flex">
         <div className="flex items-center gap-2 border-b border-border px-4 py-4">
           <span className="flex size-7 items-center justify-center rounded-[5px] bg-normal/12 text-normal">
@@ -57,7 +65,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             </div>
 
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-fg-subtle">
-              <span className="flex items-center gap-1.5 text-normal">
+              <span className="flex items-center gap-1.5 text-normal-ink">
                 <span className="relative flex size-1.5">
                   <span className="live-pulse absolute inset-0 rounded-full" />
                   <span className="relative size-1.5 rounded-full bg-normal" />
@@ -74,7 +82,9 @@ export function AppShell({ children }: { children: ReactNode }) {
           </p>
         </header>
 
-        <main className="flex-1 px-4 py-4 lg:px-6 lg:py-5">{children}</main>
+        <main id="main" tabIndex={-1} className="flex-1 px-4 py-4 lg:px-6 lg:py-5">
+          {children}
+        </main>
       </div>
     </div>
   );
@@ -101,7 +111,7 @@ function SiteNav({ pathname, openAlarmCount }: { pathname: string; openAlarmCoun
             <item.icon size={14} strokeWidth={1.9} />
             <span className="flex-1 text-left">{item.label}</span>
             {item.href === ALARM_NAV_HREF && openAlarmCount > 0 && (
-              <span className="num rounded-full bg-critical/16 px-1.5 py-px text-[11px] text-critical">
+              <span className="num rounded-full bg-critical/16 px-1.5 py-px text-[11px] text-critical-ink">
                 {openAlarmCount}
               </span>
             )}
