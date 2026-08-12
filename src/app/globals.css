@@ -1,0 +1,229 @@
+/* 한글 UI라 라틴 전용 폰트만으로는 부족하다. 본문은 Pretendard가 받는다.
+   `<head>`에 <link>로 두면 React가 이 태그를 자기 트리로 끌어올려 순서를 다시 잡는다.
+   폰트는 React가 관여할 일이 아니므로 CSS에서 직접 불러온다. */
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css");
+@import "tailwindcss";
+
+/**
+ * 두 테마는 서로의 반전이 아니다. 라이트는 별도로 값을 잡고 따로 검증했다.
+ * 밝은 배경에서 대비를 얻으려면 색이 어두워져야 하는데, 어두운 난색(황·주황·빨강)은
+ * 적록색약에서 한 덩어리로 뭉친다. 그래서 라이트 팔레트는 색상이 아니라 명도로 벌렸다.
+ * 두 조합 모두 dataviz validate_palette.js를 통과한 값이다. 눈대중으로 바꾸지 말 것.
+ */
+:root {
+  --bg: #f4f6f8;
+  --surface: #ffffff;
+  --surface-2: #f0f3f6;
+  --surface-3: #e4e9ee;
+  --border: #dde3e9;
+  --border-strong: #c3ccd6;
+  --fg: #10161c;
+  --fg-muted: #4a5761;
+  --fg-subtle: #5b6771;
+
+  --normal: #15803d;
+  --caution: #eab308;
+  --warning: #d1490a;
+  --critical: #9f1239;
+
+  /* 글자용. 마크는 3:1이면 되지만 글자는 4.5:1이 필요하다 */
+  --normal-ink: #15803d;
+  --caution-ink: #854d0e;
+  --warning-ink: #b8400a;
+  --critical-ink: #9f1239;
+
+  /* 상태색 '위에' 올리는 글자·글리프 색. 색마다 밝기가 달라 하나로 정할 수 없다 */
+  --normal-on: #ffffff;
+  --caution-on: #3f2d02;
+  --warning-on: #ffffff;
+  --critical-on: #ffffff;
+
+  --ai: #6d28d9;
+  --actual: #475569;
+  --missing: #94a3b8;
+  --grid: #e2e8f0;
+  --axis-text: #5b6771;
+
+  /* 차트 배경 밴드. 같은 투명도를 두 테마에 쓰면 밝은 배경에서 밴드가 사라진다.
+     Recharts는 fillOpacity에 CSS 변수를 못 받으므로 색 자체에 투명도를 넣는다. */
+  --band-normal: color-mix(in srgb, var(--normal) 13%, transparent);
+  --band-caution: color-mix(in srgb, var(--caution) 20%, transparent);
+  --band-warning: color-mix(in srgb, var(--warning) 15%, transparent);
+  --band-critical: color-mix(in srgb, var(--critical) 13%, transparent);
+  --band-outage: color-mix(in srgb, var(--missing) 42%, transparent);
+  --band-ai: color-mix(in srgb, var(--ai) 12%, transparent);
+}
+
+:root[data-theme='dark'] {
+  --bg: #080b0f;
+  --surface: #0f141a;
+  --surface-2: #161d25;
+  --surface-3: #1d262f;
+  --border: #1f2a35;
+  --border-strong: #2c3a47;
+  --fg: #e8eef4;
+  --fg-muted: #a3b4c2;
+  --fg-subtle: #8497a6;
+
+  --normal: #5cb98a;
+  --caution: #ffd400;
+  --warning: #ff7b1a;
+  --critical: #e11d48;
+
+  --normal-ink: #5cb98a;
+  --caution-ink: #ffd400;
+  --warning-ink: #ff7b1a;
+  /* 위험색은 밝히면 경고 주황과 구분이 안 되고, 어두우면 본문 대비가 모자란다 */
+  --critical-ink: #ff8fa3;
+
+  --normal-on: #06231a;
+  --caution-on: #3f2d02;
+  --warning-on: #3d1a02;
+  --critical-on: #ffffff;
+
+  --ai: #9d8dff;
+  --actual: #c9d6e2;
+  --missing: #7d8b98;
+  --grid: #1f2a35;
+  --axis-text: #8497a6;
+
+  --band-normal: color-mix(in srgb, var(--normal) 9%, transparent);
+  --band-caution: color-mix(in srgb, var(--caution) 8%, transparent);
+  --band-warning: color-mix(in srgb, var(--warning) 10%, transparent);
+  --band-critical: color-mix(in srgb, var(--critical) 14%, transparent);
+  --band-outage: color-mix(in srgb, var(--missing) 30%, transparent);
+  --band-ai: color-mix(in srgb, var(--ai) 16%, transparent);
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-subtle: var(--fg-subtle);
+
+  --color-normal: var(--normal);
+  --color-caution: var(--caution);
+  --color-warning: var(--warning);
+  --color-critical: var(--critical);
+
+  --color-normal-ink: var(--normal-ink);
+  --color-caution-ink: var(--caution-ink);
+  --color-warning-ink: var(--warning-ink);
+  --color-critical-ink: var(--critical-ink);
+
+  --color-ai: var(--ai);
+  --color-actual: var(--actual);
+  --color-missing: var(--missing);
+
+  --font-sans: 'Pretendard Variable', Pretendard, ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-plex-mono), ui-monospace, monospace;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+
+  --radius-panel: 6px;
+  --radius-chip: 4px;
+}
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+  :root[data-theme='dark'] {
+    color-scheme: dark;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background-color: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.5;
+    transition:
+      background-color 200ms ease,
+      color 200ms ease;
+  }
+
+  /* 계측값은 자릿수가 고정되어야 한다. 값이 바뀔 때 숫자가 좌우로 흔들리면 오독이 생긴다. */
+  .num {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--normal);
+    outline-offset: 2px;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--bg);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--border-strong);
+    border-radius: 999px;
+    border: 3px solid var(--bg);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--fg-subtle);
+  }
+}
+
+@layer utilities {
+  /**
+   * 테마에 따라 보일 요소를 CSS로 고른다. 마크업은 한 벌만 두고 선택은 CSS가 하므로
+   * 서버가 그린 HTML이 테마와 무관해진다 — 이 요소들에서는 hydration이 깨질 수 없다.
+   */
+  .theme-when-dark {
+    display: none;
+  }
+  :root[data-theme='dark'] .theme-when-dark {
+    display: block;
+  }
+  :root[data-theme='dark'] .theme-when-light {
+    display: none;
+  }
+
+  .live-pulse::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 999px;
+    background: currentColor;
+    animation: live-ping 2.4s cubic-bezier(0, 0, 0.2, 1) infinite;
+  }
+
+  @keyframes live-ping {
+    0% {
+      transform: scale(1);
+      opacity: 0.55;
+    }
+    70%,
+    100% {
+      transform: scale(2.6);
+      opacity: 0;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
