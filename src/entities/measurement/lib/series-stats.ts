@@ -23,15 +23,17 @@ export interface SeriesStats {
  */
 export function summarizeSeries(points: MeasurementPoint[], code: SeriesCode): SeriesStats {
   const values: number[] = [];
-  let latest: number | null = null;
 
   for (const point of points) {
     const value = point[code];
-    if (value === null) continue;
-    values.push(value);
-    latest = value;
+    if (value !== null) values.push(value);
   }
 
+  /**
+   * '최신'은 마지막 표본의 값이다. 결측이면 그 앞의 값을 끌어오지 않고 비운다 —
+   * 지금 수신되지 않는 값을 현재값으로 보여주면 다른 화면과 어긋난다(E4).
+   */
+  const latest = points.length > 0 ? points[points.length - 1]![code] : null;
   const missingCount = points.length - values.length;
   if (values.length === 0) {
     return {
