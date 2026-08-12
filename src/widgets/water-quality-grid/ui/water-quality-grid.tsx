@@ -19,14 +19,21 @@ interface WaterQualityGridProps {
  * 둘 다 읽을 수 없게 된다. 항목마다 자기 축을 가진 작은 차트로 나눈다(small multiples).
  */
 export function WaterQualityGrid({ data, codes }: WaterQualityGridProps) {
+  /**
+   * 열 수는 뷰포트가 아니라 **이 그리드가 실제로 받은 폭**을 따라야 한다.
+   * 같은 위젯이 통합 관제(지도 옆 좁은 열)와 시계열 화면(전폭)에 함께 쓰인다 —
+   * 뷰포트로 나누면 한쪽이 반드시 어긋나고, 단위 표기가 값에 가려진다.
+   */
   return (
-    <StaggerGroup className="grid grid-cols-2 gap-px bg-border sm:grid-cols-4">
-      {codes.map((code) => (
-        <RiseItem key={code}>
-          <MiniSeries code={code} data={data} />
-        </RiseItem>
-      ))}
-    </StaggerGroup>
+    <div className="@container">
+      <StaggerGroup className="grid grid-cols-2 gap-px bg-border @[560px]:grid-cols-4">
+        {codes.map((code) => (
+          <RiseItem key={code}>
+            <MiniSeries code={code} data={data} />
+          </RiseItem>
+        ))}
+      </StaggerGroup>
+    </div>
   );
 }
 
@@ -64,51 +71,51 @@ function MiniSeries({ code, data }: { code: SeriesCode; data: MeasurementPoint[]
           item.unit ? `, 단위 ${item.unit}` : ''
         }, KST 기준. 현재값 ${formatValue(code, latest)}`}
       >
-      <div className="-mx-1 mt-2 h-10">
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={data} margin={{ top: 2, right: 2, bottom: 0, left: 2 }}>
-            <defs>
-              <linearGradient id={`fill-${code}`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={ACTUAL_HEX} stopOpacity={0.22} />
-                <stop offset="100%" stopColor={ACTUAL_HEX} stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <YAxis hide domain={['dataMin', 'dataMax']} />
-            <Tooltip
-              cursor={{ stroke: GRID_HEX, strokeWidth: 1 }}
-              content={({ active, payload }) => {
-                if (!active || !payload?.length) return null;
-                const row = payload[0]?.payload as MeasurementPoint | undefined;
-                if (!row) return null;
-                const v = row[code];
-                return (
-                  <ChartTooltipShell label={`${formatClock(row.t)} KST`}>
-                    <ChartTooltipRow
-                      color={v === null ? MISSING_HEX : ACTUAL_HEX}
-                      name={item.label}
-                      value={
-                        v === null ? '수신 없음' : `${formatValue(code, v)} ${item.unit}`.trim()
-                      }
-                    />
-                  </ChartTooltipShell>
-                );
-              }}
-            />
-            {/* 결측은 이어 그리지 않는다 — 끊긴 자리가 통신 두절을 말해 준다(E4) */}
-            <Area
-              type="monotone"
-              dataKey={code}
-              stroke={ACTUAL_HEX}
-              strokeWidth={1.4}
-              fill={`url(#fill-${code})`}
-              connectNulls={false}
-              dot={false}
-              activeDot={{ r: 2.5, strokeWidth: 0, fill: ACTUAL_HEX }}
-              isAnimationActive={false}
-            />
-          </AreaChart>
-        </ResponsiveContainer>
-      </div>
+        <div className="-mx-1 mt-2 h-10">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={data} margin={{ top: 2, right: 2, bottom: 0, left: 2 }}>
+              <defs>
+                <linearGradient id={`fill-${code}`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={ACTUAL_HEX} stopOpacity={0.22} />
+                  <stop offset="100%" stopColor={ACTUAL_HEX} stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <YAxis hide domain={['dataMin', 'dataMax']} />
+              <Tooltip
+                cursor={{ stroke: GRID_HEX, strokeWidth: 1 }}
+                content={({ active, payload }) => {
+                  if (!active || !payload?.length) return null;
+                  const row = payload[0]?.payload as MeasurementPoint | undefined;
+                  if (!row) return null;
+                  const v = row[code];
+                  return (
+                    <ChartTooltipShell label={`${formatClock(row.t)} KST`}>
+                      <ChartTooltipRow
+                        color={v === null ? MISSING_HEX : ACTUAL_HEX}
+                        name={item.label}
+                        value={
+                          v === null ? '수신 없음' : `${formatValue(code, v)} ${item.unit}`.trim()
+                        }
+                      />
+                    </ChartTooltipShell>
+                  );
+                }}
+              />
+              {/* 결측은 이어 그리지 않는다 — 끊긴 자리가 통신 두절을 말해 준다(E4) */}
+              <Area
+                type="monotone"
+                dataKey={code}
+                stroke={ACTUAL_HEX}
+                strokeWidth={1.4}
+                fill={`url(#fill-${code})`}
+                connectNulls={false}
+                dot={false}
+                activeDot={{ r: 2.5, strokeWidth: 0, fill: ACTUAL_HEX }}
+                isAnimationActive={false}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
       </ChartFigure>
     </div>
   );
