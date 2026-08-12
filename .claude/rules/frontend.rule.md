@@ -5,7 +5,7 @@
 | 항목 | 내용 |
 |------|------|
 | 문서명 | 프론트엔드 코딩 규칙 (Core + Project Profile) |
-| 버전 | v2.0.0 |
+| 버전 | v2.1.0 |
 | 작성일 | 2026-08-06 |
 | 기반 문서 | /docs/applications/AIoT_Emission_Control_System.pdf, /docs/applications/HSKorea_AI_Application_Proposal.pdf |
 
@@ -15,6 +15,7 @@
 |------|------|--------|-----------|
 | v0.1.0 | 2026-08-06 | Claude | 신규 작성 — 스택·프로젝트 무관 이식형 프론트엔드 코딩 규칙. Core(절대규칙 A1~A4·컨벤션 R1~R20) + Project Profile(P1~P15) 구조 |
 | v2.0.0 | 2026-08-06 | Claude | §8 프로젝트 프로필을 타 프로젝트 값에서 본 프로젝트(소규모 사업장 오염물질 배출 관리 시스템, 단일 Next.js 웹 대시보드) 값으로 전면 교체. 공유 패키지 alias 제거(`@/*`만 사용), 디자인 토큰·Figma 관련 슬롯 [TBD] 표기, 차트(P9)를 대시보드 필수 영역으로 상향. Core(§2~§6) 미수정 |
+| v2.1.0 | 2026-08-11 | Claude | §8에 "백엔드 없는 프론트 전용 프로토타입" 전제 추가. P1 스타일링(Tailwind+shadcn/ui)·P9 차트(Recharts) 확정, P7 토큰 원천을 `design-system/<slug>/MASTER.md`로 지정, P11을 MSW→`entities/<slice>/api/fixtures/`로 교체, P3 실시간 방식을 fixture 시뮬레이션으로 한정, P12 미적용·P13 as-is 미적용 표기, P14에 A1 보류·A3 미적용·A4 자동충족·A2 범위 분리 기재, P15에 디자인 스킬 라우팅 포인터 추가. §8.1 E2에 잠정 4단계 등급과 이상 점수 구간(0–49/50–69/70–79/80–100) 명시, E6에 서버 부재 시 mock 역할 전환 예외 추가. Core(§2~§6) 미수정 |
 
 ---
 
@@ -142,32 +143,34 @@
 
 > §7 슬롯을 본 저장소(`smb-ai-emission-monitor`) 값으로 확정. Core(§2~§6)는 미수정.
 > 값이 아직 정해지지 않은 슬롯은 **[TBD]** 로 표기한다. [TBD] 슬롯을 참조하는 규칙은 임의 값으로 채우지 말고 `unclear.rule.md` 절차에 따라 사용자에게 확인한다.
+>
+> **현 단계 전제(2026-08-11):** R&D 프로토타입이며 **백엔드·API 서버가 없다. 프론트엔드 화면만 만든다.** 데이터는 전량 fixture다. 이 전제가 P3·P11·P12·P13과 A1·A3·E6의 적용을 바꾼다 — 상세는 루트 `CLAUDE.md`의 "현재 단계" 절이 단일 기준이며, 본 절과 어긋나면 `CLAUDE.md`가 우선한다(§5 레벨 3).
 
 | ID | 슬롯 | 값 |
 |----|------|-----|
-| P1 | 대상 스택 | React + **Next.js(App Router)** / TypeScript / (Next 빌드) / 스타일링 [TBD] / 서버상태 TanStack Query + 전역 스토어 [TBD] / fetch 기반 client / 차트 라이브러리 [TBD] |
+| P1 | 대상 스택 | React + **Next.js(App Router)** / TypeScript / (Next 빌드) / **Tailwind CSS + shadcn/ui** / 서버상태 TanStack Query(fixture를 비동기 반환) + 전역 스토어 [TBD](현 단계 미도입 — URL 파라미터로 충분) / fetch 기반 client / 차트 **Recharts** |
 | P2 | 범위 | 활성 `src/**/*.{ts,tsx}` · 비활성 `dist/`·`build/`·`.next/`·`docs/` |
-| P3 | 빌드·렌더 모드 | **CSR 중심**(실시간 계측·차트·대시보드) + 필요 시 SSR(목록/리포트 초기 렌더). 서버 전용 API를 클라이언트에서 남용 금지, dev/운영 분기 인지. 실시간 수신 방식(폴링/SSE/WebSocket)은 [TBD] |
+| P3 | 빌드·렌더 모드 | **CSR 중심**(실시간 계측·차트·대시보드) + 필요 시 SSR(목록/리포트 초기 렌더). 서버 전용 API를 클라이언트에서 남용 금지, dev/운영 분기 인지. 실시간 수신 방식(폴링/SSE/WebSocket)은 [TBD] — **현 단계는 fixture 기반 고정 간격 시뮬레이션**으로 표현하고, 실제 방식 선택은 백엔드 확정 시로 미룬다 |
 | P4 | 경로 별칭 | `@/*` (내부 전용) — 공유 패키지 없음(단일 웹 앱) |
 | P5 | 프레임워크 관용구 | 클라이언트 경계 `'use client'` · `next/dynamic`+`<Suspense>`(차트 등 무거운 클라이언트 위젯) · `react-hooks/exhaustive-deps` · 함수형 컴포넌트만 |
 | P6 | 상태 관리 | 전역 스토어 + URL 쿼리 파라미터(사업장·기간·항목 필터는 URL로) · props drilling 3단계 초과 시 분리 |
-| P7 | 디자인 토큰 | **[TBD]** — 디자인시스템 미확정. 확정 전까지 색·타이포·spacing 하드코딩 금지, 신규 값 필요 시 사용자 확인 후 `shared/config`에 토큰으로 등록해 사용. 상태 등급 색은 **등급 체계가 확정된 뒤**(→ `docs/requirements/source-inconsistencies.md`) 의미별 고정 토큰으로 정의해 전 화면 동일 적용 |
-| P8 | 공용 컴포넌트 | `shared/ui` (Button/Input/Badge/Modal/Table/Tabs/EmptyState/StatusTag 등) — 인라인 재구현 금지 |
-| P9 | 차트 | **필수 영역**(실시간 시계열·예측·이상점수·설비 상태). 라이브러리는 [TBD]이며 **확정 후 단일 라이브러리만** 사용 · 계열 색은 P7 토큰 · 의미별 색 고정(정상/주의/경고/위험) · 커스텀 tooltip 패턴 통일 |
+| P7 | 디자인 토큰 | **원천 = `design-system/<slug>/MASTER.md`**(`ui-ux-pro-max` 스킬 생성) → `shared/config` + Tailwind theme에 토큰으로 등록해 사용. 색·타이포·spacing 하드코딩은 여전히 금지(R9). Figma 미보유 상태의 대체 원천이며, Figma가 확정되면 `figma-implementation.rule.md` D3로 되돌린다. 상태 등급 색은 아래 E2의 잠정 4단계에 맞춰 의미별 고정 토큰으로 정의해 전 화면 동일 적용 |
+| P8 | 공용 컴포넌트 | `shared/ui` (Button/Input/Badge/Modal/Table/Tabs/EmptyState/StatusTag 등) — **shadcn/ui 기반**, 인라인 재구현 금지 |
+| P9 | 차트 | **필수 영역**(실시간 시계열·예측·이상점수·설비 상태). **Recharts 단일 사용** — 다른 차트 라이브러리 혼용 금지 · 계열 색은 P7 토큰 · 의미별 색 고정(정상/주의/경고/위험) · 커스텀 tooltip 패턴 통일 · 차트 작성 전 `dataviz` 스킬 로드 |
 | P10 | 투명도 정책 | 배경 불투명 원칙(투명도는 사용자 명시 지시 시) |
-| P11 | Mock 격리 | MSW 핸들러 `test/msw/*.handlers.ts` (또는 slice `api/__mocks__`) — 실 API 전환 시 같은 PR에서 전량 제거(A1) |
-| P12 | API 갭 문서 | `docs/api-gaps.md` (신규 정의 — 엔드포인트·필드 누락을 화면/항목 단위로 등록) |
-| P13 | 데이터 문서 | to-be `docs/page-data-spec/<page>.md` · as-is `docs/page-api-map/<page>.md` (신규 정의) |
-| P14 | 절대규칙 채택 | A1~A4 채택(Mock/하드코딩 폴백 제거·UI/UX 임의변경 금지·API 갭 문서화·화면완성 전 백엔드 상세 배제) |
-| P15 | 하우스 규칙 | 본 저장소 `CLAUDE.md` + `.claude/rules/*`(frontend-architecture·code-organization·code-comments·figma-implementation·test-guide·unclear·document-template) + 사용자 글로벌 `CLAUDE.md` |
+| P11 | Mock 격리 | **`entities/<slice>/api/fixtures/`** — 컴포넌트 인라인 금지. **MSW는 쓰지 않는다**(가로챌 네트워크 요청이 없다). 백엔드가 생기면 이 폴더가 A1의 제거 대상이 된다 |
+| P12 | API 갭 문서 | `docs/api-gaps.md` — **현 단계 미적용**(백엔드가 없어 갭 개념이 성립하지 않는다). 백엔드 착수 시 활성 |
+| P13 | 데이터 문서 | to-be `docs/page-data-spec/<page>.md` **사용** · as-is `docs/page-api-map/<page>.md` — 현 단계 미적용 |
+| P14 | 절대규칙 채택 | A1~A4 채택. 단 현 단계는 **A1 보류**(제거할 실 API 없음, fixture가 정식 원천) · **A3 미적용**(P12 참조) · **A4 자동 충족**(백엔드 설계를 하지 않음). **A2는 유지하되 범위를 나눈다** — *무엇을 보여주는가*(항목·라벨·단위·수치)는 `docs/` 근거를 따르고, *어떻게 보이는가*(레이아웃·색·타이포·모션)는 디자인 스킬이 정한다 |
+| P15 | 하우스 규칙 | 본 저장소 `CLAUDE.md` + `.claude/rules/*`(frontend-architecture·code-organization·code-comments·figma-implementation·test-guide·unclear·document-template) + 사용자 글로벌 `CLAUDE.md`. 디자인 스킬(`ui-ux-pro-max`·`impeccable`·`frontend-design`·`dataviz`)의 사용 시점·라우팅은 루트 `CLAUDE.md`의 "디자인 스킬" 절을 따른다 |
 
 ### 8.1 도메인 특성상 추가로 지켜야 할 사항
 
 | # | 내용 |
 |---|------|
 | **E1** | **계측값은 단위·소수 자릿수를 항목별로 고정한다.** pH·DO(mg/L)·EC(mS/cm)·탁도(NTU)·수온(℃)·유량·전류·전력 등 표시 규칙을 `shared/config`에 정의하고 화면마다 다르게 반올림하지 않는다 |
-| **E2** | **상태 등급 체계는 아직 확정되지 않았다([TBD]).** 원문이 `정상/주의/경고/위험`·`정상/주의/이상`·`정상/이상`을 혼용하고 알람 우선순위는 `긴급/주의/정보`로 따로 정의한다(→ `docs/requirements/source-inconsistencies.md`). 확정 전에는 등급 체계를 코드에 고정하지 말고, 확정 후에는 라벨·색·순서를 전 화면 동일하게 쓴다. 화면별 임의 등급 추가·병합 금지(A2) |
+| **E2** | **상태 등급 체계는 원문 미확정이며, 프로토타입 한정 잠정값을 쓴다.** 원문은 `정상/이상`·`정상/주의/이상`·`정상/주의/경고/위험`·`정상/주의/위험`·`정상/주의/경고/위협` 5가지를 혼용하고 알람 우선순위는 `긴급/주의/정보`로 따로 정의한다(INC-01·03·04 → `docs/requirements/source-inconsistencies.md`). **잠정 채택: 4단계 `정상 / 주의 / 경고 / 위험`(발표자료 p.15), 이상 점수 구간 `정상 0–49 · 주의 50–69 · 경고 70–79 · 위험 80–100`.** 값은 `shared/config/provisional.ts`에 `PROVISIONAL_` 접두사로만 두고, 라벨·색·순서를 전 화면 동일하게 쓴다. 화면별 임의 등급 추가·병합 금지(A2). 확정 시 이 파일 하나만 교체한다 |
 | **E3** | **AI 결과에는 근거를 함께 표시한다.** 이상 점수·예측값·추정 경향(상승/유지/하락)은 산출 시각과 대상 기간을 함께 노출하고, 값이 없으면 임의 보간·더미 없이 빈 상태로 둔다(R19) |
 | **E4** | **시계열 데이터는 결측·통신 두절 구간을 0으로 그리지 않는다.** 결측은 끊긴 구간으로 표현한다 |
 | **E5** | **시각은 표시 기준 시간대를 명시한다.** 수집 주기(1~10분)와 조회 기간이 함께 드러나야 한다 |
-| **E6** | **권한(RBAC: 관리자/운영자/게스트)에 따른 UI 노출은 서버 응답 권한을 근거로 한다.** 클라이언트 상수로 권한을 추정해 분기하지 않는다 |
+| **E6** | **권한(RBAC: 관리자/운영자/게스트)에 따른 UI 노출은 서버 응답 권한을 근거로 한다.** 클라이언트 상수로 권한을 추정해 분기하지 않는다. — **현 단계 예외:** 서버가 없으므로 mock 사용자 컨텍스트로 역할을 전환한다. 이 분기는 **인가가 아니라 시연용 표시**이며, 해당 코드에 그 사실을 WHY 주석으로 남긴다. 백엔드 착수 시 원칙으로 복귀한다 |
