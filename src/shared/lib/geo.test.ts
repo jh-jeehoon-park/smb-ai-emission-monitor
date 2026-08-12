@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { PROVINCE_SHAPES } from '@/shared/config/korea-provinces';
 import { SITE_SCENARIOS } from '@/shared/config/demo-scenario';
+import { MAP_BOUNDS } from '@/shared/config/korea-outline';
 import { roundTo } from './prng';
-import { projectToMap } from './geo';
+import { PROJECTION_SIZE, projectToMap } from './geo';
 
 /** 화면이 실제로 투영하는 좌표 — 시도 라벨 17개 + 사업장 핀 10개 */
 const USED_COORDS: [lat: number, lng: number][] = [
@@ -41,10 +42,22 @@ describe('projectToMap', () => {
     for (const [lat, lng] of USED_COORDS) {
       const { x, y } = projectToMap(lat, lng);
       expect(x).toBeGreaterThanOrEqual(0);
-      expect(x).toBeLessThanOrEqual(400);
+      expect(x).toBeLessThanOrEqual(PROJECTION_SIZE.width);
       expect(y).toBeGreaterThanOrEqual(0);
-      expect(y).toBeLessThanOrEqual(520);
+      expect(y).toBeLessThanOrEqual(PROJECTION_SIZE.height);
     }
+  });
+
+  /**
+   * Mercator는 경도와 위도에 같은 축척을 써야 도형이 늘어나지 않는다.
+   * 처음엔 캔버스 높이를 520으로 잡아 y가 8.3% 눌려 한국이 가로로 뚱뚱했다.
+   */
+  it('경도와 위도의 축척이 같다 — 도형이 늘어나지 않는다', () => {
+    const mercY = (v: number) => Math.log(Math.tan(Math.PI / 4 + (v * Math.PI) / 360));
+    const lngScale = PROJECTION_SIZE.width / ((MAP_BOUNDS.maxLng - MAP_BOUNDS.minLng) * (Math.PI / 180));
+    const latScale = PROJECTION_SIZE.height / (mercY(MAP_BOUNDS.maxLat) - mercY(MAP_BOUNDS.minLat));
+
+    expect(lngScale / latScale).toBeCloseTo(1, 3);
   });
 
   it('북쪽일수록 y가 작고 동쪽일수록 x가 크다', () => {

@@ -1,8 +1,16 @@
 import { MAP_BOUNDS } from '@/shared/config/korea-outline';
 import { roundTo } from '@/shared/lib/prng';
 
-/** 외곽선을 구울 때 쓴 투영 캔버스 크기. viewBox를 잘라도 이 값은 그대로여야 한다 */
-const PROJECTION_SIZE = { width: 400, height: 520 };
+/**
+ * 도형을 구울 때 쓴 투영 캔버스. viewBox를 잘라도 이 값은 그대로여야 한다.
+ *
+ * **높이는 임의로 정할 수 없다.** Mercator는 경도와 위도에 같은 축척을 써야 도형이
+ * 늘어나지 않는데, 처음엔 높이를 520으로 잡아 y가 8.3% 눌려 있었다 —
+ * 한국이 가로로 8.3% 뚱뚱하게 그려졌다. MAP_BOUNDS(경도 5°, 위도 33~38.7°)에서
+ * 폭 400에 맞는 높이는 563.05다. 경계를 바꾸면 이 값도 다시 계산해야 하고,
+ * `korea-provinces.ts`의 구운 좌표도 같은 비율로 다시 구워야 한다.
+ */
+export const PROJECTION_SIZE = { width: 400, height: 563.05 } as const;
 
 /**
  * SVG 좌표를 소수 셋째 자리에서 끊는다.
