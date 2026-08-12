@@ -28,7 +28,7 @@ import { AnomalyPanel } from '@/widgets/anomaly-panel';
 import { AnomalyTimeline } from '@/widgets/anomaly-timeline';
 import { EquipmentPanel } from '@/widgets/equipment-panel';
 import { ForecastChart } from '@/widgets/forecast-chart';
-import { SiteMapPanel } from '@/widgets/site-map';
+import { SiteMapLegend, SiteMapPanel } from '@/widgets/site-map';
 import { SiteWallboard } from '@/widgets/site-wallboard';
 import { WaterQualityGrid } from '@/widgets/water-quality-grid';
 import { TREND_LABELS } from '@/entities/prediction';
@@ -56,11 +56,15 @@ export function DashboardView() {
   );
 
   return (
-    /* 지도는 스크롤해도 남는 좌측 레일에 둔다. 상세를 보는 동안에도 전체 위치가 보여야 한다 */
-    <div className="grid gap-3 xl:grid-cols-[320px_minmax(0,1fr)]">
+    /* 지도는 스크롤해도 남는 좌측 레일에 둔다. 상세를 보는 동안에도 전체 위치가 보여야 한다.
+       544 = 지도 영역 510 + 패널 좌우 패딩 16×2 + 보더 1×2.
+       1280 미만에서는 레일을 만들지 않는다 — 1024에서 나누면 오른쪽에 210px밖에 남지 않아
+       KPI 타일이 44px로 뭉개진다. 대신 지도가 본문 위에 전폭으로 놓인다. */
+    <div className="grid gap-3 xl:grid-cols-[544px_minmax(0,1fr)]">
       <Panel
         eyebrow="관리자 · 전체 사업장"
         title="사업장 위치"
+        action={<SiteMapLegend />}
         className="xl:sticky xl:top-[104px] xl:self-start"
       >
         <SiteMapPanel sites={SITES} selectedId={selectedSiteId} onSelect={setSelectedSiteId} />
