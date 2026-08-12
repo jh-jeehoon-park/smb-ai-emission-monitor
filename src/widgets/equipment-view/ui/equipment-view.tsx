@@ -124,21 +124,25 @@ function CrossSiteRanking({ selectedSiteId }: { selectedSiteId: string }) {
               className="h-6 w-[3px] shrink-0 rounded-full"
               style={{ backgroundColor: visual.hex }}
             />
-            <span className="min-w-[160px] flex-1 text-[12px] text-fg">
+            <span className="min-w-0 flex-1 basis-[180px] text-[12px] text-fg">
               {row.equipment.name}
               <span className="ml-2 text-[11px] text-fg-subtle">
                 {row.siteName} · {row.region}
               </span>
             </span>
-            <StatusBadge level={row.equipment.status} size="sm" className="shrink-0" />
-            <span className="num w-[92px] shrink-0 text-right text-[11px] text-fg-muted">
-              고장 {row.equipment.failureProbability}%
-            </span>
-            <span className="num w-[84px] shrink-0 text-right text-[11px] text-fg-muted">
-              {row.equipment.remainingUsefulLifeDays}일
-            </span>
-            <span className="num w-[64px] shrink-0 text-right text-[13px] text-fg">
-              {row.equipment.maintenancePriorityIndex}
+
+            {/* 수치는 한 덩어리로 묶어 좁은 화면에서 통째로 다음 줄로 내려가게 한다 */}
+            <span className="flex shrink-0 items-center gap-3">
+              <StatusBadge level={row.equipment.status} size="sm" />
+              <span className="num w-[76px] text-right text-[11px] text-fg-muted">
+                고장 {row.equipment.failureProbability}%
+              </span>
+              <span className="num w-[56px] text-right text-[11px] text-fg-muted">
+                {row.equipment.remainingUsefulLifeDays}일
+              </span>
+              <span className="num w-[44px] text-right text-[13px] text-fg">
+                {row.equipment.maintenancePriorityIndex}
+              </span>
             </span>
           </li>
         );
