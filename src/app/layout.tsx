@@ -24,7 +24,7 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'AquaSense AI Platform — 배출관리 관제',
+  title: 'AI 기반 지능형 배출관리 플랫폼',
   description: 'AIoT 기반 소규모 사업장 오염물질 배출 관리 시스템 프로토타입',
 };
 

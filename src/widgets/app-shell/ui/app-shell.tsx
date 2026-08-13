@@ -33,11 +33,9 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Waves size={15} strokeWidth={2.2} />
           </span>
           <div className="min-w-0">
-            <p className="font-display text-[13px] font-semibold leading-none tracking-tight text-fg">
-              AquaSense
-            </p>
-            <p className="mt-1 text-[11px] uppercase tracking-[0.14em] text-fg-subtle">
-              AI Platform
+            {/* 사업계획서 p.37·p.118의 국문 정식명. 폭이 좁아 줄여 쓰고 싶어지지만 줄이지 않는다(A2). */}
+            <p className="font-display break-keep text-[13px] font-semibold leading-[1.35] tracking-tight text-fg">
+              AI 기반 지능형 배출관리 플랫폼
             </p>
           </div>
         </div>
