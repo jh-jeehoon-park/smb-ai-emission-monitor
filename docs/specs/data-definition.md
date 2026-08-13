@@ -5,7 +5,7 @@
 | 항목 | 내용 |
 |------|------|
 | 문서명 | 데이터 정의 |
-| 버전 | v1.2.0 |
+| 버전 | v1.2.1 |
 | 작성일 | 2026-08-13 |
 | 기반 문서 | /docs/specs/README.md, /docs/specs/screens.md, /docs/analysis/data-dictionary.md, /docs/requirements/source-inconsistencies.md |
 
@@ -19,6 +19,7 @@
 | v1.1.0 | 2026-08-13 | Claude | §2.2 커버리지 표를 실제 선언 수로 갱신하고 `verify:docs` 검사 대상으로 지정. §6에 `표시 자릿수`·`대상 항목 코드·명` 행 추가(ForecastSummary.decimals 누락 해소). 계측 외 표시 자릿수(이상 점수 평균·처리율·가동률·기여도)를 §3·§5·§10·§11에 근거와 함께 기재 |
 | v1.1.1 | 2026-08-13 | Claude | 표시 자릿수의 실체를 `constants.ts` → `provisional.ts`로 옮긴 것을 반영(§3 규칙 2 위반이었다). §2 원천 표·§10 주석의 경로 갱신, §2.2 prediction 선언 수 25로 갱신(`TrendEstimate.decimals` 추가분) |
 | v1.2.0 | 2026-08-13 | Claude | §4.1 "원문이 요구했으나 화면에 없는 데이터" 신설 — 원문 p.1 필요 데이터 4그룹 전수 대조로 5개 항목(수위·방류 여부·설비 ON/OFF·배출주기·공정 운영 정보) 누락 확인. 그 밖에 압력·펌프/밸브 운전상태·**설비 가동률**(시스템 가동률과 다른 값) 추가. §2.2에 대조 축 2종(코드→문서 / 원문→문서) 명시. 기존 §4.1은 §4.2로 |
+| v1.2.1 | 2026-08-13 | Claude | 화면 ID 재배치 반영 — `SCR-AD-00n` → `SCR-OP-00n` (99곳) |
 
 ---
 
@@ -80,20 +81,20 @@
 
 | 요구사항ID | 화면ID | 데이터명 | 타입 | 단위 | 계산식/로직 | 출처·근거 | UI | UI 위치 |
 |---|---|---|---|---|---|---|---|---|
-| REQ-AD-026 | SCR-AD-001 | 사업장 ID | string | — | — | `[설계]` | N | — |
-| REQ-AD-026 | SCR-AD-001 | 사업장명 | string | — | — | `[설계]` | Y | 지도 핀 · 월보드 카드 · 헤더 선택 |
-| REQ-AD-026 | SCR-AD-001 | 업종 | 열거 5종 | — | — | `[원문 p.37]` 섬유·염색/식품/화학/도금/전자부품 | Y | 월보드 카드 |
-| REQ-AD-026 | SCR-AD-001 | 지역 | string | — | — | `[PROVISIONAL]` 시·군 표기 | Y | 월보드 카드 · 헤더 선택 |
-| REQ-AD-026 | SCR-AD-001 | 주소 | string | — | — | `[PROVISIONAL]` 실증지 주소가 원문에 없어 시·군까지만 | Y | 지도 요약 카드 |
-| REQ-AD-026 | SCR-AD-001 | 소속 시도 | string | — | — | `[PROVISIONAL]` 지도 도형과 매칭용 | N | — |
-| REQ-AD-026 | SCR-AD-001 | 좌표 | `[lat, lng]` | 도(°) | — | `[PROVISIONAL]` 주소 기준 시·군 중심 근사값. **주소와 함께 갱신** | Y | 지도 핀 위치 |
-| REQ-AD-006 | SCR-AD-001·002 | 이상 점수 | number \| null | 점 | `[파생: 이상 점수 계열의 마지막 값]` | `[원문 p.64]` 0~100 정규화 | Y | 월보드 카드 · 지표 타일 · 순위 |
-| REQ-AD-007 | SCR-AD-001·002 | 상태 등급 | 4등급 \| null | — | `[파생: toStatusLevel(이상 점수)]` | `[INC-01·03·04]` 잠정 4단계 · 경계 `[TBD-02]` | Y | 상태 배지 · 지도 핀 색 |
-| REQ-AD-026 | SCR-AD-001 | 통신 상태 | boolean | — | — | `[설계]` ECP 수신 여부 | Y | 핀 형태(채움/테두리) · 빈 상태 분기 |
-| REQ-AD-026 | SCR-AD-001 | 마지막 수신 시각 | ISO8601 | KST | — | `[설계]` **E3·E5** | Y | 빈 상태 안내 |
-| REQ-AD-026 | SCR-AD-001 | 추이 스파크라인 | (number\|null)[] | 점 | `[파생: 이상 점수 계열 다운샘플]` | `[설계]` | Y | 월보드 카드 · 순위 |
-| REQ-NF-002 | SCR-AD-001·008 | 데이터 처리율 | number | % | — | `[원문 p.3·121]` 목표 ≥98% · 자릿수 1 `[PROVISIONAL]` | Y | 지표 타일 · 리포트 표 |
-| REQ-NF-006 | SCR-AD-001·008 | 시스템 가동률 | number | % | — | `[원문 p.38·119]` 목표 ≥95% · **산정식 `[TBD]`** · 자릿수 1 `[PROVISIONAL]` | Y | 지표 타일 · 리포트 표 |
+| REQ-AD-026 | SCR-OP-001 | 사업장 ID | string | — | — | `[설계]` | N | — |
+| REQ-AD-026 | SCR-OP-001 | 사업장명 | string | — | — | `[설계]` | Y | 지도 핀 · 월보드 카드 · 헤더 선택 |
+| REQ-AD-026 | SCR-OP-001 | 업종 | 열거 5종 | — | — | `[원문 p.37]` 섬유·염색/식품/화학/도금/전자부품 | Y | 월보드 카드 |
+| REQ-AD-026 | SCR-OP-001 | 지역 | string | — | — | `[PROVISIONAL]` 시·군 표기 | Y | 월보드 카드 · 헤더 선택 |
+| REQ-AD-026 | SCR-OP-001 | 주소 | string | — | — | `[PROVISIONAL]` 실증지 주소가 원문에 없어 시·군까지만 | Y | 지도 요약 카드 |
+| REQ-AD-026 | SCR-OP-001 | 소속 시도 | string | — | — | `[PROVISIONAL]` 지도 도형과 매칭용 | N | — |
+| REQ-AD-026 | SCR-OP-001 | 좌표 | `[lat, lng]` | 도(°) | — | `[PROVISIONAL]` 주소 기준 시·군 중심 근사값. **주소와 함께 갱신** | Y | 지도 핀 위치 |
+| REQ-AD-006 | SCR-OP-001·002 | 이상 점수 | number \| null | 점 | `[파생: 이상 점수 계열의 마지막 값]` | `[원문 p.64]` 0~100 정규화 | Y | 월보드 카드 · 지표 타일 · 순위 |
+| REQ-AD-007 | SCR-OP-001·002 | 상태 등급 | 4등급 \| null | — | `[파생: toStatusLevel(이상 점수)]` | `[INC-01·03·04]` 잠정 4단계 · 경계 `[TBD-02]` | Y | 상태 배지 · 지도 핀 색 |
+| REQ-AD-026 | SCR-OP-001 | 통신 상태 | boolean | — | — | `[설계]` ECP 수신 여부 | Y | 핀 형태(채움/테두리) · 빈 상태 분기 |
+| REQ-AD-026 | SCR-OP-001 | 마지막 수신 시각 | ISO8601 | KST | — | `[설계]` **E3·E5** | Y | 빈 상태 안내 |
+| REQ-AD-026 | SCR-OP-001 | 추이 스파크라인 | (number\|null)[] | 점 | `[파생: 이상 점수 계열 다운샘플]` | `[설계]` | Y | 월보드 카드 · 순위 |
+| REQ-NF-002 | SCR-OP-001·008 | 데이터 처리율 | number | % | — | `[원문 p.3·121]` 목표 ≥98% · 자릿수 1 `[PROVISIONAL]` | Y | 지표 타일 · 리포트 표 |
+| REQ-NF-006 | SCR-OP-001·008 | 시스템 가동률 | number | % | — | `[원문 p.38·119]` 목표 ≥95% · **산정식 `[TBD]`** · 자릿수 1 `[PROVISIONAL]` | Y | 지표 타일 · 리포트 표 |
 
 ---
 
@@ -105,18 +106,18 @@
 
 | 요구사항ID | 화면ID | 데이터명 | 코드 | 타입 | 단위 | 범위 | 정확도 | 자릿수 | UI 위치 |
 |---|---|---|---|---|---|---|---|---|---|
-| REQ-AD-001 | SCR-AD-001·003 | 측정 시각 | `t` | ISO8601 | KST | — | — | — | 차트 x축 · 툴팁 |
-| REQ-AD-001 | SCR-AD-001·003 | 수소이온농도 | `pH` | number \| null | — | 0~14 | ±0.1 | 2 | 계측 격자 · 요약표 |
-| REQ-AD-001 | SCR-AD-001·003 | 전기전도도 | `EC` | number \| null | μS/cm | 0~20,000 | ±2% | 0 | 계측 격자 · 요약표 |
-| REQ-AD-001 | SCR-AD-001·003 | 탁도 | `turbidity` | number \| null | NTU | 0~4,000 | ±5% | 1 | 계측 격자 · 요약표 |
-| REQ-AD-001 | SCR-AD-001·003 | 용존산소 | `DO` | number \| null | mg/L | 0~20 | ±0.2 mg/L | 2 | 계측 격자 · 요약표 |
-| REQ-AD-001 | SCR-AD-001·003 | 수온 | `temperature` | number \| null | ℃ | 0~50 | ±0.5℃ | 1 | 계측 격자 · 요약표 |
-| REQ-AD-001 | SCR-AD-001·003 | 색도 | `chromaticity` | number \| null | Pt-Co | 0~500 | ±10 Pt-Co | 0 | 계측 격자 · 요약표 |
-| REQ-AD-001 | SCR-AD-001·003 | 질산성질소 | `NO3N` | number \| null | mg/L | 0~100 | ±5% | 2 | 계측 격자 · 요약표 |
-| REQ-AD-001 | SCR-AD-001·003 | 총유기탄소 | `TOC` | number \| null | mg/L | 0~500 | ±10% | 1 | 계측 격자 · 요약표 |
-| REQ-AD-003 | SCR-AD-003 | 전류 | `current` | number \| null | A | 0~500 | ±1% | 1 | 계측 격자(설비) |
-| REQ-AD-003 | SCR-AD-003·006 | 전력 | `power` | number \| null | kW | 0~100 | ±1% | 1 | 계측 격자 · 에너지 효율 산출 |
-| REQ-AD-003 | SCR-AD-003·006 | 유량 | `flow` | number \| null | m³/day | 0~1,000 | ±2% | 0 | 계측 격자 · 에너지 효율 산출 |
+| REQ-AD-001 | SCR-OP-001·003 | 측정 시각 | `t` | ISO8601 | KST | — | — | — | 차트 x축 · 툴팁 |
+| REQ-AD-001 | SCR-OP-001·003 | 수소이온농도 | `pH` | number \| null | — | 0~14 | ±0.1 | 2 | 계측 격자 · 요약표 |
+| REQ-AD-001 | SCR-OP-001·003 | 전기전도도 | `EC` | number \| null | μS/cm | 0~20,000 | ±2% | 0 | 계측 격자 · 요약표 |
+| REQ-AD-001 | SCR-OP-001·003 | 탁도 | `turbidity` | number \| null | NTU | 0~4,000 | ±5% | 1 | 계측 격자 · 요약표 |
+| REQ-AD-001 | SCR-OP-001·003 | 용존산소 | `DO` | number \| null | mg/L | 0~20 | ±0.2 mg/L | 2 | 계측 격자 · 요약표 |
+| REQ-AD-001 | SCR-OP-001·003 | 수온 | `temperature` | number \| null | ℃ | 0~50 | ±0.5℃ | 1 | 계측 격자 · 요약표 |
+| REQ-AD-001 | SCR-OP-001·003 | 색도 | `chromaticity` | number \| null | Pt-Co | 0~500 | ±10 Pt-Co | 0 | 계측 격자 · 요약표 |
+| REQ-AD-001 | SCR-OP-001·003 | 질산성질소 | `NO3N` | number \| null | mg/L | 0~100 | ±5% | 2 | 계측 격자 · 요약표 |
+| REQ-AD-001 | SCR-OP-001·003 | 총유기탄소 | `TOC` | number \| null | mg/L | 0~500 | ±10% | 1 | 계측 격자 · 요약표 |
+| REQ-AD-003 | SCR-OP-003 | 전류 | `current` | number \| null | A | 0~500 | ±1% | 1 | 계측 격자(설비) |
+| REQ-AD-003 | SCR-OP-003·006 | 전력 | `power` | number \| null | kW | 0~100 | ±1% | 1 | 계측 격자 · 에너지 효율 산출 |
+| REQ-AD-003 | SCR-OP-003·006 | 유량 | `flow` | number \| null | m³/day | 0~1,000 | ±2% | 0 | 계측 격자 · 에너지 효율 산출 |
 
 > **EC 단위 모순:** 계측 사양 `[원문 p.55]` μS/cm vs H/W 성능지표 `[원문 p.35]` mS/cm. **계측 사양을 따랐다.**
 > **TN·TP는 여기 없다.** AI 추정 대상으로 다뤘다 `[원문 발표 p.17]` → §6. 센서 유무 자체는 원문이 확정하지 않았다 `[TBD-21]`.
@@ -153,13 +154,13 @@
 
 | 요구사항ID | 화면ID | 데이터명 | 타입 | 단위 | 계산식/로직 | UI |
 |---|---|---|---|---|---|---|
-| REQ-AD-001 | SCR-AD-003 | 최소 | number \| null | 항목 단위 | `[파생: 결측 제외 min]` | Y |
-| REQ-AD-001 | SCR-AD-003 | 평균 | number \| null | 항목 단위 | `[파생: 결측 제외 평균]` | Y |
-| REQ-AD-001 | SCR-AD-003 | 최대 | number \| null | 항목 단위 | `[파생: 결측 제외 max]` | Y |
-| REQ-AD-001 | SCR-AD-003 | 최신 | number \| null | 항목 단위 | `[파생: 마지막 표본의 값]` — **결측이면 앞 값을 끌어오지 않는다** | Y |
-| REQ-AD-001 | SCR-AD-003 | 결측 표본 수 | number | 건 | `[파생: null 개수]` | Y |
-| REQ-AD-001 | SCR-AD-003 | 전체 표본 수 | number | 건 | `[파생: 구간 표본 수]` | Y |
-| REQ-AD-017 | SCR-AD-006 | 에너지 효율 | number \| null | kWh/m³ | `[파생: 평균전력(kW) × 24 ÷ 평균유량(m³/day)]` · 단위 `[원문 p.67]` | Y |
+| REQ-AD-001 | SCR-OP-003 | 최소 | number \| null | 항목 단위 | `[파생: 결측 제외 min]` | Y |
+| REQ-AD-001 | SCR-OP-003 | 평균 | number \| null | 항목 단위 | `[파생: 결측 제외 평균]` | Y |
+| REQ-AD-001 | SCR-OP-003 | 최대 | number \| null | 항목 단위 | `[파생: 결측 제외 max]` | Y |
+| REQ-AD-001 | SCR-OP-003 | 최신 | number \| null | 항목 단위 | `[파생: 마지막 표본의 값]` — **결측이면 앞 값을 끌어오지 않는다** | Y |
+| REQ-AD-001 | SCR-OP-003 | 결측 표본 수 | number | 건 | `[파생: null 개수]` | Y |
+| REQ-AD-001 | SCR-OP-003 | 전체 표본 수 | number | 건 | `[파생: 구간 표본 수]` | Y |
+| REQ-AD-017 | SCR-OP-006 | 에너지 효율 | number \| null | kWh/m³ | `[파생: 평균전력(kW) × 24 ÷ 평균유량(m³/day)]` · 단위 `[원문 p.67]` | Y |
 
 ---
 
@@ -169,17 +170,17 @@
 
 | 요구사항ID | 화면ID | 데이터명 | 타입 | 단위 | 계산식/로직 | 출처·근거 | UI |
 |---|---|---|---|---|---|---|---|
-| REQ-AD-006 | SCR-AD-001·002 | 측정 시각 | ISO8601 | KST | — | `[설계]` 계측과 같은 시간축 | Y |
-| REQ-AD-006 | SCR-AD-001·002 | 이상 점수(시계열) | number \| null | 점 | — | `[원문 p.64]` 0~100 | Y |
-| REQ-AD-006 | SCR-AD-002 | 이상 점수(현재) | number \| null | 점 | — | `[원문 p.64]` | Y |
-| REQ-AD-007 | SCR-AD-002 | 상태 등급 | 4등급 \| null | — | `[파생: 점수 구간 판정]` | `[INC-01·03·04]` `[TBD-02]` | Y |
-| REQ-AD-006 | SCR-AD-002 | 통신 상태 | boolean | — | — | `[설계]` | N |
-| REQ-AD-005 | SCR-AD-002 | 산출 시각 | ISO8601 | KST | — | **E3** | Y |
-| REQ-AD-005 | SCR-AD-002 | 대상 기간 | string | — | — | **E3** | Y |
-| REQ-AD-005 | SCR-AD-002 | 산출 모델 | string | — | — | `[원문 p.64]` AutoEncoder | Y |
-| REQ-AD-008 | SCR-AD-002 | 기여 변수명 | string | — | — | `[원문 p.64]` Feature Attribution | Y |
-| REQ-AD-008 | SCR-AD-002 | 기여도 | number | 0~1 | `[파생: × 100 → %로 표시]` | `[원문 p.64]` · 표시 자릿수 0 `[PROVISIONAL]` | Y |
-| REQ-AD-008 | SCR-AD-002 | 기여 방향 | `up`\|`down` | — | — | `[설계]` 상승/하강 기여 구분 | Y |
+| REQ-AD-006 | SCR-OP-001·002 | 측정 시각 | ISO8601 | KST | — | `[설계]` 계측과 같은 시간축 | Y |
+| REQ-AD-006 | SCR-OP-001·002 | 이상 점수(시계열) | number \| null | 점 | — | `[원문 p.64]` 0~100 | Y |
+| REQ-AD-006 | SCR-OP-002 | 이상 점수(현재) | number \| null | 점 | — | `[원문 p.64]` | Y |
+| REQ-AD-007 | SCR-OP-002 | 상태 등급 | 4등급 \| null | — | `[파생: 점수 구간 판정]` | `[INC-01·03·04]` `[TBD-02]` | Y |
+| REQ-AD-006 | SCR-OP-002 | 통신 상태 | boolean | — | — | `[설계]` | N |
+| REQ-AD-005 | SCR-OP-002 | 산출 시각 | ISO8601 | KST | — | **E3** | Y |
+| REQ-AD-005 | SCR-OP-002 | 대상 기간 | string | — | — | **E3** | Y |
+| REQ-AD-005 | SCR-OP-002 | 산출 모델 | string | — | — | `[원문 p.64]` AutoEncoder | Y |
+| REQ-AD-008 | SCR-OP-002 | 기여 변수명 | string | — | — | `[원문 p.64]` Feature Attribution | Y |
+| REQ-AD-008 | SCR-OP-002 | 기여도 | number | 0~1 | `[파생: × 100 → %로 표시]` | `[원문 p.64]` · 표시 자릿수 0 `[PROVISIONAL]` | Y |
+| REQ-AD-008 | SCR-OP-002 | 기여 방향 | `up`\|`down` | — | — | `[설계]` 상승/하강 기여 구분 | Y |
 
 ### 5.1 상태 등급 (`StatusLevel`) — 전 화면 공통
 
@@ -202,23 +203,23 @@
 
 | 요구사항ID | 화면ID | 데이터명 | 타입 | 단위 | 계산식/로직 | 출처·근거 | UI |
 |---|---|---|---|---|---|---|---|
-| REQ-AD-010 | SCR-AD-004 | 시각 | ISO8601 | KST | — | `[설계]` 실측+예측 한 축 | Y |
-| REQ-AD-010 | SCR-AD-004 | 실측값 | number \| null | mg/L | — | 실측 구간에만. 예측 구간은 `null` | Y |
-| REQ-AD-010 | SCR-AD-004 | 예측값 | number \| null | mg/L | — | `[원문 p.32·65]` | Y |
-| REQ-AD-009 | SCR-AD-004 | 신뢰구간 하한 | number \| null | mg/L | — | `[원문 p.32·65]` · **신뢰수준 `[TBD]`** | Y |
-| REQ-AD-009 | SCR-AD-004 | 신뢰구간 상한 | number \| null | mg/L | — | 동일 | Y |
-| REQ-AD-014 | SCR-AD-004 | 대상 항목명 | string | — | — | `[원문 p.68]` TOC/TN/TP | Y |
-| REQ-AD-014 | SCR-AD-004 | 단위 | string | mg/L | — | `[원문 p.68]` | Y |
-| REQ-AD-014 | SCR-AD-004 | 대상 항목 코드·명 | string | — | — | `[원문 p.68]` TOC/TN/TP · 경향 카드 3개의 식별 | Y |
-| REQ-AD-014 | SCR-AD-004 | 표시 자릿수 | number | 자리 | — | `[PROVISIONAL]` TOC·TN 1 · TP 2. **요약과 경향 카드가 각각 값과 함께 낸다** — 위젯이 임의로 반올림하거나 프로파일을 되찾아 오지 못하게(**E1**) | N |
-| REQ-AD-009 | SCR-AD-004 | 예측 지평 | number | 시간 | — | `[원문 p.32·65]` 1~6시간 | Y |
-| REQ-AD-010 | SCR-AD-004 | 통신 상태 | boolean | — | — | `[설계]` 두절이면 예측도 산출되지 않는다 | N |
-| REQ-AD-005 | SCR-AD-004 | 산출 시각 | ISO8601 | KST | — | **E3** | Y |
-| REQ-AD-005 | SCR-AD-004 | 입력 대상 기간 | string | — | — | `[원문 p.65]` 과거 24시간 다변량 시계열 **E3** | Y |
-| REQ-AD-005 | SCR-AD-004 | 산출 모델 | string | — | — | `[원문 p.65·66]` **E3** | Y |
-| REQ-AD-011 | SCR-AD-004 | 경향 | `rising`\|`steady`\|`falling` | — | — | `[원문 발표 p.17]` 상승/유지/하락 `[INC-05]` | Y |
-| REQ-AD-011 | SCR-AD-004 | 경향 값 | number | mg/L | `[파생: 예측 계열 마지막 지점]` | `[설계]` 차트와 카드를 일치시키려고 | Y |
-| REQ-AD-011 | SCR-AD-004 | 결정계수 R² | number \| null | 0~1 | — | **TN·TP만** `[원문 p.27]` · TOC는 원문에 없어 `null` `[INC-20·21]` | Y |
+| REQ-AD-010 | SCR-OP-004 | 시각 | ISO8601 | KST | — | `[설계]` 실측+예측 한 축 | Y |
+| REQ-AD-010 | SCR-OP-004 | 실측값 | number \| null | mg/L | — | 실측 구간에만. 예측 구간은 `null` | Y |
+| REQ-AD-010 | SCR-OP-004 | 예측값 | number \| null | mg/L | — | `[원문 p.32·65]` | Y |
+| REQ-AD-009 | SCR-OP-004 | 신뢰구간 하한 | number \| null | mg/L | — | `[원문 p.32·65]` · **신뢰수준 `[TBD]`** | Y |
+| REQ-AD-009 | SCR-OP-004 | 신뢰구간 상한 | number \| null | mg/L | — | 동일 | Y |
+| REQ-AD-014 | SCR-OP-004 | 대상 항목명 | string | — | — | `[원문 p.68]` TOC/TN/TP | Y |
+| REQ-AD-014 | SCR-OP-004 | 단위 | string | mg/L | — | `[원문 p.68]` | Y |
+| REQ-AD-014 | SCR-OP-004 | 대상 항목 코드·명 | string | — | — | `[원문 p.68]` TOC/TN/TP · 경향 카드 3개의 식별 | Y |
+| REQ-AD-014 | SCR-OP-004 | 표시 자릿수 | number | 자리 | — | `[PROVISIONAL]` TOC·TN 1 · TP 2. **요약과 경향 카드가 각각 값과 함께 낸다** — 위젯이 임의로 반올림하거나 프로파일을 되찾아 오지 못하게(**E1**) | N |
+| REQ-AD-009 | SCR-OP-004 | 예측 지평 | number | 시간 | — | `[원문 p.32·65]` 1~6시간 | Y |
+| REQ-AD-010 | SCR-OP-004 | 통신 상태 | boolean | — | — | `[설계]` 두절이면 예측도 산출되지 않는다 | N |
+| REQ-AD-005 | SCR-OP-004 | 산출 시각 | ISO8601 | KST | — | **E3** | Y |
+| REQ-AD-005 | SCR-OP-004 | 입력 대상 기간 | string | — | — | `[원문 p.65]` 과거 24시간 다변량 시계열 **E3** | Y |
+| REQ-AD-005 | SCR-OP-004 | 산출 모델 | string | — | — | `[원문 p.65·66]` **E3** | Y |
+| REQ-AD-011 | SCR-OP-004 | 경향 | `rising`\|`steady`\|`falling` | — | — | `[원문 발표 p.17]` 상승/유지/하락 `[INC-05]` | Y |
+| REQ-AD-011 | SCR-OP-004 | 경향 값 | number | mg/L | `[파생: 예측 계열 마지막 지점]` | `[설계]` 차트와 카드를 일치시키려고 | Y |
+| REQ-AD-011 | SCR-OP-004 | 결정계수 R² | number \| null | 0~1 | — | **TN·TP만** `[원문 p.27]` · TOC는 원문에 없어 `null` `[INC-20·21]` | Y |
 
 ### 6.1 예측 항목별 프로파일
 
@@ -228,7 +229,7 @@
 | TN 총질소 | 추정만 | mg/L | 1 | 0.886 | AI 추정 대상 `[원문 발표 p.17]` · R² `[원문 p.27]` · 센서 유무 미확정 `[TBD-21]` |
 | TP 총인 | 추정만 | mg/L | 2 | 0.782 | 동일 `[원문 발표 p.17]` · R² `[원문 p.27]` · `[TBD-21]` |
 
-**세 항목의 계측 지위는 원문이 확정하지 않았다** — 위 "화면 처리"는 우리가 채택한 방식이다. 병존 서술의 전문은 [SCR-AD-004 §4.1](screens/SCR-AD-004-오염도추정.md)에 있다.
+**세 항목의 계측 지위는 원문이 확정하지 않았다** — 위 "화면 처리"는 우리가 채택한 방식이다. 병존 서술의 전문은 [SCR-OP-004 §4.1](screens/SCR-OP-004-오염도추정.md)에 있다.
 
 **TOC의 R²는 원문에 없어 값을 만들지 않았다**(**E3**). 화면은 `원문 미규정`으로 표시한다 `[설계: 검증되지 않은 성능 수치를 띄우면 확정된 실적처럼 읽힌다]`.
 
@@ -242,13 +243,13 @@ R² 값 자체도 원문에서 갈린다 `[INC-20·21]` — TN·TP `0.886/0.782`
 
 | 요구사항ID | 화면ID | 데이터명 | 타입 | 단위 | 계산식/로직 | 출처·근거 | UI |
 |---|---|---|---|---|---|---|---|
-| REQ-AD-012 | SCR-AD-005 | 설비 ID | string | — | — | `[설계]` | N |
-| REQ-AD-012 | SCR-AD-001·005 | 설비명 | string | — | — | `[원문 p.30]` 펌프·폭기장치 | Y |
-| REQ-AD-012 | SCR-AD-001·005 | 고장 확률 | number | % | — | `[원문 p.66]` 0~100% | Y |
-| REQ-AD-012 | SCR-AD-001·005 | 잔여 수명(RUL) | number | 일 | — | `[원문 p.66]` · **단위 `[PROVISIONAL]`** | Y |
-| REQ-AD-018 | SCR-AD-001·005 | MPI | number | 상대 지수 | **산식 없음** | `[원문 p.32]` · **`[TBD-22]` 산정식·범위·단위 없음** | Y |
-| REQ-AD-012 | SCR-AD-001·005 | 상태 등급 | 4등급 | — | `[파생: toStatusLevel(고장 확률)]` | `[INC-01·03·04]` | Y |
-| REQ-AD-012 | SCR-AD-005 | 누적 가동시간 | number | h | — | `[설계]` | Y |
+| REQ-AD-012 | SCR-OP-005 | 설비 ID | string | — | — | `[설계]` | N |
+| REQ-AD-012 | SCR-OP-001·005 | 설비명 | string | — | — | `[원문 p.30]` 펌프·폭기장치 | Y |
+| REQ-AD-012 | SCR-OP-001·005 | 고장 확률 | number | % | — | `[원문 p.66]` 0~100% | Y |
+| REQ-AD-012 | SCR-OP-001·005 | 잔여 수명(RUL) | number | 일 | — | `[원문 p.66]` · **단위 `[PROVISIONAL]`** | Y |
+| REQ-AD-018 | SCR-OP-001·005 | MPI | number | 상대 지수 | **산식 없음** | `[원문 p.32]` · **`[TBD-22]` 산정식·범위·단위 없음** | Y |
+| REQ-AD-012 | SCR-OP-001·005 | 상태 등급 | 4등급 | — | `[파생: toStatusLevel(고장 확률)]` | `[INC-01·03·04]` | Y |
+| REQ-AD-012 | SCR-OP-005 | 누적 가동시간 | number | h | — | `[설계]` | Y |
 
 ---
 
@@ -256,15 +257,15 @@ R² 값 자체도 원문에서 갈린다 `[INC-20·21]` — TN·TP `0.886/0.782`
 
 | 요구사항ID | 화면ID | 데이터명 | 타입 | 단위 | 계산식/로직 | 출처·근거 | UI |
 |---|---|---|---|---|---|---|---|
-| REQ-AD-024 | SCR-AD-007 | 알람 ID | string | — | — | `[설계]` | N |
-| REQ-AD-024 | SCR-AD-007 | 사업장 ID·명 | string | — | — | `[설계]` | Y |
-| REQ-AD-024 | SCR-AD-001·007 | 우선순위 | `urgent`\|`caution`\|`info` | — | — | `[원문 p.32]` 긴급/주의/정보 | Y |
-| REQ-AD-024 | SCR-AD-007 | 발생 조건 | 4종 열거 | — | — | `[원문 p.32]` 이상 탐지/오염도 급변/수질 변화 이상/설비 이상 | Y |
-| REQ-AD-024 | SCR-AD-007 | 처리 상태 | `open`\|`acknowledged`\|`resolved` | — | — | `[설계]` 원문에 상태 정의 없음 | Y |
-| REQ-AD-024 | SCR-AD-001·007 | 제목 | string | — | — | `[설계]` | Y |
-| REQ-AD-024 | SCR-AD-007 | 상세 | string | — | — | `[설계]` | Y |
-| REQ-AD-024 | SCR-AD-007 | 발생 시각 | ISO8601 | KST | — | **E5** | Y |
-| REQ-AD-024 | SCR-AD-007 | 미확인 건수 | number | 건 | `[파생: state === 'open' 개수]` | `[설계]` | Y |
+| REQ-AD-024 | SCR-OP-007 | 알람 ID | string | — | — | `[설계]` | N |
+| REQ-AD-024 | SCR-OP-007 | 사업장 ID·명 | string | — | — | `[설계]` | Y |
+| REQ-AD-024 | SCR-OP-001·007 | 우선순위 | `urgent`\|`caution`\|`info` | — | — | `[원문 p.32]` 긴급/주의/정보 | Y |
+| REQ-AD-024 | SCR-OP-007 | 발생 조건 | 4종 열거 | — | — | `[원문 p.32]` 이상 탐지/오염도 급변/수질 변화 이상/설비 이상 | Y |
+| REQ-AD-024 | SCR-OP-007 | 처리 상태 | `open`\|`acknowledged`\|`resolved` | — | — | `[설계]` 원문에 상태 정의 없음 | Y |
+| REQ-AD-024 | SCR-OP-001·007 | 제목 | string | — | — | `[설계]` | Y |
+| REQ-AD-024 | SCR-OP-007 | 상세 | string | — | — | `[설계]` | Y |
+| REQ-AD-024 | SCR-OP-007 | 발생 시각 | ISO8601 | KST | — | **E5** | Y |
+| REQ-AD-024 | SCR-OP-007 | 미확인 건수 | number | 건 | `[파생: state === 'open' 개수]` | `[설계]` | Y |
 
 ### 8.1 라벨 사전
 
@@ -284,20 +285,20 @@ R² 값 자체도 원문에서 갈린다 `[INC-20·21]` — TN·TP `0.886/0.782`
 
 | 요구사항ID | 화면ID | 데이터명 | 타입 | 단위 | 계산식/로직 | 출처·근거 | UI |
 |---|---|---|---|---|---|---|---|
-| REQ-AD-015 | SCR-AD-006 | 현재 주입량 | number | L/h | — | **`[PROVISIONAL, TBD-31]` 단위·범위 없음** | Y |
-| REQ-AD-015 | SCR-AD-006 | 권장 주입량 | number | L/h | `[파생: 현재 × (1 − 절감률)]` | `[원문 p.32·67]` | Y |
-| REQ-AD-015 | SCR-AD-006 | 주입량 단위 | string | — | — | **`[PROVISIONAL, TBD-31]`** 원문에 단위가 없다. `provisional.ts`가 유일한 실체 | Y |
-| REQ-AD-015 | SCR-AD-006 | 약품 절감률 | number | % | — | `[원문 p.27·31]` 검증 수준 20~30% | Y |
-| REQ-AD-015 | SCR-AD-006 | 권장 근거 | string[] | — | — | **E3** | Y |
-| REQ-AD-016 | SCR-AD-006 | 조정 대상 변수 | string | — | — | `[원문 p.67]` 폭기량·펌프 속도 | Y |
-| REQ-AD-016 | SCR-AD-006 | 조정 대상 설비 | string | — | — | `[설계]` | Y |
-| REQ-AD-016 | SCR-AD-006 | 조정 폭 | number | % | — | **절대 단위 `[TBD]`** — 상대 변화만 | Y |
-| REQ-AD-016 | SCR-AD-006 | 조정 이유 | string | — | — | **E3** | Y |
-| REQ-AD-017 | SCR-AD-006 | 현재 에너지 효율 | number \| null | kWh/m³ | `[파생: 평균전력 × 24 ÷ 평균유량]` | `[원문 p.67]` 단위 | Y |
-| REQ-AD-017 | SCR-AD-006 | 목표 에너지 효율 | number \| null | kWh/m³ | `[파생: 현재 × (1 − 10%)]` | `[원문 p.27·64]` | Y |
-| REQ-AD-017 | SCR-AD-006 | 에너지 절감률 | number | % | — | `[원문 p.27·64]` ≥10% | Y |
-| REQ-AD-005 | SCR-AD-006 | 산출 시각·대상 기간·모델 | string | — | — | **E3** | Y |
-| REQ-AD-015 | SCR-AD-006 | 통신 상태 | boolean | — | — | `[설계]` **두절이면 권장값이 아예 없다** — 판별 유니온으로 두 상태를 분리 | N |
+| REQ-AD-015 | SCR-OP-006 | 현재 주입량 | number | L/h | — | **`[PROVISIONAL, TBD-31]` 단위·범위 없음** | Y |
+| REQ-AD-015 | SCR-OP-006 | 권장 주입량 | number | L/h | `[파생: 현재 × (1 − 절감률)]` | `[원문 p.32·67]` | Y |
+| REQ-AD-015 | SCR-OP-006 | 주입량 단위 | string | — | — | **`[PROVISIONAL, TBD-31]`** 원문에 단위가 없다. `provisional.ts`가 유일한 실체 | Y |
+| REQ-AD-015 | SCR-OP-006 | 약품 절감률 | number | % | — | `[원문 p.27·31]` 검증 수준 20~30% | Y |
+| REQ-AD-015 | SCR-OP-006 | 권장 근거 | string[] | — | — | **E3** | Y |
+| REQ-AD-016 | SCR-OP-006 | 조정 대상 변수 | string | — | — | `[원문 p.67]` 폭기량·펌프 속도 | Y |
+| REQ-AD-016 | SCR-OP-006 | 조정 대상 설비 | string | — | — | `[설계]` | Y |
+| REQ-AD-016 | SCR-OP-006 | 조정 폭 | number | % | — | **절대 단위 `[TBD]`** — 상대 변화만 | Y |
+| REQ-AD-016 | SCR-OP-006 | 조정 이유 | string | — | — | **E3** | Y |
+| REQ-AD-017 | SCR-OP-006 | 현재 에너지 효율 | number \| null | kWh/m³ | `[파생: 평균전력 × 24 ÷ 평균유량]` | `[원문 p.67]` 단위 | Y |
+| REQ-AD-017 | SCR-OP-006 | 목표 에너지 효율 | number \| null | kWh/m³ | `[파생: 현재 × (1 − 10%)]` | `[원문 p.27·64]` | Y |
+| REQ-AD-017 | SCR-OP-006 | 에너지 절감률 | number | % | — | `[원문 p.27·64]` ≥10% | Y |
+| REQ-AD-005 | SCR-OP-006 | 산출 시각·대상 기간·모델 | string | — | — | **E3** | Y |
+| REQ-AD-015 | SCR-OP-006 | 통신 상태 | boolean | — | — | `[설계]` **두절이면 권장값이 아예 없다** — 판별 유니온으로 두 상태를 분리 | N |
 
 ### 9.1 성능 목표 상수
 
@@ -318,12 +319,12 @@ R² 값 자체도 원문에서 갈린다 `[INC-20·21]` — TN·TP `0.886/0.782`
 
 | 요구사항ID | 화면ID | 데이터명 | 타입 | 단위 | 계산식/로직 | UI |
 |---|---|---|---|---|---|---|
-| REQ-AD-029 | SCR-AD-008 | 최신 이상 점수 | number \| null | 점 | `[파생: 선택 기간 계열의 마지막 값]` | Y |
-| REQ-AD-029 | SCR-AD-008 | 최대 이상 점수 | number \| null | 점 | `[파생: 결측 제외 max]` | Y |
-| REQ-AD-029 | SCR-AD-008 | 평균 이상 점수 | number \| null | 점 | `[파생: 결측 제외 평균]` · 표시 자릿수 1 `[PROVISIONAL]` | Y |
-| REQ-AD-029 | SCR-AD-008 | 결측 표본 수 | number | 건 | `[파생: null 개수]` | Y |
-| REQ-AD-029 | SCR-AD-008 | 전체 표본 수 | number | 건 | `[파생: 구간 표본 수]` | Y |
-| REQ-AD-029 | SCR-AD-008 | 알람 건수(우선순위별) | number | 건 | `[파생: 사업장별 우선순위 집계]` | Y |
+| REQ-AD-029 | SCR-OP-008 | 최신 이상 점수 | number \| null | 점 | `[파생: 선택 기간 계열의 마지막 값]` | Y |
+| REQ-AD-029 | SCR-OP-008 | 최대 이상 점수 | number \| null | 점 | `[파생: 결측 제외 max]` | Y |
+| REQ-AD-029 | SCR-OP-008 | 평균 이상 점수 | number \| null | 점 | `[파생: 결측 제외 평균]` · 표시 자릿수 1 `[PROVISIONAL]` | Y |
+| REQ-AD-029 | SCR-OP-008 | 결측 표본 수 | number | 건 | `[파생: null 개수]` | Y |
+| REQ-AD-029 | SCR-OP-008 | 전체 표본 수 | number | 건 | `[파생: 구간 표본 수]` | Y |
+| REQ-AD-029 | SCR-OP-008 | 알람 건수(우선순위별) | number | 건 | `[파생: 사업장별 우선순위 집계]` | Y |
 
 **집계는 결측을 뺀 표본으로만 낸다**(**E4**) — 0으로 세면 평균이 낮아져 상태가 실제보다 좋아 보인다.
 

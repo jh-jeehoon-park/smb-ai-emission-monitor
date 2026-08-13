@@ -1,11 +1,11 @@
-# 화면 설계 — 오염도 추정 (SCR-AD-004)
+# 화면 설계 — 오염도 추정 (SCR-OP-004)
 
 ## 1. 문서 정보
 
 | 항목 | 내용 |
 |------|------|
-| 문서명 | 화면 설계 — 오염도 추정 (SCR-AD-004) |
-| 버전 | v1.0.5 |
+| 문서명 | 화면 설계 — 오염도 추정 (SCR-OP-004) |
+| 버전 | v1.0.6 |
 | 작성일 | 2026-08-13 |
 | 기반 문서 | /docs/specs/README.md, /docs/specs/requirements.md, /docs/analysis/ai-model-spec.md, /docs/requirements/source-inconsistencies.md |
 
@@ -19,6 +19,7 @@
 | v1.0.3 | 2026-08-13 | Claude | §4.3에 `decimals` 행 추가 — 자릿수가 요약과 함께 다녀야 차트·표·툴팁이 같은 값을 같게 반올림한다(E1) |
 | v1.0.4 | 2026-08-13 | Claude | §4.4에 `decimals` 행 추가 — 경향 카드도 자릿수를 값과 함께 받는다. 위젯이 항목 프로파일을 되찾아 오던 경로와 `as ForecastTargetCode` 캐스팅 제거 |
 | v1.0.5 | 2026-08-13 | Claude | **v1.0.4의 "캐스팅 제거" 서술을 정정한다** — 당시 제거된 것은 자릿수 조회 경로 2건뿐이고 `prediction-view.tsx`의 항목 전환에 1건이 남아 있었다. 근본 원인인 `TrendEstimate.code: string`을 `ForecastTargetCode`로 좁혀 남은 캐스팅을 없앴다(R2) |
+| v1.0.6 | 2026-08-13 | Claude | 화면 ID 재배치 — `SCR-AD` → `SCR-OP`. 현재 화면은 전 사업장 통합 관제 주체(운영자)의 것이다 `[회의 2026-08-13]` |
 
 ---
 
@@ -26,7 +27,7 @@
 
 | 항목 | 값 |
 |------|-----|
-| 화면 ID | SCR-AD-004 |
+| 화면 ID | SCR-OP-004 |
 | 메뉴(1Depth) | 오염도 추정 |
 | 메뉴(2Depth) | — |
 | 화면 구분 | 차트 |

@@ -70,13 +70,21 @@ check('인용 형식', () => {
 });
 
 // 3. 화면 수 — 목록·문서·라우트가 같은가
+//    미구현 화면은 문서만 있고 라우트가 없다. 그것은 정상이므로 라우트 대조에서 뺀다.
 check('화면 수', () => {
   const rows = (read('docs/specs/screens.md').match(/^\| SCR-/gm) ?? []).length;
-  const files = readdirSync(SCREENS).filter((f) => f.endsWith('.md')).length;
+  const files = readdirSync(SCREENS).filter((f) => f.endsWith('.md'));
+  const fails = [];
+  if (rows !== files.length) fails.push(`screens.md ${rows}행 ≠ screens/ ${files.length}파일`);
+
+  // 화면 문서의 `| 구현 |` 행이 **미구현**이면 라우트가 없어야 한다
+  const implemented = files.filter(
+    (f) => !/\|\s*구현\s*\|\s*\*\*미구현\*\*/.test(readFileSync(join(SCREENS, f), 'utf8')),
+  );
   const routes = (read('src/widgets/app-shell/config/navigation.ts').match(/href: '\//g) ?? []).length;
-  return rows === files && files === routes
-    ? []
-    : [`screens.md ${rows}행 · screens/ ${files}파일 · 라우트 ${routes}개`];
+  if (implemented.length !== routes)
+    fails.push(`구현 표기 ${implemented.length}개 ≠ 라우트 ${routes}개`);
+  return fails;
 });
 
 // 4. FR 커버리지 — 원문 요구 42건이 전부 추적표에
@@ -151,13 +159,13 @@ check('문서 규격', () => {
 check('화면 목록 정합', () => {
   const list = read('docs/specs/screens.md');
   const kinds = new Map(
-    [...list.matchAll(/^\| \d\.0 \| (SCR-AD-\d{3}) \|[^|]+\|[^|]+\| ([^|]+)\|/gm)].map((m) => [
+    [...list.matchAll(/^\| \d\.0 \| (SCR-(?:AD|OP|GU)-\d{3}) \|[^|]+\|[^|]+\| ([^|]+)\|/gm)].map((m) => [
       m[1],
       m[2].trim(),
     ]),
   );
   const perms = new Map(
-    [...list.matchAll(/^\| (SCR-AD-\d{3}) \| [^|]+\| ([^|]+)\| ([^|]+)\| ([^|]+)\|/gm)].map((m) => [
+    [...list.matchAll(/^\| (SCR-(?:AD|OP|GU)-\d{3}) \| [^|]+\| ([^|]+)\| ([^|]+)\| ([^|]+)\|/gm)].map((m) => [
       m[1],
       [m[2], m[3], m[4]].map((s) => s.trim()).join(' / '),
     ]),
@@ -165,7 +173,7 @@ check('화면 목록 정합', () => {
   const fails = [];
   for (const file of readdirSync(SCREENS).filter((f) => f.endsWith('.md'))) {
     const text = readFileSync(join(SCREENS, file), 'utf8');
-    const id = file.match(/SCR-AD-\d{3}/)?.[0];
+    const id = file.match(/SCR-(?:AD|OP|GU)-\d{3}/)?.[0];
     if (!id) continue;
     const kind = text.match(/^\| 화면 구분 \| ([^|]+)\|/m)?.[1].trim();
     if (kind !== kinds.get(id)) fails.push(`${id} 화면구분 — 목록 '${kinds.get(id)}' ≠ 문서 '${kind}'`);
