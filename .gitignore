@@ -34,3 +34,6 @@ Desktop.ini
 
 # 검증용 스크린샷 산출물
 shots/
+
+# xlsx 편집 시 만드는 안전 사본 — 저장소에 넣지 않는다
+*.xlsx.bak
