@@ -1,4 +1,5 @@
 import { COLLECTION_INTERVAL_MINUTES } from '@/shared/config/measurement';
+import { PROVISIONAL_DISPLAY_DECIMALS } from '@/shared/config/provisional';
 import type { StatusLevel } from '@/shared/config/provisional';
 import { buildAnomalyScores } from '@/shared/lib/anomaly-score';
 import { ALARMS, type AlarmPriority } from '@/entities/alarm';
@@ -116,14 +117,14 @@ export function toCsv(rows: SiteReportRow[], statusLabels: Record<StatusLevel, s
         row.status ? statusLabels[row.status] : '수신없음',
         cell(row.latestScore),
         cell(row.maxScore),
-        cell(row.avgScore, 1),
+        cell(row.avgScore, PROVISIONAL_DISPLAY_DECIMALS.anomalyScoreAverage),
         String(row.missingCount),
         String(row.totalCount),
         String(row.alarmsByPriority.urgent),
         String(row.alarmsByPriority.caution),
         String(row.alarmsByPriority.info),
-        row.dataThroughput.toFixed(1),
-        row.uptime.toFixed(1),
+        row.dataThroughput.toFixed(PROVISIONAL_DISPLAY_DECIMALS.dataThroughput),
+        row.uptime.toFixed(PROVISIONAL_DISPLAY_DECIMALS.uptime),
       ].join(','),
     );
   }

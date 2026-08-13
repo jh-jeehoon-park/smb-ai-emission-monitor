@@ -1,5 +1,6 @@
 /** slice Public API — 바깥에서는 이 파일만 import 한다(FSD §6) */
 export { getForecast } from './api/fixtures';
+export { formatR2 } from './lib/format-r2';
 export { TREND_LABELS } from './model/types';
 export {
   FORECAST_TARGETS,

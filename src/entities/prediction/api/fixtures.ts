@@ -128,6 +128,7 @@ function buildTrends(
       trend: trendOf(intensity, profile.trendOffset),
       value: roundTo(lastForecastOf(series[code]), profile.decimals),
       unit: profile.unit,
+      decimals: profile.decimals,
       r2: profile.r2,
     };
   });
@@ -142,6 +143,7 @@ export function getForecast(siteId: string, target: ForecastTargetCode = 'TOC'):
   return {
     targetLabel: `${profile.code} ${profile.label}`,
     unit: profile.unit,
+    decimals: profile.decimals,
     horizonHours: FORECAST_HORIZON_HOURS,
     online: scenario.online,
     computedAtIso: scenario.online ? DEMO_NOW_ISO : '2026-08-11T13:35:00Z',

@@ -69,9 +69,25 @@ export const PROVISIONAL_DECIMALS: Record<string, number> = {
   current: 1,
   power: 1,
   flow: 0,
-  TN: 2,
+  // TN은 TOC와 값 크기가 비슷해(십 단위 mg/L) 같은 자릿수를 쓴다. TP는 한 자릿수라 두 자리가 필요하다.
+  TN: 1,
   TP: 2,
 };
+
+/**
+ * 계측 항목이 아닌 표시 값의 소수 자릿수. **원문에 표기 규칙이 없다.**
+ *
+ * 계측 8+3항목은 위 PROVISIONAL_DECIMALS가 갖는다. 여기 있는 것은 파생·지표값이다.
+ * 화면마다 따로 반올림하면 같은 값이 화면마다 다르게 보인다(E1).
+ */
+export const PROVISIONAL_DISPLAY_DECIMALS = {
+  /** 이상 점수는 정수로 산출되므로 최신·최대는 자릿수가 없다. 평균에만 소수가 필요하다 */
+  anomalyScoreAverage: 1,
+  dataThroughput: 1,
+  uptime: 1,
+  /** 기여도는 0~1로 오고 %로 표시한다 */
+  contributionPercent: 0,
+} as const;
 
 /**
  * 약품 주입량 단위. **TBD-31 관련 — 원문에 근거 없음.**

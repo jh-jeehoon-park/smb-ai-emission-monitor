@@ -1,6 +1,6 @@
 'use client';
 
-import { PROVISIONAL_STATUS_LABELS } from '@/shared/config/provisional';
+import { PROVISIONAL_DISPLAY_DECIMALS, PROVISIONAL_STATUS_LABELS } from '@/shared/config/provisional';
 import { STATUS_VISUAL, statusInk } from '@/shared/config/status-visual';
 import { formatDateTime } from '@/shared/lib/format';
 import { AnomalyGauge } from '@/shared/ui/anomaly-gauge';
@@ -75,7 +75,7 @@ export function AnomalyPanel({ summary }: { summary: AnomalySummary }) {
                   </span>
                 </span>
                 <span className="num text-[11px] text-fg-subtle">
-                  {(c.weight * 100).toFixed(0)}%
+                  {(c.weight * 100).toFixed(PROVISIONAL_DISPLAY_DECIMALS.contributionPercent)}%
                 </span>
               </div>
               <div className="h-[3px] w-full overflow-hidden rounded-full bg-surface-3">

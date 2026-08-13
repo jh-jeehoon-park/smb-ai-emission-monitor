@@ -31,6 +31,7 @@ export function ForecastChart({ summary, nowIso }: ForecastChartProps) {
     ...p,
     band: p.lower !== null && p.upper !== null ? [p.lower, p.upper] : null,
   }));
+  const show = (v: number) => v.toFixed(summary.decimals);
 
   return (
     <div>
@@ -40,11 +41,11 @@ export function ForecastChart({ summary, nowIso }: ForecastChartProps) {
         sampleEvery={6}
         columns={[
           { header: '시각(KST)', cell: (r) => formatClock(r.t) },
-          { header: `실측(${summary.unit})`, cell: (r) => (r.actual === null ? '—' : r.actual.toFixed(1)) },
-          { header: `AI 예측(${summary.unit})`, cell: (r) => (r.forecast === null ? '—' : r.forecast.toFixed(1)) },
+          { header: `실측(${summary.unit})`, cell: (r) => (r.actual === null ? '—' : show(r.actual)) },
+          { header: `AI 예측(${summary.unit})`, cell: (r) => (r.forecast === null ? '—' : show(r.forecast)) },
           {
             header: '신뢰구간',
-            cell: (r) => (r.lower === null || r.upper === null ? '—' : `${r.lower.toFixed(1)} – ${r.upper.toFixed(1)}`),
+            cell: (r) => (r.lower === null || r.upper === null ? '—' : `${show(r.lower)} – ${show(r.upper)}`),
           },
         ]}
       >
@@ -122,7 +123,7 @@ export function ForecastChart({ summary, nowIso }: ForecastChartProps) {
                     <ChartTooltipRow
                       color={ACTUAL_HEX}
                       name="실측"
-                      value={`${row.actual.toFixed(1)} ${summary.unit}`}
+                      value={`${show(row.actual)} ${summary.unit}`}
                     />
                   )}
                   {row.forecast !== null && (
@@ -130,14 +131,14 @@ export function ForecastChart({ summary, nowIso }: ForecastChartProps) {
                       <ChartTooltipRow
                         color={AI_HEX}
                         name="AI 예측"
-                        value={`${row.forecast.toFixed(1)} ${summary.unit}`}
+                        value={`${show(row.forecast)} ${summary.unit}`}
                         dashed
                       />
                       {row.lower !== null && row.upper !== null && (
                         <ChartTooltipRow
                           color={AI_HEX}
                           name="신뢰구간"
-                          value={`${row.lower.toFixed(1)} – ${row.upper.toFixed(1)}`}
+                          value={`${show(row.lower)} – ${show(row.upper)}`}
                         />
                       )}
                     </>

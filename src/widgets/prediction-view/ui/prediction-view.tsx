@@ -11,6 +11,7 @@ import {
   FORECAST_TARGETS,
   FORECAST_TARGET_CODES,
   TREND_LABELS,
+  formatR2,
   getForecast,
   type ForecastTargetCode,
   type TrendEstimate,
@@ -64,7 +65,7 @@ export function PredictionView() {
             }
             mono
           />
-          <Meta label="결정계수 R²" value={profile.r2.toFixed(2)} mono />
+          <Meta label="결정계수 R²" value={formatR2(profile.r2)} mono={profile.r2 !== null} />
         </dl>
       </Panel>
 
@@ -75,7 +76,7 @@ export function PredictionView() {
             trend={trend}
             online={forecast.online}
             selected={trend.code === target}
-            onSelect={() => setTarget(trend.code as ForecastTargetCode)}
+            onSelect={() => setTarget(trend.code)}
           />
         ))}
       </div>
@@ -135,7 +136,7 @@ function TrendCard({
       <div className="flex items-end justify-between gap-3">
         <p className="num text-[28px] font-semibold leading-none tracking-tight text-fg">
           {online
-            ? trend.value.toFixed(FORECAST_TARGETS[trend.code as ForecastTargetCode].decimals)
+            ? trend.value.toFixed(trend.decimals)
             : '—'}
           <span className="ml-1.5 text-[11px] font-normal text-fg-subtle">{trend.unit}</span>
         </p>
@@ -146,7 +147,7 @@ function TrendCard({
           {TREND_LABELS[trend.trend]}
         </p>
       </div>
-      <p className="num mt-2 text-[11px] text-fg-subtle">R² {trend.r2.toFixed(2)} · AI 추정값</p>
+      <p className="num mt-2 text-[11px] text-fg-subtle">R² {formatR2(trend.r2)} · AI 추정값</p>
     </Panel>
   );
 }

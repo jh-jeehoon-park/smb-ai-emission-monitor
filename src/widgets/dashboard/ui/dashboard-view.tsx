@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import { DEMO_NOW_ISO } from '@/shared/config/demo';
 import { FORECAST_HORIZON_HOURS } from '@/shared/config/measurement';
+import { PROVISIONAL_DISPLAY_DECIMALS } from '@/shared/config/provisional';
 import { STATUS_VISUAL, statusInk } from '@/shared/config/status-visual';
 import { formatDateTime } from '@/shared/lib/format';
 import { getOutageWindow } from '@/shared/lib/timeline';
@@ -20,7 +21,7 @@ import { ALARM_PRIORITY_LABELS, type AlarmPriority } from '@/entities/alarm';
 import { getAnomalySeries, getAnomalySummary } from '@/entities/anomaly';
 import { getEquipment } from '@/entities/equipment';
 import { WATER_SERIES_CODES, getMeasurementSeries } from '@/entities/measurement';
-import { getForecast } from '@/entities/prediction';
+import { TREND_LABELS, formatR2, getForecast } from '@/entities/prediction';
 import { SITES, getSite } from '@/entities/site';
 import { useSelectedSiteId } from '@/features/site-selection';
 import { AlarmList } from '@/widgets/alarm-list';
@@ -31,7 +32,6 @@ import { ForecastChart } from '@/widgets/forecast-chart';
 import { SiteMapLegend, SiteMapPanel } from '@/widgets/site-map';
 import { SiteWallboard } from '@/widgets/site-wallboard';
 import { WaterQualityGrid } from '@/widgets/water-quality-grid';
-import { TREND_LABELS } from '@/entities/prediction';
 
 export function DashboardView() {
   const { siteId: selectedSiteId, setSiteId: setSelectedSiteId } = useSelectedSiteId();
@@ -98,7 +98,7 @@ export function DashboardView() {
             <KpiTile
               label="데이터 처리율"
               value={site.dataThroughput}
-              decimals={1}
+              decimals={PROVISIONAL_DISPLAY_DECIMALS.dataThroughput}
               suffix="%"
               footer="목표 ≥ 98%"
             />
@@ -107,7 +107,7 @@ export function DashboardView() {
             <KpiTile
               label="시스템 가동률"
               value={site.uptime}
-              decimals={1}
+              decimals={PROVISIONAL_DISPLAY_DECIMALS.uptime}
               suffix="%"
               footer="목표 ≥ 95%"
             />
@@ -186,11 +186,11 @@ export function DashboardView() {
                       </span>
                     </div>
                     <p className="num mt-1.5 text-[17px] leading-none text-fg">
-                      {detail.forecast.online ? t.value.toFixed(2) : '—'}
+                      {detail.forecast.online ? t.value.toFixed(t.decimals) : '—'}
                       <span className="ml-1 text-[11px] text-fg-subtle">{t.unit}</span>
                     </p>
                     <p className="num mt-1 text-[11px] text-fg-subtle">
-                      R² {t.r2.toFixed(2)} · AI 추정
+                      R² {formatR2(t.r2)} · AI 추정
                     </p>
                   </div>
                 ))}

@@ -2,7 +2,7 @@
 
 import { Download } from 'lucide-react';
 import { useMemo } from 'react';
-import { PROVISIONAL_STATUS_LABELS } from '@/shared/config/provisional';
+import { PROVISIONAL_DISPLAY_DECIMALS, PROVISIONAL_STATUS_LABELS } from '@/shared/config/provisional';
 import { STATUS_VISUAL, statusInk } from '@/shared/config/status-visual';
 import { DISPLAY_TIMEZONE, formatDateTime } from '@/shared/lib/format';
 import { DEMO_NOW_ISO } from '@/shared/config/demo';
@@ -140,7 +140,9 @@ function ReportTable({ rows }: { rows: SiteReportRow[] }) {
                 </td>
                 <td className="num px-3 py-2.5 text-right text-fg-muted">{row.maxScore ?? '—'}</td>
                 <td className="num px-3 py-2.5 text-right text-fg-muted">
-                  {row.avgScore === null ? '—' : row.avgScore.toFixed(1)}
+                  {row.avgScore === null
+                    ? '—'
+                    : row.avgScore.toFixed(PROVISIONAL_DISPLAY_DECIMALS.anomalyScoreAverage)}
                 </td>
                 <td className="num px-3 py-2.5 text-right text-fg-subtle">
                   {row.missingCount > 0 ? `${row.missingCount}/${row.totalCount}` : '없음'}
@@ -150,10 +152,10 @@ function ReportTable({ rows }: { rows: SiteReportRow[] }) {
                   {row.alarmsByPriority.info}
                 </td>
                 <td className="num px-3 py-2.5 text-right text-fg-muted">
-                  {row.dataThroughput.toFixed(1)}%
+                  {row.dataThroughput.toFixed(PROVISIONAL_DISPLAY_DECIMALS.dataThroughput)}%
                 </td>
                 <td className="num px-4 py-2.5 text-right text-fg-muted">
-                  {row.uptime.toFixed(1)}%
+                  {row.uptime.toFixed(PROVISIONAL_DISPLAY_DECIMALS.uptime)}%
                 </td>
               </tr>
             );
