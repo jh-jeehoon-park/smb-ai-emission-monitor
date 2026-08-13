@@ -3,6 +3,7 @@ import {
   Bell,
   Cog,
   Droplets,
+  SlidersHorizontal,
   FileText,
   LayoutDashboard,
   LineChart,
@@ -25,6 +26,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: '/timeseries', label: '시계열 변화', icon: LineChart },
   { href: '/prediction', label: '오염도 추정', icon: Droplets },
   { href: '/equipment', label: '설비 예지보전', icon: Cog },
+  { href: '/optimization', label: '운영 최적화', icon: SlidersHorizontal },
   { href: '/alarms', label: '알람 이력', icon: Bell },
   { href: '/reports', label: '리포트', icon: FileText },
 ];
