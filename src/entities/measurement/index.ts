@@ -2,5 +2,6 @@
 export { getMeasurementSeries } from './api/fixtures';
 export { WATER_SERIES_CODES, EQUIPMENT_SERIES_CODES } from './config/constants';
 export { sliceRecentHours, summarizeSeries } from './lib/series-stats';
+export { energyIntensity } from './lib/energy';
 export type { SeriesStats } from './lib/series-stats';
 export type { MeasurementPoint, SeriesCode, Reading } from './model/types';
