@@ -32,7 +32,9 @@ export const PROVISIONAL_ANOMALY_BANDS: { level: StatusLevel; min: number; max: 
 ];
 
 export function toStatusLevel(anomalyScore: number): StatusLevel {
-  const band = PROVISIONAL_ANOMALY_BANDS.find((b) => anomalyScore >= b.min && anomalyScore <= b.max);
+  const band = PROVISIONAL_ANOMALY_BANDS.find(
+    (b) => anomalyScore >= b.min && anomalyScore <= b.max,
+  );
   return band?.level ?? 'normal';
 }
 
@@ -70,3 +72,13 @@ export const PROVISIONAL_DECIMALS: Record<string, number> = {
   TN: 2,
   TP: 2,
 };
+
+/**
+ * 약품 주입량 단위. **TBD-31 관련 — 원문에 근거 없음.**
+ *
+ * data-dictionary §5.1이 "약품 주입량 — 원문 없음(형식·단위)", "최적 약품 투입량 권장값 —
+ * 원문 없음(범위)"로 기록해 둔 항목이다. 계측 사양(사업계획서 p.55)에는 없고 AI 입력
+ * 운영 데이터로만 언급된다. 시연에서는 액상 응집제 주입 펌프를 가정해 L/h로 표기한다.
+ * 확정되면 이 값과 `entities/optimization`의 기준 주입량(BASE_DOSE)을 함께 교체한다.
+ */
+export const PROVISIONAL_DOSING_UNIT = 'L/h';
