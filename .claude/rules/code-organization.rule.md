@@ -5,7 +5,7 @@
 | 항목 | 내용 |
 |------|------|
 | 문서명 | 코드 구조 전략 — 상수 & 타입 관리 |
-| 버전 | v3.0.0 |
+| 버전 | v3.1.1 |
 | 작성일 | 2026-08-06 |
 | 기반 문서 | .claude/rules/frontend-architecture.rule.md |
 
@@ -13,6 +13,8 @@
 
 | 버전 | 날짜 | 작성자 | 변경 내용 |
 |------|------|--------|-----------|
+| v3.1.0 | 2026-08-13 | Claude | §3 상수 배치표에 **임시값** 행 추가 — 원문 미확정 값은 공통 상수보다 우선해 `provisional.ts` 한 파일에만 둔다(루트 `CLAUDE.md` 임시값 규약과의 우선순위 명시). `STATUS_LEVELS` 예시는 `provisional.ts`로 이관되어 공통 상수 예시에서 제거 |
+| v3.1.1 | 2026-08-13 | Claude | §3 배치원칙 #5에 "한 세트"의 뜻을 명시 — 한 파일이 아니라 같은 `StatusLevel` 키를 공유한다는 뜻이며 `Record`가 이미 강제한다. 라벨(`provisional.ts`)과 색(`status-visual.ts`)을 합치지 말 것 |
 
 ---
 
@@ -26,8 +28,13 @@
 
 | 분류 | 위치 | 예시 |
 |------|------|------|
-| **공통 상수**(2개 이상 slice·앱 전역) | `shared/config/constants.ts` | `ROWS_PER_PAGE`, `STATUS_LEVELS`(등급 체계 확정 후), `MEASUREMENT_ITEM_UNITS` |
+| **임시값**(원문이 정하지 않은 값) | `shared/config/provisional.ts` **한 파일에만** | `PROVISIONAL_DECIMALS`, `PROVISIONAL_DISPLAY_DECIMALS`, `PROVISIONAL_STATUS_LABELS` |
+| **공통 상수**(2개 이상 slice·앱 전역) | `shared/config/constants.ts` | `ROWS_PER_PAGE`, `MEASUREMENT_ITEM_UNITS` |
 | **도메인 상수**(특정 slice 전용) | `entities|features/<slice>/config/constants.ts` | `ANOMALY_SCORE_THRESHOLDS`, `PREDICTION_HORIZON_HOURS`, `ALARM_CHANNEL_LABELS` |
+
+> **임시값이 공통 상수보다 우선한다.** 원문 근거가 없는 값은 공통으로 쓰이더라도 `constants.ts`가 아니라 `provisional.ts`에 둔다 — 확정될 때 한 파일만 고치면 전 화면이 바뀌게 하려는 규약이다(루트 `CLAUDE.md` 임시값 규약). 두 곳에 나뉘면 그 목적이 깨진다. `npm run verify:docs`의 검사 10이 이를 확인한다.
+>
+> `shared/config/constants.ts`는 현재 비어 있다(파일 없음). 위 예시에 해당하는 값이 생기면 그때 만든다.
 
 ### 배치 원칙
 1. 컴포넌트/페이지 파일에 상수를 인라인 선언하지 않는다(해당 `config/constants.ts`로).
@@ -35,6 +42,8 @@
 3. 동일 값이 2개 이상 slice에서 쓰이면 `shared/config`로 올린다.
 4. **계측 항목의 단위·소수 자릿수·표시 라벨**은 항목별로 한 곳(`shared/config`)에 모은다. 화면별로 다시 정의하지 않는다.
 5. **상태 등급의 라벨·색 토큰·정렬 순서**는 한 세트로 묶어 `shared/config`에 둔다. 등급 값과 색이 따로 흩어지면 한쪽만 바뀌어 조용히 어긋난다. 등급 체계 자체는 아직 미확정이다(→ `docs/requirements/source-inconsistencies.md`).
+   - **"한 세트"는 한 파일이 아니라 같은 키를 공유한다는 뜻이다.** 현재 라벨은 `provisional.ts`(임시값이므로 위 표의 우선순위), 색은 `status-visual.ts`(대비 검증 결과를 함께 담는다)에 있다. 둘 다 `Record<StatusLevel, …>`이라 **등급을 추가하면 양쪽이 컴파일 에러로 강제된다** — 규칙이 막으려는 "한쪽만 바뀜"은 타입이 이미 막고 있다.
+   - 두 파일을 합치지 않는다. 합치면 임시값이 `provisional.ts` 밖으로 나가 위 표를 어긴다.
 
 ### 네이밍
 `UPPER_SNAKE_CASE` / 배열 복수형 / 매핑 `_MAP`·`_LABEL`·`_BADGE` / 옵션 배열 `_OPTIONS` / 임계값 `_THRESHOLDS` / 시간·주기 값은 단위를 이름에 포함(`_MS`·`_HOURS`) / 리터럴 타입 필요 시 `as const`.

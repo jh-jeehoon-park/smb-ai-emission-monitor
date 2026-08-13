@@ -23,7 +23,7 @@
 | 원 규칙 | 프로토타입 적용 |
 |---|---|
 | `frontend.rule.md` **A1** — 실 API 연동 시 Mock 전량 제거 | **보류.** 제거할 실 API가 없다. fixture는 임시물이 아니라 이 단계의 정식 데이터 원천이다. 단 fixture는 `entities/<slice>/api/fixtures/` 안에만 두고 **컴포넌트에 인라인 금지** |
-| **A3** — API 갭을 `docs/api-gaps.md`에 등록 | **미적용.** 갭 개념이 성립하지 않는다. 대신 화면이 요구하는 데이터 형태를 `docs/page-data-spec/<page>.md`에 남긴다 |
+| **A3** — API 갭을 `docs/api-gaps.md`에 등록 | **미적용.** 갭 개념이 성립하지 않는다. 대신 화면이 요구하는 데이터 형태를 `docs/specs/screens/<화면ID>.md` §4와 `docs/specs/data-definition.md`에 남긴다 |
 | **A4** — 화면 완성 전 백엔드 내용 배제 | **자동 충족.** 엔드포인트·스키마·매핑을 설계하지 않는다 |
 | **E6** — 권한 노출은 서버 응답 근거 | **불가.** 서버가 없다. mock 사용자 컨텍스트로 역할을 전환하되, 클라이언트 분기는 **인가가 아니라 시연용 표시**임을 해당 코드에 WHY 주석으로 남긴다 |
 | **P3** — 실시간 수신 방식 `[TBD]` | fixture 기반 시뮬레이션(고정 간격 갱신)으로 표현한다. 폴링/SSE/WebSocket 선택은 백엔드 확정 시로 미룬다 |
@@ -56,7 +56,7 @@
 |---|---|---|
 | 상태 등급 4단계 | `정상 / 주의 / 경고 / 위험` | 발표자료 p.15. 원문 5가지 병존(INC-01·03·04) 중 시연 맥락에 맞는 것으로 사용자 확정 |
 | 이상 점수 구간 경계 | `정상 0–49` · `주의 50–69` · `경고 70–79` · `위험 80–100` | TBD-02 — **원문에 근거 없음. 2026-08-11 추천값으로 채택.** 위험 하한 80은 저장소 내 유일한 수치 앵커(`unclear.rule.md` §5의 "이상 점수 80 이상은 위험 등급" 예시)에서 가져왔고, 나머지는 그 위에서 균등 배분했다. 실제 점수 분포를 확보하면 오탐지율 <10%(사업계획서 p.30) 기준으로 재조정한다 |
-| 알람 우선순위 대응 | **미정** | TBD-21 — 등급 4단계와 알람 우선순위 3단계(긴급/주의/정보)의 관계가 원문에 없다. 알람 목록 구현 직전에 확인 필요 |
+| 알람 우선순위 대응 | **미정** | INC-02 — 등급 4단계와 알람 우선순위 3단계(긴급/주의/정보)가 "별개 축인지 같은 축인지 원문에 설명이 없다". 알람 목록 구현 직전에 확인 필요 |
 | 약품 주입량 단위 | `L/h` | TBD-31 관련 — 원문이 단위·형식·범위를 정하지 않았다(`data-dictionary.md` §5.1: "약품 주입량 — 원문 없음(형식·단위)", "최적 약품 투입량 권장값 — 원문 없음(범위)"). 계측 사양(p.55)에 없고 AI 입력 운영 데이터로만 언급된다. 액상 응집제 주입 펌프를 가정한 시연 표기이며, 확정 시 이 값과 `entities/optimization`의 기준 주입량을 함께 교체한다 |
 
 ## 디자인 스킬 — 무엇을 언제 쓰는가
@@ -123,6 +123,32 @@ python .claude/skills/ui-ux-pro-max/scripts/search.py "dashboard" --stack shadcn
 - 문서에 없거나 `[TBD]`·`⚠ 모순`으로 표기된 값은 **임의로 정하지 않는다.** `.claude/rules/unclear.rule.md` 절차로 사용자에게 확인한다. 프로토타입 진행상 값이 꼭 필요하면 위 **`PROVISIONAL_` 규약**을 따른다.
 - 출처 표기는 PDF 파일 페이지 번호 기준이다(인쇄 쪽번호와 다름).
 
+## 설계 명세 (`docs/specs/`) — 만든 것의 근거를 남기는 곳
+
+위 `docs/analysis/`·`docs/requirements/`가 **원문에 있는 것**이라면, `docs/specs/`는 **우리가 만든 것과 그 근거**다. 산출물 xlsx 3종(화면설계서·요구사항정의서·데이터 정의서)의 원천이다. 색인: `docs/specs/README.md`
+
+| 필요한 것 | 문서 |
+|---|---|
+| **근거 표기 규약**·ID 체계·공통 URL 상태·백엔드 확인사항·화면 문서 템플릿 | [specs/README.md](docs/specs/README.md) |
+| FR-01~42 구현 상태 추적표 (FR ↔ REQ ID ↔ 화면 ↔ 상태) | [specs/requirements.md](docs/specs/requirements.md) |
+| 화면 목록·역할별 권한 매트릭스 | [specs/screens.md](docs/specs/screens.md) |
+| 도메인 전 필드의 타입·단위·계산식·출처 | [specs/data-definition.md](docs/specs/data-definition.md) |
+| 화면별 구성·요구 데이터·상호작용·예외·설계 근거 | [specs/screens/](docs/specs/screens/) |
+
+**모든 수치·항목·라벨에 근거 표기가 붙는다.** 붙지 않은 값은 이 디렉터리에 쓸 수 없다.
+
+`[원문 p.nn]` 원문에 그대로 · `[파생: 식]` 계산 · `[PROVISIONAL]` 임시값 · `[TBD-nn]` 원문 미정 · `[INC-nn]` 원문 모순 · `[설계]` 우리 결정(**이유 병기**)
+
+### 화면·도메인 값을 추가할 때 (필수)
+
+새 화면을 만들거나 새 도메인 값을 도입하면 **같은 작업에서** 문서도 함께 갱신한다. 나중에 몰아 쓰면 근거를 잊는다.
+
+- [ ] `specs/screens.md`에 1행 추가
+- [ ] `specs/screens/<화면ID>-<이름>.md` 작성 (`specs/README.md` §9 템플릿 복사)
+- [ ] `specs/requirements.md`의 해당 FR 행에 화면 ID·구현 상태 갱신
+- [ ] `specs/data-definition.md`에 신규 필드 추가
+- [ ] 새 임시값이면 `shared/config/provisional.ts` + 위 **임시값 표**에 등록
+
 ## 규칙 — 해당 상황에서만 읽어 적용
 > 규칙은 **항상 로드하지 않는다.** 아래 "상황"에 해당하는 작업을 할 때 그 규칙 파일을 **먼저 열어(Read) 읽고 준수**한다. 해당 없으면 읽지 않는다.
 
@@ -132,6 +158,7 @@ python .claude/skills/ui-ux-pro-max/scripts/search.py "dashboard" --stack shadcn
 | 코드 주석 작성·정리 | `.claude/rules/code-comments.rule.md` |
 | 폴더/레이어(FSD) 구조·slice 배치 결정 | `.claude/rules/frontend-architecture.rule.md` |
 | 마크다운 문서(.md) 작성·수정 | `.claude/rules/document-template.rule.md` |
+| **화면 추가·변경, 새 도메인 값 도입** | 위 **설계 명세** 절의 체크리스트 — `docs/specs/` 갱신은 구현과 같은 작업이다 |
 | 테스트 작성·구현 후 검증 | `.claude/rules/test-guide.rule.md` |
 | 지시가 모호/검증 불가할 때 | `.claude/rules/unclear.rule.md` |
 | Figma node-id로 UI 구현 | `.claude/rules/figma-implementation.rule.md` — **현 단계 휴면**(Figma 파일 없음). 사용자가 node URL을 주면 그때 활성 |

@@ -5,7 +5,7 @@
 | 항목 | 내용 |
 |------|------|
 | 문서명 | 프론트엔드 코딩 규칙 (Core + Project Profile) |
-| 버전 | v2.1.0 |
+| 버전 | v2.2.0 |
 | 작성일 | 2026-08-06 |
 | 기반 문서 | /docs/applications/AIoT_Emission_Control_System.pdf, /docs/applications/HSKorea_AI_Application_Proposal.pdf |
 
@@ -15,6 +15,7 @@
 |------|------|--------|-----------|
 | v0.1.0 | 2026-08-06 | Claude | 신규 작성 — 스택·프로젝트 무관 이식형 프론트엔드 코딩 규칙. Core(절대규칙 A1~A4·컨벤션 R1~R20) + Project Profile(P1~P15) 구조 |
 | v2.0.0 | 2026-08-06 | Claude | §8 프로젝트 프로필을 타 프로젝트 값에서 본 프로젝트(소규모 사업장 오염물질 배출 관리 시스템, 단일 Next.js 웹 대시보드) 값으로 전면 교체. 공유 패키지 alias 제거(`@/*`만 사용), 디자인 토큰·Figma 관련 슬롯 [TBD] 표기, 차트(P9)를 대시보드 필수 영역으로 상향. Core(§2~§6) 미수정 |
+| v2.2.0 | 2026-08-13 | Claude | P13 데이터 문서 경로를 `docs/page-data-spec/<page>.md` → `docs/specs/`로 교체(흡수 후 삭제됨). 근거 표기 규약 6종을 P13에 명시. Core(§2~§6) 미수정 |
 | v2.1.0 | 2026-08-11 | Claude | §8에 "백엔드 없는 프론트 전용 프로토타입" 전제 추가. P1 스타일링(Tailwind+shadcn/ui)·P9 차트(Recharts) 확정, P7 토큰 원천을 `design-system/<slug>/MASTER.md`로 지정, P11을 MSW→`entities/<slice>/api/fixtures/`로 교체, P3 실시간 방식을 fixture 시뮬레이션으로 한정, P12 미적용·P13 as-is 미적용 표기, P14에 A1 보류·A3 미적용·A4 자동충족·A2 범위 분리 기재, P15에 디자인 스킬 라우팅 포인터 추가. §8.1 E2에 잠정 4단계 등급과 이상 점수 구간(0–49/50–69/70–79/80–100) 명시, E6에 서버 부재 시 mock 역할 전환 예외 추가. Core(§2~§6) 미수정 |
 
 ---
@@ -160,7 +161,7 @@
 | P10 | 투명도 정책 | 배경 불투명 원칙(투명도는 사용자 명시 지시 시) |
 | P11 | Mock 격리 | **`entities/<slice>/api/fixtures/`** — 컴포넌트 인라인 금지. **MSW는 쓰지 않는다**(가로챌 네트워크 요청이 없다). 백엔드가 생기면 이 폴더가 A1의 제거 대상이 된다 |
 | P12 | API 갭 문서 | `docs/api-gaps.md` — **현 단계 미적용**(백엔드가 없어 갭 개념이 성립하지 않는다). 백엔드 착수 시 활성 |
-| P13 | 데이터 문서 | to-be `docs/page-data-spec/<page>.md` **사용** · as-is `docs/page-api-map/<page>.md` — 현 단계 미적용 |
+| P13 | 데이터 문서 | to-be **`docs/specs/`** 사용 — 화면별 요구 데이터는 `docs/specs/screens/<화면ID>.md` §4, 필드 정규화는 `docs/specs/data-definition.md`, 표기 규약·ID 체계는 `docs/specs/README.md`. **모든 수치·라벨에 근거 표기가 붙는다**(`[원문 p.nn]`·`[파생: 식]`·`[PROVISIONAL]`·`[TBD-nn]`·`[INC-nn]`·`[설계]`) · as-is `docs/page-api-map/<page>.md` — 현 단계 미적용 |
 | P14 | 절대규칙 채택 | A1~A4 채택. 단 현 단계는 **A1 보류**(제거할 실 API 없음, fixture가 정식 원천) · **A3 미적용**(P12 참조) · **A4 자동 충족**(백엔드 설계를 하지 않음). **A2는 유지하되 범위를 나눈다** — *무엇을 보여주는가*(항목·라벨·단위·수치)는 `docs/` 근거를 따르고, *어떻게 보이는가*(레이아웃·색·타이포·모션)는 디자인 스킬이 정한다 |
 | P15 | 하우스 규칙 | 본 저장소 `CLAUDE.md` + `.claude/rules/*`(frontend-architecture·code-organization·code-comments·figma-implementation·test-guide·unclear·document-template) + 사용자 글로벌 `CLAUDE.md`. 디자인 스킬(`ui-ux-pro-max`·`impeccable`·`frontend-design`·`dataviz`)의 사용 시점·라우팅은 루트 `CLAUDE.md`의 "디자인 스킬" 절을 따른다 |
 
