@@ -1,0 +1,130 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { describe, expect, it } from 'vitest';
+import { NAV_ITEMS } from '@/widgets/app-shell/config/navigation';
+import { ROLES, ROLE_PROFILES, SCREEN_ROLES, canRoleSee } from './config/constants';
+import {
+  ADMIN_ACCOUNTS,
+  DEFAULT_ADMIN_ACCOUNT,
+  adminSiteId,
+  normalizeAdminAccount,
+} from './config/accounts';
+import { DEFAULT_ROLE, SESSION_INIT_SCRIPT, normalizeRole } from './config/session';
+import { SITES } from '@/entities/site';
+
+const MATRIX = readFileSync(
+  join(process.cwd(), 'docs/specs/screens.md'),
+  'utf8',
+);
+
+/** `| SCR-OP-001 | 통합 관제 | ✕ | R | R | …` 에서 세 역할 칸을 뽑는다 */
+function docAccess(screenId: string): Record<string, boolean> | null {
+  const row = MATRIX.split('\n').find((l) => l.startsWith(`| ${screenId} |`));
+  if (!row) return null;
+  const cells = row.split('|').map((c) => c.trim());
+  // 0 빈칸 · 1 화면ID · 2 화면명 · 3 관리자 · 4 운영자 · 5 게스트
+  const allow = (cell: string) => !cell.includes('✕');
+  return { admin: allow(cells[3]), operator: allow(cells[4]), guest: allow(cells[5]) };
+}
+
+describe('역할 — 문서와 코드가 갈리지 않는다', () => {
+  it.each(Object.keys(SCREEN_ROLES))(
+    '%s의 접근 역할이 screens.md 권한 매트릭스와 같다',
+    (screenId) => {
+      const doc = docAccess(screenId);
+      expect(doc, `${screenId} 행이 screens.md에 없다`).not.toBeNull();
+      for (const role of ROLES) {
+        expect(canRoleSee(screenId, role), `${screenId} × ${role}`).toBe(doc![role]);
+      }
+    },
+  );
+
+  it('사이드바 메뉴가 전부 매트릭스에 등록되어 있다', () => {
+    for (const item of NAV_ITEMS) {
+      expect(SCREEN_ROLES[item.screenId], `${item.label}(${item.screenId})`).toBeDefined();
+    }
+  });
+
+  it('통합 관제는 관리자에게 닫혀 있다 — 회의 2026-08-13', () => {
+    expect(canRoleSee('SCR-OP-001', 'admin')).toBe(false);
+    expect(canRoleSee('SCR-OP-001', 'operator')).toBe(true);
+  });
+
+  it('관리자로 바꾸면 비용 절감 현황으로 옮겨 간다 — 라우트 가드의 대체 화면', () => {
+    // 통합 관제가 닫혀 있고, 관리자 전용 화면을 메뉴 맨 앞에 두었다
+    expect(NAV_ITEMS.find((item) => canRoleSee(item.screenId, 'admin'))?.href).toBe(
+      '/cost-savings',
+    );
+  });
+});
+
+describe('세션 — 하이드레이션이 깨지지 않게', () => {
+  it('알 수 없는 값은 기본 역할로 떨어진다', () => {
+    expect(normalizeRole('admin')).toBe('admin');
+    expect(normalizeRole('root')).toBe(DEFAULT_ROLE);
+    expect(normalizeRole(null)).toBe(DEFAULT_ROLE);
+  });
+
+  it('기본 역할은 운영자다 — 구현된 8개가 운영자 화면이라 진입 즉시 볼 것이 있다', () => {
+    expect(DEFAULT_ROLE).toBe('operator');
+  });
+
+  it('INIT 스크립트가 첫 페인트 전에 data-role을 세운다', () => {
+    // 이 속성이 없으면 CSS가 역할을 가르지 못하고 메뉴가 전부 보인다
+    expect(SESSION_INIT_SCRIPT).toContain("setAttribute('data-role'");
+    // 미로그인 리다이렉트도 같은 스크립트가 맡는다 — 본문이 그려지기 전이라 깜빡임이 없다
+    expect(SESSION_INIT_SCRIPT).toContain('location.replace');
+  });
+
+  it('세 역할 모두 프로파일이 있다 — 하나라도 비면 전환 UI가 빈칸을 그린다', () => {
+    for (const role of ROLES) {
+      expect(ROLE_PROFILES[role].label).toBeTruthy();
+      expect(ROLE_PROFILES[role].who).toBeTruthy();
+      expect(ROLE_PROFILES[role].scopeLabel).toBeTruthy();
+    }
+  });
+});
+
+describe('관리자 계정 — 범위 축', () => {
+  it('두 계정이 서로 다른 실재 사업장을 가리킨다', () => {
+    const ids = ADMIN_ACCOUNTS.map((a) => a.siteId);
+    expect(new Set(ids).size).toBe(ADMIN_ACCOUNTS.length);
+    for (const id of ids) {
+      expect(SITES.some((s) => s.id === id), `${id}가 사업장 목록에 없다`).toBe(true);
+    }
+  });
+
+  it('두 계정의 상태가 갈린다 — 한쪽만 보면 빈 상태 처리를 못 본다', () => {
+    /**
+     * 계정을 둘로 나눈 이유가 상태 대비다. 둘 다 값이 가득하거나 둘 다 비어 있으면
+     * 시연에서 확인할 수 있는 것이 절반으로 준다.
+     */
+    const scores = ADMIN_ACCOUNTS.map(
+      (a) => SITES.find((s) => s.id === a.siteId)?.anomalyScore ?? null,
+    );
+    expect(scores.every((s) => s !== null)).toBe(true);
+    expect(Math.max(...(scores as number[])) - Math.min(...(scores as number[]))).toBeGreaterThan(
+      40,
+    );
+  });
+
+  it('알 수 없는 계정 키는 기본값으로 떨어진다', () => {
+    expect(normalizeAdminAccount('admin-2')).toBe('admin-2');
+    expect(normalizeAdminAccount('admin-9')).toBe(DEFAULT_ADMIN_ACCOUNT);
+    expect(normalizeAdminAccount(null)).toBe(DEFAULT_ADMIN_ACCOUNT);
+  });
+
+  it('adminSiteId가 계정별 사업장을 준다', () => {
+    for (const account of ADMIN_ACCOUNTS) {
+      expect(adminSiteId(account.key)).toBe(account.siteId);
+    }
+  });
+
+  it('INIT 스크립트가 첫 페인트 전에 data-admin을 세운다', () => {
+    // 이 속성이 없으면 계정별 배지가 CSS로 갈리지 않아 숫자가 겹쳐 보인다
+    expect(SESSION_INIT_SCRIPT).toContain("setAttribute('data-admin'");
+    for (const account of ADMIN_ACCOUNTS) {
+      expect(SESSION_INIT_SCRIPT).toContain(`'${account.key}'`);
+    }
+  });
+});

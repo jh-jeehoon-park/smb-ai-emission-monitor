@@ -58,7 +58,7 @@ export function AnomalyGauge({ score, className, showScale = true }: AnomalyGaug
       </div>
 
       {showScale && (
-        <div className="mt-1.5 flex justify-between font-mono text-[11px] tabular-nums text-fg-subtle">
+        <div className="mt-1.5 flex justify-between text-[11px] tabular-nums text-fg-subtle">
           {PROVISIONAL_ANOMALY_TICKS.map((tick) => (
             <span key={tick}>{tick}</span>
           ))}

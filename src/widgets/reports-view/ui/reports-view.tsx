@@ -6,19 +6,35 @@ import { PROVISIONAL_DISPLAY_DECIMALS, PROVISIONAL_STATUS_LABELS } from '@/share
 import { STATUS_VISUAL, statusInk } from '@/shared/config/status-visual';
 import { DISPLAY_TIMEZONE, formatDateTime } from '@/shared/lib/format';
 import { DEMO_NOW_ISO } from '@/shared/config/demo';
+import { SCOPE_FILTERS, SCOPE_OPTIONS, SCOPE_QUERY_KEY } from '@/shared/config/scope';
 import { useQueryState } from '@/shared/lib/use-query-state';
 import { Panel } from '@/shared/ui/panel';
 import { SegmentedControl } from '@/shared/ui/segmented-control';
 import { StatTile } from '@/shared/ui/stat-tile';
 import { StatusBadge } from '@/shared/ui/status-badge';
-import { SITES } from '@/entities/site';
+import { SITES, getSite } from '@/entities/site';
+import { useSelectedSiteId } from '@/features/site-selection';
 import { PERIOD_HOURS, PERIOD_OPTIONS, PERIOD_QUERY_KEY } from '@/features/measurement-filter';
 import { buildSiteReport, toCsv, type SiteReportRow } from '../lib/build-report';
 
 export function ReportsView() {
   const [period, setPeriod] = useQueryState(PERIOD_QUERY_KEY, PERIOD_HOURS, '24');
+  const [scope, setScope] = useQueryState(SCOPE_QUERY_KEY, SCOPE_FILTERS, 'all');
+  const { siteId } = useSelectedSiteId();
   const hours = Number(period);
-  const rows = useMemo(() => buildSiteReport(hours), [hours]);
+
+  /**
+   * 범위를 **URL로** 좁힌다. 역할로 행 수를 가르면 서버가 그린 표와 클라이언트가 그릴 표의
+   * 행 수가 달라져 하이드레이션이 깨진다 — 서버는 역할을 모르지만 쿼리는 읽는다.
+   * 관리자는 라우트 가드가 `scope=site`로 고정한다(회의 2026-08-13: 자사 1개소).
+   */
+  const allRows = useMemo(() => buildSiteReport(hours), [hours]);
+  const rows = useMemo(
+    () => (scope === 'site' ? allRows.filter((r) => r.siteId === siteId) : allRows),
+    [allRows, scope, siteId],
+  );
+
+  const scopeLabel = scope === 'site' ? getSite(siteId).name : `실증 ${SITES.length}개소`;
 
   const totals = useMemo(
     () => ({
@@ -45,10 +61,19 @@ export function ReportsView() {
   return (
     <div className="space-y-3">
       <Panel
-        eyebrow={`실증 ${SITES.length}개소 · 최근 ${hours}시간`}
-        title="사업장별 배출 집계"
+        eyebrow={`${scopeLabel} · 최근 ${hours}시간`}
+        title={scope === 'site' ? '배출 집계' : '사업장별 배출 집계'}
         action={
           <div className="flex flex-wrap items-center gap-2">
+            {/* 관리자는 자사 1개소뿐이라 고를 것이 없다 */}
+            <div className="role-hide-admin">
+              <SegmentedControl
+                ariaLabel="집계 범위"
+                options={SCOPE_OPTIONS}
+                value={scope}
+                onChange={setScope}
+              />
+            </div>
             <SegmentedControl
               ariaLabel="집계 기간"
               options={PERIOD_OPTIONS}
@@ -71,7 +96,7 @@ export function ReportsView() {
       </Panel>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <StatTile label="집계 대상" value={`${SITES.length}개소`} note={`최근 ${hours}시간`} />
+        <StatTile label="집계 대상" value={`${rows.length}개소`} note={`최근 ${hours}시간`} />
         <StatTile
           label="누적 알람"
           value={`${totals.alarms}건`}
@@ -81,7 +106,7 @@ export function ReportsView() {
         <StatTile
           label="통신 두절 사업장"
           value={`${totals.offline}개소`}
-          note={totals.offline > 0 ? '해당 사업장은 집계에서 제외' : '전 사업장 수신 중'}
+          note={totals.offline > 0 ? '해당 사업장은 집계에서 제외' : '집계 대상 전부 수신 중'}
           accent={totals.offline > 0 ? statusInk(STATUS_VISUAL.warning) : undefined}
         />
         <StatTile label="결측 표본" value={`${totals.missing}건`} note="평균 산정에서 제외됨" />

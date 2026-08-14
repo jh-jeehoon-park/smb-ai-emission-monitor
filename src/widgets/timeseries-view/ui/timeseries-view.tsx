@@ -91,7 +91,7 @@ function StatsTable({ rows }: { rows: { code: SeriesCode; stats: SeriesStats }[]
             return (
               <tr key={code} className="border-b border-border last:border-0">
                 <td className="px-4 py-2">
-                  <span className="font-display text-fg">{item.symbol}</span>
+                  <span className="font-semibold text-fg">{item.symbol}</span>
                   <span className="ml-1.5 text-[11px] text-fg-subtle">{item.label}</span>
                 </td>
                 <td className="px-3 py-2 text-fg-subtle">{item.unit || '—'}</td>

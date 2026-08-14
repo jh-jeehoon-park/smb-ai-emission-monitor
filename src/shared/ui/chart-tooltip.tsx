@@ -12,7 +12,7 @@ export function ChartTooltipShell({ label, children }: ChartTooltipProps) {
   return (
     <div className="min-w-[140px] rounded-[4px] border border-border-strong bg-surface-2 px-2.5 py-2 shadow-lg">
       {label && (
-        <p className="mb-1.5 font-mono text-[11px] tabular-nums text-fg-subtle">{label}</p>
+        <p className="mb-1.5 text-[11px] tabular-nums text-fg-subtle">{label}</p>
       )}
       <div className="space-y-1">{children}</div>
     </div>
@@ -41,7 +41,7 @@ export function ChartTooltipRow({ color, name, value, dashed }: TooltipRowProps)
         />
         {name}
       </span>
-      <span className="font-mono text-[11px] tabular-nums text-fg">{value}</span>
+      <span className="text-[11px] tabular-nums text-fg">{value}</span>
     </div>
   );
 }

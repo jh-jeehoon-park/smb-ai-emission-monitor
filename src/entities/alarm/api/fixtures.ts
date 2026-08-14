@@ -2,7 +2,7 @@ import type { Alarm } from '../model/types';
 
 /**
  * 우선순위는 상태 등급에서 자동으로 파생하지 않는다.
- * 등급 4단계와 우선순위 3단계의 대응 관계가 원문에 없기 때문이다(TBD-21).
+ * 등급 4단계와 우선순위 3단계의 대응 관계가 원문에 없기 때문이다(INC-02).
  * 확정 전까지는 각 알람이 우선순위를 직접 들고 있는다.
  */
 export const ALARMS: Alarm[] = [
@@ -85,18 +85,29 @@ export const ALARMS: Alarm[] = [
   },
 ];
 
-/** 선택한 사업장의 알람을 위로 올린다. 전 사업장 목록이라는 성격은 유지한다 */
+/**
+ * 한 사업장의 알람만 최신순으로 준다.
+ *
+ * 이전에는 인자를 받고도 전 사업장을 돌려주며 선택 사업장만 위로 올렸다. 이 함수를 쓰는
+ * 곳은 셋 다 **단일 사업장 분석 옆의 "관련 알람" 패널**이라, 남의 사업장이 섞이면
+ * 운영자에게도 오독이다. 전 사업장 목록은 알람 이력 화면(SCR-OP-007)이 맡는다.
+ */
 export function getAlarmsForView(siteId: string): Alarm[] {
-  return [...ALARMS].sort((a, b) => {
-    const aMine = a.siteId === siteId ? 0 : 1;
-    const bMine = b.siteId === siteId ? 0 : 1;
-    if (aMine !== bMine) return aMine - bMine;
-    return b.raisedAtIso.localeCompare(a.raisedAtIso);
-  });
+  return ALARMS.filter((a) => a.siteId === siteId).sort((a, b) =>
+    b.raisedAtIso.localeCompare(a.raisedAtIso),
+  );
 }
 
-export function countOpenAlarms(siteId?: string): number {
-  return ALARMS.filter((a) => a.state === 'open' && (!siteId || a.siteId === siteId)).length;
+export function countOpenAlarms(siteId: string): number {
+  return ALARMS.filter((a) => a.state === 'open' && a.siteId === siteId).length;
+}
+
+/**
+ * 전 사업장 미확인 수. **이름으로 범위를 드러낸다** — 무인자 호출로 전 사업장을 세면
+ * 호출부만 보고는 의도인지 실수인지 알 수 없다. 통합 관제(운영자 전용)가 쓴다.
+ */
+export function countOpenAlarmsAcrossSites(): number {
+  return ALARMS.filter((a) => a.state === 'open').length;
 }
 
 /** 사업장 카드에 표시할 미확인 알람 수 */
@@ -107,9 +118,23 @@ export function openAlarmCountBySite(): Record<string, number> {
   }, {});
 }
 
-export function countByPriority(state: Alarm['state'] = 'open'): Record<string, number> {
-  return ALARMS.filter((a) => a.state === state).reduce<Record<string, number>>((acc, a) => {
+/** siteId를 주면 그 사업장만, 주지 않으면 전 사업장을 센다 */
+export function countByPriority(
+  state: Alarm['state'] = 'open',
+  siteId?: string,
+): Record<string, number> {
+  return ALARMS.filter((a) => a.state === state && (!siteId || a.siteId === siteId)).reduce<
+    Record<string, number>
+  >((acc, a) => {
     acc[a.priority] = (acc[a.priority] ?? 0) + 1;
     return acc;
   }, {});
+}
+
+/**
+ * 사업장별 이상 탐지 알람 건수. 상태를 가리지 않는다 — **탐지되었는가**가 기준이고
+ * 확인·조치 여부는 다른 질문이다. 설비 이상은 세지 않는다(수질 사고 예방과 다른 축).
+ */
+export function countAnomalyAlarms(siteId: string): number {
+  return ALARMS.filter((a) => a.siteId === siteId && a.condition === 'anomaly').length;
 }

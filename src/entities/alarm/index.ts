@@ -3,8 +3,10 @@ export {
   ALARMS,
   getAlarmsForView,
   countOpenAlarms,
+  countOpenAlarmsAcrossSites,
   openAlarmCountBySite,
   countByPriority,
+  countAnomalyAlarms,
 } from './api/fixtures';
 export {
   ALARM_PRIORITY_LABELS,

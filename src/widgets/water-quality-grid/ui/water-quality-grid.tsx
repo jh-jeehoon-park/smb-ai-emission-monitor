@@ -46,7 +46,7 @@ function MiniSeries({ code, data }: { code: SeriesCode; data: MeasurementPoint[]
   return (
     <div className="group bg-surface p-3 transition-colors duration-200 hover:bg-surface-2">
       <div className="flex items-baseline justify-between gap-2">
-        <span className="font-display text-[11px] tracking-[0.08em] text-fg-subtle">
+        <span className="text-[11px] font-medium tracking-[0.08em] text-fg-subtle">
           {item.symbol}
         </span>
         {isMissingNow && (

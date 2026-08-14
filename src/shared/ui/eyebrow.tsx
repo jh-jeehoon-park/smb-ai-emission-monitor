@@ -14,7 +14,7 @@ export function Eyebrow({ children, className }: { children: string; className?:
     <p
       className={cn(
         'text-[11px] text-fg-subtle',
-        latinOnly && 'font-display uppercase tracking-[0.14em]',
+        latinOnly && 'uppercase tracking-[0.14em]',
         className,
       )}
     >

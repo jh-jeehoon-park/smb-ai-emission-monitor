@@ -84,7 +84,10 @@ export function EquipmentView() {
         </Panel>
       </div>
 
+      {/* 정비 인력이 사업장을 가로지른다는 전제의 블록이다. 자사 1개소에는 해당하지 않고,
+          상단 설비 표와 같은 설비가 그대로 다시 나와 중복이 된다 */}
       <Panel
+        className="role-hide-admin"
         eyebrow={`실증 ${SITES.length}개소 전체`}
         title="유지관리 우선순위 추천"
         action={

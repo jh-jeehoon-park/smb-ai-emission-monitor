@@ -150,8 +150,11 @@
   --color-missing: var(--missing);
 
   --font-sans: 'Pretendard Variable', Pretendard, ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-plex-mono), ui-monospace, monospace;
-  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+  /**
+   * 이 프로젝트에 모노스페이스 폰트는 없다. Tailwind 기본 `font-mono`가 시스템 모노로
+   * 떨어지는 것을 막으려고 남겨 둔 방어선이며, 새 코드에서 쓰지 않는다.
+   */
+  --font-mono: 'Pretendard Variable', Pretendard, ui-sans-serif, system-ui, sans-serif;
 
   --radius-panel: 6px;
   --radius-chip: 4px;
@@ -181,9 +184,12 @@
       color 200ms ease;
   }
 
-  /* 계측값은 자릿수가 고정되어야 한다. 값이 바뀔 때 숫자가 좌우로 흔들리면 오독이 생긴다. */
+  /**
+   * 계측값은 자릿수가 고정되어야 한다. 값이 바뀔 때 숫자가 좌우로 흔들리면 오독이 생긴다.
+   * Pretendard의 기본 숫자는 등폭이 아니므로(`1` 898 vs `4` 1278 units) tnum이 필수다.
+   * 폰트에 tnum 피처가 있는 것을 확인했다 — 지우면 값이 갱신될 때마다 좌우로 밀린다.
+   */
   .num {
-    font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
     font-feature-settings: "tnum";
   }
@@ -223,6 +229,74 @@
   }
   :root[data-theme='dark'] .theme-when-light {
     display: none;
+  }
+
+  /*
+   * 역할도 같은 문제를 갖는다 — 서버는 localStorage를 모른다.
+   * 메뉴를 전부 렌더하고 CSS가 가린다. 숨은 항목이 DOM에 남지만 이건 인가가 아니라
+   * 시연 표시다(E6 예외). 백엔드가 생기면 서버가 걸러 보낸다.
+   */
+  :root[data-role='admin'] .role-hide-admin,
+  :root[data-role='operator'] .role-hide-operator,
+  :root[data-role='guest'] .role-hide-guest {
+    display: none;
+  }
+
+  /* 현재 역할일 때만 보이는 것 — 설명 문구처럼 하나만 나와야 하는 자리 */
+  .role-only-admin,
+  .role-only-operator,
+  .role-only-guest {
+    display: none;
+  }
+  :root[data-role='admin'] .role-only-admin,
+  :root[data-role='operator'] .role-only-operator,
+  :root[data-role='guest'] .role-only-guest {
+    display: block;
+  }
+
+  /*
+   * 관리자 계정 축. 역할이 admin이어도 **어느 계정인가**에 따라 숫자가 달라지는 자리가
+   * 있다(사이드바 알람 배지). 역할 클래스만으로는 가를 수 없어 축을 하나 더 둔다.
+   */
+  /*
+   * 두 축을 **한 선택자에서** 본다. `role-only-admin`과 따로 걸면 두 규칙이 display를
+   * 다투고, 나중에 선언된 쪽이 이겨 운영자에게도 관리자 배지가 보인다(실제로 그랬다).
+   */
+  .admin-only-1,
+  .admin-only-2 {
+    display: none;
+  }
+  :root[data-role='admin'][data-admin='admin-1'] .admin-only-1,
+  :root[data-role='admin'][data-admin='admin-2'] .admin-only-2 {
+    display: block;
+  }
+
+  /* 선택된 계정 버튼 */
+  :root[data-admin='admin-1'] .admin-pick-1,
+  :root[data-admin='admin-2'] .admin-pick-2 {
+    background: var(--surface);
+    color: var(--fg);
+    box-shadow: 0 1px 2px rgb(0 0 0 / 6%);
+  }
+
+  /* 선택된 역할 버튼 — aria-checked를 서버가 정하면 하이드레이션이 깨지므로 CSS가 칠한다 */
+  :root[data-role='admin'] .role-pick-admin,
+  :root[data-role='operator'] .role-pick-operator,
+  :root[data-role='guest'] .role-pick-guest {
+    background: var(--surface);
+    color: var(--fg);
+    box-shadow: 0 1px 2px rgb(0 0 0 / 6%);
+  }
+
+  /* 물이 흐르는 방향만 전한다. 감속 설정에서는 아래 전역 규칙이 멈춘다 */
+  .process-flow {
+    animation: process-flow 1.8s linear infinite;
+  }
+
+  @keyframes process-flow {
+    to {
+      stroke-dashoffset: -14;
+    }
   }
 
   .live-pulse::before {

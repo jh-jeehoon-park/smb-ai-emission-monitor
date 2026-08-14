@@ -13,7 +13,7 @@ import { CountUp, RiseItem, StaggerGroup } from '@/shared/ui/motion';
 import { StatusBadge } from '@/shared/ui/status-badge';
 import {
   countByPriority,
-  countOpenAlarms,
+  countOpenAlarmsAcrossSites,
   getAlarmsForView,
   openAlarmCountBySite,
 } from '@/entities/alarm';
@@ -38,7 +38,8 @@ export function DashboardView() {
 
   const site = getSite(selectedSiteId);
   const alarmCounts = openAlarmCountBySite();
-  const totalOpen = countOpenAlarms();
+  /* 통합 관제는 운영자 전용(회의 2026-08-13)이라 전 사업장 집계가 맞다. 이름으로 범위를 밝힌다 */
+  const totalOpen = countOpenAlarmsAcrossSites();
   const priorityCounts = countByPriority('open');
 
   // 사업장을 바꿀 때마다 시계열을 새로 만든다. 선택이 바뀔 때만 계산한다.
@@ -61,8 +62,10 @@ export function DashboardView() {
        1280 미만에서는 레일을 만들지 않는다 — 1024에서 나누면 오른쪽에 210px밖에 남지 않아
        KPI 타일이 44px로 뭉개진다. 대신 지도가 본문 위에 전폭으로 놓인다. */
     <div className="grid gap-3 xl:grid-cols-[544px_minmax(0,1fr)]">
+      {/* eyebrow에 역할이 아니라 범위를 적는다. 역할은 사이드바가 보여주고, 이 화면은
+          운영자 전용이라 역할명을 박아 두면 역할을 바꿔도 남아 어긋난다(회의 2026-08-13) */}
       <Panel
-        eyebrow="관리자 · 전체 사업장"
+        eyebrow="전 사업장"
         title="사업장 위치"
         action={<SiteMapLegend />}
         className="xl:sticky xl:top-[104px] xl:self-start"
@@ -169,7 +172,7 @@ export function DashboardView() {
                 {detail.forecast.trends.map((t) => (
                   <div key={t.code} className="px-3 first:pl-0 last:pr-0">
                     <div className="flex items-baseline justify-between gap-1">
-                      <span className="font-display text-[11px] uppercase tracking-[0.1em] text-fg-subtle">
+                      <span className="text-[11px] uppercase tracking-[0.1em] text-fg-subtle">
                         {t.code}
                       </span>
                       <span

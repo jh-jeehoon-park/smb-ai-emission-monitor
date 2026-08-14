@@ -7,6 +7,7 @@ import { STATUS_VISUAL, statusInk } from '@/shared/config/status-visual';
 import { buildAnomalyScores, downsample } from '@/shared/lib/anomaly-score';
 import { cn } from '@/shared/lib/cn';
 import { getOutageWindow } from '@/shared/lib/timeline';
+import Link from 'next/link';
 import { AnomalyBandLegend } from '@/shared/ui/anomaly-band-legend';
 import { Panel } from '@/shared/ui/panel';
 import { Sparkline } from '@/shared/ui/sparkline';
@@ -14,7 +15,7 @@ import { getAlarmsForView } from '@/entities/alarm';
 import { getAnomalySeries, getAnomalySummary } from '@/entities/anomaly';
 import { SITES, getSite } from '@/entities/site';
 import type { Site } from '@/entities/site';
-import { useSelectedSiteId } from '@/features/site-selection';
+import { useSelectedSiteId, useSiteHref } from '@/features/site-selection';
 import { AlarmList } from '@/widgets/alarm-list';
 import { AnomalyPanel } from '@/widgets/anomaly-panel';
 import { AnomalyTimeline } from '@/widgets/anomaly-timeline';
@@ -23,6 +24,7 @@ const RANKING_SPARK_POINTS = 40;
 
 export function AnomalyView() {
   const { siteId, setSiteId } = useSelectedSiteId();
+  const withSite = useSiteHref();
   const site = getSite(siteId);
 
   const detail = useMemo(
@@ -41,16 +43,30 @@ export function AnomalyView() {
         <Panel
           eyebrow={`AutoEncoder · ${site.name}`}
           title="이상 점수 타임라인"
-          action={<AnomalyBandLegend />}
+          action={
+            <div className="flex flex-wrap items-center gap-3">
+              <AnomalyBandLegend />
+              {/* 원문 p.22의 현장 문제 — "TOC가 상승했는데 펌프 이상인지 유입 부하 증가인지
+                  판단 어려움". 어느 공정 단계인지 짚으려면 공정도로 갈 수 있어야 한다 */}
+              <Link
+                href={withSite('/process')}
+                className="text-[12px] text-fg-subtle underline decoration-border-strong underline-offset-2 transition-colors duration-200 hover:text-fg"
+              >
+                공정에서 보기
+              </Link>
+            </div>
+          }
         >
           <AnomalyTimeline data={detail.series} outage={detail.outage} />
         </Panel>
 
+        {/* 비교가 이 블록의 존재 이유다. 자사 1개소뿐인 관리자에게는 성립하지 않는다 */}
         <Panel
           eyebrow={`실증 ${SITES.length}개소`}
           title="사업장별 이상 점수"
           action={<span className="text-[12px] text-fg-subtle">점수 높은 순 · 클릭하여 전환</span>}
           bodyClassName="p-0"
+          className="role-hide-admin"
         >
           <SiteScoreRanking selectedId={siteId} onSelect={setSiteId} />
         </Panel>

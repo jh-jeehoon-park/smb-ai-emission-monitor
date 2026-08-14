@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { DEMO_NOW_ISO } from '@/shared/config/demo';
 import { DISPLAY_TIMEZONE, formatDateTime, formatRelative } from '@/shared/lib/format';
 import { cn } from '@/shared/lib/cn';
+import { SCOPE_FILTERS, SCOPE_OPTIONS, SCOPE_QUERY_KEY } from '@/shared/config/scope';
 import { useQueryState } from '@/shared/lib/use-query-state';
 import { STATUS_VISUAL, statusInk } from '@/shared/config/status-visual';
 import { Panel } from '@/shared/ui/panel';
@@ -25,9 +26,6 @@ import {
   PRIORITY_FILTERS,
   PRIORITY_OPTIONS,
   PRIORITY_QUERY_KEY,
-  SCOPE_FILTERS,
-  SCOPE_OPTIONS,
-  SCOPE_QUERY_KEY,
   STATE_FILTERS,
   STATE_OPTIONS,
   STATE_QUERY_KEY,
@@ -62,25 +60,42 @@ export function AlarmsView() {
   const source = useMemo(() => [...ALARMS].sort(byRaisedAtDesc), []);
   const { alarms, changedCount, setState: setAlarmState, reset } = useAlarmStates(source);
 
+  /**
+   * 범위 판정을 **한 곳에서만** 한다. 목록과 상단 타일이 각자 범위를 계산하던 탓에
+   * 세그먼트를 '선택 사업장'으로 바꿔도 타일 숫자는 전 사업장 그대로였다.
+   *
+   * 관리자에게 남의 사업장 합계가 보이면 자사 1개소라는 전제가 깨진다(회의 2026-08-13).
+   */
+  const inScope = useMemo(
+    () => (scope === 'site' ? alarms.filter((a) => a.siteId === siteId) : alarms),
+    [alarms, scope, siteId],
+  );
+
   const visible = useMemo(
     () =>
-      alarms.filter((alarm) => {
-        if (scope === 'site' && alarm.siteId !== siteId) return false;
+      inScope.filter((alarm) => {
         if (priority !== 'all' && alarm.priority !== priority) return false;
         if (state !== 'all' && alarm.state !== state) return false;
         return true;
       }),
-    [alarms, scope, siteId, priority, state],
+    [inScope, priority, state],
   );
 
-  /* 확인·조치를 누르면 이 숫자가 바로 움직인다 — 목록만 바뀌면 처리한 티가 나지 않는다 */
+  /* 타일의 'N건 중'이 범위와 어긋나면 안 된다. 라벨도 같은 판정에서 만든다 */
+  const scopeLabel = scope === 'site' ? site.name : '전 사업장';
+
+  /**
+   * 확인·조치를 누르면 이 숫자가 바로 움직인다 — 목록만 바뀌면 처리한 티가 나지 않는다.
+   * 우선순위·상태 필터는 **일부러** 반영하지 않는다. 그 필터로 걸러낸 건도 세션 집계에는
+   * 남아야 한다.
+   */
   const tally = useMemo(
     () => ({
-      open: alarms.filter((a) => a.state === 'open').length,
-      urgent: alarms.filter((a) => a.priority === 'urgent' && a.state !== 'resolved').length,
-      resolved: alarms.filter((a) => a.state === 'resolved').length,
+      open: inScope.filter((a) => a.state === 'open').length,
+      urgent: inScope.filter((a) => a.priority === 'urgent' && a.state !== 'resolved').length,
+      resolved: inScope.filter((a) => a.state === 'resolved').length,
     }),
-    [alarms],
+    [inScope],
   );
 
   return (
@@ -89,7 +104,7 @@ export function AlarmsView() {
         <StatTile
           label="미확인"
           value={`${tally.open}건`}
-          note={`전체 ${alarms.length}건 중`}
+          note={`${scopeLabel} ${inScope.length}건 중`}
           accent={tally.open > 0 ? statusInk(STATUS_VISUAL.warning) : undefined}
         />
         <StatTile
@@ -102,16 +117,19 @@ export function AlarmsView() {
       </div>
 
       <Panel
-        eyebrow={scope === 'site' ? site.name : '전 사업장'}
+        eyebrow={scopeLabel}
         title={`알람 이력 ${visible.length}건`}
         action={
           <div className="flex flex-wrap items-center gap-2">
-            <SegmentedControl
-              ariaLabel="사업장 범위"
-              options={SCOPE_OPTIONS}
-              value={scope}
-              onChange={setScope}
-            />
+            {/* 관리자는 자사 1개소뿐이라 고를 것이 없다. 가드가 scope=site로 고정한다 */}
+            <div className="role-hide-admin">
+              <SegmentedControl
+                ariaLabel="사업장 범위"
+                options={SCOPE_OPTIONS}
+                value={scope}
+                onChange={setScope}
+              />
+            </div>
             <SegmentedControl
               ariaLabel="알람 우선순위"
               options={PRIORITY_OPTIONS}

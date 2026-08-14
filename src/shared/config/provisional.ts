@@ -87,7 +87,38 @@ export const PROVISIONAL_DISPLAY_DECIMALS = {
   uptime: 1,
   /** 기여도는 0~1로 오고 %로 표시한다 */
   contributionPercent: 0,
+  /** 절감률. 목표가 20~30%·≥10%처럼 정수 구간이라 한 자리면 목표 대비가 드러난다 */
+  savingRate: 1,
+  /** 1억 이상은 억으로 끊는다. `15,000만 원`은 자릿수를 세어야 읽힌다 */
+  savingKrwEok: 1,
 } as const;
+
+/**
+ * 계측 등급. **원문에 이런 등급 개념이 없다** — 공정 화면(SCR-AD-002)이 "어디를 재고
+ * 어디를 추정하며 어디가 안 보이는가"를 보이려고 세운 구분이다.
+ *
+ * 색은 새로 만들지 않는다. `status-visual.ts`의 계열색(`--actual`·`--ai`·`--missing`)이
+ * 이미 실측·추정·결측을 가르며, E3가 그 구분을 요구한다. 상태 등급 색과 다른 축이다.
+ */
+export const PROVISIONAL_MEASUREMENT_GRADES = ['actual', 'estimated', 'none'] as const;
+
+export type MeasurementGrade = (typeof PROVISIONAL_MEASUREMENT_GRADES)[number];
+
+export const PROVISIONAL_MEASUREMENT_GRADE_LABELS: Record<MeasurementGrade, string> = {
+  actual: '실측',
+  estimated: 'AI 추정',
+  none: '계측 없음',
+};
+
+/**
+ * 테두리 스타일. 색만으로 가르면 색각 이상에서 셋이 뭉친다.
+ * 글리프(`●◆▲■`)는 이미 상태 등급이 쓰고 있어(`status-visual.ts`) 겹쳐 쓰지 않는다.
+ */
+export const PROVISIONAL_MEASUREMENT_GRADE_DASH: Record<MeasurementGrade, string> = {
+  actual: 'none',
+  estimated: '5 3',
+  none: '2 3',
+};
 
 /**
  * 약품 주입량 단위. **TBD-31 관련 — 원문에 근거 없음.**

@@ -1,9 +1,8 @@
 import type { Metadata } from 'next';
-import { IBM_Plex_Mono } from 'next/font/google';
 import { THEME_INIT_SCRIPT } from '@/shared/config/theme';
 import { MotionPreferences } from '@/shared/ui/motion';
 import { ThemeProvider } from '@/shared/ui/theme';
-import { AppShell } from '@/widgets/app-shell';
+import { RoleProvider, SESSION_INIT_SCRIPT } from '@/entities/user';
 import './globals.css';
 
 /**
@@ -12,17 +11,6 @@ import './globals.css';
  */
 export const dynamic = 'force-dynamic';
 
-/**
- * 계측 대시보드라 숫자와 항목 코드가 화면의 절반이다. 산업용 계기 표기에 가까운
- * Plex Mono 하나로 숫자·코드·라벨을 모두 받고, 한글 본문만 Pretendard가 맡는다.
- * (Inter·Geist·Space Grotesk 계열은 어느 화면에서나 보여 식별력이 없다.)
- */
-const plexMono = IBM_Plex_Mono({
-  variable: '--font-plex-mono',
-  subsets: ['latin'],
-  weight: ['400', '500', '600'],
-});
-
 export const metadata: Metadata = {
   title: 'AI 기반 지능형 배출관리 플랫폼',
   description: 'AIoT 기반 소규모 사업장 오염물질 배출 관리 시스템 프로토타입',
@@ -30,17 +18,20 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    /* 테마는 localStorage에 있어 서버가 모른다. 이 스크립트가 붙이는 data-theme만
-       서버 HTML과 다르며, 그 차이는 여기서만 허용한다. 하위 트리에는 전파되지 않는다. */
+    /* 테마·역할은 localStorage에 있어 서버가 모른다. 두 스크립트가 붙이는
+       data-theme·data-role만 서버 HTML과 다르며, 그 차이는 여기서만 허용한다.
+       하위 트리에는 전파되지 않는다. */
     <html lang="ko" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: SESSION_INIT_SCRIPT }} />
       </head>
-      <body className={`${plexMono.variable} antialiased`}>
+      {/* 폰트는 globals.css가 Pretendard 하나로 불러온다 — 한글 계측 라벨의 가독성이 우선이다 */}
+      <body className="antialiased">
         <ThemeProvider>
-          <MotionPreferences>
-            <AppShell>{children}</AppShell>
-          </MotionPreferences>
+          <RoleProvider>
+            <MotionPreferences>{children}</MotionPreferences>
+          </RoleProvider>
         </ThemeProvider>
       </body>
     </html>

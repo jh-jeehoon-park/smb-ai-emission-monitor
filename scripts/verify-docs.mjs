@@ -81,9 +81,16 @@ check('화면 수', () => {
   const implemented = files.filter(
     (f) => !/\|\s*구현\s*\|\s*\*\*미구현\*\*/.test(readFileSync(join(SCREENS, f), 'utf8')),
   );
-  const routes = (read('src/widgets/app-shell/config/navigation.ts').match(/href: '\//g) ?? []).length;
-  if (implemented.length !== routes)
-    fails.push(`구현 표기 ${implemented.length}개 ≠ 라우트 ${routes}개`);
+  // 라우트는 nav 설정이 아니라 실제 page.tsx로 센다 — 로그인처럼 메뉴에 없는 화면이 있다
+  const pages = walk(join(ROOT, 'src/app'), 'page.tsx');
+  if (implemented.length !== pages.length)
+    fails.push(`구현 표기 ${implemented.length}개 ≠ 라우트 ${pages.length}개`);
+
+  // 셸 안의 화면만 사이드바에 오른다. 화면을 (shell)에 넣고 메뉴에 안 넣으면 갈 길이 없다
+  const shellPages = pages.filter((p) => p.includes('(shell)')).length;
+  const navItems = (read('src/widgets/app-shell/config/navigation.ts').match(/href: '\//g) ?? []).length;
+  if (shellPages !== navItems)
+    fails.push(`셸 라우트 ${shellPages}개 ≠ 사이드바 메뉴 ${navItems}개`);
   return fails;
 });
 
@@ -129,7 +136,11 @@ check('필드 커버리지', () => {
     ]),
   );
   const fails = [];
-  for (const slice of ['site', 'measurement', 'anomaly', 'prediction', 'equipment', 'alarm', 'optimization']) {
+  // 슬라이스 목록을 적어 두면 새 슬라이스를 만들 때 여기에 더하는 것을 잊는다. 디렉터리에서 센다.
+  const slices = readdirSync(join(ROOT, 'src/entities'), { withFileTypes: true })
+    .filter((e) => e.isDirectory() && existsSync(join(ROOT, `src/entities/${e.name}/model/types.ts`)))
+    .map((e) => e.name);
+  for (const slice of slices) {
     const declared = (
       read(`src/entities/${slice}/model/types.ts`).match(/^\s+[a-zA-Z][a-zA-Z0-9]*\??:/gm) ?? []
     ).length;
@@ -159,13 +170,13 @@ check('문서 규격', () => {
 check('화면 목록 정합', () => {
   const list = read('docs/specs/screens.md');
   const kinds = new Map(
-    [...list.matchAll(/^\| \d\.0 \| (SCR-(?:AD|OP|GU)-\d{3}) \|[^|]+\|[^|]+\| ([^|]+)\|/gm)].map((m) => [
+    [...list.matchAll(/^\| \d+\.\d+ \| (SCR-(?:AD|OP|GU|CO)-\d{3}) \|[^|]+\|[^|]+\| ([^|]+)\|/gm)].map((m) => [
       m[1],
       m[2].trim(),
     ]),
   );
   const perms = new Map(
-    [...list.matchAll(/^\| (SCR-(?:AD|OP|GU)-\d{3}) \| [^|]+\| ([^|]+)\| ([^|]+)\| ([^|]+)\|/gm)].map((m) => [
+    [...list.matchAll(/^\| (SCR-(?:AD|OP|GU|CO)-\d{3}) \| [^|]+\| ([^|]+)\| ([^|]+)\| ([^|]+)\|/gm)].map((m) => [
       m[1],
       [m[2], m[3], m[4]].map((s) => s.trim()).join(' / '),
     ]),
@@ -173,7 +184,7 @@ check('화면 목록 정합', () => {
   const fails = [];
   for (const file of readdirSync(SCREENS).filter((f) => f.endsWith('.md'))) {
     const text = readFileSync(join(SCREENS, file), 'utf8');
-    const id = file.match(/SCR-(?:AD|OP|GU)-\d{3}/)?.[0];
+    const id = file.match(/SCR-(?:AD|OP|GU|CO)-\d{3}/)?.[0];
     if (!id) continue;
     const kind = text.match(/^\| 화면 구분 \| ([^|]+)\|/m)?.[1].trim();
     if (kind !== kinds.get(id)) fails.push(`${id} 화면구분 — 목록 '${kinds.get(id)}' ≠ 문서 '${kind}'`);
@@ -187,7 +198,8 @@ check('화면 목록 정합', () => {
 // 9. 자릿수 하드코딩 — 같은 값이 화면마다 다르게 반올림되는 결함을 막는다(E1)
 //    `toFixed(1)`뿐 아니라 `decimals={1}`·`decimals: 1`도 같은 결함이다.
 check('자릿수 하드코딩', () => {
-  const ALLOWED = ['src/shared/ui/sparkline.tsx']; // SVG 좌표 정밀도이지 도메인 값이 아니다
+  // SVG 좌표 정밀도이지 도메인 값이 아니다. 두 파일 모두 계측값을 표시하지 않는다.
+  const ALLOWED = ['src/shared/ui/sparkline.tsx', 'src/widgets/login-view/ui/brand-panel.tsx'];
   const PATTERNS = [
     [/toFixed\(\s*\d/, 'toFixed(리터럴)'],
     [/decimals\s*=\s*\{\s*\d/, 'decimals={리터럴}'],
@@ -219,6 +231,21 @@ check('임시값 위치', () => {
     if (name === 'src/shared/config/provisional.ts' || name.includes('.test.')) continue;
     for (const m of readFileSync(f, 'utf8').matchAll(/^export (?:const|type|function) (PROVISIONAL_\w+)/gm)) {
       fails.push(`${name} — ${m[1]}는 provisional.ts에 있어야 한다`);
+    }
+  }
+  return fails;
+});
+
+// 11. 데이터셋 근거 — `[데이터셋 경로]`가 실제로 있는 파일·폴더를 가리키는가
+//     원문 페이지와 달리 이건 셀 수 있다. 없는 경로를 근거로 적으면 근거가 있다는 착각만 남는다.
+check('데이터셋 근거', () => {
+  const fails = [];
+  for (const m of specText.matchAll(/\[데이터셋\s+([^\]]+)\]/g)) {
+    // 한 표기에 여러 경로를 `·`로 이어 쓸 수 있다
+    for (const raw of m[1].split('·')) {
+      const path = raw.trim().replace(/^`|`$/g, '');
+      if (!path.startsWith('docs/')) continue; // 설명문이지 경로가 아니다
+      if (!existsSync(join(ROOT, path))) fails.push(`${path} — 없는 경로`);
     }
   }
   return fails;
