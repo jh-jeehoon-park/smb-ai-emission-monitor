@@ -9,12 +9,13 @@ import { Panel } from '@/shared/ui/panel';
 import { RiseItem, StaggerGroup } from '@/shared/ui/motion';
 import { StatTile } from '@/shared/ui/stat-tile';
 import { StatusBadge } from '@/shared/ui/status-badge';
-import { countOpenAlarms, getAlarmsForView } from '@/entities/alarm';
+import { countOpen, getAlarmsForView } from '@/entities/alarm';
 import { getAnomalySeries, getAnomalySummary } from '@/entities/anomaly';
 import { getEquipment, sortEquipment } from '@/entities/equipment';
 import { energyIntensity, getMeasurementSeries } from '@/entities/measurement';
 import { calcCostSavings, formatKrw, getOptimization } from '@/entities/optimization';
 import { getSite } from '@/entities/site';
+import { useAlarmStates } from '@/features/alarm-ack';
 import { useSelectedSiteId, useSiteHref } from '@/features/site-selection';
 import { AlarmList } from '@/widgets/alarm-list';
 import { AnomalyPanel } from '@/widgets/anomaly-panel';
@@ -57,7 +58,9 @@ export function AdminOverviewView() {
     };
   }, [siteId]);
 
-  const openAlarms = countOpenAlarms(siteId);
+  /* 확인 처리가 헤더·사이드바와 함께 반영되도록 공유 상태를 읽는다 */
+  const { alarms } = useAlarmStates(detail.alarms);
+  const openAlarms = countOpen(alarms);
   /* 절감액은 SCR-AD-001과 **같은 함수**를 부른다. 두 화면이 다른 금액을 보이면 안 된다 */
   const savings = detail.optimization.online
     ? calcCostSavings(detail.optimization.dosing.savingRate, detail.optimization.energy.savingRate)
@@ -130,7 +133,7 @@ export function AdminOverviewView() {
         </Panel>
 
         <Panel eyebrow={`미확인 ${openAlarms}건`} title="알람" bodyClassName="px-4 py-3">
-          <AlarmList alarms={detail.alarms} nowIso={DEMO_NOW_ISO} selectedSiteId={siteId} />
+          <AlarmList alarms={alarms} nowIso={DEMO_NOW_ISO} selectedSiteId={siteId} />
         </Panel>
       </div>
 

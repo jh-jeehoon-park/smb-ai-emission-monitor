@@ -10,12 +10,14 @@ import { cn } from '@/shared/lib/cn';
 import { DISPLAY_TIMEZONE, formatDateTime } from '@/shared/lib/format';
 import { BrandMark } from '@/shared/ui/brand-mark';
 import { ThemeToggle } from '@/shared/ui/theme';
-import { countOpenAlarms, countOpenAlarmsAcrossSites } from '@/entities/alarm';
+import { ALARMS, openAlarms } from '@/entities/alarm';
 import { ADMIN_ACCOUNTS, ProfileMenu, ROLES, canRoleSee } from '@/entities/user';
 import { getSite } from '@/entities/site';
+import { useAlarmStates } from '@/features/alarm-ack';
 import { SiteSelector, useSelectedSiteId, useSiteHref } from '@/features/site-selection';
 import { ALARM_NAV_HREF, NAV_ITEMS, navLabelOf, type NavItem } from '../config/navigation';
 import { useRoleRouteGuard } from '../lib/use-role-route-guard';
+import { AlarmMenu } from './alarm-menu';
 import { LiveClock } from './live-clock';
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -63,6 +65,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-fg-subtle">
               <ReceiveIndicator />
               <LiveClock />
+              <AlarmMenu />
               <ThemeToggle />
               <ProfileMenu />
             </div>
@@ -134,15 +137,16 @@ function hiddenForClass(item: NavItem): string {
  * 렌더 중에 역할로 분기해 숫자를 하나만 그리면 하이드레이션이 깨진다.
  */
 function AlarmBadge() {
-  const acrossSites = countOpenAlarmsAcrossSites();
+  /* 헤더 알림과 **같은 상태**를 본다. 정적 fixture를 읽으면 확인 처리를 해도 줄지 않는다 */
+  const { alarms } = useAlarmStates(ALARMS);
 
   return (
     <>
-      <Badge count={acrossSites} className="role-hide-admin" />
+      <Badge count={openAlarms(alarms).length} className="role-hide-admin" />
       {ADMIN_ACCOUNTS.map((account, index) => (
         <Badge
           key={account.key}
-          count={countOpenAlarms(account.siteId)}
+          count={openAlarms(alarms, account.siteId).length}
           className={`admin-only-${index + 1}`}
         />
       ))}

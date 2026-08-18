@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { AlarmStateProvider } from '@/features/alarm-ack';
 import { AppShell } from '@/widgets/app-shell';
 
 /**
@@ -6,5 +7,10 @@ import { AppShell } from '@/widgets/app-shell';
  * root layout을 하나로 유지하므로 그룹을 오갈 때 전체 새로고침이 일어나지 않는다.
  */
 export default function ShellLayout({ children }: { children: ReactNode }) {
-  return <AppShell>{children}</AppShell>;
+  /* 확인 처리 결과를 헤더 알림·사이드바 배지·본문이 함께 봐야 한다 */
+  return (
+    <AlarmStateProvider>
+      <AppShell>{children}</AppShell>
+    </AlarmStateProvider>
+  );
 }

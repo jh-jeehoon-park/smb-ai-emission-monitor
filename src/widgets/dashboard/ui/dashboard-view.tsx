@@ -12,10 +12,11 @@ import { Panel } from '@/shared/ui/panel';
 import { CountUp, RiseItem, StaggerGroup } from '@/shared/ui/motion';
 import { StatusBadge } from '@/shared/ui/status-badge';
 import {
-  countByPriority,
-  countOpenAlarmsAcrossSites,
+  ALARMS,
+  countByPriorityIn,
+  countOpen,
   getAlarmsForView,
-  openAlarmCountBySite,
+  openCountBySite,
 } from '@/entities/alarm';
 import { ALARM_PRIORITY_LABELS, type AlarmPriority } from '@/entities/alarm';
 import { getAnomalySeries, getAnomalySummary } from '@/entities/anomaly';
@@ -23,6 +24,7 @@ import { getEquipment } from '@/entities/equipment';
 import { WATER_SERIES_CODES, getMeasurementSeries } from '@/entities/measurement';
 import { TREND_LABELS, formatR2, getForecast } from '@/entities/prediction';
 import { SITES, getSite } from '@/entities/site';
+import { useAlarmStates } from '@/features/alarm-ack';
 import { useSelectedSiteId } from '@/features/site-selection';
 import { AlarmList } from '@/widgets/alarm-list';
 import { AnomalyPanel } from '@/widgets/anomaly-panel';
@@ -37,10 +39,12 @@ export function DashboardView() {
   const { siteId: selectedSiteId, setSiteId: setSelectedSiteId } = useSelectedSiteId();
 
   const site = getSite(selectedSiteId);
-  const alarmCounts = openAlarmCountBySite();
-  /* 통합 관제는 운영자 전용(회의 2026-08-13)이라 전 사업장 집계가 맞다. 이름으로 범위를 밝힌다 */
-  const totalOpen = countOpenAlarmsAcrossSites();
-  const priorityCounts = countByPriority('open');
+  /* 확인 처리가 헤더 알림·사이드바와 함께 반영되도록 공유 상태를 읽는다 */
+  const { alarms: allAlarms } = useAlarmStates(ALARMS);
+  const alarmCounts = openCountBySite(allAlarms);
+  /* 통합 관제는 운영자 전용(회의 2026-08-13)이라 전 사업장 집계가 맞다 */
+  const totalOpen = countOpen(allAlarms);
+  const priorityCounts = countByPriorityIn(allAlarms);
 
   // 사업장을 바꿀 때마다 시계열을 새로 만든다. 선택이 바뀔 때만 계산한다.
   const detail = useMemo(
@@ -50,7 +54,7 @@ export function DashboardView() {
       anomalySummary: getAnomalySummary(selectedSiteId),
       forecast: getForecast(selectedSiteId),
       equipment: getEquipment(selectedSiteId),
-      alarms: getAlarmsForView(selectedSiteId),
+      alarmIds: new Set(getAlarmsForView(selectedSiteId).map((a) => a.id)),
       outage: getOutageWindow(selectedSiteId),
     }),
     [selectedSiteId],
@@ -208,7 +212,7 @@ export function DashboardView() {
 
             <Panel eyebrow={`전체 미확인 ${totalOpen}건`} title="알람" bodyClassName="px-4 py-3">
               <AlarmList
-                alarms={detail.alarms}
+                alarms={allAlarms.filter((a) => detail.alarmIds.has(a.id))}
                 nowIso={DEMO_NOW_ISO}
                 selectedSiteId={selectedSiteId}
               />
