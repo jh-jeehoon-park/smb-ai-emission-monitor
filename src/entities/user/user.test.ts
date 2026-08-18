@@ -2,7 +2,14 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { NAV_ITEMS } from '@/widgets/app-shell/config/navigation';
-import { ROLES, ROLE_PROFILES, SCREEN_ROLES, canRoleSee } from './config/constants';
+import {
+  ROLES,
+  ROLE_PROFILES,
+  ROLE_SWITCH_BLOCKED_REASON,
+  SCREEN_ROLES,
+  SWITCHABLE_ROLES,
+  canRoleSee,
+} from './config/constants';
 import {
   ADMIN_ACCOUNTS,
   DEFAULT_ADMIN_ACCOUNT,
@@ -135,5 +142,40 @@ describe('관리자 계정 — 범위 축', () => {
     for (const account of ADMIN_ACCOUNTS) {
       expect(SESSION_INIT_SCRIPT).toContain(`'${account.key}'`);
     }
+  });
+});
+
+/**
+ * 게스트는 **전환만** 막는다. 역할 자체를 없애는 것이 아니다 —
+ * 권한 매트릭스는 게스트가 볼 수 있는 화면을 그대로 규정하고 있고,
+ * 저장된 역할이 게스트인 세션도 계속 동작해야 한다.
+ */
+describe('역할 전환 — 게스트는 시연에서 고를 수 없다', () => {
+  it('전환 목록에 게스트가 없다', () => {
+    expect(SWITCHABLE_ROLES).not.toContain('guest');
+  });
+
+  it('관리자·운영자는 전환할 수 있다', () => {
+    expect(SWITCHABLE_ROLES).toEqual(expect.arrayContaining(['admin', 'operator']));
+  });
+
+  /** 전환 목록은 전체 역할의 부분집합이어야 한다 — 없는 역할을 고를 수 있으면 안 된다 */
+  it('전환 목록이 역할 목록 안에 있다', () => {
+    for (const role of SWITCHABLE_ROLES) expect(ROLES).toContain(role);
+  });
+
+  it('게스트는 여전히 유효한 역할이다 — 저장된 세션이 깨지지 않는다', () => {
+    expect(normalizeRole('guest')).toBe('guest');
+    expect(ROLES).toContain('guest');
+  });
+
+  it('게스트의 화면 접근 권한은 그대로다', () => {
+    expect(canRoleSee('SCR-OP-001', 'guest')).toBe(true);
+    expect(canRoleSee('SCR-AD-003', 'guest')).toBe(false);
+  });
+
+  /** 못 누르는 이유가 화면에 적혀야 한다 — 흐릿하기만 하면 고장으로 읽힌다 */
+  it('막힌 이유 문구가 있다', () => {
+    expect(ROLE_SWITCH_BLOCKED_REASON).toContain('게스트');
   });
 });

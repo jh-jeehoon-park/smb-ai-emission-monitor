@@ -4,7 +4,12 @@ import { ChevronDown, LogOut, UserRound } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/shared/lib/cn';
 import { ADMIN_ACCOUNTS } from '../config/accounts';
-import { ROLES, ROLE_PROFILES } from '../config/constants';
+import {
+  ROLES,
+  ROLE_PROFILES,
+  ROLE_SWITCH_BLOCKED_REASON,
+  SWITCHABLE_ROLES,
+} from '../config/constants';
 import { useRole } from './role-context';
 
 /**
@@ -74,24 +79,37 @@ export function ProfileMenu({ className }: { className?: string }) {
             aria-label="시연 역할 전환"
             className="mt-1.5 flex rounded-[4px] border border-border bg-surface-2 p-0.5"
           >
-            {ROLES.map((role) => (
-              <button
-                key={role}
-                type="button"
-                onClick={() => {
-                  setRole(role);
-                  setOpen(false);
-                }}
-                className={cn(
-                  'flex-1 cursor-pointer rounded-[3px] px-1 py-1 text-[11px] text-fg-subtle',
-                  'transition-colors duration-200 hover:text-fg-muted',
-                  `role-pick-${role}`,
-                )}
-              >
-                {ROLE_PROFILES[role].label}
-              </button>
-            ))}
+            {ROLES.map((role) => {
+              const blocked = !SWITCHABLE_ROLES.includes(role);
+              return (
+                <button
+                  key={role}
+                  type="button"
+                  disabled={blocked}
+                  title={blocked ? ROLE_SWITCH_BLOCKED_REASON : undefined}
+                  onClick={() => {
+                    setRole(role);
+                    setOpen(false);
+                  }}
+                  className={cn(
+                    'flex-1 rounded-[3px] px-1 py-1 text-[11px] text-fg-subtle',
+                    'transition-colors duration-200',
+                    blocked
+                      ? 'cursor-not-allowed opacity-40'
+                      : 'cursor-pointer hover:text-fg-muted',
+                    `role-pick-${role}`,
+                  )}
+                >
+                  {ROLE_PROFILES[role].label}
+                </button>
+              );
+            })}
           </div>
+
+          {/* 왜 못 누르는지 화면이 말한다 — 흐릿하게만 두면 고장으로 읽힌다 */}
+          <p className="mt-1 text-[10px] leading-relaxed text-fg-subtle">
+            {ROLE_SWITCH_BLOCKED_REASON}
+          </p>
 
           <div className="mt-2">
             {ROLES.map((role) => (
