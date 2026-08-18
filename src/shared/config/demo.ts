@@ -11,5 +11,5 @@ export const DEMO_NOTICE = '시연용 생성 데이터 — 실제 계측값이 �
  * 시연 계정은 하나다. 계정으로 역할을 가릴 수 없으므로 역할 전환은 별도 장치로 둔다.
  * 서버가 없어 이 값을 검증하지 않는다 — 입력란을 채워 두는 용도다.
  */
-export const DEMO_ACCOUNT = { id: 'demo@hskorea.co.kr', password: 'demo1234' } as const;
+export const DEMO_ACCOUNT = { id: 'admin', password: 'demo1234' } as const;
 

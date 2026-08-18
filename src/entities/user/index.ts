@@ -16,6 +16,6 @@ export {
   normalizeRole,
 } from './config/session';
 export { RoleProvider, useRole } from './ui/role-context';
-export { RoleSwitch } from './ui/role-switch';
+export { ProfileMenu } from './ui/profile-menu';
 export type { AdminAccount, AdminAccountKey } from './config/accounts';
 export type { Role, RoleScope, RoleProfile } from './model/types';

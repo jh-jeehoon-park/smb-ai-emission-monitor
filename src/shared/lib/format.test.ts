@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { MEASUREMENT_ITEMS, WATER_QUALITY_CODES } from '@/shared/config/measurement';
-import { formatValue, formatWithUnit } from './format';
+import { formatKstDateTime, formatValue, formatWithUnit } from './format';
 
 describe('formatValue — 결측 처리(E4)', () => {
   it('결측은 0이 아니라 —로 표시한다', () => {
@@ -47,5 +47,25 @@ describe('formatWithUnit', () => {
 
   it('결측이면 단위를 붙이지 않는다', () => {
     expect(formatWithUnit('DO', null)).toBe('—');
+  });
+});
+
+describe('formatKstDateTime — 헤더 시계(E5)', () => {
+  it('UTC를 KST(+9)로 옮긴다', () => {
+    expect(formatKstDateTime(new Date('2026-08-18T05:04:22Z'))).toBe('2026-08-18 14:04:22');
+  });
+
+  it('자정을 24시가 아니라 00시로 쓴다', () => {
+    expect(formatKstDateTime(new Date('2026-08-17T15:00:00Z'))).toBe('2026-08-18 00:00:00');
+  });
+
+  it('날짜 경계에서 날짜도 함께 넘어간다', () => {
+    expect(formatKstDateTime(new Date('2026-08-17T14:59:59Z'))).toBe('2026-08-17 23:59:59');
+  });
+
+  it('브라우저 시간대와 무관하게 KST를 쓴다 — 입력 오프셋이 달라도 결과가 같다', () => {
+    const utc = formatKstDateTime(new Date('2026-08-18T05:04:22Z'));
+    const newYork = formatKstDateTime(new Date('2026-08-18T01:04:22-04:00'));
+    expect(newYork).toBe(utc);
   });
 });
