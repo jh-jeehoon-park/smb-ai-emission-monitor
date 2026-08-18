@@ -35,6 +35,9 @@ export interface NavItem {
 export const NAV_ITEMS: NavItem[] = [
   /* 관리자에게만 보인다. 맨 앞에 두는 이유는 이것이 관리자의 첫 화면이기 때문이다 —
      통합 관제가 관리자에게 닫혀 있어(회의 2026-08-13) 역할을 바꾸면 여기로 온다 */
+  /* **맨 앞이어야 한다.** 라우트 가드가 첫 접근 가능 항목을 폴백으로 쓴다 — 관리자의
+     첫 화면이 손익(SCR-AD-001)이 아니라 현황이 되게 하는 것이 이 순서의 목적이다 */
+  { screenId: 'SCR-AD-003', href: '/overview', label: '자사 현황', icon: LayoutDashboard },
   { screenId: 'SCR-AD-001', href: '/cost-savings', label: '비용 절감 현황', icon: Coins },
   { screenId: 'SCR-OP-001', href: '/', label: '통합 관제', icon: LayoutDashboard },
   { screenId: 'SCR-OP-002', href: '/anomaly', label: '이상 탐지', icon: Activity },

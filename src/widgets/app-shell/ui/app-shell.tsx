@@ -1,20 +1,22 @@
 'use client';
 
-import { Waves } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
+import { BRAND_NAME } from '@/shared/config/constants';
 import { DEMO_NOTICE, DEMO_NOW_ISO } from '@/shared/config/demo';
 import { COLLECTION_INTERVAL_MINUTES } from '@/shared/config/measurement';
 import { cn } from '@/shared/lib/cn';
-import { formatDateTime } from '@/shared/lib/format';
+import { DISPLAY_TIMEZONE, formatDateTime } from '@/shared/lib/format';
+import { BrandMark } from '@/shared/ui/brand-mark';
 import { ThemeToggle } from '@/shared/ui/theme';
 import { countOpenAlarms, countOpenAlarmsAcrossSites } from '@/entities/alarm';
-import { ADMIN_ACCOUNTS, ROLES, RoleSwitch, canRoleSee } from '@/entities/user';
+import { ADMIN_ACCOUNTS, ProfileMenu, ROLES, canRoleSee } from '@/entities/user';
 import { getSite } from '@/entities/site';
 import { SiteSelector, useSelectedSiteId, useSiteHref } from '@/features/site-selection';
 import { ALARM_NAV_HREF, NAV_ITEMS, navLabelOf, type NavItem } from '../config/navigation';
 import { useRoleRouteGuard } from '../lib/use-role-route-guard';
+import { LiveClock } from './live-clock';
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -33,21 +35,16 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       <aside className="sticky top-0 hidden h-screen w-[212px] shrink-0 flex-col border-r border-border bg-surface lg:flex">
         <div className="flex items-center gap-2 border-b border-border px-4 py-4">
-          <span className="flex size-7 items-center justify-center rounded-[5px] bg-normal/12 text-normal">
-            <Waves size={15} strokeWidth={2.2} />
-          </span>
+          <BrandMark size={28} />
           <div className="min-w-0">
             {/* 사업계획서 p.37·p.118의 국문 정식명. 폭이 좁아 줄여 쓰고 싶어지지만 줄이지 않는다(A2). */}
             <p className="break-keep text-[13px] font-semibold leading-[1.35] tracking-tight text-fg">
-              AI 기반 지능형 배출관리 플랫폼
+              {BRAND_NAME}
             </p>
           </div>
         </div>
 
         <SiteNav pathname={pathname} />
-
-        {/* 서버가 없어 역할을 클라이언트가 들고 있다. 이건 인가가 아니라 시연 표시다(E6 예외). */}
-        <RoleSwitch />
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
@@ -65,13 +62,17 @@ export function AppShell({ children }: { children: ReactNode }) {
 
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-fg-subtle">
               <ReceiveIndicator />
-              <span className="num">{formatDateTime(DEMO_NOW_ISO)} KST</span>
+              <LiveClock />
               <ThemeToggle />
+              <ProfileMenu />
             </div>
           </div>
 
+          {/* 헤더 시계는 현재 시각이고 데이터는 고정 시점 기준이다. 둘을 같은 줄에서
+              구분해 주지 않으면 차트 날짜가 오늘이 아닌 이유를 알 수 없다 */}
           <p className="border-t border-border bg-surface px-4 py-1.5 text-[12px] text-fg-subtle lg:px-6">
-            {DEMO_NOTICE}
+            {DEMO_NOTICE} · 데이터 기준{' '}
+            <span className="num">{formatDateTime(DEMO_NOW_ISO)}</span> {DISPLAY_TIMEZONE}
           </p>
         </header>
 

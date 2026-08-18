@@ -50,11 +50,20 @@ describe('역할 — 문서와 코드가 갈리지 않는다', () => {
     expect(canRoleSee('SCR-OP-001', 'operator')).toBe(true);
   });
 
-  it('관리자로 바꾸면 비용 절감 현황으로 옮겨 간다 — 라우트 가드의 대체 화면', () => {
-    // 통합 관제가 닫혀 있고, 관리자 전용 화면을 메뉴 맨 앞에 두었다
-    expect(NAV_ITEMS.find((item) => canRoleSee(item.screenId, 'admin'))?.href).toBe(
-      '/cost-savings',
-    );
+  /**
+   * 관리자의 첫 화면은 **현황**이지 손익이 아니다.
+   *
+   * 가드가 `NAV_ITEMS`의 첫 접근 가능 항목을 폴백으로 쓰므로 순서가 곧 첫 화면이다.
+   * SCR-AD-003을 앞에서 치우면 다시 손익 화면으로 떨어진다 — 그때 여기서 걸린다.
+   */
+  it('관리자로 바꾸면 자사 현황으로 옮겨 간다 — 라우트 가드의 대체 화면', () => {
+    expect(NAV_ITEMS.find((item) => canRoleSee(item.screenId, 'admin'))?.href).toBe('/overview');
+  });
+
+  it('운영자·게스트의 대체 화면은 그대로 통합 관제다', () => {
+    for (const role of ['operator', 'guest'] as const) {
+      expect(NAV_ITEMS.find((item) => canRoleSee(item.screenId, role))?.href).toBe('/');
+    }
   });
 });
 
