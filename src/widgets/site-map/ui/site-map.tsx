@@ -6,9 +6,20 @@ import { PROVISIONAL_STATUS_LABELS, type StatusLevel } from '@/shared/config/pro
 import { STATUS_VISUAL } from '@/shared/config/status-visual';
 import { cn } from '@/shared/lib/cn';
 import { projectToMap } from '@/shared/lib/geo';
-import { provinceFocus } from '@/shared/lib/map-view';
+import { type MapFocus, provinceFocus } from '@/shared/lib/map-view';
 import type { Site } from '@/entities/site';
-import { ALWAYS_LABELED_PROVINCES } from '../config/constants';
+import {
+  ALWAYS_LABELED_PROVINCES,
+  MAP_LABEL_FONT_SIZE,
+  TOOLTIP_DETAIL_SIZE,
+  TOOLTIP_EDGE_PADDING,
+  TOOLTIP_LINE_GAP,
+  TOOLTIP_PADDING_X,
+  TOOLTIP_PADDING_Y,
+  TOOLTIP_PIN_GAP,
+  TOOLTIP_TITLE_SIZE,
+} from '../config/constants';
+import { placeTooltip, tooltipSize } from '../lib/tooltip-layout';
 
 interface SiteMapProps {
   sites: Site[];
@@ -20,7 +31,6 @@ const PIN_RADIUS = 6;
 const PIN_RADIUS_SELECTED = 9;
 /** 작은 원을 정확히 겨냥하기 어렵다. 실제 원보다 큰 투명 영역으로 잡기 쉽게 한다 */
 const PIN_HIT_RADIUS = 15;
-const LABEL_FONT_SIZE = 11;
 
 /** 등급이 높을수록 뒤에 오도록 — 한 시도에 여러 사업장이 있으면 가장 나쁜 상태로 칠한다 */
 const SEVERITY: StatusLevel[] = ['normal', 'caution', 'warning', 'critical'];
@@ -51,7 +61,14 @@ export function SiteMap({ sites, selectedId, onSelect }: SiteMapProps) {
   const [hoveredProvince, setHoveredProvince] = useState<string | null>(null);
   /** 확대는 화면을 보는 방식일 뿐 데이터 조건이 아니라 URL에 담지 않는다 */
   const [focusedProvince, setFocusedProvince] = useState<string | null>(null);
-  const active = sites.find((s) => s.id === (hoveredId ?? selectedId));
+
+  /**
+   * 가리키는 사업장은 **핀 옆 툴팁**이, 선택한 사업장은 **아래 카드**가 맡는다.
+   * 한때 카드가 hover까지 따라갔는데, 지도를 훑는 동안 카드가 계속 바뀌어
+   * 정작 무엇을 골라 두었는지 놓쳤다. 두 자리가 서로 다른 사실을 말하게 나눈다.
+   */
+  const hoveredSite = hoveredId ? (sites.find((s) => s.id === hoveredId) ?? null) : null;
+  const selectedSite = sites.find((s) => s.id === selectedId);
 
   /**
    * 사업장이 있는 시도만 상태색으로 칠한다. 17개를 균일하게 칠하면
@@ -201,7 +218,7 @@ export function SiteMap({ sites, selectedId, onSelect }: SiteMapProps) {
                 x={x}
                 y={y}
                 fill={hasSites ? 'var(--fg-muted)' : 'var(--fg-subtle)'}
-                fontSize={LABEL_FONT_SIZE / k}
+                fontSize={MAP_LABEL_FONT_SIZE / k}
                 fontWeight={hasSites ? 600 : 400}
                 textAnchor="middle"
                 className="pointer-events-none select-none"
@@ -227,6 +244,13 @@ export function SiteMap({ sites, selectedId, onSelect }: SiteMapProps) {
             />
           ))}
         </g>
+
+        {/**
+         * 툴팁은 변환 그룹 **밖**에 그린다. 안에 넣으면 확대 배율만큼 상자와 글자가
+         * 함께 커져 매번 1/k로 되돌려야 하고, 확대 전환 320ms 동안 상자가 늘어난다.
+         * 밖에서 변환 결과 좌표만 받아 그리면 화면 크기가 배율과 무관하게 고정된다.
+         */}
+        {hoveredSite && <PinTooltip site={hoveredSite} focus={focus} />}
       </svg>
 
       {/* 카드를 지도 위에 겹치면 지형과 핀을 가린다. 아래에 자리를 따로 잡는다 */}
@@ -235,7 +259,7 @@ export function SiteMap({ sites, selectedId, onSelect }: SiteMapProps) {
           이 지역에는 실증 사업장이 없습니다.
         </p>
       )}
-      {focusedHasSites && active && <SiteHoverCard site={active} />}
+      {focusedHasSites && selectedSite && <SelectedSiteCard site={selectedSite} />}
     </div>
   );
 }
@@ -391,8 +415,94 @@ function SitePin({ site, selected, hovered, scale, onSelect, onHover }: SitePinP
   );
 }
 
-/** hover·포커스 시 상태 요약. 지도를 떠나지 않고 사업장을 훑을 수 있어야 한다 */
-function SiteHoverCard({ site }: { site: Site }) {
+/**
+ * 핀을 가리키는(또는 포커스한) 동안 그 자리에 뜨는 요약.
+ *
+ * **짧게 적는다** — 사업장명과 "지금 어떤 상태인가" 한 줄이면 지도를 훑는 목적에 충분하다.
+ * 주소·가동률처럼 읽는 데 시간이 드는 값은 아래 카드와 오른쪽 상세 패널이 맡는다.
+ *
+ * 점수에 산출 시각을 덧붙이지 않는다 — 지도 전체가 한 기준 시각의 스냅숏이고 그 시각은
+ * 헤더 띠가 이미 적고 있다(E3·E5). 핀마다 되풀이하면 툴팁이 표가 된다.
+ */
+function PinTooltip({ site, focus }: { site: Site; focus: MapFocus }) {
+  const [lat, lng] = site.coordinates;
+  const point = projectToMap(lat, lng);
+  const level: StatusLevel | null = site.status;
+  const visual = level ? STATUS_VISUAL[level] : null;
+
+  const industry = `${site.industry} · `;
+  /* 값이 없으면 0으로 채우지 않는다. 두절은 두절이라고 적는다(E4) */
+  const state = level ? `${PROVISIONAL_STATUS_LABELS[level]} ${site.anomalyScore}` : '통신 두절';
+
+  const { width, height } = tooltipSize(site.name, industry + state);
+
+  const box = placeTooltip({
+    // 그룹 밖이라 변환을 직접 건다 — transform: translate(t) scale(k)
+    pinX: focus.translateX + focus.scale * point.x,
+    pinY: focus.translateY + focus.scale * point.y,
+    width,
+    height,
+    gap: TOOLTIP_PIN_GAP,
+    padding: TOOLTIP_EDGE_PADDING,
+    view: PROVINCE_VIEWBOX,
+  });
+
+  const textX = box.x + TOOLTIP_PADDING_X;
+  const titleY = box.y + TOOLTIP_PADDING_Y + TOOLTIP_TITLE_SIZE * 0.82;
+
+  return (
+    /* 커서 아래에 들어와도 핀의 hover를 뺏으면 안 된다 — 툴팁이 깜빡인다.
+       내용은 핀의 aria-label이 이미 전하므로 보조기기에는 숨긴다 */
+    <g className="pointer-events-none" aria-hidden>
+      <rect
+        x={box.x}
+        y={box.y}
+        width={width}
+        height={height}
+        rx={5}
+        fill="var(--surface)"
+        stroke="var(--border-strong)"
+        strokeWidth={1}
+        vectorEffect="non-scaling-stroke"
+      />
+
+      {/* 왼쪽 상태색 띠. 글자를 읽기 전에 등급이 먼저 눈에 들어온다 */}
+      <rect
+        x={box.x}
+        y={box.y + 1}
+        width={2.5}
+        height={height - 2}
+        fill={visual ? visual.hex : 'var(--missing)'}
+      />
+
+      <text
+        x={textX}
+        y={titleY}
+        fontSize={TOOLTIP_TITLE_SIZE}
+        fontWeight={600}
+        fill="var(--fg)"
+        className="select-none"
+      >
+        {site.name}
+      </text>
+
+      <text
+        x={textX}
+        y={titleY + TOOLTIP_LINE_GAP + TOOLTIP_DETAIL_SIZE}
+        fontSize={TOOLTIP_DETAIL_SIZE}
+        className="select-none"
+      >
+        <tspan fill="var(--fg-subtle)">{industry}</tspan>
+        <tspan fill={visual ? visual.ink : 'var(--fg-subtle)'} fontWeight={600}>
+          {state}
+        </tspan>
+      </text>
+    </g>
+  );
+}
+
+/** 선택한 사업장의 상태 요약. 지도를 훑는 동안에도 바뀌지 않는다 */
+function SelectedSiteCard({ site }: { site: Site }) {
   const level: StatusLevel | null = site.status;
   const visual = level ? STATUS_VISUAL[level] : null;
   const ink = visual ? visual.ink : 'var(--fg-subtle)';
