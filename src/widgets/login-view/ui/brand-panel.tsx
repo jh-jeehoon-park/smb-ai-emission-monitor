@@ -1,4 +1,5 @@
-import { Waves } from 'lucide-react';
+import { BRAND_NAME } from '@/shared/config/constants';
+import { BrandMark } from '@/shared/ui/brand-mark';
 import { Eyebrow } from '@/shared/ui/eyebrow';
 import { GRID_PITCH_PX, PLATFORM_HIGHLIGHTS, SIGNAL_POINTS } from '../config/brand-panel';
 
@@ -14,15 +15,13 @@ export function BrandPanel() {
 
       <div className="relative flex flex-1 flex-col justify-center">
         <div className="flex items-center gap-2.5">
-          <span className="flex size-9 items-center justify-center rounded-[6px] bg-normal/12 text-normal">
-            <Waves size={19} strokeWidth={2.2} />
-          </span>
+          <BrandMark size={36} />
           <Eyebrow>비TMS 소규모 사업장</Eyebrow>
         </div>
 
         <h1 className="mt-8 max-w-[13ch] break-keep text-[40px] font-semibold leading-[1.15] tracking-[-0.02em] text-fg">
           {/* 사업계획서 p.37·p.118의 국문 정식명. 줄여 쓰지 않는다(A2) */}
-          AI 기반 지능형 배출관리 플랫폼
+          {BRAND_NAME}
         </h1>
         <p className="mt-4 max-w-[34ch] break-keep text-[14px] leading-relaxed text-fg-muted">
           {/* AI 산출 4종을 줄여 적지 않는다 — 하나를 빼면 범위가 달라 보인다(A2) */}

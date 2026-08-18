@@ -3,6 +3,7 @@ import { THEME_INIT_SCRIPT } from '@/shared/config/theme';
 import { MotionPreferences } from '@/shared/ui/motion';
 import { ThemeProvider } from '@/shared/ui/theme';
 import { RoleProvider, SESSION_INIT_SCRIPT } from '@/entities/user';
+import { BRAND_NAME } from '@/shared/config/constants';
 import './globals.css';
 
 /**
@@ -11,9 +12,34 @@ import './globals.css';
  */
 export const dynamic = 'force-dynamic';
 
+const DESCRIPTION = 'AIoT 기반 소규모 사업장 오염물질 배출 관리 시스템 프로토타입';
+
+/**
+ * 공유 카드(`opengraph-image.png`)는 **절대 URL**로만 전달된다. 기준 주소가 없으면
+ * 상대 경로가 그대로 나가 카톡·슬랙에서 이미지가 뜨지 않는다.
+ *
+ * 배포 주소를 코드에 박지 않는다 — Vercel이 넣어 주는 운영 도메인을 쓰고, 없으면
+ * 로컬로 떨어진다. `VERCEL_URL`은 배포마다 바뀌므로 쓰지 않는다.
+ */
+const siteUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ??
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+    : 'http://localhost:3000');
+
 export const metadata: Metadata = {
-  title: 'AI 기반 지능형 배출관리 플랫폼',
-  description: 'AIoT 기반 소규모 사업장 오염물질 배출 관리 시스템 프로토타입',
+  metadataBase: new URL(siteUrl),
+  title: BRAND_NAME,
+  description: DESCRIPTION,
+  openGraph: {
+    title: BRAND_NAME,
+    description: DESCRIPTION,
+    siteName: BRAND_NAME,
+    locale: 'ko_KR',
+    type: 'website',
+  },
+  /* 카드 이미지는 `opengraph-image.png` 파일 규약이 채운다 — 여기서 경로를 적지 않는다 */
+  twitter: { card: 'summary_large_image', title: BRAND_NAME, description: DESCRIPTION },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

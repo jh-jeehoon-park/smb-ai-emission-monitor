@@ -1,8 +1,10 @@
 'use client';
 
-import { ArrowRight, Waves } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
+import { BRAND_NAME } from '@/shared/config/constants';
 import { DEMO_ACCOUNT } from '@/shared/config/demo';
+import { BrandMark } from '@/shared/ui/brand-mark';
 import { Eyebrow } from '@/shared/ui/eyebrow';
 import { ThemeToggle } from '@/shared/ui/theme';
 import { RiseItem, StaggerGroup } from '@/shared/ui/motion';
@@ -11,7 +13,7 @@ import { BrandPanel } from './brand-panel';
 
 /**
  * 시연 계정 하나로 들어간다. 역할은 여기서 고르지 않는다 — 계정이 하나라
- * 역할 선택을 로그인에 두면 그것이 인증처럼 읽힌다. 전환은 셸 하단에 있다.
+ * 역할 선택을 로그인에 두면 그것이 인증처럼 읽힌다. 전환은 헤더 프로필 메뉴에 있다.
  *
  * 상태색(정상·주의·경고·위험)을 장식으로 쓰지 않는다. 이 시스템에서 색은 상태를
  * 뜻하므로 첫 화면에 장식 색을 두면 그 규칙이 시작부터 깨진다. 대비는 색이 아니라
@@ -42,12 +44,10 @@ export function LoginView() {
             {/* 좌측 패널이 없는 폭에서는 여기가 유일한 브랜드 자리다 */}
             <RiseItem className="lg:hidden">
               <div className="mb-8 flex items-center gap-2.5">
-                <span className="flex size-9 items-center justify-center rounded-[6px] bg-normal/12 text-normal">
-                  <Waves size={19} strokeWidth={2.2} />
-                </span>
+                <BrandMark size={36} />
                 <div className="min-w-0">
                   <h1 className="break-keep text-[15px] font-semibold leading-[1.35] tracking-tight text-fg">
-                    AI 기반 지능형 배출관리 플랫폼
+                    {BRAND_NAME}
                   </h1>
                   <p className="mt-0.5 text-[11px] text-fg-subtle">
                     AIoT 기반 소규모 사업장 오염물질 배출 관리
@@ -63,8 +63,8 @@ export function LoginView() {
               </h2>
               <p className="mt-2 text-[12px] leading-relaxed text-fg-muted">
                 시연 계정이 입력되어 있습니다. 로그인하면{' '}
-                <strong className="font-semibold text-fg">운영자</strong>로 들어가며, 역할은 왼쪽
-                아래에서 바꿉니다.
+                <strong className="font-semibold text-fg">운영자</strong>로 들어가며, 역할은 오른쪽
+                위 계정 메뉴에서 바꿉니다.
               </p>
             </RiseItem>
 
