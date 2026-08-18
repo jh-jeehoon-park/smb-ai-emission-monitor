@@ -8,6 +8,7 @@ export {
   countByPriority,
   countAnomalyAlarms,
 } from './api/fixtures';
+export { raisedWhileNotDischarging } from './lib/discharge-context';
 export {
   ALARM_PRIORITY_LABELS,
   ALARM_CONDITION_LABELS,

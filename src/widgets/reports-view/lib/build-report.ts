@@ -2,6 +2,7 @@ import { COLLECTION_INTERVAL_MINUTES } from '@/shared/config/measurement';
 import { PROVISIONAL_DISPLAY_DECIMALS } from '@/shared/config/provisional';
 import type { StatusLevel } from '@/shared/config/provisional';
 import { buildAnomalyScores } from '@/shared/lib/anomaly-score';
+import { countDischargeHours } from '@/shared/lib/timeline';
 import { ALARMS, type AlarmPriority } from '@/entities/alarm';
 import { SITES } from '@/entities/site';
 
@@ -19,6 +20,10 @@ export interface SiteReportRow {
   avgScore: number | null;
   missingCount: number;
   totalCount: number;
+  /** 방류가 **확인된** 시간. 전 구간 두절이면 0시간이 아니라 모름(null)이다 */
+  dischargeHours: number | null;
+  /** 방류 시간의 분모. 집계 기간과 같다 */
+  windowHours: number;
   alarmsByPriority: Record<AlarmPriority, number>;
   totalAlarms: number;
   dataThroughput: number;
@@ -74,6 +79,8 @@ export function buildSiteReport(hours: number): SiteReportRow[] {
       avgScore: stats.avg,
       missingCount: stats.missingCount,
       totalCount: scores.length,
+      dischargeHours: countDischargeHours(site.id, window),
+      windowHours: hours,
       alarmsByPriority: alarms.byPriority,
       totalAlarms: alarms.total,
       dataThroughput: site.dataThroughput,
@@ -93,6 +100,7 @@ const CSV_HEADERS = [
   '평균 이상점수',
   '결측표본',
   '전체표본',
+  '방류시간(h)',
   '알람_긴급',
   '알람_주의',
   '알람_정보',
@@ -120,6 +128,7 @@ export function toCsv(rows: SiteReportRow[], statusLabels: Record<StatusLevel, s
         cell(row.avgScore, PROVISIONAL_DISPLAY_DECIMALS.anomalyScoreAverage),
         String(row.missingCount),
         String(row.totalCount),
+        cell(row.dischargeHours),
         String(row.alarmsByPriority.urgent),
         String(row.alarmsByPriority.caution),
         String(row.alarmsByPriority.info),

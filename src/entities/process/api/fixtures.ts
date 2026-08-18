@@ -1,5 +1,6 @@
-import { getScenario, siteSeed } from '@/shared/config/demo-scenario';
-import { createRng } from '@/shared/lib/prng';
+import { getScenario } from '@/shared/config/demo-scenario';
+import { COLLECTION_INTERVAL_MINUTES } from '@/shared/config/measurement';
+import { TIMELINE_POINT_COUNT, isDischargingAt } from '@/shared/lib/timeline';
 import { PROCESS_STAGES } from '../config/constants';
 import type { OperatingState, ProcessStage } from '../model/types';
 
@@ -29,13 +30,29 @@ export function getOperatingState(siteId: string): OperatingState {
     return { running: false, discharging: false, idleHours: null, pattern: '수신 없음' };
   }
 
-  const rng = createRng(siteSeed(siteId, 51977));
-  const discharging = rng() < 0.72;
+  const discharging = isDischargingAt(siteId, TIMELINE_POINT_COUNT - 1) === true;
 
   return {
     running: true,
     discharging,
-    idleHours: discharging ? null : 1 + Math.floor(rng() * 5),
+    idleHours: discharging ? null : idleHoursUntilNow(siteId),
     pattern: '상시가동 간헐방류',
   };
+}
+
+/**
+ * 지금까지 몇 시간째 멈춰 있는지 — 마지막 표본부터 거슬러 세어 실제 구간에서 낸다.
+ *
+ * **마지막 표본이 결측이면 `null`이다.** 가동 중이어도 그 시각 데이터를 못 받았으면
+ * 방류 여부를 모른다. 0시간째라고 적으면 "방금 멈췄다"는 없는 사실을 주장하게 된다(E4).
+ */
+function idleHoursUntilNow(siteId: string): number | null {
+  if (isDischargingAt(siteId, TIMELINE_POINT_COUNT - 1) === null) return null;
+
+  let samples = 0;
+  for (let i = TIMELINE_POINT_COUNT - 1; i >= 0; i -= 1) {
+    if (isDischargingAt(siteId, i) !== false) break;
+    samples += 1;
+  }
+  return Math.round(samples / (60 / COLLECTION_INTERVAL_MINUTES));
 }

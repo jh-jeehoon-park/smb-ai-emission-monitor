@@ -123,7 +123,7 @@ function OperatingBar({
 
       <span className="text-fg-subtle">{operating.pattern}</span>
 
-      {!operating.discharging && operating.running && (
+      {!operating.discharging && operating.running && operating.idleHours !== null && (
         /* 간헐방류라 이 구분이 필요하다. 방류하지 않는 시간의 수질은 배출 수질이 아니다 */
         <span className="text-[11px] text-fg-subtle">
           방류 중이 아닐 때의 수질값은 배출 수질이 아닙니다

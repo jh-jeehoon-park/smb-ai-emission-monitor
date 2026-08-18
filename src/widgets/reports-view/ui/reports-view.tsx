@@ -42,6 +42,7 @@ export function ReportsView() {
       alarms: rows.reduce((acc, r) => acc + r.totalAlarms, 0),
       offline: rows.filter((r) => !r.online).length,
       missing: rows.reduce((acc, r) => acc + r.missingCount, 0),
+      noDischarge: rows.filter((r) => r.dischargeHours === 0).length,
     }),
     [rows],
   );
@@ -93,6 +94,14 @@ export function ReportsView() {
         bodyClassName="p-0"
       >
         <ReportTable rows={rows} />
+
+        {/* 무엇을 기준으로 센 값인지 적지 않으면 방류 열이 이상 점수까지 걸렀다고 읽힌다 */}
+        <p className="border-t border-border px-4 py-2 text-[11px] leading-relaxed text-fg-subtle">
+          이상 점수 통계는 <strong className="text-fg-muted">전 구간 기준</strong>입니다 — 방류
+          여부로 거르지 않습니다. 이상 점수는 배출 수질이 아니라 공정 이상도이고, 방류하지 않는
+          동안에도 설비는 돌기 때문입니다. 방류 시간은 <strong className="text-fg-muted">수신된
+          표본</strong>에서만 세므로 결측이 있는 사업장은 그만큼 적게 잡힙니다.
+        </p>
       </Panel>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -109,7 +118,14 @@ export function ReportsView() {
           note={totals.offline > 0 ? '해당 사업장은 집계에서 제외' : '집계 대상 전부 수신 중'}
           accent={totals.offline > 0 ? statusInk(STATUS_VISUAL.warning) : undefined}
         />
-        <StatTile label="결측 표본" value={`${totals.missing}건`} note="평균 산정에서 제외됨" />
+        <StatTile
+          label="배출 없음"
+          value={`${totals.noDischarge}개소`}
+          note={
+            totals.noDischarge > 0 ? '설비 가동 중 · 방류 0시간' : '집계 대상 전부 방류 이력 있음'
+          }
+          accent={totals.noDischarge > 0 ? statusInk(STATUS_VISUAL.caution) : undefined}
+        />
       </div>
 
       <Panel eyebrow="원문 미정 항목" title="이 리포트가 정하지 않은 것">
@@ -125,6 +141,32 @@ export function ReportsView() {
   );
 }
 
+/**
+ * 방류 시간.
+ *
+ * **0시간과 모름은 다른 상태다** — 0은 "설비는 돌았는데 배출은 없었다"는 관측이고,
+ * 두절은 애초에 받지 못한 것이다. 두절을 0으로 적으면 배출이 없었다고 주장하게 된다(E4).
+ */
+function DischargeCell({ hours, windowHours }: { hours: number | null; windowHours: number }) {
+  if (hours === null) return <span className="text-[11px] text-fg-subtle">—</span>;
+
+  if (hours === 0) {
+    return (
+      <span className="text-[11px]" style={{ color: statusInk(STATUS_VISUAL.caution) }}>
+        배출 없음
+      </span>
+    );
+  }
+
+  return (
+    <span className="num text-fg-muted">
+      {/* 올리지 않는다 — 23.9시간을 24로 적으면 확인되지 않은 시간을 방류로 주장하게 된다 */}
+      {Math.floor(hours)}
+      <span className="text-fg-subtle">/{windowHours}h</span>
+    </span>
+  );
+}
+
 function ReportTable({ rows }: { rows: SiteReportRow[] }) {
   return (
     <div className="overflow-x-auto">
@@ -133,6 +175,7 @@ function ReportTable({ rows }: { rows: SiteReportRow[] }) {
           <tr className="border-b border-border text-[11px] text-fg-subtle">
             <th className="px-4 py-2 text-left font-normal">사업장</th>
             <th className="px-3 py-2 text-left font-normal">상태</th>
+            <th className="px-3 py-2 text-right font-normal">방류</th>
             <th className="px-3 py-2 text-right font-normal">최신</th>
             <th className="px-3 py-2 text-right font-normal">최대</th>
             <th className="px-3 py-2 text-right font-normal">평균</th>
@@ -159,6 +202,9 @@ function ReportTable({ rows }: { rows: SiteReportRow[] }) {
                   ) : (
                     <span className="text-[11px] text-fg-subtle">수신 없음</span>
                   )}
+                </td>
+                <td className="px-3 py-2.5 text-right">
+                  <DischargeCell hours={row.dischargeHours} windowHours={row.windowHours} />
                 </td>
                 <td className="num px-3 py-2.5 text-right" style={{ color: ink }}>
                   {row.latestScore ?? '—'}

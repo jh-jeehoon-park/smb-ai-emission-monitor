@@ -30,9 +30,27 @@ export interface SiteScenario {
   online: boolean;
   /** 통신이 잠시 끊겼던 구간(표본 인덱스 기준 시작점). null이면 두절 이력 없음 */
   outageStartOffset: number | null;
+  /** 방류가 멈춘 구간. null이면 24시간 내내 방류 */
+  dischargeGap: DischargeGap | null;
   /** 데이터 처리율·가동률은 사업장마다 다르다 */
   dataThroughput: number;
   uptime: number;
+}
+
+/**
+ * 방류 중단 구간.
+ *
+ * **설비는 돌아도 방류는 멈춘다** — 실증 데이터에서 방류 0시간이던 15일 중 13일은
+ * 전류계가 24시간 가동이었다(`docs/datasets/…/04_…`). `가동배출 = 상시가동 간헐방류`가
+ * 분류가 아니라 관측이다.
+ *
+ * 시간대·요일 패턴은 **없다** — 00~23시 전부 84~90%, 요일도 83~92%로 평평하다.
+ * 그래서 야간·주말 같은 주기 모델을 쓰지 않고 구간 하나를 직접 지정한다.
+ */
+export interface DischargeGap {
+  /** 표본 인덱스 기준 시작점(끝에서부터). `outageStartOffset`과 같은 규약 */
+  startOffset: number;
+  hours: number;
 }
 
 /** 실증 10개소 = 5개 업종 × 2개소 (사업계획서 p.33·p.37) */
@@ -49,6 +67,7 @@ export const SITE_SCENARIOS: SiteScenario[] = [
     eventRise: 6,
     online: true,
     outageStartOffset: null,
+    dischargeGap: null,
     dataThroughput: 99.1,
     uptime: 97.8,
   },
@@ -64,6 +83,7 @@ export const SITE_SCENARIOS: SiteScenario[] = [
     eventRise: 74,
     online: true,
     outageStartOffset: 96,
+    dischargeGap: null,
     dataThroughput: 98.6,
     uptime: 96.4,
   },
@@ -79,6 +99,7 @@ export const SITE_SCENARIOS: SiteScenario[] = [
     eventRise: 4,
     online: true,
     outageStartOffset: null,
+    dischargeGap: null,
     dataThroughput: 98.9,
     uptime: 98.2,
   },
@@ -94,6 +115,8 @@ export const SITE_SCENARIOS: SiteScenario[] = [
     eventRise: 2,
     online: false,
     outageStartOffset: null,
+    /** 통신 두절이라 방류 여부를 알 수 없다. 구간이 아니라 판정 자체가 null이다 */
+    dischargeGap: null,
     dataThroughput: 71.4,
     uptime: 82.1,
   },
@@ -109,6 +132,7 @@ export const SITE_SCENARIOS: SiteScenario[] = [
     eventRise: 22,
     online: true,
     outageStartOffset: null,
+    dischargeGap: null,
     dataThroughput: 98.2,
     uptime: 95.9,
   },
@@ -124,6 +148,7 @@ export const SITE_SCENARIOS: SiteScenario[] = [
     eventRise: 5,
     online: true,
     outageStartOffset: 148,
+    dischargeGap: null,
     dataThroughput: 97.6,
     uptime: 96.8,
   },
@@ -139,6 +164,7 @@ export const SITE_SCENARIOS: SiteScenario[] = [
     eventRise: 55,
     online: true,
     outageStartOffset: null,
+    dischargeGap: null,
     dataThroughput: 98.4,
     uptime: 94.7,
   },
@@ -154,6 +180,8 @@ export const SITE_SCENARIOS: SiteScenario[] = [
     eventRise: 3,
     online: true,
     outageStartOffset: null,
+    /** **배출 없음.** 설비는 돌지만 24시간 내내 방류가 없다 — 데이터셋 272일 중 15일 */
+    dischargeGap: { startOffset: 288, hours: 24 },
     dataThroughput: 99.3,
     uptime: 98.6,
   },
@@ -169,6 +197,8 @@ export const SITE_SCENARIOS: SiteScenario[] = [
     eventRise: 2,
     online: true,
     outageStartOffset: null,
+    /** 지금 중단 2시간째. 관리자2의 사업장이라 관리자 화면에서도 이 상태가 보인다 */
+    dischargeGap: { startOffset: 24, hours: 2 },
     dataThroughput: 99.5,
     uptime: 99.1,
   },
@@ -184,6 +214,8 @@ export const SITE_SCENARIOS: SiteScenario[] = [
     eventRise: 11,
     online: true,
     outageStartOffset: null,
+    /** 11:58 수질 알람이 이 구간에 든다 — 비방류 중 알람 사례 */
+    dischargeGap: { startOffset: 48, hours: 3 },
     dataThroughput: 98.8,
     uptime: 97.2,
   },

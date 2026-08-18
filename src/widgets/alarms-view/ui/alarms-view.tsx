@@ -15,6 +15,7 @@ import {
   ALARM_CONDITION_LABELS,
   ALARM_PRIORITY_LABELS,
   ALARM_STATE_LABELS,
+  raisedWhileNotDischarging,
   type Alarm,
   type AlarmPriority,
   type AlarmState,
@@ -210,6 +211,12 @@ function AlarmRow({
       <div className="w-[124px] shrink-0 text-[11px] text-fg-subtle">
         <p className="truncate text-fg-muted">{alarm.siteName}</p>
         <p className="truncate">{ALARM_CONDITION_LABELS[alarm.condition]}</p>
+        {/* 방류하지 않는 동안의 수질값은 배출 수질이 아니다. 배출기준 초과로 읽히면 안 된다 */}
+        {raisedWhileNotDischarging(alarm) && (
+          <p className="truncate" style={{ color: statusInk(STATUS_VISUAL.caution) }}>
+            비방류 중 발생
+          </p>
+        )}
       </div>
 
       <div className="w-[120px] shrink-0 text-right text-[11px] text-fg-subtle">
