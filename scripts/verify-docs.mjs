@@ -15,7 +15,16 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const SPECS = join(ROOT, 'docs/specs');
 const SCREENS = join(SPECS, 'screens');
 
-const read = (p) => readFileSync(join(ROOT, p), 'utf8');
+/**
+ * 줄바꿈을 LF로 맞춰 읽는다. core.autocrlf 환경에서 체크아웃하면 텍스트 파일이 CRLF가
+ * 되는데, 내용이 같아 `git status`는 깨끗한데도 줄바꿈을 문자로 쓴 정규식이 전부 어긋난다.
+ * 실제로 검사 8이 그렇게 통째로 실패했다. 읽는 지점 한 곳에서 막는다.
+ *
+ * `.gitattributes`가 체크아웃 단계에서 이미 LF로 고정하지만, 그 설정이 없는 사본에서도
+ * 검사가 같은 답을 내야 하므로 여기서 한 번 더 맞춘다.
+ */
+const readText = (p) => readFileSync(p, 'utf8').split('\r\n').join('\n');
+const read = (p) => readText(join(ROOT, p));
 const results = [];
 
 function check(name, fn) {
@@ -38,7 +47,7 @@ function walk(dir, ext = '.md') {
 }
 
 const specDocs = walk(SPECS);
-const specText = specDocs.map((f) => readFileSync(f, 'utf8')).join('\n');
+const specText = specDocs.map((f) => readText(f)).join('\n');
 
 // 1. 태그 등록 — [TBD-nn]·[INC-nn]이 source-inconsistencies.md에 있는가
 check('태그 등록', () => {
@@ -61,7 +70,7 @@ check('인용 형식', () => {
   const fails = [];
   for (const f of specDocs) {
     if (f.endsWith('README.md')) continue; // 규약 본문이 반례로 인용한다
-    const text = readFileSync(f, 'utf8');
+    const text = readText(f);
     text.split('\n').forEach((line, i) => {
       if (line.includes('`[발표 p.')) fails.push(`${relative(ROOT, f)}:${i + 1} 축약형 [발표 p.`);
     });
@@ -79,7 +88,7 @@ check('화면 수', () => {
 
   // 화면 문서의 `| 구현 |` 행이 **미구현**이면 라우트가 없어야 한다
   const implemented = files.filter(
-    (f) => !/\|\s*구현\s*\|\s*\*\*미구현\*\*/.test(readFileSync(join(SCREENS, f), 'utf8')),
+    (f) => !/\|\s*구현\s*\|\s*\*\*미구현\*\*/.test(readText(join(SCREENS, f))),
   );
   // 라우트는 nav 설정이 아니라 실제 page.tsx로 센다 — 로그인처럼 메뉴에 없는 화면이 있다
   const pages = walk(join(ROOT, 'src/app'), 'page.tsx');
@@ -114,7 +123,7 @@ check('문서 링크', () => {
   for (const f of targets) {
     if (!existsSync(f)) continue;
     const dir = dirname(f);
-    for (const m of readFileSync(f, 'utf8').matchAll(/\]\(([^)#][^)]*)\)/g)) {
+    for (const m of readText(f).matchAll(/\]\(([^)#][^)]*)\)/g)) {
       const target = m[1].split('#')[0];
       if (!target || /^https?:/.test(target)) continue;
       // `[TBD](현 단계 미도입 — …)`처럼 링크가 아닌 괄호 주석이 있다. 경로 모양만 검사한다.
@@ -156,7 +165,7 @@ check('필드 커버리지', () => {
 check('문서 규격', () => {
   const fails = [];
   for (const f of specDocs) {
-    const text = readFileSync(f, 'utf8');
+    const text = readText(f);
     const name = relative(ROOT, f);
     for (const field of ['문서명', '버전', '작성일', '기반 문서']) {
       if (!new RegExp(`^\\| ${field} \\|`, 'm').test(text)) fails.push(`${name} — 문서정보 '${field}' 없음`);
@@ -183,7 +192,7 @@ check('화면 목록 정합', () => {
   );
   const fails = [];
   for (const file of readdirSync(SCREENS).filter((f) => f.endsWith('.md'))) {
-    const text = readFileSync(join(SCREENS, file), 'utf8');
+    const text = readText(join(SCREENS, file));
     const id = file.match(/SCR-(?:AD|OP|GU|CO)-\d{3}/)?.[0];
     if (!id) continue;
     const kind = text.match(/^\| 화면 구분 \| ([^|]+)\|/m)?.[1].trim();
@@ -212,7 +221,7 @@ check('자릿수 하드코딩', () => {
     for (const f of [...walk(full, '.tsx'), ...walk(full, '.ts')]) {
       const name = relative(ROOT, f).replace(/\\/g, '/');
       if (name.includes('.test.') || ALLOWED.includes(name)) continue;
-      readFileSync(f, 'utf8')
+      readText(f)
         .split('\n')
         .forEach((line, i) => {
           for (const [re, label] of PATTERNS) if (re.test(line)) fails.push(`${name}:${i + 1} ${label}`);
@@ -229,7 +238,7 @@ check('임시값 위치', () => {
   for (const f of [...walk(join(ROOT, 'src'), '.ts'), ...walk(join(ROOT, 'src'), '.tsx')]) {
     const name = relative(ROOT, f).replace(/\\/g, '/');
     if (name === 'src/shared/config/provisional.ts' || name.includes('.test.')) continue;
-    for (const m of readFileSync(f, 'utf8').matchAll(/^export (?:const|type|function) (PROVISIONAL_\w+)/gm)) {
+    for (const m of readText(f).matchAll(/^export (?:const|type|function) (PROVISIONAL_\w+)/gm)) {
       fails.push(`${name} — ${m[1]}는 provisional.ts에 있어야 한다`);
     }
   }

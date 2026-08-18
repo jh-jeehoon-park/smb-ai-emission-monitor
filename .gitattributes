@@ -1,0 +1,16 @@
+# 줄바꿈을 LF로 고정한다.
+#
+# core.autocrlf=true 환경에서는 체크아웃할 때 텍스트 파일이 CRLF로 바뀐다.
+# 파일 내용은 같아 `git status`가 깨끗한데도 도구가 다르게 읽는다 —
+# 실제로 `verify:docs`의 검사 8이 정규식에 `\n`을 박아 두어 전부 실패했다.
+#
+# 저장소·작업 트리 양쪽을 LF로 못박아 그 갈림을 없앤다.
+* text=auto eol=lf
+
+# 바이너리는 손대지 않는다
+*.png binary
+*.jpg binary
+*.pdf binary
+*.xlsx binary
+*.woff2 binary
+*.ico binary
