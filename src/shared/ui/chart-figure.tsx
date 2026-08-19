@@ -36,7 +36,18 @@ export function ChartFigure<T>({
 
   return (
     <figure className="m-0">
-      <div role="img" aria-label={label}>
+      {/*
+       * `onMouseDown`의 `preventDefault`는 버그 회피다.
+       *
+       * 차트 안에서 마우스를 누르면 Recharts가 키보드 접근용으로 붙여 둔 SVG `<g>`
+       * (`tabindex=-1`)에 포커스가 잡힌다. 그 상태로 밖으로 끌면 툴팁이 화면에 얼어붙는다 —
+       * Recharts의 `mouseleave` 처리는 hover 플래그만 지우고 포커스로 열린 툴팁은 그대로
+       * 두기 때문이다(blur 하면 즉시 사라지는 것으로 확인했다).
+       *
+       * 기본 동작을 막으면 **마우스로는** 포커스가 잡히지 않는다. Tab 키 이동은 mousedown을
+       * 거치지 않으므로 키보드 사용자의 차트 탐색은 그대로 남는다.
+       */}
+      <div role="img" aria-label={label} onMouseDown={(e) => e.preventDefault()}>
         {children}
       </div>
 
