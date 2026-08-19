@@ -193,7 +193,7 @@ export function DashboardView() {
                       </span>
                     </div>
                     <p className="num mt-1.5 text-[17px] leading-none text-fg">
-                      {detail.forecast.online ? t.value.toFixed(t.decimals) : '—'}
+                      {t.value === null ? '—' : t.value.toFixed(t.decimals)}
                       <span className="ml-1 text-[11px] text-fg-subtle">{t.unit}</span>
                     </p>
                     <p className="num mt-1 text-[11px] text-fg-subtle">

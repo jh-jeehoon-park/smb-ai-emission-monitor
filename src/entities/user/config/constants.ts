@@ -65,6 +65,8 @@ export const SCREEN_ROLES: Record<string, readonly Role[]> = {
   'SCR-OP-006': ROLES,
   'SCR-OP-007': ROLES,
   'SCR-OP-008': ROLES,
+  // 검증 결과 조회는 전 역할. 값을 바꾸는 조작이 없다
+  'SCR-OP-009': ROLES,
   'SCR-AD-001': ['admin'],
   // 자사 손익 요약이 들어간다 — SCR-AD-001과 같은 이유로 관리자만
   'SCR-AD-003': ['admin'],

@@ -5,6 +5,7 @@ import {
   EVENT_START_INDEX,
   TIMELINE_POINT_COUNT,
   isMissingAt,
+  isTreatmentIdleAt,
   timelineIsoAt,
 } from '@/shared/lib/timeline';
 import type { MeasurementPoint, SeriesCode } from '../model/types';
@@ -67,12 +68,27 @@ export function getMeasurementSeries(siteId: string): MeasurementPoint[] {
   return Array.from({ length: TIMELINE_POINT_COUNT }, (_, i) => {
     const point = { t: timelineIsoAt(i) } as MeasurementPoint;
     const missing = isMissingAt(siteId, i);
+    /* 표본마다 한 번만 판정한다 — 항목 루프 안에서 부르면 표본당 11번 불린다 */
+    const treatmentIdle = isTreatmentIdleAt(siteId, i);
 
     for (const code of SERIES_CODES) {
       if (missing) {
         point[code] = null;
         continue;
       }
+      /*
+       * 방지시설이 멈춘 구간에서는 전류·전력이 0이다.
+       *
+       * 판정(`isTreatmentIdleAt`)과 그림이 **한 원천에서 나오게** 하는 자리다. 여기서
+       * 0으로 만들지 않으면, 이상 탐지 화면은 "미가동"이라 적는데 시계열 차트에는 전류가
+       * 정상으로 흐르는 모순이 생긴다. 유량은 그대로 둔다 — 멈춘 채 방류가 이어진 것이
+       * 이 구간의 정의다 `[원문 발표 p.13]`.
+       */
+      if (treatmentIdle && (code === 'current' || code === 'power')) {
+        point[code] = 0;
+        continue;
+      }
+
       const b = BASELINE[code];
       const mid = b.mid * offsets[code];
       const wave = Math.sin((i / b.period) * Math.PI * 2) * b.swing;

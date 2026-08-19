@@ -5,6 +5,7 @@ import {
   Cog,
   Coins,
   Droplets,
+  FlaskConical,
   SlidersHorizontal,
   Workflow,
   FileText,
@@ -46,6 +47,7 @@ export const NAV_ITEMS: NavItem[] = [
   { screenId: 'SCR-OP-005', href: '/equipment', label: '설비 예지보전', icon: Cog },
   { screenId: 'SCR-OP-006', href: '/optimization', label: '운영 최적화', icon: SlidersHorizontal },
   { screenId: 'SCR-OP-007', href: '/alarms', label: '알람 이력', icon: Bell },
+  { screenId: 'SCR-OP-009', href: '/validation', label: '수분석 검증', icon: FlaskConical },
   { screenId: 'SCR-OP-008', href: '/reports', label: '리포트', icon: FileText },
   /* 조회는 전 역할이지만 메뉴에는 관리자만(사용자 결정 2026-08-14).
      맨 뒤에 두어야 한다 — 앞에 두면 라우트 가드의 관리자 폴백이 비용 절감 현황에서 여기로 바뀐다 */

@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { DEMO_NOW_ISO } from '@/shared/config/demo';
 import { STATUS_VISUAL, statusInk } from '@/shared/config/status-visual';
 import { useQueryState } from '@/shared/lib/use-query-state';
@@ -20,6 +20,7 @@ import { SITES, getSite } from '@/entities/site';
 import { useSelectedSiteId } from '@/features/site-selection';
 import { AlarmList } from '@/widgets/alarm-list';
 import { EquipmentPanel } from '@/widgets/equipment-panel';
+import { EquipmentDetailModal } from './equipment-detail-modal';
 import { cn } from '@/shared/lib/cn';
 import { CROSS_SITE_RANK_LIMIT, SORT_QUERY_KEY } from '../config/constants';
 import { rankAcrossSites } from '../lib/rank-across-sites';
@@ -31,6 +32,8 @@ export function EquipmentView() {
   const { siteId } = useSelectedSiteId();
   const [sortBy, setSortBy] = useQueryState(SORT_QUERY_KEY, EQUIPMENT_SORT_KEYS, DEFAULT_SORT);
   const site = getSite(siteId);
+  /* 선택은 id로 든다 — 정렬이 바뀌어도 같은 설비를 가리킨다 */
+  const [openId, setOpenId] = useState<string | null>(null);
 
   const view = useMemo(
     () => ({
@@ -54,7 +57,13 @@ export function EquipmentView() {
           />
         }
       >
-        <EquipmentPanel items={view.items} online={site.online} />
+        <EquipmentPanel items={view.items} online={site.online} onSelect={(eq) => setOpenId(eq.id)} />
+
+        <EquipmentDetailModal
+          equipment={view.items.find((eq) => eq.id === openId) ?? null}
+          alarms={view.alarms}
+          onClose={() => setOpenId(null)}
+        />
       </Panel>
 
       <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_340px]">

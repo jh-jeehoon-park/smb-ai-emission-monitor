@@ -1,10 +1,21 @@
 import { PROVISIONAL_DECIMALS } from '@/shared/config/provisional';
 
+/** **오염도** 3항목. 경향 카드 3장과 `전체` 3단 차트가 이 목록으로 정해진다(FR-12) */
 export const FORECAST_TARGET_CODES = ['TOC', 'TN', 'TP'] as const;
 export type ForecastTargetCode = (typeof FORECAST_TARGET_CODES)[number];
 
+/**
+ * 예측 계열 코드 — 오염도 3항목 + **유량**.
+ *
+ * 유량을 `FORECAST_TARGET_CODES`에 넣지 않는 이유: 그 목록은 **오염도**의 정의이고,
+ * 경향 카드 3장·`전체` 3단이 그 목록을 그대로 쓴다. 유량은 수량이라 단위(㎥/day)도
+ * 자릿수도 다르고, 원문도 "수질·**수량**"으로 나눠 부른다 `[원문 발표 p.11]`.
+ */
+export const FLOW_FORECAST_CODE = 'flow';
+export type ForecastSeriesCode = ForecastTargetCode | typeof FLOW_FORECAST_CODE;
+
 export interface ForecastTargetProfile {
-  code: ForecastTargetCode;
+  code: ForecastSeriesCode;
   label: string;
   unit: string;
   decimals: number;
@@ -83,4 +94,30 @@ export const FORECAST_TARGETS: Record<ForecastTargetCode, ForecastTargetProfile>
     spreadBase: 0.1,
     spreadStep: 0.05,
   },
+};
+
+/**
+ * 유량(수량) 예측 `[원문 발표 p.11 그림]` "1~6시간 후 유량 변화 예측" · `[INC-95 판정]`.
+ *
+ * **R²가 `null`인 이유가 TOC와 다르다.** TOC는 원문이 값을 안 준 것이고, 유량은
+ * **성능 목표 자체가 없다** — `[원문 발표 p.26]`의 AI 성능 목표는 "수질 예측 정확도"뿐이다.
+ * 어느 쪽이든 지어내지 않는다(E3).
+ *
+ * 기저값은 계측 유량과 맞춘다 — 같은 사업장의 같은 항목이 화면마다 다른 크기로 보이면
+ * 예측선과 실측선이 서로 다른 것을 그리는 셈이 된다.
+ */
+export const FLOW_FORECAST: ForecastTargetProfile = {
+  code: FLOW_FORECAST_CODE,
+  label: '유량',
+  unit: 'm³/day',
+  decimals: PROVISIONAL_DECIMALS.flow,
+  r2: null,
+  trendOffset: 0,
+  base: 412,
+  amplitude: 58,
+  noise: 26,
+  rise: 90,
+  forecastGain: 24,
+  spreadBase: 18,
+  spreadStep: 7.5,
 };

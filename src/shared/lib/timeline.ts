@@ -72,6 +72,25 @@ export function isDischargingAt(siteId: string, index: number): boolean | null {
 }
 
 /**
+ * 그 시각 **방지시설이 멈춰 있었는가**.
+ *
+ * 판정 대상은 유입펌프 전류다 — 실증 데이터의 전류계가 거기 달려 있다
+ * (`docs/datasets/…/04_…` 전류계위치=유입펌프). 계측값이 아니라 시나리오 구간으로 정하고,
+ * 계측 fixture가 이 구간에서 전류·전력을 0으로 만든다. **판정과 그림이 한 원천에서 나온다.**
+ *
+ * 모르면 `null`이다(E4) — 수신하지 못한 시간을 "돌고 있었다"로도 "멈췄다"로도 적지 않는다.
+ */
+export function isTreatmentIdleAt(siteId: string, index: number): boolean | null {
+  if (isMissingAt(siteId, index)) return null;
+
+  const window = getScenario(siteId).idleDischargeWindow;
+  if (!window) return false;
+
+  const start = TIMELINE_POINT_COUNT - window.startOffset;
+  return index >= start && index < start + window.hours * SAMPLES_PER_HOUR;
+}
+
+/**
  * 최근 `window` 표본 중 방류가 **확인된** 시간.
  *
  * 결측 표본은 세지 않는다 — 그래서 통신이 잠시 끊겼던 사업장은 값이 조금 적게 나온다.

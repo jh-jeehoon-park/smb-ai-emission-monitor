@@ -91,6 +91,14 @@ export const PROVISIONAL_DISPLAY_DECIMALS = {
   savingRate: 1,
   /** 1억 이상은 억으로 끊는다. `15,000만 원`은 자릿수를 세어야 읽힌다 */
   savingKrwEok: 1,
+  /** 수분석 항목 중 **계측 대상이 아닌 것**(SS·COD). 실증 성적서 표기를 따랐다 */
+  analysisSS: 1,
+  analysisCOD: 1,
+  /** 검증 지표 `[원문 p.38]`. R²는 0~1이라 세 자리, MAE는 계측값 크기라 두 자리 */
+  validationR2: 3,
+  validationMae: 2,
+  /** 표본 수는 개수라 소수가 없다 */
+  validationSampleCount: 0,
 } as const;
 
 /**
@@ -129,3 +137,15 @@ export const PROVISIONAL_MEASUREMENT_GRADE_DASH: Record<MeasurementGrade, string
  * 확정되면 이 값과 `entities/optimization`의 기준 주입량(BASE_DOSE)을 함께 교체한다.
  */
 export const PROVISIONAL_DOSING_UNIT = 'L/h';
+
+/**
+ * 방지시설 미가동 방류를 **의심으로 볼 최소 지속 시간**(표본 수).
+ *
+ * **원문에 없다.** 원문은 방법만 준다 — *"전류 발생 시기와 유량 발생 시기를 비교"*,
+ * *"공정 체류시간을 고려한 데이터 매칭"* `[원문 발표 p.13]` `[TBD-46]`. 몇 분부터 의심인지,
+ * 체류시간을 몇 시간으로 볼지는 정해지지 않았다.
+ *
+ * 1시간(12표본)으로 둔 이유: 실증 데이터가 **시간 단위 집계**라 그보다 짧은 판정은
+ * 원본 데이터로 검증할 수 없다(`docs/datasets/…/04_…`). 확정되면 이 값만 바꾼다.
+ */
+export const PROVISIONAL_IDLE_DISCHARGE_MIN_SAMPLES = 12;

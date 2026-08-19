@@ -139,7 +139,8 @@ check('문서 링크', () => {
 //    (필드를 추가하고 문서를 안 고치면 여기서 잡힌다)
 check('필드 커버리지', () => {
   const table = new Map(
-    [...read('docs/specs/data-definition.md').matchAll(/^\| (\w+) \| (\d+) \|/gm)].map((m) => [
+    // 슬라이스 이름에 하이픈이 들어간다(`water-analysis`). `\w`만 쓰면 그 행을 못 읽는다
+    [...read('docs/specs/data-definition.md').matchAll(/^\| ([\w-]+) \| (\d+) \|/gm)].map((m) => [
       m[1],
       Number(m[2]),
     ]),

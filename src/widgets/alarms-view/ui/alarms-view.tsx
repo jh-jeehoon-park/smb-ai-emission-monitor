@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { DEMO_NOW_ISO } from '@/shared/config/demo';
 import { DISPLAY_TIMEZONE, formatDateTime, formatRelative } from '@/shared/lib/format';
 import { cn } from '@/shared/lib/cn';
@@ -22,6 +22,7 @@ import {
 } from '@/entities/alarm';
 import { getSite } from '@/entities/site';
 import { AlarmStateActions, useAlarmStates } from '@/features/alarm-ack';
+import { AlarmDetailModal } from './alarm-detail-modal';
 import { useSelectedSiteId } from '@/features/site-selection';
 import {
   PRIORITY_FILTERS,
@@ -60,6 +61,8 @@ export function AlarmsView() {
 
   const source = useMemo(() => [...ALARMS].sort(byRaisedAtDesc), []);
   const { alarms, changedCount, setState: setAlarmState, reset } = useAlarmStates(source);
+  /* 선택은 id로 들고 목록에서 되찾는다 — 알람 객체를 들면 확인 처리 뒤 상태가 옛 값으로 굳는다 */
+  const [openId, setOpenId] = useState<string | null>(null);
 
   /**
    * 범위 판정을 **한 곳에서만** 한다. 목록과 상단 타일이 각자 범위를 계산하던 탓에
@@ -155,12 +158,18 @@ export function AlarmsView() {
           <ul className="divide-y divide-border">
             {visible.map((alarm) => (
               <li key={alarm.id}>
-                <AlarmRow alarm={alarm} onChange={setAlarmState} />
+                <AlarmRow alarm={alarm} onChange={setAlarmState} onOpen={() => setOpenId(alarm.id)} />
               </li>
             ))}
           </ul>
         )}
       </Panel>
+
+      <AlarmDetailModal
+        alarm={alarms.find((a) => a.id === openId) ?? null}
+        onClose={() => setOpenId(null)}
+        onChange={setAlarmState}
+      />
 
       <Panel eyebrow="시연 안내" title="상태 전이">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -188,9 +197,11 @@ export function AlarmsView() {
 function AlarmRow({
   alarm,
   onChange,
+  onOpen,
 }: {
   alarm: Alarm;
   onChange: (id: string, next: AlarmState) => void;
+  onOpen: () => void;
 }) {
   return (
     <div className="flex flex-wrap items-start gap-x-3 gap-y-1.5 px-4 py-2.5">
@@ -203,8 +214,18 @@ function AlarmRow({
         {ALARM_PRIORITY_LABELS[alarm.priority]}
       </span>
 
+      {/*
+       * 제목을 버튼으로 둔다 — 행 전체를 누르게 하면 안쪽 확인·조치 버튼과 조작이 겹친다.
+       * 키보드로도 순서대로 닿는다.
+       */}
       <div className="min-w-0 flex-1 basis-[220px]">
-        <p className="text-[12px] text-fg">{alarm.title}</p>
+        <button
+          type="button"
+          onClick={onOpen}
+          className="cursor-pointer text-left text-[12px] text-fg underline decoration-transparent underline-offset-2 transition-colors duration-200 hover:decoration-border-strong"
+        >
+          {alarm.title}
+        </button>
         <p className="mt-0.5 text-[11px] leading-relaxed text-fg-subtle">{alarm.detail}</p>
       </div>
 

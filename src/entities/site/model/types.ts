@@ -1,3 +1,4 @@
+import type { DischargeScale, RegionGrade } from '@/shared/config/discharge-limits';
 import type { Industry } from '@/shared/config/demo-scenario';
 import type { StatusLevel } from '@/shared/config/provisional';
 
@@ -14,6 +15,12 @@ export interface Site {
   province: string;
   /** 위 주소에 대응하는 좌표. 지도 핀 위치의 근거다 */
   coordinates: [lat: number, lng: number];
+  /**
+   * 배출허용기준을 고르는 두 축 `[공정자료 p.11]`. **둘 중 하나라도 `null`이면 기준표를
+   * 고를 수 없다** — 화면은 그 사실을 감추지 않고 `미확인`으로 적는다.
+   */
+  regionGrade: RegionGrade | null;
+  dischargeScale: DischargeScale | null;
   /** 이상 점수 0~100 (사업계획서 p.64). 통신 두절이면 산출값이 없다 */
   anomalyScore: number | null;
   status: StatusLevel | null;

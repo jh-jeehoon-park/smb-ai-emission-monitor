@@ -4,8 +4,11 @@ import { FORECAST_HORIZON_HOURS } from '@/shared/config/measurement';
 import { createRng, roundTo } from '@/shared/lib/prng';
 import { TIMELINE_POINT_COUNT, isMissingAt, timelineIsoAt } from '@/shared/lib/timeline';
 import {
+  FLOW_FORECAST,
+  FLOW_FORECAST_CODE,
   FORECAST_TARGETS,
   FORECAST_TARGET_CODES,
+  type ForecastSeriesCode,
   type ForecastTargetCode,
   type ForecastTargetProfile,
 } from '../config/constants';
@@ -17,12 +20,23 @@ const FORECAST_STEP_MINUTES = 30;
 const FORECAST_POINTS = (FORECAST_HORIZON_HOURS * 60) / FORECAST_STEP_MINUTES;
 
 /** 항목마다 rng 계열을 벌려 세 항목이 똑같은 모양으로 겹치지 않게 한다 */
-const SEED_OFFSET: Record<ForecastTargetCode, number> = { TOC: 90210, TN: 90211, TP: 90212 };
+const SEED_OFFSET: Record<ForecastSeriesCode, number> = {
+  TOC: 90210,
+  TN: 90211,
+  TP: 90212,
+  flow: 90213,
+};
 
+/**
+ * @param online 통신이 살아 있는가. **두절이면 예측 지점을 아예 만들지 않는다** — 산출이
+ * 중단된 것이므로 없는 예측선을 그리면 "6시간 뒤 이 값"이라는 없는 판정을 만든다(E3).
+ * 화면 문구도 "추정도 중단되며 마지막 산출 시각만 남는다"라고 적고 있다.
+ */
 function buildPoints(
   siteId: string,
   profile: ForecastTargetProfile,
   intensity: number,
+  online: boolean,
 ): ForecastPoint[] {
   const rng = createRng(siteSeed(siteId, SEED_OFFSET[profile.code]));
   const points: ForecastPoint[] = [];
@@ -50,6 +64,8 @@ function buildPoints(
       upper: null,
     });
   }
+
+  if (!online) return points;
 
   // 예측선이 실측선과 이어져 보이도록 마지막 실측 지점을 예측 시작점으로도 둔다.
   const joinPoint = points[points.length - 1];
@@ -89,8 +105,9 @@ function trendOf(intensity: number, offset: number): Trend {
   return 'steady';
 }
 
-function lastForecastOf(points: ForecastPoint[]): number {
-  return [...points].reverse().find((p) => p.forecast !== null)?.forecast ?? 0;
+/** 예측이 없으면 **0이 아니라 모름**이다 — 0은 "0 mg/L로 예측했다"는 뜻이 된다(E4) */
+function lastForecastOf(points: ForecastPoint[]): number | null {
+  return [...points].reverse().find((p) => p.forecast !== null)?.forecast ?? null;
 }
 
 /**
@@ -99,14 +116,18 @@ function lastForecastOf(points: ForecastPoint[]): number {
  */
 const seriesCache = new Map<string, Record<ForecastTargetCode, ForecastPoint[]>>();
 
-function allSeries(siteId: string, intensity: number): Record<ForecastTargetCode, ForecastPoint[]> {
+function allSeries(
+  siteId: string,
+  intensity: number,
+  online: boolean,
+): Record<ForecastTargetCode, ForecastPoint[]> {
   const cached = seriesCache.get(siteId);
   if (cached) return cached;
 
   const built = {
-    TOC: buildPoints(siteId, FORECAST_TARGETS.TOC, intensity),
-    TN: buildPoints(siteId, FORECAST_TARGETS.TN, intensity),
-    TP: buildPoints(siteId, FORECAST_TARGETS.TP, intensity),
+    TOC: buildPoints(siteId, FORECAST_TARGETS.TOC, intensity, online),
+    TN: buildPoints(siteId, FORECAST_TARGETS.TN, intensity, online),
+    TP: buildPoints(siteId, FORECAST_TARGETS.TP, intensity, online),
   };
   seriesCache.set(siteId, built);
   return built;
@@ -122,11 +143,12 @@ function buildTrends(
 ): TrendEstimate[] {
   return FORECAST_TARGET_CODES.map((code) => {
     const profile = FORECAST_TARGETS[code];
+    const last = lastForecastOf(series[code]);
     return {
       label: profile.label,
       code,
       trend: trendOf(intensity, profile.trendOffset),
-      value: roundTo(lastForecastOf(series[code]), profile.decimals),
+      value: last === null ? null : roundTo(last, profile.decimals),
       unit: profile.unit,
       decimals: profile.decimals,
       r2: profile.r2,
@@ -138,9 +160,10 @@ export function getForecast(siteId: string, target: ForecastTargetCode = 'TOC'):
   const scenario = getScenario(siteId);
   const intensity = scenario.eventRise / 74;
   const profile = FORECAST_TARGETS[target];
-  const series = allSeries(siteId, intensity);
+  const series = allSeries(siteId, intensity, scenario.online);
 
   return {
+    code: profile.code,
     targetLabel: `${profile.code} ${profile.label}`,
     unit: profile.unit,
     decimals: profile.decimals,
@@ -151,5 +174,32 @@ export function getForecast(siteId: string, target: ForecastTargetCode = 'TOC'):
     modelLabel: 'LSTM + Attention',
     points: series[target],
     trends: buildTrends(series, intensity),
+  };
+}
+
+/**
+ * 유량(수량) 예측 `[INC-95 판정 2026-08-19]`.
+ *
+ * 오염도와 **같은 규약**을 쓴다 — 같은 예측 지평, 같은 신뢰구간 표현, 같은 결측 처리.
+ * 다른 것은 항목 프로파일 하나뿐이다. 경향 카드는 오염도 3항목의 것이므로 그대로 싣는다
+ * (어느 항목을 보고 있든 세 항목의 경향을 함께 보여준다 — FR-12).
+ */
+export function getFlowForecast(siteId: string): ForecastSummary {
+  const scenario = getScenario(siteId);
+  const intensity = scenario.eventRise / 74;
+  const points = buildPoints(siteId, FLOW_FORECAST, intensity, scenario.online);
+
+  return {
+    code: FLOW_FORECAST_CODE,
+    targetLabel: `${FLOW_FORECAST.label}(수량)`,
+    unit: FLOW_FORECAST.unit,
+    decimals: FLOW_FORECAST.decimals,
+    horizonHours: FORECAST_HORIZON_HOURS,
+    online: scenario.online,
+    computedAtIso: scenario.online ? DEMO_NOW_ISO : '2026-08-11T13:35:00Z',
+    inputWindowLabel: '과거 24시간 다변량 시계열',
+    modelLabel: 'LSTM + Attention',
+    points,
+    trends: buildTrends(allSeries(siteId, intensity, scenario.online), intensity),
   };
 }

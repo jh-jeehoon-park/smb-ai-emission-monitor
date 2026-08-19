@@ -30,3 +30,12 @@ export const STATE_OPTIONS: { value: StateFilter; label: string }[] = [
     label: ALARM_STATE_LABELS[s],
   })),
 ];
+
+/**
+ * 상세 모달에 싣는 계측 항목.
+ *
+ * 11종을 다 실으면 무엇을 보라는 것인지 알 수 없다. **수질 이상 판단에 쓰이는 항목**과
+ * 방류·가동을 가르는 **유량·전류**를 고른다 — 후자는 방류 상태 표기의 근거이기도 하다.
+ * 순서는 계측 화면(`WATER_SERIES_CODES`)과 같게 두어 두 화면이 같은 순서로 읽히게 한다.
+ */
+export const SNAPSHOT_CODES = ['pH', 'DO', 'EC', 'turbidity', 'TOC', 'flow', 'current'] as const;

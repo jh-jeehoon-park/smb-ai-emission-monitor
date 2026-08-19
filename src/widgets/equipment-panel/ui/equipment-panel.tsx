@@ -5,7 +5,16 @@ import { RiseItem, StaggerGroup, motion } from '@/shared/ui/motion';
 import { StatusBadge } from '@/shared/ui/status-badge';
 import type { Equipment } from '@/entities/equipment';
 
-export function EquipmentPanel({ items, online }: { items: Equipment[]; online: boolean }) {
+export function EquipmentPanel({
+  items,
+  online,
+  onSelect,
+}: {
+  items: Equipment[];
+  online: boolean;
+  /** 상세를 여는 화면에서만 넘긴다. 없으면 카드가 눌리지 않는다 */
+  onSelect?: (equipment: Equipment) => void;
+}) {
   /* ECP가 끊기면 설비 텔레메트리도 오지 않는다. 계측·이상 점수는 결측인데 설비만
      멀쩡한 숫자를 띄우면 한 화면이 서로 다른 말을 한다(E3·R19). */
   if (!online) {
@@ -30,7 +39,18 @@ export function EquipmentPanel({ items, online }: { items: Equipment[]; online: 
             {/* 카드 안에 카드를 넣지 않는다 — 구분선과 여백으로 위계를 만든다 */}
             <div className="xl:px-4 xl:first:pl-0 xl:last:pr-0">
               <div className="flex items-center justify-between gap-2">
-                <p className="truncate text-[12px] font-medium text-fg">{eq.name}</p>
+                {/* 이름만 누르게 둔다 — 카드 전체를 버튼으로 만들면 진행 막대까지 눌리는 영역이 된다 */}
+                {onSelect ? (
+                  <button
+                    type="button"
+                    onClick={() => onSelect(eq)}
+                    className="min-w-0 cursor-pointer truncate text-left text-[12px] font-medium text-fg underline decoration-transparent underline-offset-2 transition-colors duration-200 hover:decoration-border-strong"
+                  >
+                    {eq.name}
+                  </button>
+                ) : (
+                  <p className="truncate text-[12px] font-medium text-fg">{eq.name}</p>
+                )}
                 <StatusBadge level={eq.status} size="sm" />
               </div>
 

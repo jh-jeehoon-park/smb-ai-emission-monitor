@@ -6,6 +6,8 @@
  * 읽어 생성한다. 값이 우연히 맞는 게 아니라 구조적으로 맞는다.
  */
 
+import type { DischargeScale, RegionGrade } from './discharge-limits';
+
 export type Industry = '섬유·염색' | '식품' | '화학' | '도금' | '전자부품';
 
 export interface SiteScenario {
@@ -32,6 +34,17 @@ export interface SiteScenario {
   outageStartOffset: number | null;
   /** 방류가 멈춘 구간. null이면 24시간 내내 방류 */
   dischargeGap: DischargeGap | null;
+  /** 방지시설이 멈춘 채 방류가 이어진 구간. null이면 그런 구간이 없다 */
+  idleDischargeWindow: DischargeGap | null;
+  /**
+   * 배출허용기준을 고르는 두 축 `[공정자료 p.11]`.
+   *
+   * 둘을 알아야 기준표를 고를 수 있다. **원문에 없어 둘 다 `null`이다** — 진유원의
+   * 규모만 데이터셋이 `4종`으로 알려 주고(50~200㎥/일), 지역구분은 어느 사업장도 없다.
+   * `null`을 임의값으로 채우면 없는 기준으로 초과를 판정하게 된다 `[TBD-45]`.
+   */
+  regionGrade: RegionGrade | null;
+  dischargeScale: DischargeScale | null;
   /** 데이터 처리율·가동률은 사업장마다 다르다 */
   dataThroughput: number;
   uptime: number;
@@ -53,6 +66,18 @@ export interface DischargeGap {
   hours: number;
 }
 
+/**
+ * 방지시설이 멈춘 채 방류가 이어진 구간(`idleDischargeWindow`)의 근거.
+ *
+ * 진유원 6,528시간 중 **184시간(2.8%)** 이 `유량=1 · 전류=0`이었다
+ * (`docs/datasets/…/04_…`, 전류계 위치=유입펌프). 24시간 × 2.8% ≈ 40분이라 **1시간짜리
+ * 구간 하나**면 실제와 비슷한 밀도가 된다 — 다만 판정 임계값(1시간)보다 짧으면 시연에서
+ * 아무것도 잡히지 않으므로 1시간으로 올렸다.
+ *
+ * **이것이 곧 무단방류라는 뜻은 아니다.** 저류된 물을 내보내는 중일 수도 있다. 원문도
+ * "방류 유무 판단 **가능성 검토**"까지만 말한다 `[원문 발표 p.13]` — 화면은 의심으로만 적는다.
+ */
+
 /** 실증 10개소 = 5개 업종 × 2개소 (사업계획서 p.33·p.37) */
 export const SITE_SCENARIOS: SiteScenario[] = [
   {
@@ -68,6 +93,9 @@ export const SITE_SCENARIOS: SiteScenario[] = [
     online: true,
     outageStartOffset: null,
     dischargeGap: null,
+    idleDischargeWindow: null,
+    regionGrade: null,
+    dischargeScale: null,
     dataThroughput: 99.1,
     uptime: 97.8,
   },
@@ -84,6 +112,13 @@ export const SITE_SCENARIOS: SiteScenario[] = [
     online: true,
     outageStartOffset: 96,
     dischargeGap: null,
+    /**
+     * 방지시설이 멈춘 채 방류가 이어진 구간 `[원문 발표 p.13]`.
+     * 길이의 근거는 위 주석(실측 2.8%)에 있다.
+     */
+    idleDischargeWindow: { startOffset: 132, hours: 1 },
+    regionGrade: null,
+    dischargeScale: null,
     dataThroughput: 98.6,
     uptime: 96.4,
   },
@@ -100,6 +135,10 @@ export const SITE_SCENARIOS: SiteScenario[] = [
     online: true,
     outageStartOffset: null,
     dischargeGap: null,
+    idleDischargeWindow: null,
+    /** 데이터셋의 진유원이 `규모 4종`(50~200㎥/일) — 지역구분은 없다 `[데이터셋 …/04_…]` */
+    regionGrade: null,
+    dischargeScale: '200㎥ 미만',
     dataThroughput: 98.9,
     uptime: 98.2,
   },
@@ -117,6 +156,9 @@ export const SITE_SCENARIOS: SiteScenario[] = [
     outageStartOffset: null,
     /** 통신 두절이라 방류 여부를 알 수 없다. 구간이 아니라 판정 자체가 null이다 */
     dischargeGap: null,
+    idleDischargeWindow: null,
+    regionGrade: null,
+    dischargeScale: null,
     dataThroughput: 71.4,
     uptime: 82.1,
   },
@@ -133,6 +175,9 @@ export const SITE_SCENARIOS: SiteScenario[] = [
     online: true,
     outageStartOffset: null,
     dischargeGap: null,
+    idleDischargeWindow: null,
+    regionGrade: null,
+    dischargeScale: null,
     dataThroughput: 98.2,
     uptime: 95.9,
   },
@@ -149,6 +194,10 @@ export const SITE_SCENARIOS: SiteScenario[] = [
     online: true,
     outageStartOffset: 148,
     dischargeGap: null,
+    /** **통신 두절 구간과 일부러 겹쳐 둔다** — 겹친 표본은 의심이 아니라 모름이어야 한다(E4) */
+    idleDischargeWindow: { startOffset: 152, hours: 1 },
+    regionGrade: null,
+    dischargeScale: null,
     dataThroughput: 97.6,
     uptime: 96.8,
   },
@@ -165,6 +214,9 @@ export const SITE_SCENARIOS: SiteScenario[] = [
     online: true,
     outageStartOffset: null,
     dischargeGap: null,
+    idleDischargeWindow: null,
+    regionGrade: null,
+    dischargeScale: null,
     dataThroughput: 98.4,
     uptime: 94.7,
   },
@@ -182,6 +234,9 @@ export const SITE_SCENARIOS: SiteScenario[] = [
     outageStartOffset: null,
     /** **배출 없음.** 설비는 돌지만 24시간 내내 방류가 없다 — 데이터셋 272일 중 15일 */
     dischargeGap: { startOffset: 288, hours: 24 },
+    idleDischargeWindow: null,
+    regionGrade: null,
+    dischargeScale: null,
     dataThroughput: 99.3,
     uptime: 98.6,
   },
@@ -199,6 +254,9 @@ export const SITE_SCENARIOS: SiteScenario[] = [
     outageStartOffset: null,
     /** 지금 중단 2시간째. 관리자2의 사업장이라 관리자 화면에서도 이 상태가 보인다 */
     dischargeGap: { startOffset: 24, hours: 2 },
+    idleDischargeWindow: null,
+    regionGrade: null,
+    dischargeScale: null,
     dataThroughput: 99.5,
     uptime: 99.1,
   },
@@ -216,6 +274,9 @@ export const SITE_SCENARIOS: SiteScenario[] = [
     outageStartOffset: null,
     /** 11:58 수질 알람이 이 구간에 든다 — 비방류 중 알람 사례 */
     dischargeGap: { startOffset: 48, hours: 3 },
+    idleDischargeWindow: null,
+    regionGrade: null,
+    dischargeScale: null,
     dataThroughput: 98.8,
     uptime: 97.2,
   },

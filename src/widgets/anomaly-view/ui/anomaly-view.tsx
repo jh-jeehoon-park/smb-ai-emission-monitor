@@ -12,13 +12,15 @@ import { AnomalyBandLegend } from '@/shared/ui/anomaly-band-legend';
 import { Panel } from '@/shared/ui/panel';
 import { Sparkline } from '@/shared/ui/sparkline';
 import { getAlarmsForView } from '@/entities/alarm';
-import { getAnomalySeries, getAnomalySummary } from '@/entities/anomaly';
+import { getAnomalySeries, getAnomalySummary, findIdleDischargeRuns } from '@/entities/anomaly';
+import { getMeasurementSeries } from '@/entities/measurement';
 import { SITES, getSite } from '@/entities/site';
 import type { Site } from '@/entities/site';
 import { useSelectedSiteId, useSiteHref } from '@/features/site-selection';
 import { AlarmList } from '@/widgets/alarm-list';
 import { AnomalyPanel } from '@/widgets/anomaly-panel';
 import { AnomalyTimeline } from '@/widgets/anomaly-timeline';
+import { IdleDischargePanel } from './idle-discharge-panel';
 
 const RANKING_SPARK_POINTS = 40;
 
@@ -32,6 +34,8 @@ export function AnomalyView() {
       series: getAnomalySeries(siteId),
       summary: getAnomalySummary(siteId),
       outage: getOutageWindow(siteId),
+      points: getMeasurementSeries(siteId),
+      idleRuns: findIdleDischargeRuns(siteId),
       alarms: getAlarmsForView(siteId).filter((a) => a.condition === 'anomaly'),
     }),
     [siteId],
@@ -58,6 +62,17 @@ export function AnomalyView() {
           }
         >
           <AnomalyTimeline data={detail.series} outage={detail.outage} />
+        </Panel>
+
+        {/*
+          * 이상 점수와 **다른 축**의 탐지다 — 점수가 낮아도 여기서 잡힌다.
+          * 발표 p.11 그림이 이 기능을 `이상배출 조기탐지` 그룹에 두었기에 같은 화면에 둔다.
+          */}
+        <Panel
+          eyebrow={`의심 구간 ${detail.idleRuns.length}건`}
+          title="방지시설 미가동 중 방류 의심"
+        >
+          <IdleDischargePanel siteId={siteId} points={detail.points} />
         </Panel>
 
         {/* 비교가 이 블록의 존재 이유다. 자사 1개소뿐인 관리자에게는 성립하지 않는다 */}

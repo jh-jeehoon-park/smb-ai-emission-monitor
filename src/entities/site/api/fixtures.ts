@@ -23,6 +23,8 @@ function buildSites(): Site[] {
       address: scenario.address,
       province: scenario.province,
       coordinates: scenario.coordinates,
+      regionGrade: scenario.regionGrade,
+      dischargeScale: scenario.dischargeScale,
       anomalyScore,
       status: anomalyScore === null ? null : toStatusLevel(anomalyScore),
       online: scenario.online,

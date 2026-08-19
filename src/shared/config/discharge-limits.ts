@@ -1,0 +1,104 @@
+import type { MeasurementItemCode } from './measurement';
+
+/**
+ * 배출허용기준 — **두 축으로 결정된다** `[공정자료 p.11]`.
+ *
+ * ① 지역구분 4단계 · ② 1일 폐수배출량 규모. 둘을 알아야 기준표를 고를 수 있다.
+ * 사업장의 두 값이 없으면 **어떤 항목도 초과를 판정할 수 없다** — 표를 못 고른다.
+ *
+ * `[공정자료 p.11]`이 확인해 준 수치는 **1일 배출량 2,000㎥ 이상**(1종) 사업장의
+ * BOD·SS·COD뿐이고, 그 셋은 **우리 계측 항목이 아니다.** 우리 실증 사업장은 4종
+ * (50~200㎥/일 `[데이터셋 …/04_… 규모=4종]`)이라 그 표를 적용하면 틀린다.
+ */
+export const REGION_GRADES = ['청정지역', '가지역', '나지역', '특례지역'] as const;
+export type RegionGrade = (typeof REGION_GRADES)[number];
+
+/** 1일 폐수배출량 규모 구간 `[공정자료 p.11]`. 종별은 배출량으로 갈린다 */
+export const DISCHARGE_SCALES = [
+  '2,000㎥ 이상',
+  '700~2,000㎥',
+  '200~700㎥',
+  '200㎥ 미만',
+] as const;
+export type DischargeScale = (typeof DISCHARGE_SCALES)[number];
+
+/**
+ * 항목별 기준값.
+ *
+ * **`null`은 "기준이 없다"가 아니라 "우리가 아직 그 표를 갖고 있지 않다"는 뜻이다.**
+ * 법에는 있다 — `[공정자료 p.11]`이 *"규모·지역별 별도 기준표가 있으며"* 라고 적었다.
+ * 값을 지어내면 없는 초과 판정을 만들게 되므로 비워 둔다(`README` §3.1).
+ */
+export interface DischargeLimit {
+  /** 하한. pH처럼 양방향 기준이 있는 항목만 값을 갖는다 */
+  min: number | null;
+  /** 상한 */
+  max: number | null;
+  /** 근거 표기 — 화면이 이 문자열을 그대로 보여 준다 */
+  source: string;
+  /** 값이 없는 이유. 있으면 화면이 초과 판정 대신 이 문구를 적는다 */
+  unavailableReason: string | null;
+}
+
+const NO_LIMIT_TABLE =
+  '규모·지역별 기준표가 필요합니다 — 사업장 지역구분·배출량 규모 미확정 [TBD-45]';
+
+/**
+ * **pH만 지금 판정할 수 있다.**
+ *
+ * `[공정자료 p.11]`: *"pH는 통상 5.8~8.6 범위가 널리 적용됩니다."* 규모·지역과 무관하게
+ * 널리 쓰이는 범위라 표를 고르지 않고도 쓸 수 있다.
+ *
+ * 다만 "통상"이다. 같은 쪽이 *"정확한 적용 구간은 사업장 폐수배출시설 설치허가(신고)증에서
+ * 확인"* 이라고 못박았으므로, 화면은 이 값을 확정 기준처럼 보이게 하지 않는다.
+ */
+export const DISCHARGE_LIMITS: Partial<Record<MeasurementItemCode, DischargeLimit>> = {
+  pH: {
+    min: 5.8,
+    max: 8.6,
+    source: '[공정자료 p.11·16] 통상 적용 범위 · 사업장 허가증 확인 필요',
+    unavailableReason: null,
+  },
+  TOC: { min: null, max: null, source: '[공정자료 p.12·19]', unavailableReason: NO_LIMIT_TABLE },
+  TN: { min: null, max: null, source: '[공정자료 p.12·19]', unavailableReason: NO_LIMIT_TABLE },
+  TP: { min: null, max: null, source: '[공정자료 p.12·19]', unavailableReason: NO_LIMIT_TABLE },
+};
+
+/**
+ * 법적 방류기준 **점검 대상 5항목** `[공정자료 p.5·19]`.
+ *
+ * **`SS`가 우리 계측에도 AI 추정에도 없다.** 탁도(NTU)는 물리적 지표일 뿐 SS(mg/L)가 아니라
+ * 대신 쓸 수 없다. 이 배열에 우리가 값을 가진 항목만 담으면 그 공백이 사라지므로,
+ * **5항목을 그대로 적고 보유 여부를 따로 표시한다** — 화면이 "5항목을 다 본다"로 읽히면 안 된다.
+ *
+ * TMS 유무와 법적 기준 적용은 무관하다 `[공정자료 p.12]` — 비TMS 사업장도 같은 기준을 받는다.
+ */
+export const LEGAL_CHECK_ITEMS = [
+  { label: 'TOC', code: 'TOC' as MeasurementItemCode },
+  { label: 'SS', code: null },
+  { label: 'T-N', code: 'TN' as MeasurementItemCode },
+  { label: 'T-P', code: 'TP' as MeasurementItemCode },
+  { label: 'pH', code: 'pH' as MeasurementItemCode },
+] as const;
+
+/** 기준이 정해진 항목인가. 화면은 이 값으로 기준선을 그릴지 정한다 */
+export function hasLimit(code: MeasurementItemCode): boolean {
+  const limit = DISCHARGE_LIMITS[code];
+  return Boolean(limit && limit.unavailableReason === null);
+}
+
+/**
+ * 기준을 벗어났는가.
+ *
+ * **경계값은 초과가 아니다** — 5.8과 8.6은 허용 범위 안이다. `<`·`>`로 비교한다.
+ * 기준이 없거나 값이 결측이면 **판정하지 않는다**(`null`) — `false`를 돌려주면
+ * "기준 안에 있다"는 사실 주장이 되어 없는 판정을 만든다(E4).
+ */
+export function isOverLimit(code: MeasurementItemCode, value: number | null): boolean | null {
+  if (value === null || !hasLimit(code)) return null;
+
+  const limit = DISCHARGE_LIMITS[code]!;
+  if (limit.min !== null && value < limit.min) return true;
+  if (limit.max !== null && value > limit.max) return true;
+  return false;
+}

@@ -27,6 +27,12 @@ export function formatClock(iso: string): string {
   return `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`;
 }
 
+/** 날짜만. 회차 목록처럼 시각이 의미 없는 자리에 쓴다 */
+export function formatDate(iso: string): string {
+  const d = new Date(iso);
+  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
+}
+
 export function formatDateTime(iso: string): string {
   const d = new Date(iso);
   return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())} ${pad(

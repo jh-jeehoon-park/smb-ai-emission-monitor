@@ -1,13 +1,15 @@
 'use client';
 
-import { Area, AreaChart, ResponsiveContainer, Tooltip, YAxis } from 'recharts';
+import { Area, AreaChart, ReferenceArea, ResponsiveContainer, Tooltip, YAxis } from 'recharts';
+import { DISCHARGE_LIMITS } from '@/shared/config/discharge-limits';
 import { MEASUREMENT_ITEMS } from '@/shared/config/measurement';
-import { ACTUAL_HEX, GRID_HEX, MISSING_HEX } from '@/shared/config/status-visual';
+import { ACTUAL_HEX, GRID_HEX, MISSING_HEX, STATUS_BAND } from '@/shared/config/status-visual';
 import { formatClock, formatValue } from '@/shared/lib/format';
 import { ChartFigure } from '@/shared/ui/chart-figure';
 import { ChartTooltipRow, ChartTooltipShell } from '@/shared/ui/chart-tooltip';
 import { RiseItem, StaggerGroup } from '@/shared/ui/motion';
-import type { MeasurementPoint, SeriesCode } from '@/entities/measurement';
+import { countOverLimit, type MeasurementPoint, type SeriesCode } from '@/entities/measurement';
+import { limitZone, type LimitZone } from '../lib/limit-zone';
 
 interface WaterQualityGridProps {
   data: MeasurementPoint[];
@@ -42,6 +44,8 @@ function MiniSeries({ code, data }: { code: SeriesCode; data: MeasurementPoint[]
   const values = data.map((p) => p[code]);
   const latest = [...values].reverse().find((v) => v !== null) ?? null;
   const isMissingNow = values[values.length - 1] === null;
+  const zone = limitZone(code, values);
+  const overCount = countOverLimit(data, code);
 
   return (
     <div className="group bg-surface p-3 transition-colors duration-200 hover:bg-surface-2">
@@ -65,6 +69,9 @@ function MiniSeries({ code, data }: { code: SeriesCode; data: MeasurementPoint[]
 
       <p className="mt-0.5 truncate text-[11px] text-fg-muted">{item.label}</p>
 
+      {/* 기준을 아는 항목인지, 안다면 넘었는지 — 두 사실을 구분해 적는다 */}
+      <LimitNote code={code} zone={zone} overCount={overCount} decimals={item.decimals} />
+
       {/* 작은 차트는 현재값이 이미 위에 텍스트로 있다. 항목마다 표를 또 두면 소음이다 */}
       <ChartFigure
         label={`${item.label}(${item.symbol}) 최근 24시간 추이${
@@ -80,7 +87,28 @@ function MiniSeries({ code, data }: { code: SeriesCode; data: MeasurementPoint[]
                   <stop offset="100%" stopColor={ACTUAL_HEX} stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <YAxis hide domain={['dataMin', 'dataMax']} />
+              <YAxis hide domain={zone ? zone.domain : ['dataMin', 'dataMax']} />
+
+              {/*
+               * 기준을 벗어난 영역을 칠한다 — 선이 그 안에 들어가면 초과다.
+               * 허용 범위를 칠하지 않는 이유: 값이 대개 그 안이라 화면 전체가 색이 된다.
+               */}
+              {zone && (
+                <>
+                  <ReferenceArea
+                    y1={zone.domain[0]}
+                    y2={zone.min}
+                    fill={STATUS_BAND.critical}
+                    stroke="none"
+                  />
+                  <ReferenceArea
+                    y1={zone.max}
+                    y2={zone.domain[1]}
+                    fill={STATUS_BAND.critical}
+                    stroke="none"
+                  />
+                </>
+              )}
               <Tooltip
                 cursor={{ stroke: GRID_HEX, strokeWidth: 1 }}
                 content={({ active, payload }) => {
@@ -118,5 +146,38 @@ function MiniSeries({ code, data }: { code: SeriesCode; data: MeasurementPoint[]
         </div>
       </ChartFigure>
     </div>
+  );
+}
+
+/**
+ * `null`은 "초과가 없다"가 아니라 "판정할 기준표가 없다"는 뜻이다 — 두 문장을 다르게 적는다.
+ * 기준값이 있는 항목도 `통상` 범위라 확정 기준처럼 보이지 않게 출처를 함께 남긴다
+ * (`[공정자료 p.11]`: 정확한 적용 구간은 사업장 허가증에서 확인).
+ */
+function LimitNote({
+  code,
+  zone,
+  overCount,
+  decimals,
+}: {
+  code: SeriesCode;
+  zone: LimitZone | null;
+  overCount: number | null;
+  decimals: number;
+}) {
+  const limit = DISCHARGE_LIMITS[code];
+  if (!limit) return null;
+
+  if (!zone || overCount === null) {
+    return <p className="mt-1 truncate text-[11px] text-fg-subtle">기준값 미확정 [TBD-45]</p>;
+  }
+
+  return (
+    <p className="mt-1 truncate text-[11px] text-fg-subtle" title={limit.source}>
+      <span className="num">
+        기준 {zone.min.toFixed(decimals)}–{zone.max.toFixed(decimals)}
+      </span>{' '}
+      · {overCount === 0 ? '초과 없음' : `초과 ${overCount}건`}
+    </p>
   );
 }
