@@ -11,4 +11,5 @@ export {
   ALARM_CONDITION_LABELS,
   ALARM_STATE_LABELS,
 } from './model/types';
+export { PRIORITY_BY_LEVEL } from './config/constants';
 export type { Alarm, AlarmPriority, AlarmCondition, AlarmState } from './model/types';

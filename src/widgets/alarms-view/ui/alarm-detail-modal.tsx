@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import { DEMO_NOW_ISO } from '@/shared/config/demo';
 import { COLLECTION_INTERVAL_MINUTES, MEASUREMENT_ITEMS } from '@/shared/config/measurement';
+import { PROVISIONAL_STATUS_LABELS } from '@/shared/config/provisional';
 import { STATUS_VISUAL, statusInk } from '@/shared/config/status-visual';
 import { DISPLAY_TIMEZONE, formatDateTime, formatRelative, formatValue } from '@/shared/lib/format';
 import { isDischargingAt, isTreatmentIdleAt, timelineIndexAt } from '@/shared/lib/timeline';
@@ -71,6 +72,11 @@ export function AlarmDetailModal({ alarm, onClose, onChange }: AlarmDetailModalP
       <div className="mt-4 border-t border-border pt-3">
         <ModalFacts>
           <ModalFact label="사업장" value={alarm.siteName} />
+          {/* 등급은 우선순위와 다른 축이다 — 추정 매핑으로 이어져 있다 `[INC-02]` */}
+          <ModalFact
+            label="상태 등급"
+            value={`${PROVISIONAL_STATUS_LABELS[alarm.level]} (우선순위 ${ALARM_PRIORITY_LABELS[alarm.priority]})`}
+          />
           <ModalFact
             label="발생 시각"
             value={`${formatDateTime(alarm.raisedAtIso)} ${DISPLAY_TIMEZONE} · ${formatRelative(alarm.raisedAtIso, DEMO_NOW_ISO)}`}

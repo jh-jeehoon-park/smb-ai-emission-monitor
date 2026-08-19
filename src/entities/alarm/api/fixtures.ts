@@ -1,15 +1,21 @@
+import { PRIORITY_BY_LEVEL } from '../config/constants';
 import type { Alarm } from '../model/types';
 
 /**
- * 우선순위는 상태 등급에서 자동으로 파생하지 않는다.
- * 등급 4단계와 우선순위 3단계의 대응 관계가 원문에 없기 때문이다(INC-02).
- * 확정 전까지는 각 알람이 우선순위를 직접 들고 있는다.
+ * 알람은 **등급**을 들고, 우선순위는 `PRIORITY_BY_LEVEL`로 파생한다.
+ *
+ * 예전에는 우선순위를 직접 들었다 — 대응 규칙이 원문에 없어(`INC-02`) 파생할 수 없었기
+ * 때문이다. **2026-08-19 사용자 확인으로 추정 매핑을 쓰기로 했다.** 파생으로 바꾸면 등급과
+ * 우선순위가 어긋날 수 없고, 확정 답변이 오면 매핑 한 곳만 고치면 된다.
+ *
+ * 등급 배정은 알람 내용에 맞췄다 — 기준 초과 예상·이상 점수 급상승은 `위험`, 복합 패턴은
+ * `경고`, 상관 이탈·전류 이상은 `주의`, 통신 두절·변동폭 확대는 사건 통지라 `정상`이다.
  */
-export const ALARMS: Alarm[] = [
+const ALARM_SOURCE: Omit<Alarm, 'priority'>[] = [
   {
     id: 'A-2481',
     siteId: 'S-02',
-    priority: 'urgent',
+    level: 'warning',
     condition: 'anomaly',
     siteName: '구미 염색 2공장',
     title: '복합 이상 패턴 탐지',
@@ -20,7 +26,7 @@ export const ALARMS: Alarm[] = [
   {
     id: 'A-2480',
     siteId: 'S-02',
-    priority: 'urgent',
+    level: 'critical',
     condition: 'pollutionSurge',
     siteName: '구미 염색 2공장',
     title: 'TOC 급변 — 6시간 내 배출기준 초과 예상',
@@ -31,7 +37,7 @@ export const ALARMS: Alarm[] = [
   {
     id: 'A-2479',
     siteId: 'S-07',
-    priority: 'urgent',
+    level: 'critical',
     condition: 'anomaly',
     siteName: '평택 도금 A라인',
     title: '이상 점수 급상승 — 도금 폐수 유입 의심',
@@ -42,7 +48,7 @@ export const ALARMS: Alarm[] = [
   {
     id: 'A-2478',
     siteId: 'S-07',
-    priority: 'caution',
+    level: 'caution',
     condition: 'equipment',
     siteName: '평택 도금 A라인',
     title: '폭기 블로워 전류 이상 패턴',
@@ -53,7 +59,7 @@ export const ALARMS: Alarm[] = [
   {
     id: 'A-2477',
     siteId: 'S-05',
-    priority: 'caution',
+    level: 'caution',
     condition: 'qualityShift',
     siteName: '포항 화학 1공장',
     title: 'pH-EC 상관 이탈',
@@ -64,7 +70,7 @@ export const ALARMS: Alarm[] = [
   {
     id: 'A-2476',
     siteId: 'S-04',
-    priority: 'info',
+    level: 'normal',
     condition: 'equipment',
     siteName: '안동 식품 B동',
     title: 'ECP 통신 두절 — 로컬 저장 전환',
@@ -75,7 +81,7 @@ export const ALARMS: Alarm[] = [
   {
     id: 'A-2475',
     siteId: 'S-10',
-    priority: 'info',
+    level: 'normal',
     condition: 'qualityShift',
     siteName: '광주 전자부품 세정',
     title: '탁도 주간 변동폭 확대',
@@ -84,6 +90,13 @@ export const ALARMS: Alarm[] = [
     state: 'resolved',
   },
 ];
+
+/** 우선순위는 등급에서 나온다 — 둘을 따로 적으면 어긋날 수 있다 `[INC-02]` */
+export const ALARMS: Alarm[] = ALARM_SOURCE.map((alarm) => ({
+  ...alarm,
+  priority: PRIORITY_BY_LEVEL[alarm.level],
+}));
+
 
 /**
  * 한 사업장의 알람만 최신순으로 준다.

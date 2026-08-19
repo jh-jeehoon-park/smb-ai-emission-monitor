@@ -10,6 +10,7 @@ import { STATUS_VISUAL, statusInk } from '@/shared/config/status-visual';
 import { Panel } from '@/shared/ui/panel';
 import { SegmentedControl } from '@/shared/ui/segmented-control';
 import { StatTile } from '@/shared/ui/stat-tile';
+import { StatusBadge } from '@/shared/ui/status-badge';
 import {
   ALARMS,
   ALARM_CONDITION_LABELS,
@@ -205,19 +206,19 @@ function AlarmRow({
 }) {
   return (
     <div className="flex flex-wrap items-start gap-x-3 gap-y-1.5 px-4 py-2.5">
-      <span
-        className={cn(
-          'mt-0.5 shrink-0 rounded-[3px] border px-1.5 py-0.5 text-[11px]',
-          PRIORITY_CHIP[alarm.priority],
-        )}
-      >
-        {ALARM_PRIORITY_LABELS[alarm.priority]}
-      </span>
-
       {/*
        * 제목을 버튼으로 둔다 — 행 전체를 누르게 하면 안쪽 확인·조치 버튼과 조작이 겹친다.
        * 키보드로도 순서대로 닿는다.
        */}
+      {/*
+       * **등급이 앞, 우선순위가 뒤다.** `[원문 발표 p.20 그림]`의 알람 표가 `등급 · 구분 ·
+       * 발생 시간 · 우선순위` 순서로 둘을 양 끝에 둔다 — 두 축이 다르다는 것이 배치로 드러난다.
+       *
+       * 나란히 붙여 봤더니 위험(빨강)과 긴급(빨강)이 같은 색 칩 두 개로 보여 중복으로 읽혔다.
+       * 대응 규칙은 원문에 없어 추정이다 `[INC-02]` — 근거는 `docs/specs/assumptions.md` §3.1.
+       */}
+      <StatusBadge level={alarm.level} size="sm" />
+
       <div className="min-w-0 flex-1 basis-[220px]">
         <button
           type="button"
@@ -247,7 +248,15 @@ function AlarmRow({
         </p>
       </div>
 
-      <div className="flex w-[176px] shrink-0 items-center justify-end gap-2">
+      <div className="flex w-[248px] shrink-0 items-center justify-end gap-2">
+        <span
+          className={cn(
+            'whitespace-nowrap rounded-[3px] border px-1.5 py-0.5 text-[11px]',
+            PRIORITY_CHIP[alarm.priority],
+          )}
+        >
+          {ALARM_PRIORITY_LABELS[alarm.priority]}
+        </span>
         <span
           className={cn(
             'whitespace-nowrap rounded-[3px] border px-1.5 py-0.5 text-[11px]',

@@ -1,3 +1,5 @@
+import type { StatusLevel } from '@/shared/config/provisional';
+
 /** 알람 우선순위 3단계 (사업계획서 p.32) */
 export type AlarmPriority = 'urgent' | 'caution' | 'info';
 
@@ -9,6 +11,11 @@ export type AlarmState = 'open' | 'acknowledged' | 'resolved';
 export interface Alarm {
   id: string;
   siteId: string;
+  /**
+   * 상태 등급. **우선순위와 다른 축이다** — `[원문 발표 p.20 그림]`이 둘을 다른 열로 보여준다.
+   * 우선순위는 이 값에서 `PRIORITY_BY_LEVEL`로 파생되므로 둘이 어긋날 수 없다 `[INC-02]`.
+   */
+  level: StatusLevel;
   priority: AlarmPriority;
   condition: AlarmCondition;
   siteName: string;
