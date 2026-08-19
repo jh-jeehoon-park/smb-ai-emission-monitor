@@ -261,6 +261,31 @@ check('데이터셋 근거', () => {
   return fails;
 });
 
+// 12. 판독 대장 — 이미지 페이지가 상태 없이 남아 있지 않은가
+//     "원문에 없다"는 판단을 텍스트 추출만 보고 두 번 틀렸다(무단방류·업종별 조합).
+//     그림 속 글자는 추출되지 않으므로, 어느 쪽을 실제로 열어 봤는지 대장으로 관리한다.
+check('판독 대장', () => {
+  const doc = read('docs/requirements/source-inconsistencies.md');
+  const rows = [...doc.matchAll(/^\| (발표|계획) p\.(\d+) \| (\d+) \| ([^|]*) \| ([^|]*) \|/gm)];
+  if (rows.length === 0) return ['§5.4 판독 대장이 없다'];
+
+  const fails = [];
+  const unread = rows.filter((m) => m[4].trim() === '미판독');
+  // 완료 행은 결과가 비어 있으면 안 된다 — 열어 보고 아무것도 안 적은 것과 같다
+  for (const m of rows) {
+    const status = m[4].trim();
+    const note = m[5].trim();
+    if (!status) fails.push(`${m[1]} p.${m[2]} — 상태가 비어 있다`);
+    else if (status.startsWith('완료') && (!note || note === '—'))
+      fails.push(`${m[1]} p.${m[2]} — 완료인데 판독 결과가 없다`);
+  }
+  // 미판독은 실패가 아니라 진행 상황이다. 다만 몇 쪽 남았는지는 늘 보이게 한다
+  if (unread.length) {
+    console.log(`      (진행) 판독 ${rows.length - unread.length}/${rows.length}쪽 · 남은 ${unread.length}쪽`);
+  }
+  return fails;
+});
+
 // ── 출력 ──
 let failed = 0;
 for (const { name, failures } of results) {
