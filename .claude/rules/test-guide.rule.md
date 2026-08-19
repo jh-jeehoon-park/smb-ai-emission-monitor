@@ -5,7 +5,7 @@
 | 항목 | 내용 |
 |------|------|
 | 문서명 | 구현 및 테스트 가이드라인 |
-| 버전 | v3.0.0 |
+| 버전 | v3.1.0 |
 | 작성일 | 2026-08-06 |
 | 기반 문서 | /docs/applications/HSKorea_AI_Application_Proposal.pdf |
 
@@ -16,6 +16,7 @@
 | v1.0.0 | 2026-05-12 | — | 신규 작성(백엔드 도구 위주) |
 | v2.0.0 | 2026-07-27 | Claude | 개정 — 타 프로젝트 스택별(web/app/admin/api) 테스트 도구 명시, FE 도구(Vitest/RTL/Playwright/Detox) 보강 |
 | v3.0.0 | 2026-08-06 | Claude | 본 프로젝트로 전면 교체 — 대상을 단일 웹 대시보드(Next.js)로 축소(app/admin 행 제거, 백엔드 스택 [TBD]), §5 필수 검증을 배출관리 도메인(인증·RBAC / 실시간 계측 / 이상탐지·알람 / 예측·추정 / 시계열 성능)으로 재작성 |
+| v3.1.0 | 2026-08-19 | Claude | §3에 DOM 테스트 지침 추가 — jsdom + React Testing Library 도입. 파일 단위로 환경을 켜며, 대상은 직접 만든 DOM 동작으로 한정한다 |
 
 ---
 
@@ -31,7 +32,11 @@
 
 | 대상 | 단위/컴포넌트 | 통합 | E2E |
 |------|---------------|------|-----|
-| **웹 대시보드** (Next.js) | **Vitest + React Testing Library** | MSW(API 목) | **Playwright**(핵심 플로우) |
+| **웹 대시보드** (Next.js) | **Vitest + React Testing Library** | MSW(API 목) — **현 단계 비적용**(백엔드 없음) | **Playwright**(핵심 플로우) |
+
+**DOM 환경은 필요한 파일만 켠다.** 기본은 `node`이고(순수 함수·fixture 테스트가 대부분이라 그만큼 빠르다), DOM이 필요한 파일 첫 줄에 `// @vitest-environment jsdom`을 적는다.
+
+대상은 **우리가 직접 만든 DOM 동작**이다 — 모달 포커스 복원, 차트 표면의 포커스 차단처럼 브라우저에서 눈으로만 확인하고 회귀 방지가 주석뿐이던 것들. 라이브러리 내부 동작(Radix가 ESC를 처리하는지 등)을 다시 검증하지는 않는다.
 | **백엔드·AI 서버** | [TBD] — 스택 확정 후 등록 | [TBD] | [TBD] |
 
 공통: 타입체크(`tsc --noEmit`), 린트(ESLint + Prettier)는 CI 필수.
