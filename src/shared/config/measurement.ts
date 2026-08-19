@@ -184,7 +184,14 @@ export const WATER_QUALITY_CODES: MeasurementItemCode[] = [
 
 export const EQUIPMENT_CODES: MeasurementItemCode[] = ['current', 'power', 'flow'];
 
-/** 수집 주기 1~10분 (사업계획서 p.30·p.48). 프로토타입 시뮬레이션은 5분 간격을 쓴다. */
+/**
+ * 수집 주기 **5분**.
+ *
+ * 처음에는 임시값이었다 — 원문 텍스트가 "1~10분(설정 가능)"까지만 적어(p.30·48) 그 범위에서
+ * 골랐다. **판독 결과 `[원문 발표 p.7 그림]`이 본 과제의 측정 주기를 `5분 단위 + AI 추론`으로
+ * 명시한다**(수동 자가측정 `월·분기 1회` · 수질TMS `5분 단위 자동 송신`과 나란히 비교하는 표).
+ * 값은 그대로지만 **근거가 임시값에서 원문으로 바뀌었다.**
+ */
 export const COLLECTION_INTERVAL_MINUTES = 5;
 
 /** 예측 지평 1~6시간 (사업계획서 p.32·p.65) */
