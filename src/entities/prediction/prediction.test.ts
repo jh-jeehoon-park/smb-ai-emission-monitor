@@ -3,7 +3,8 @@ import { MEASUREMENT_ITEMS } from '@/shared/config/measurement';
 import { getForecast } from './api/fixtures';
 import { formatR2 } from './lib/format-r2';
 import { FLOW_FORECAST, FORECAST_TARGET_CODES, FORECAST_TARGETS } from './config/constants';
-import { getFlowForecast } from './api/fixtures';
+import { getFlowForecast, getForecast as getForecastFor } from './api/fixtures';
+import { peakForecast } from './lib/has-values';
 
 // 세그먼트를 가로지르는 불변식을 모은다 — 한 곳이 바뀌면 다른 곳이 따라와야 하는 것들.
 describe('prediction 슬라이스 불변식 — 자릿수(E1)와 산출 근거(E3)', () => {
@@ -113,6 +114,32 @@ describe('prediction 슬라이스 불변식 — 자릿수(E1)와 산출 근거(E
 
     it('통신 두절이면 유량도 예측을 만들지 않는다', () => {
       expect(getFlowForecast('S-04').points.every((p) => p.forecast === null)).toBe(true);
+    });
+  });
+
+  /**
+   * `발표 p.16 그림`이 예측 화면에 `최대 예측값`을 함께 낸다.
+   * **실측 구간은 세지 않는다** — 지나간 값의 최대는 예측이 아니다.
+   */
+  describe('최대 예측값', () => {
+    it('예측 구간의 최대다', () => {
+      const summary = getForecastFor('S-01', 'TOC');
+      const forecasts = summary.points
+        .map((p) => p.forecast)
+        .filter((v): v is number => v !== null);
+      expect(peakForecast(summary)).toBe(Math.max(...forecasts));
+    });
+
+    it('실측이 더 커도 실측을 고르지 않는다', () => {
+      const summary = getForecastFor('S-01', 'TOC');
+      const peak = peakForecast(summary)!;
+      const actualOnly = summary.points.filter((p) => p.forecast === null && p.actual !== null);
+      expect(actualOnly.length).toBeGreaterThan(0);
+      expect(summary.points.some((p) => p.forecast === peak)).toBe(true);
+    });
+
+    it('예측이 없으면 null이다 — 0으로 채우지 않는다(E4)', () => {
+      expect(peakForecast(getForecastFor('S-04', 'TOC'))).toBeNull();
     });
   });
 

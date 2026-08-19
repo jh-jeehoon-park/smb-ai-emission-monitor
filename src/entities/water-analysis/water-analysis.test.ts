@@ -132,6 +132,37 @@ describe('검증 지표(E3) — 없는 성능을 만들지 않는다', () => {
   it('표본 수를 값과 함께 낸다', () => {
     expect(computeMetrics([]).sampleCount).toBe(0);
   });
+
+  /** `발표 p.26`이 검증 지표를 `R², MAE/RMSE`로 적는다 — RMSE가 빠져 있었다 */
+  it('RMSE도 낸다', () => {
+    const m = computeMetrics([
+      { measured: 10, estimated: 12 },
+      { measured: 20, estimated: 18 },
+    ]);
+    expect(m.rmse).toBeCloseTo(2, 5);
+  });
+
+  /**
+   * **RMSE는 MAE보다 큰 오차에 민감하다.** 오차가 고르면 둘이 같고, 몇 개가 튀면 RMSE가 커진다 —
+   * 그 차이를 보이려고 나란히 싣는 것이므로 값이 뒤집히면 의미가 없다.
+   */
+  it('오차가 튀면 RMSE가 MAE보다 커진다', () => {
+    const even = computeMetrics([
+      { measured: 10, estimated: 12 },
+      { measured: 20, estimated: 22 },
+    ]);
+    expect(even.rmse).toBeCloseTo(even.mae!, 5);
+
+    const spiky = computeMetrics([
+      { measured: 10, estimated: 10 },
+      { measured: 20, estimated: 28 },
+    ]);
+    expect(spiky.rmse!).toBeGreaterThan(spiky.mae!);
+  });
+
+  it('표본이 모자라면 RMSE도 null이다', () => {
+    expect(computeMetrics([{ measured: 10, estimated: 11 }]).rmse).toBeNull();
+  });
 });
 
 describe('분석기는 1개소뿐이다', () => {

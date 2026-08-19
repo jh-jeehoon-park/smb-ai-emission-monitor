@@ -97,6 +97,7 @@ export const PROVISIONAL_DISPLAY_DECIMALS = {
   /** 검증 지표 `[원문 p.38]`. R²는 0~1이라 세 자리, MAE는 계측값 크기라 두 자리 */
   validationR2: 3,
   validationMae: 2,
+  validationRmse: 2,
   /** 표본 수는 개수라 소수가 없다 */
   validationSampleCount: 0,
 } as const;

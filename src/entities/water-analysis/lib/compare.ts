@@ -48,14 +48,14 @@ export function buildComparison(
 }
 
 /**
- * 검증 지표 — 원문이 지정한 R²·MAE `[원문 p.38]`.
+ * 검증 지표 — `[원문 p.38]` R²·MAE와 `[원문 발표 p.26]` R²·MAE/RMSE.
  *
  * **표본이 2개 미만이면 `null`이다.** 한 점으로는 결정계수를 정의할 수 없는데도 `1`이나 `0`을
  * 내면 검증된 성능처럼 읽힌다(E3). 분모가 0인 경우(실측이 전부 같은 값)도 마찬가지다.
  */
 export function computeMetrics(pairs: { measured: number; estimated: number }[]): ValidationMetrics {
   const sampleCount = pairs.length;
-  if (sampleCount < 2) return { r2: null, mae: null, sampleCount };
+  if (sampleCount < 2) return { r2: null, mae: null, rmse: null, sampleCount };
 
   const mae = pairs.reduce((acc, p) => acc + Math.abs(p.estimated - p.measured), 0) / sampleCount;
   const mean = pairs.reduce((acc, p) => acc + p.measured, 0) / sampleCount;
@@ -66,6 +66,8 @@ export function computeMetrics(pairs: { measured: number; estimated: number }[])
   return {
     r2: totalSquares === 0 ? null : 1 - residualSquares / totalSquares,
     mae,
+    /* 제곱 평균이라 큰 오차가 더 크게 반영된다 — MAE와 나란히 두어야 그 차이가 보인다 */
+    rmse: Math.sqrt(residualSquares / sampleCount),
     sampleCount,
   };
 }

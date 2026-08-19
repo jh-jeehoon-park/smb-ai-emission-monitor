@@ -56,12 +56,20 @@ export interface ComparisonRow {
   unavailableReason: string | null;
 }
 
-/** 검증 지표 — 원문이 지정한 두 가지 `[원문 p.38]` */
+/**
+ * 검증 지표 — `[원문 p.38]`과 `[원문 발표 p.26]`이 지정한 것.
+ *
+ * p.38은 "R², MAE 기반", **p.26 그림은 `R², MAE/RMSE`** 로 적는다. 셋을 모두 낸다.
+ * `발표 p.27`이 한 줄에 `F1 Score`까지 묶어 적지만 **F1은 이상 탐지 정확도 지표**이고
+ * (p.26이 둘을 나눈다) 이 화면 대상이 아니다.
+ */
 export interface ValidationMetrics {
   /** 결정계수. 표본이 모자라면 `null` — 지어내지 않는다 */
   r2: number | null;
   /** 평균절대오차 */
   mae: number | null;
+  /** 제곱평균제곱근오차. MAE와 함께 보면 **큰 오차가 몇 개 섞였는지**가 드러난다 */
+  rmse: number | null;
   /** 계산에 쓴 표본 수. 값과 함께 다녀야 신뢰도를 읽을 수 있다(E3) */
   sampleCount: number;
 }

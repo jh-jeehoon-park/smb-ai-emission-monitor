@@ -1,7 +1,7 @@
 /** slice Public API — 바깥에서는 이 파일만 import 한다(FSD §6) */
 export { getForecast, getFlowForecast } from './api/fixtures';
 export { formatR2 } from './lib/format-r2';
-export { hasPlottableValues } from './lib/has-values';
+export { hasPlottableValues, peakForecast } from './lib/has-values';
 export { TREND_LABELS } from './model/types';
 export {
   FLOW_FORECAST,

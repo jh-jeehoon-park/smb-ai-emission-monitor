@@ -212,6 +212,7 @@ function Metrics({
             <th className="py-2 pr-3 text-left font-normal">항목</th>
             <th className="px-3 py-2 text-right font-normal">결정계수 R²</th>
             <th className="px-3 py-2 text-right font-normal">MAE (mg/L)</th>
+            <th className="px-3 py-2 text-right font-normal">RMSE (mg/L)</th>
             <th className="py-2 pl-3 text-right font-normal">표본</th>
           </tr>
         </thead>
@@ -225,6 +226,9 @@ function Metrics({
               <td className="num px-3 py-2 text-right text-fg-muted">
                 {figure(row.mae, PROVISIONAL_DISPLAY_DECIMALS.validationMae)}
               </td>
+              <td className="num px-3 py-2 text-right text-fg-muted">
+                {figure(row.rmse, PROVISIONAL_DISPLAY_DECIMALS.validationRmse)}
+              </td>
               <td className="num py-2 pl-3 text-right text-fg-subtle">{row.sampleCount}쌍</td>
             </tr>
           ))}
@@ -232,7 +236,11 @@ function Metrics({
       </table>
 
       <p className="mt-3 max-w-[70ch] border-t border-border pt-3 text-[11px] leading-relaxed text-fg-subtle">
-        지표 두 가지는 원문이 지정한 것이다 — 오염도 추정 정확도 검증(R²·MAE 기반) [원문 p.38].{' '}
+        지표는 원문이 지정한 것이다 — 오염도 추정 정확도 검증 [원문 p.38]이 R²·MAE를, 검증 방법
+        5단계 [원문 발표 p.26]가 R²·MAE/RMSE를 든다.{' '}
+        <strong className="text-fg-muted">RMSE는 MAE보다 큰 오차에 더 민감해</strong> 둘을 나란히
+        보면 오차가 고른지 몇 개가 튀는지 드러난다. F1 Score는 같은 쪽이 이상 탐지 지표로 따로
+        두므로 여기 넣지 않는다.{' '}
         <strong className="text-fg-muted">항목을 한 데 모아 계산하지 않는다</strong> — TOC 25 · TN
         16 · TP 1.5로 크기가 달라 모으면 항목 간 차이가 R²를 실제보다 높게 만든다. SS·COD는 AI 추정
         대상이 아니라 제외된다.

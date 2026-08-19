@@ -18,6 +18,7 @@ import {
   getFlowForecast,
   getForecast,
   hasPlottableValues,
+  peakForecast,
   type ForecastPoint,
   type ForecastSummary,
   type ForecastTargetCode,
@@ -62,6 +63,7 @@ export function PredictionView() {
   );
   /* 결정계수는 보고 있는 계열의 것이다 — 유량은 성능 목표 자체가 없다 `[원문 발표 p.26]` */
   const r2 = showFlow ? FLOW_FORECAST.r2 : FORECAST_TARGETS[single].r2;
+  const peak = peakForecast(forecast);
 
   return (
     <div className="space-y-3">
@@ -112,6 +114,22 @@ export function PredictionView() {
             mono
           />
           <Meta label="결정계수 R²" value={formatR2(r2)} mono={r2 !== null} />
+          {/*
+            * 원문 예측 화면이 차트 아래에 `최대 예측값`을 함께 낸다 `[원문 발표 p.16 그림]`.
+            * 곡선을 눈으로 훑어 꼭짓점을 찾지 않아도 되게 하는 값이다.
+            * `전체` 보기에서는 세 항목의 단위가 같아도 크기가 달라 하나로 낼 수 없다.
+            */}
+          {!showAll && (
+            <Meta
+              label="최대 예측값"
+              value={
+                peak === null
+                  ? '—'
+                  : `${peak.toFixed(forecast.decimals)} ${forecast.unit}`
+              }
+              mono={peak !== null}
+            />
+          )}
         </dl>
       </Panel>
 
