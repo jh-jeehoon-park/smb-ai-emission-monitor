@@ -1,4 +1,4 @@
-import type { Role } from '@/entities/user';
+import { canRoleSee, type Role } from '@/entities/user';
 import {
   Activity,
   Bell,
@@ -61,6 +61,17 @@ export const NAV_ITEMS: NavItem[] = [
 ];
 
 export const ALARM_NAV_HREF = '/alarms';
+
+/**
+ * 역할별 **첫 화면**. 로고 클릭과 라우트 가드의 폴백이 같은 값을 쓴다.
+ *
+ * 목록 순서가 곧 이 답이다 — 위 주석이 못박아 둔 대로 관리자는 `자사 현황`, 나머지는
+ * `통합 관제`가 된다(관리자에게 통합 관제가 닫혀 있다). **정의를 두 곳에 두지 않는다** —
+ * 로고가 가는 곳과 역할을 바꿨을 때 가는 곳이 갈리면 같은 앱이 '메인'을 두 개 갖는다.
+ */
+export function homeHrefFor(role: Role): string {
+  return NAV_ITEMS.find((item) => canRoleSee(item.screenId, role))?.href ?? '/';
+}
 
 export function navLabelOf(pathname: string): string {
   return NAV_ITEMS.find((item) => item.href === pathname)?.label ?? '통합 관제';

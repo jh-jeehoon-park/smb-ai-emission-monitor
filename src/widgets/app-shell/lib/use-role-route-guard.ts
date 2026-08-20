@@ -5,7 +5,7 @@ import { useEffect } from 'react';
 import { SCOPE_QUERY_KEY } from '@/shared/config/scope';
 import { adminSiteId, canRoleSee, useRole } from '@/entities/user';
 import { SITE_QUERY_KEY } from '@/features/site-selection';
-import { NAV_ITEMS } from '../config/navigation';
+import { NAV_ITEMS, homeHrefFor } from '../config/navigation';
 
 /**
  * 역할을 바꿨을 때 지금 보고 있는 화면이 그 역할에 닫혀 있으면 볼 수 있는 첫 화면으로 옮긴다.
@@ -27,11 +27,9 @@ export function useRoleRouteGuard() {
     const current = NAV_ITEMS.find((item) => item.href === pathname);
 
     if (current && !canRoleSee(current.screenId, role)) {
-      const fallback = NAV_ITEMS.find((item) => canRoleSee(item.screenId, role));
-      if (fallback) {
-        router.replace(withScope(fallback.href, role, adminAccount, params));
-        return;
-      }
+      /* 로고 클릭과 같은 목적지를 쓴다 — 정의가 갈리면 앱이 '메인'을 두 개 갖는다 */
+      router.replace(withScope(homeHrefFor(role), role, adminAccount, params));
+      return;
     }
 
     if (role !== 'admin') return;

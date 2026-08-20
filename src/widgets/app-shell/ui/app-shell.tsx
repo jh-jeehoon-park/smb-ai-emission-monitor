@@ -15,7 +15,13 @@ import { ADMIN_ACCOUNTS, ProfileMenu, ROLES, canRoleSee } from '@/entities/user'
 import { getSite } from '@/entities/site';
 import { useAlarmStates } from '@/features/alarm-ack';
 import { SiteSelector, useSelectedSiteId, useSiteHref } from '@/features/site-selection';
-import { ALARM_NAV_HREF, NAV_ITEMS, navLabelOf, type NavItem } from '../config/navigation';
+import {
+  ALARM_NAV_HREF,
+  NAV_ITEMS,
+  homeHrefFor,
+  navLabelOf,
+  type NavItem,
+} from '../config/navigation';
 import { useRoleRouteGuard } from '../lib/use-role-route-guard';
 import { AlarmMenu } from './alarm-menu';
 import { LiveClock } from './live-clock';
@@ -36,16 +42,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </a>
 
       <aside className="sticky top-0 hidden h-screen w-[212px] shrink-0 flex-col border-r border-border bg-surface lg:flex">
-        <div className="flex items-center gap-2 border-b border-border px-4 py-4">
-          <BrandMark size={28} />
-          <div className="min-w-0">
-            {/* 사업계획서 p.37·p.118의 국문 정식명. 폭이 좁아 줄여 쓰고 싶어지지만 줄이지 않는다(A2). */}
-            <p className="break-keep text-[13px] font-semibold leading-[1.35] tracking-tight text-fg">
-              {BRAND_NAME}
-            </p>
-          </div>
-        </div>
-
+        <BrandHome />
         <SiteNav pathname={pathname} />
       </aside>
 
@@ -167,6 +164,51 @@ function Badge({ count, className }: { count: number; className: string }) {
     >
       {count}
     </span>
+  );
+}
+
+/**
+ * 로고와 시스템명을 눌러 첫 화면으로 간다 `[사용자 요청 2026-08-20]`.
+ *
+ * 목적지는 **역할이 정한다** — 관리자에게는 통합 관제가 닫혀 있어 모두를 `/`로 보내면
+ * 라우트 가드가 곧바로 되돌린다. 역할을 바꿨을 때 가는 곳과 같은 값을 쓴다(`homeHrefFor`).
+ *
+ * **그런데 렌더 중에 역할로 `href`를 가를 수 없다.** 서버는 localStorage를 모르므로 서버가
+ * 그린 `/`와 클라이언트가 그릴 `/overview`가 어긋나 하이드레이션이 깨진다 — 실제로 깨졌고,
+ * React가 "This won't be patched up"이라 경고하며 관리자에게 잘못된 링크가 남았다.
+ * 그래서 **목적지마다 한 벌씩 그리고 CSS가 고른다**(`design-system §2.0`). 숨은 쪽은
+ * `display:none`이라 탭 순서에도 남지 않는다.
+ */
+function BrandHome() {
+  const withSite = useSiteHref();
+  const targets = ROLES.map((role) => homeHrefFor(role));
+
+  return (
+    <>
+      {[...new Set(targets)].map((href) => (
+        <Link
+          key={href}
+          href={withSite(href)}
+          className={cn(
+            'flex cursor-pointer items-center gap-2 border-b border-border px-4 py-4',
+            'transition-colors duration-200 hover:bg-surface-2',
+            'focus-visible:outline focus-visible:-outline-offset-2 focus-visible:outline-border-strong',
+            /* 이 목적지를 쓰지 않는 역할에서는 감춘다 */
+            ROLES.filter((role) => homeHrefFor(role) !== href)
+              .map((role) => `role-hide-${role}`)
+              .join(' '),
+          )}
+        >
+          <BrandMark size={28} />
+          <div className="min-w-0">
+            {/* 사업계획서 p.37·p.118의 국문 정식명. 폭이 좁아 줄여 쓰고 싶어지지만 줄이지 않는다(A2). */}
+            <p className="break-keep text-[13px] font-semibold leading-[1.35] tracking-tight text-fg">
+              {BRAND_NAME}
+            </p>
+          </div>
+        </Link>
+      ))}
+    </>
   );
 }
 

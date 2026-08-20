@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { MEASUREMENT_ITEMS, WATER_QUALITY_CODES } from '@/shared/config/measurement';
-import { formatKstDateTime, formatValue, formatWithUnit } from './format';
+import { formatKstDateTime, formatKstWallClock, formatValue, formatWithUnit } from './format';
 
 describe('formatValue — 결측 처리(E4)', () => {
   it('결측은 0이 아니라 —로 표시한다', () => {
@@ -67,5 +67,63 @@ describe('formatKstDateTime — 헤더 시계(E5)', () => {
     const utc = formatKstDateTime(new Date('2026-08-18T05:04:22Z'));
     const newYork = formatKstDateTime(new Date('2026-08-18T01:04:22-04:00'));
     expect(newYork).toBe(utc);
+  });
+});
+
+/**
+ * 헤더의 현재 시각 표기. `formatKstDateTime`과 **쓰임이 다르다** — 그쪽은 데이터의 시각을
+ * 적는 자리라 연·초까지 남기고, 이쪽은 *지금이 언제인지*만 말한다 `[사용자 요청 2026-08-20]`.
+ */
+describe('formatKstWallClock — 헤더 현재 시각', () => {
+  it('월·일·요일·오전오후·시각을 요청한 형식으로 적는다', () => {
+    expect(formatKstWallClock(new Date('2026-08-20T01:17:56Z'))).toBe(
+      '8월 20일 (목) 오전 10:17:56',
+    );
+  });
+
+  /** `h12`는 자정을 `0시`로 준다. 시계에 `오전 0:00`이 뜨면 잘못 읽힌다 */
+  it('자정을 0시가 아니라 12시로 쓴다', () => {
+    expect(formatKstWallClock(new Date('2026-08-19T15:00:00Z'))).toBe(
+      '8월 20일 (목) 오전 12:00:00',
+    );
+  });
+
+  it('정오는 오후 12시다', () => {
+    expect(formatKstWallClock(new Date('2026-08-20T03:00:00Z'))).toBe(
+      '8월 20일 (목) 오후 12:00:00',
+    );
+  });
+
+  it('오전과 오후가 11:59에서 갈린다', () => {
+    expect(formatKstWallClock(new Date('2026-08-20T02:59:59Z'))).toBe(
+      '8월 20일 (목) 오전 11:59:59',
+    );
+    expect(formatKstWallClock(new Date('2026-08-20T03:00:01Z'))).toBe(
+      '8월 20일 (목) 오후 12:00:01',
+    );
+  });
+
+  it('날짜 경계에서 날짜와 요일이 함께 넘어간다', () => {
+    expect(formatKstWallClock(new Date('2026-08-20T15:00:00Z'))).toBe(
+      '8월 21일 (금) 오전 12:00:00',
+    );
+  });
+
+  it('브라우저 시간대와 무관하게 KST를 쓴다 — 입력 오프셋이 달라도 결과가 같다', () => {
+    const utc = formatKstWallClock(new Date('2026-08-20T01:17:56Z'));
+    const newYork = formatKstWallClock(new Date('2026-08-19T21:17:56-04:00'));
+    expect(newYork).toBe(utc);
+  });
+
+  /** 연도는 적지 않고 초는 적는다 — 시계가 살아 있다는 것을 초가 보여 준다 */
+  it('연도는 적지 않고 초는 적는다', () => {
+    const out = formatKstWallClock(new Date('2026-08-20T01:17:33Z'));
+    expect(out).not.toContain('2026');
+    expect(out).toMatch(/:33$/);
+  });
+
+  /** 한 자리 초를 `:7`로 적으면 자리가 흔들려 옆 요소가 밀린다 */
+  it('초를 두 자리로 채운다', () => {
+    expect(formatKstWallClock(new Date('2026-08-20T01:17:07Z'))).toMatch(/:07$/);
   });
 });
