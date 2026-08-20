@@ -194,7 +194,7 @@ AI 기반 지능형 배출관리 플랫폼   [원문 p.37·p.118]
 | 차트 툴팁 | 팝오버, 계열 목록 | `chart-tooltip.tsx` |
 | 구간 범례 | 색 점, 라벨 | `anomaly-band-legend.tsx` |
 | 테마 토글 | 아이콘 버튼 | `theme.tsx` |
-| 브랜드 마크 | 로고 이미지(테마별 2벌) | `brand-mark.tsx` — 근거는 [`SCR-CO-001`](screens/SCR-CO-001-로그인.md) §3.4 |
+| 브랜드 마크 | 로고 이미지(테마별 2벌) | `brand-mark.tsx` — 근거는 [`SCR-CO-001`](screens/SCR-CO-001-로그인.md) §3.5 |
 
 ### 7.2 도메인 위젯 (`widgets`)
 
