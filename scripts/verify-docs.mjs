@@ -28,6 +28,32 @@ const read = (p) => readText(join(ROOT, p));
 const results = [];
 
 /** Recharts 차트 여는 태그. 속성 문자열을 2번 그룹으로 돌려준다 */
+/** 개행 문자. 정규식·문자열 이스케이프를 상수로 빼 둔다 — 편집 중 섞이면 조용히 깨진다 */
+const LF = String.fromCharCode(10);
+const SEPARATOR = /^\|[-: |]+\|$/;
+
+/**
+ * 표 한 줄의 칸 수. 타입 유니온의 이스케이프된 파이프는 칸이 아니다 — 세면 오탐이 난다.
+ *
+ * **이스케이프를 문자 코드로 만든다.** 소스에 직접 적으면 편집 과정에서 조용히 한 겹
+ * 벗겨진다 — 실제로 그렇게 되어 모든 줄이 0칸으로 계산되고 검사가 항상 통과했다.
+ * 같은 부류로 정규식에 제어문자가 섞인 적도 있다(검사 13).
+ */
+const ESCAPED_PIPE = String.fromCharCode(92, 124);
+const PLACEHOLDER = String.fromCharCode(0);
+const cellCount = (line) =>
+  line.split(ESCAPED_PIPE).join(PLACEHOLDER).split('|').length - 1;
+
+/** 정본 헤더. `deliverable-xlsx.rule.md` §5.3·§5.4가 정한다 */
+const REQ_HEADER =
+  '| 요구사항ID | 대분류 | 중분류 | 요구사항명 | 상세설명 | 적용방안 및 제약사항 | 우선순위 | 수용 | 관련 | 화면·상태 |';
+const DATA_HEADER =
+  '| 요구사항ID | 화면ID | 데이터명 | 타입 | 단위 | 계산식/로직 | 출처·근거 | UI | UI 위치 |';
+const SCREEN_DATA_HEADER = /^\| 데이터 \| [^|]+\| 단위 \| 출처·근거 \| UI 위치 \|$/;
+const XLSX_TABLE = /^\| xlsx 열 \| 값 \|$/m;
+const ACTION_ROWS = ['SUBMIT', 'CANCEL', 'After Action'];
+const ITEM_SECTION = /^#{3,4} 3(\.\d+)? 항목 목록\s*$/m;
+
 const CHART_TAG = /<(Area|Bar|Composed|Line|Pie|Radar|RadialBar|Scatter)Chart([^>]*)>/g;
 
 function check(name, fn) {
@@ -301,6 +327,60 @@ check('차트 포커스', () => {
     for (const m of text.matchAll(CHART_TAG)) {
       if (!m[2].includes('accessibilityLayer={false}'))
         fails.push(`${relative(ROOT, file)} — <${m[1]}Chart>에 accessibilityLayer={false} 없음`);
+    }
+  }
+  return fails;
+});
+
+// 14. 표 모양 — 행의 칸 수가 헤더와 같은가
+//     xlsx로 옮길 때 칸이 모자라면 열이 밀린다. 사람 눈으로는 보이지 않는다 —
+//     실제로 SCR-OP-002·SCR-AD-001에서 어긋난 행 11개를 이 검사가 찾았다.
+check('표 모양', () => {
+  const fails = [];
+  for (const file of specDocs) {
+    const lines = readText(file).split(LF);
+    for (let i = 0; i < lines.length; i += 1) {
+      // 헤더는 바로 다음 줄이 구분선이어야 한다 — 다른 표의 행을 헤더로 오인하지 않게
+      if (!lines[i].startsWith('|') || !SEPARATOR.test(lines[i + 1] ?? '')) continue;
+      const want = cellCount(lines[i]);
+      for (let j = i + 2; j < lines.length && lines[j].startsWith('|'); j += 1) {
+        if (cellCount(lines[j]) !== want)
+          fails.push(`${relative(ROOT, file)}:${j + 1} — 칸 ${cellCount(lines[j])} ≠ 헤더 ${want}`);
+      }
+    }
+  }
+  return fails;
+});
+
+// 15. 표 헤더 통일 — 같은 뜻의 표가 같은 열을 쓰는가
+//     생성기가 헤더 문자열로 표를 찾는다. 갈리면 그 표를 못 찾거나 열이 어긋난다.
+check('표 헤더 통일', () => {
+  const fails = [];
+  for (const m of read('docs/specs/requirements.md').matchAll(/^\| 요구사항ID \|.*$/gm)) {
+    if (m[0] !== REQ_HEADER) fails.push(`requirements.md — 요구사항 표 헤더가 다르다`);
+  }
+  for (const m of read('docs/specs/data-definition.md').matchAll(/^\| 요구사항ID \|.*$/gm)) {
+    // 계측 사양표(범위·정확도)는 성격이 달라 예외다
+    if (m[0].includes('범위') && m[0].includes('정확도')) continue;
+    if (m[0] !== DATA_HEADER) fails.push(`data-definition.md — 데이터 표 헤더가 다르다`);
+  }
+  for (const file of readdirSync(SCREENS).filter((f) => f.endsWith('.md'))) {
+    const text = readText(join(SCREENS, file));
+    /*
+     * **헤더인지는 다음 줄이 구분선인지로 가른다.** `| 데이터 | 진유원 6,528시간…`처럼
+     * 다른 표의 행이 `데이터`로 시작하는 경우가 있어, 첫 칸만 보면 오탐이 난다(실제로 났다).
+     */
+    const rows = text.split(LF);
+    rows.forEach((line, k) => {
+      if (!line.startsWith('| 데이터 |') || !SEPARATOR.test(rows[k + 1] ?? '')) return;
+      if (!SCREEN_DATA_HEADER.test(line))
+        fails.push(`${file}:${k + 1} — §4 표 헤더가 템플릿과 다르다`);
+    });
+    /* **제목으로 본다.** 변경 이력에도 '항목 목록'이 적혀 있어 본문 포함 여부로는 못 잡는다 */
+    if (!ITEM_SECTION.test(text)) fails.push(`${file} — '항목 목록' 절이 없다(X4)`);
+    if (!XLSX_TABLE.test(text)) fails.push(`${file} — 'xlsx 열 / 값' 표가 없다`);
+    for (const key of ACTION_ROWS) {
+      if (!text.includes(`| ${key} |`)) fails.push(`${file} — ${key} 행이 없다`);
     }
   }
   return fails;
