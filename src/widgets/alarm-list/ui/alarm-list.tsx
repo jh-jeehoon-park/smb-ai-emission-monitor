@@ -45,11 +45,24 @@ export function AlarmList({
 }) {
   return (
     <StaggerGroup className="divide-y divide-border">
-      {alarms.map((alarm) => {
+      {alarms.map((alarm, index) => {
         const style = PRIORITY_STYLE[alarm.priority];
         return (
           <RiseItem key={alarm.id}>
-            <article className="group flex gap-3 py-2.5 transition-colors duration-200 first:pt-0 hover:bg-surface-2/60">
+            {/*
+             * 위 여백은 **첫 항목만 뺀다** — 패널이 이미 위쪽 여백을 주므로 첫 항목에 또 주면
+             * 목록이 아래로 처진다.
+             *
+             * `first:pt-0`을 쓰지 않는 이유: 이 `article`은 `RiseItem` 안에 있어 **항상**
+             * 자기 부모의 첫 자식이다. 그래서 모든 항목에 `pt-0`이 걸려 둘째 항목부터 위 여백이
+             * 사라졌다. 순서를 아는 것은 부모뿐이므로 여기서는 index로 판단한다.
+             */}
+            <article
+              className={cn(
+                'group flex gap-3 pb-2.5 transition-colors duration-200 hover:bg-surface-2/60',
+                index > 0 && 'pt-2.5',
+              )}
+            >
               <span
                 aria-hidden
                 className="mt-1 text-[8px] leading-none"

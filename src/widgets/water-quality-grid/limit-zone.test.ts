@@ -4,7 +4,7 @@ import { countOverLimit, type MeasurementPoint } from '@/entities/measurement';
 import { limitZone } from './lib/limit-zone';
 
 const point = (pH: number | null): MeasurementPoint =>
-  ({ t: '2026-08-11T00:00:00Z', pH }) as MeasurementPoint;
+  ({ t: '2026-08-21T00:00:00Z', pH }) as MeasurementPoint;
 
 describe('기준 구간 — 기준이 있는 항목만 그린다', () => {
   it('pH는 구간을 갖는다', () => {

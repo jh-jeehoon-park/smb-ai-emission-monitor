@@ -74,7 +74,8 @@ export function ForecastChart({
 
   const chart = (
     <ResponsiveContainer width="100%" height={height}>
-      <ComposedChart data={data} margin={{ top: 6, right: 10, bottom: 0, left: 0 }}>
+      {/* 포커스로 툴팁이 고정되는 것을 막는다 — 근거는 `water-quality-grid.tsx` */}
+      <ComposedChart data={data} margin={{ top: 6, right: 10, bottom: 0, left: 0 }} accessibilityLayer={false}>
         <CartesianGrid stroke={GRID_HEX} strokeDasharray="2 4" vertical={false} />
         <XAxis
           dataKey="t"

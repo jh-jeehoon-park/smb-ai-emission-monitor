@@ -4,14 +4,14 @@ import type { Reading } from '@/entities/measurement';
 import { LIMIT_ZONE_RATIO } from '../config/constants';
 
 export interface LimitZone {
-  /** y축 범위. 기준선이 화면 밖으로 나가면 위반 구간이 보이지 않는다 */
+  /** y축 범위. 기준이 화면 밖으로 나가면 기준에 얼마나 가까운지가 읽히지 않는다 */
   domain: [number, number];
   min: number;
   max: number;
 }
 
 /**
- * 허용 범위 밖을 칠하기 위한 좌표.
+ * 기준에 맞춘 y축 범위.
  *
  * **y축을 데이터가 아니라 기준에 맞춘다.** `dataMin~dataMax`로 두면 값이 기준 한가운데
  * 있어도 선이 위아래로 가득 차 위태로워 보이고, 기준에 가까운 사업장과 구분되지 않는다.

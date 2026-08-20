@@ -27,6 +27,9 @@ const readText = (p) => readFileSync(p, 'utf8').split('\r\n').join('\n');
 const read = (p) => readText(join(ROOT, p));
 const results = [];
 
+/** Recharts 차트 여는 태그. 속성 문자열을 2번 그룹으로 돌려준다 */
+const CHART_TAG = /<(Area|Bar|Composed|Line|Pie|Radar|RadialBar|Scatter)Chart([^>]*)>/g;
+
 function check(name, fn) {
   try {
     const failures = fn() ?? [];
@@ -282,6 +285,23 @@ check('판독 대장', () => {
   // 미판독은 실패가 아니라 진행 상황이다. 다만 몇 쪽 남았는지는 늘 보이게 한다
   if (unread.length) {
     console.log(`      (진행) 판독 ${rows.length - unread.length}/${rows.length}쪽 · 남은 ${unread.length}쪽`);
+  }
+  return fails;
+});
+
+// 13. 차트 포커스 — Recharts 차트가 Tab 대상으로 남아 있지 않은가
+//     `accessibilityLayer`(기본 켜짐)는 차트 SVG에 `tabindex="0" role="application"`을 붙이고
+//     **포커스만으로 툴팁을 띄운 뒤 고정한다.** 마우스로는 지울 수 없어 화면에 얼어붙는다.
+//     두 번 보고된 결함이라 여기서 막는다. 키보드·AT 경로는 `ChartFigure`가 맡는다.
+check('차트 포커스', () => {
+  const fails = [];
+  /* `walk`의 기본 확장자는 `.md`다 — 넘기지 않으면 소스를 한 건도 읽지 않고 통과한다 */
+  for (const file of walk(join(ROOT, 'src'), '.tsx')) {
+    const text = readText(file);
+    for (const m of text.matchAll(CHART_TAG)) {
+      if (!m[2].includes('accessibilityLayer={false}'))
+        fails.push(`${relative(ROOT, file)} — <${m[1]}Chart>에 accessibilityLayer={false} 없음`);
+    }
   }
   return fails;
 });

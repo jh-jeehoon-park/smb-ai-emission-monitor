@@ -44,8 +44,11 @@ export function ChartFigure<T>({
        * Recharts의 `mouseleave` 처리는 hover 플래그만 지우고 포커스로 열린 툴팁은 그대로
        * 두기 때문이다(blur 하면 즉시 사라지는 것으로 확인했다).
        *
-       * 기본 동작을 막으면 **마우스로는** 포커스가 잡히지 않는다. Tab 키 이동은 mousedown을
-       * 거치지 않으므로 키보드 사용자의 차트 탐색은 그대로 남는다.
+       * 기본 동작을 막으면 **마우스로는** 포커스가 잡히지 않는다. 다만 이것만으로는 부족했다 —
+       * **Tab 키는 mousedown을 거치지 않아** 차트에 포커스가 닿고 툴팁이 고정됐다. 그래서 차트
+       * 쪽에서 `accessibilityLayer={false}`로 `tabindex`를 아예 없앴다(근거는
+       * `widgets/water-quality-grid/ui/water-quality-grid.tsx`). 이 핸들러는 포커스 가능한
+       * 다른 자손이 생겨도 같은 증상이 돌아오지 않게 남겨 둔다.
        */}
       <div role="img" aria-label={label} onMouseDown={(e) => e.preventDefault()}>
         {children}

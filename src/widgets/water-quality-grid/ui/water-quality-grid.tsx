@@ -1,9 +1,9 @@
 'use client';
 
-import { Area, AreaChart, ReferenceArea, ResponsiveContainer, Tooltip, YAxis } from 'recharts';
+import { Area, AreaChart, ResponsiveContainer, Tooltip, YAxis } from 'recharts';
 import { DISCHARGE_LIMITS } from '@/shared/config/discharge-limits';
 import { MEASUREMENT_ITEMS } from '@/shared/config/measurement';
-import { ACTUAL_HEX, GRID_HEX, MISSING_HEX, STATUS_BAND } from '@/shared/config/status-visual';
+import { ACTUAL_HEX, GRID_HEX, MISSING_HEX } from '@/shared/config/status-visual';
 import { formatClock, formatValue } from '@/shared/lib/format';
 import { ChartFigure } from '@/shared/ui/chart-figure';
 import { ChartTooltipRow, ChartTooltipShell } from '@/shared/ui/chart-tooltip';
@@ -28,9 +28,19 @@ export function WaterQualityGrid({ data, codes }: WaterQualityGridProps) {
    */
   return (
     <div className="@container">
-      <StaggerGroup className="grid grid-cols-2 gap-px bg-border @[560px]:grid-cols-4">
+      {/*
+       * 격자선을 **칸의 테두리로** 긋는다. 예전에는 `gap-px` + 컨테이너 `bg-border`로 그었는데,
+       * 그러면 칸이 행 높이를 다 채우지 못할 때 그 밑바탕이 그대로 드러난다 — pH 카드만
+       * 기준 문구 한 줄이 더 있어 첫 행이 높아졌고, 나머지 카드 아래로 넓은 색면이 깔렸다.
+       *
+       * 음수 여백은 **마지막 열·행의 테두리를 패널 테두리와 겹치게** 하려는 것이다. 없으면
+       * 오른쪽에 2px 선이 생기고 아래 캡션의 `border-t`와도 겹쳐 이중선이 된다.
+       * `nth-child`로 끝단을 골라내는 방법도 있으나 열 수가 컨테이너 폭에 따라 2↔4로 바뀌어
+       * 규칙이 서로를 되돌리게 된다.
+       */}
+      <StaggerGroup className="-mr-px -mb-px grid grid-cols-2 @[560px]:grid-cols-4">
         {codes.map((code) => (
-          <RiseItem key={code}>
+          <RiseItem key={code} className="border-r border-b border-border">
             <MiniSeries code={code} data={data} />
           </RiseItem>
         ))}
@@ -47,8 +57,9 @@ function MiniSeries({ code, data }: { code: SeriesCode; data: MeasurementPoint[]
   const zone = limitZone(code, values);
   const overCount = countOverLimit(data, code);
 
+  /* 칸을 다 채워야 hover 면이 칸 전체에 걸린다 — 안 그러면 내용 높이만큼만 밝아진다 */
   return (
-    <div className="group bg-surface p-3 transition-colors duration-200 hover:bg-surface-2">
+    <div className="group h-full bg-surface p-3 transition-colors duration-200 hover:bg-surface-2">
       <div className="flex items-baseline justify-between gap-2">
         <span className="text-[11px] font-medium tracking-[0.08em] text-fg-subtle">
           {item.symbol}
@@ -80,35 +91,37 @@ function MiniSeries({ code, data }: { code: SeriesCode; data: MeasurementPoint[]
       >
         <div className="-mx-1 mt-2 h-10">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={data} margin={{ top: 2, right: 2, bottom: 0, left: 2 }}>
+            {/*
+             * `accessibilityLayer={false}` — **툴팁이 화면에 얼어붙는 것을 막는다.**
+             *
+             * 켜 두면 Recharts가 차트 SVG에 `tabindex="0" role="application"`을 붙이고,
+             * **포커스만으로 툴팁을 띄운 뒤 그대로 고정한다.** 마우스로는 지울 수 없다 —
+             * 차트를 클릭한 뒤 Tab을 한 번 누르거나 Tab으로 훑다 차트에 닿으면 재현된다.
+             *
+             * 키보드·보조기술 경로는 `ChartFigure`가 맡는다(`role="img"` + 라벨, 큰 차트는
+             * `표로 보기`). `role="application"`은 스크린리더를 응용프로그램 모드로 가둬
+             * 오히려 표보다 못하다.
+             */}
+            <AreaChart
+              data={data}
+              margin={{ top: 2, right: 2, bottom: 0, left: 2 }}
+              accessibilityLayer={false}
+            >
               <defs>
                 <linearGradient id={`fill-${code}`} x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor={ACTUAL_HEX} stopOpacity={0.22} />
                   <stop offset="100%" stopColor={ACTUAL_HEX} stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <YAxis hide domain={zone ? zone.domain : ['dataMin', 'dataMax']} />
-
               {/*
-               * 기준을 벗어난 영역을 칠한다 — 선이 그 안에 들어가면 초과다.
-               * 허용 범위를 칠하지 않는 이유: 값이 대개 그 안이라 화면 전체가 색이 된다.
+               * 축은 기준에 맞춘다 — 사업장이 달라도 같은 눈금을 써야 서로 비교된다.
+               *
+               * **기준 밖 영역을 칠하지는 않는다.** 초과가 없으면 그 밴드는 축 여백만큼의
+               * 고정 높이(위아래 각 5px)로만 그려져 값이 6.4든 8.5든 똑같았다 — 정보를 담지
+               * 않으면서 차트 테두리로 오독됐다. 기준과 초과 건수는 위 캡션이 글로 말한다
+               * `[사용자 결정 2026-08-20]`.
                */}
-              {zone && (
-                <>
-                  <ReferenceArea
-                    y1={zone.domain[0]}
-                    y2={zone.min}
-                    fill={STATUS_BAND.critical}
-                    stroke="none"
-                  />
-                  <ReferenceArea
-                    y1={zone.max}
-                    y2={zone.domain[1]}
-                    fill={STATUS_BAND.critical}
-                    stroke="none"
-                  />
-                </>
-              )}
+              <YAxis hide domain={zone ? zone.domain : ['dataMin', 'dataMax']} />
               <Tooltip
                 cursor={{ stroke: GRID_HEX, strokeWidth: 1 }}
                 content={({ active, payload }) => {

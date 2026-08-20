@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { STATUS_VISUAL } from '@/shared/config/status-visual';
-import { RiseItem, StaggerGroup, motion } from '@/shared/ui/motion';
-import { StatusBadge } from '@/shared/ui/status-badge';
-import type { Equipment } from '@/entities/equipment';
+import { STATUS_VISUAL } from "@/shared/config/status-visual";
+import { RiseItem, StaggerGroup, motion } from "@/shared/ui/motion";
+import { StatusBadge } from "@/shared/ui/status-badge";
+import type { Equipment } from "@/entities/equipment";
 
 export function EquipmentPanel({
   items,
@@ -23,53 +23,71 @@ export function EquipmentPanel({
         <p className="num text-[26px] leading-none text-fg-subtle">—</p>
         <p className="text-[12px] text-fg-muted">설비 수신값 없음</p>
         <p className="max-w-[46ch] text-[11px] leading-relaxed text-fg-subtle">
-          ECP 통신이 두절되어 예지보전 지표가 산출되지 않았습니다. 복구 시 로컬 버퍼가 일괄
-          전송됩니다.
+          ECP 통신이 두절되어 예지보전 지표가 산출되지 않았습니다. 복구 시 로컬
+          버퍼가 일괄 전송됩니다.
         </p>
       </div>
     );
   }
 
+  /*
+   * 네 칸일 때는 **열 간격을 0으로 두고 여백을 칸 안쪽에 준다.**
+   * `divide-x`가 칸의 오른쪽에 선을 그으므로 간격이 남아 있으면 선이 왼쪽 카드에는 붙고
+   * 오른쪽 카드에서는 `간격 + 여백`만큼 떨어져 좌우가 어긋난다.
+   */
   return (
-    <StaggerGroup className="grid gap-x-5 gap-y-3 sm:grid-cols-2 xl:grid-cols-4 xl:divide-x xl:divide-border">
+    <StaggerGroup className="grid gap-x-5 gap-y-3 sm:grid-cols-2 xl:grid-cols-4 xl:gap-x-0 xl:divide-x xl:divide-border">
       {items.map((eq, i) => {
         const visual = STATUS_VISUAL[eq.status];
         return (
-          <RiseItem key={eq.id}>
-            {/* 카드 안에 카드를 넣지 않는다 — 구분선과 여백으로 위계를 만든다 */}
-            <div className="xl:px-4 xl:first:pl-0 xl:last:pr-0">
-              <div className="flex items-center justify-between gap-2">
-                {/* 이름만 누르게 둔다 — 카드 전체를 버튼으로 만들면 진행 막대까지 눌리는 영역이 된다 */}
-                {onSelect ? (
-                  <button
-                    type="button"
-                    onClick={() => onSelect(eq)}
-                    className="min-w-0 cursor-pointer truncate text-left text-[12px] font-medium text-fg underline decoration-transparent underline-offset-2 transition-colors duration-200 hover:decoration-border-strong"
-                  >
-                    {eq.name}
-                  </button>
-                ) : (
-                  <p className="truncate text-[12px] font-medium text-fg">{eq.name}</p>
-                )}
-                <StatusBadge level={eq.status} size="sm" />
-              </div>
+          /*
+           * 카드 안에 카드를 넣지 않는다 — 구분선과 여백으로 위계를 만든다.
+           *
+           * 여백을 **격자의 직접 자식**에 준다. 예전에는 안쪽 `div`에 `px-4 first:pl-0 last:pr-0`을
+           * 걸었는데, 그 `div`는 자기 부모의 첫 자식이자 마지막 자식이라 **양쪽이 다 0**이 되어
+           * 여백이 통째로 사라졌다 — 내용이 구분선에 그대로 맞닿았다.
+           */
+          <RiseItem key={eq.id} className="xl:px-4 xl:first:pl-0 xl:last:pr-0">
+            <div className="flex items-center justify-between gap-2">
+              {/* 이름만 누르게 둔다 — 카드 전체를 버튼으로 만들면 진행 막대까지 눌리는 영역이 된다 */}
+              {onSelect ? (
+                <button
+                  type="button"
+                  onClick={() => onSelect(eq)}
+                  className="min-w-0 cursor-pointer truncate text-left text-[12px] font-medium text-fg underline decoration-transparent underline-offset-2 transition-colors duration-200 hover:decoration-border-strong"
+                >
+                  {eq.name}
+                </button>
+              ) : (
+                <p className="truncate text-[12px] font-medium text-fg">
+                  {eq.name}
+                </p>
+              )}
+              <StatusBadge level={eq.status} size="sm" />
+            </div>
 
-              <div className="mt-2 grid grid-cols-3 gap-2 text-[11px]">
-                <Metric label="고장 확률" value={`${eq.failureProbability}%`} />
-                <Metric label="잔여 수명" value={`${eq.remainingUsefulLifeDays}일`} />
-                {/* MPI 산정식은 원문에 없다(TBD-22). 값만 상대 지수로 보여준다. */}
-                <Metric label="MPI" value={String(eq.maintenancePriorityIndex)} />
-              </div>
+            <div className="mt-2 grid grid-cols-3 gap-2 text-[11px]">
+              <Metric label="고장 확률" value={`${eq.failureProbability}%`} />
+              <Metric
+                label="잔여 수명"
+                value={`${eq.remainingUsefulLifeDays}일`}
+              />
+              {/* MPI 산정식은 원문에 없다(TBD-22). 값만 상대 지수로 보여준다. */}
+              <Metric label="MPI" value={String(eq.maintenancePriorityIndex)} />
+            </div>
 
-              <div className="mt-2 h-[3px] w-full overflow-hidden rounded-full bg-surface-3">
-                <motion.div
-                  className="h-full rounded-full"
-                  style={{ backgroundColor: visual.hex, opacity: 0.8 }}
-                  initial={{ width: 0 }}
-                  animate={{ width: `${eq.failureProbability}%` }}
-                  transition={{ duration: 0.55, delay: 0.08 * i, ease: [0.16, 1, 0.3, 1] }}
-                />
-              </div>
+            <div className="mt-2 h-[3px] w-full overflow-hidden rounded-full bg-surface-3">
+              <motion.div
+                className="h-full rounded-full"
+                style={{ backgroundColor: visual.hex, opacity: 0.8 }}
+                initial={{ width: 0 }}
+                animate={{ width: `${eq.failureProbability}%` }}
+                transition={{
+                  duration: 0.55,
+                  delay: 0.08 * i,
+                  ease: [0.16, 1, 0.3, 1],
+                }}
+              />
             </div>
           </RiseItem>
         );
