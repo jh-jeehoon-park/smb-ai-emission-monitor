@@ -53,7 +53,7 @@ export function getAnomalySummary(siteId: string): AnomalySummary {
     score: latest,
     level: latest === null ? null : toStatusLevel(latest),
     online: scenario.online,
-    computedAtIso: scenario.online ? DEMO_NOW_ISO : '2026-08-11T13:35:00Z',
+    computedAtIso: scenario.online ? DEMO_NOW_ISO : '2026-08-21T13:35:00Z',
     windowLabel: '최근 1시간 다변량 패턴',
     modelLabel: 'AutoEncoder · 복원오차 기반',
     contributions: latest === null ? [] : contributionsFor(latest),

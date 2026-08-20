@@ -89,7 +89,7 @@ export function getOptimization(siteId: string, energyNow: number | null): Optim
   if (!scenario.online) {
     return {
       online: false,
-      computedAtIso: '2026-08-11T13:35:00Z',
+      computedAtIso: '2026-08-21T13:35:00Z',
       inputWindowLabel: INPUT_WINDOW_LABEL,
       modelLabel: OPTIMIZATION_MODEL_LABEL,
       energy,

@@ -28,7 +28,7 @@ function buildSites(): Site[] {
       anomalyScore,
       status: anomalyScore === null ? null : toStatusLevel(anomalyScore),
       online: scenario.online,
-      lastSyncIso: scenario.online ? DEMO_NOW_ISO : '2026-08-11T13:35:00Z',
+      lastSyncIso: scenario.online ? DEMO_NOW_ISO : '2026-08-21T13:35:00Z',
       spark: downsample(scores, 24),
       dataThroughput: scenario.dataThroughput,
       uptime: scenario.uptime,

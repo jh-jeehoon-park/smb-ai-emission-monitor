@@ -20,7 +20,7 @@ const ALARM_SOURCE: Omit<Alarm, 'priority'>[] = [
     siteName: '구미 염색 2공장',
     title: '복합 이상 패턴 탐지',
     detail: 'TOC 상승과 DO 저하가 동시에 진행. 기여 변수 상위 2개가 상관 이탈.',
-    raisedAtIso: '2026-08-11T14:12:00Z',
+    raisedAtIso: '2026-08-21T14:12:00Z',
     state: 'open',
   },
   {
@@ -31,7 +31,7 @@ const ALARM_SOURCE: Omit<Alarm, 'priority'>[] = [
     siteName: '구미 염색 2공장',
     title: 'TOC 급변 — 6시간 내 배출기준 초과 예상',
     detail: 'LSTM 예측 상한이 47 mg/L. 약품 주입량 사전 조정 권장.',
-    raisedAtIso: '2026-08-11T14:05:00Z',
+    raisedAtIso: '2026-08-21T14:05:00Z',
     state: 'open',
   },
   {
@@ -42,7 +42,7 @@ const ALARM_SOURCE: Omit<Alarm, 'priority'>[] = [
     siteName: '평택 도금 A라인',
     title: '이상 점수 급상승 — 도금 폐수 유입 의심',
     detail: '최근 2시간 EC·탁도가 동반 상승. 전처리 공정 점검 필요.',
-    raisedAtIso: '2026-08-11T13:52:00Z',
+    raisedAtIso: '2026-08-21T13:52:00Z',
     state: 'open',
   },
   {
@@ -53,7 +53,7 @@ const ALARM_SOURCE: Omit<Alarm, 'priority'>[] = [
     siteName: '평택 도금 A라인',
     title: '폭기 블로워 전류 이상 패턴',
     detail: '정상 운전 패턴에서 벗어난 전류 파형이 반복 관측됨.',
-    raisedAtIso: '2026-08-11T13:41:00Z',
+    raisedAtIso: '2026-08-21T13:41:00Z',
     state: 'acknowledged',
   },
   {
@@ -64,7 +64,7 @@ const ALARM_SOURCE: Omit<Alarm, 'priority'>[] = [
     siteName: '포항 화학 1공장',
     title: 'pH-EC 상관 이탈',
     detail: '개별 항목은 정상 범위이나 항목 간 관계가 학습 패턴에서 벗어남.',
-    raisedAtIso: '2026-08-11T13:20:00Z',
+    raisedAtIso: '2026-08-21T13:20:00Z',
     state: 'acknowledged',
   },
   {
@@ -75,7 +75,7 @@ const ALARM_SOURCE: Omit<Alarm, 'priority'>[] = [
     siteName: '안동 식품 B동',
     title: 'ECP 통신 두절 — 로컬 저장 전환',
     detail: '13:35 이후 수신 없음. 복구 시 로컬 7일 버퍼가 일괄 전송된다.',
-    raisedAtIso: '2026-08-11T13:36:00Z',
+    raisedAtIso: '2026-08-21T13:36:00Z',
     state: 'open',
   },
   {
@@ -86,7 +86,7 @@ const ALARM_SOURCE: Omit<Alarm, 'priority'>[] = [
     siteName: '광주 전자부품 세정',
     title: '탁도 주간 변동폭 확대',
     detail: '최근 12시간 변동폭이 기준 대비 1.6배.',
-    raisedAtIso: '2026-08-11T11:58:00Z',
+    raisedAtIso: '2026-08-21T11:58:00Z',
     state: 'resolved',
   },
 ];

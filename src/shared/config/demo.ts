@@ -3,7 +3,7 @@
  * 기준 시각을 고정해 두어야 SSR/CSR 결과가 같고 스크린샷이 재현된다.
  * 아래 ISO 문자열의 시각은 KST 벽시계 값으로 읽는다(포맷터가 UTC 게터로 그대로 출력).
  */
-export const DEMO_NOW_ISO = '2026-08-11T14:20:00Z';
+export const DEMO_NOW_ISO = '2026-08-21T14:20:00Z';
 
 export const DEMO_NOTICE = '시연용 생성 데이터 — 실제 계측값이 아닙니다';
 

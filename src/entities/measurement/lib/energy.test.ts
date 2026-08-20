@@ -6,7 +6,7 @@ import { energyIntensity } from './energy';
 
 function point(power: number | null, flow: number | null): MeasurementPoint {
   return {
-    t: '2026-08-11T14:20:00Z',
+    t: '2026-08-21T14:20:00Z',
     pH: null,
     EC: null,
     turbidity: null,
