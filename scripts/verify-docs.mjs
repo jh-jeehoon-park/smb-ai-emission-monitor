@@ -44,6 +44,57 @@ const PLACEHOLDER = String.fromCharCode(0);
 const cellCount = (line) =>
   line.split(ESCAPED_PIPE).join(PLACEHOLDER).split('|').length - 1;
 
+/** 표 한 줄을 칸 배열로. 이스케이프된 파이프는 원래 문자로 되돌린다 */
+const splitRow = (line) =>
+  line
+    .split(ESCAPED_PIPE)
+    .join(PLACEHOLDER)
+    .split('|')
+    .slice(1, -1)
+    .map((c) => c.split(PLACEHOLDER).join('|').trim());
+
+/**
+ * `deliverable-xlsx.rule.md` §4.1의 근거 태그 16종.
+ *
+ * `E1`~`E6`은 `frontend.rule.md` §8.1의 도메인 규칙을 가리킨다 — 우리가 정한 것이므로
+ * `[설계]`와 같은 3순위지만, 어느 규칙인지가 근거의 알맹이라 번호를 남긴다.
+ * **대괄호와 굵게를 다 받는다** — 저장소가 이미 98곳에서 `**E3**`으로 쓴다. 서식을 맞추려고
+ * 그 전부를 고치면 바뀌는 것은 표기뿐이고 근거는 그대로다.
+ *
+ * `[TBD]`는 번호가 붙지 않은 것도 받는다 — 미확정을 드러내는 것 자체가 X2를 지키는 표기다.
+ */
+const EVIDENCE_TAG =
+  /\[(원문|공정자료|데이터셋|파생|PROVISIONAL|TBD|INC-\d{2,3}|설계|회의|사용자)|(\[|\*\*)E[1-6]/;
+
+/** 바로 위 행의 근거를 잇는 표기. 태그를 반복해 적으면 표가 읽히지 않는다 */
+const DITTO = /^(같음|〃|동일)/;
+
+/**
+ * 표 첫 칸에 적힌 항목ID를 모은다.
+ *
+ * 세 모양을 다 받는다 — 단일 `` `MEAS-pH` `` · 범위 `` `SITE-01`~`SITE-10` `` ·
+ * 나열 `` `LGL-TOC` `LGL-SS` … ``. 범위를 펼치지 않으면 사업장 10개소가 1개로 세어진다.
+ */
+function itemIds(text) {
+  const out = new Set();
+  const ID = /`([A-Z]{2,5})-([A-Za-z0-9]+)`/g;
+  for (const line of text.split(LF)) {
+    if (!line.startsWith('| `')) continue;
+    const first = splitRow(line)[0] ?? '';
+    const found = [...first.matchAll(ID)];
+    if (found.length === 0) continue;
+    const range = found.length === 2 && first.includes('~') && /^\d+$/.test(found[0][2]);
+    if (range) {
+      const width = found[0][2].length;
+      for (let n = Number(found[0][2]); n <= Number(found[1][2]); n += 1)
+        out.add(`${found[0][1]}-${String(n).padStart(width, '0')}`);
+    } else {
+      for (const m of found) out.add(`${m[1]}-${m[2]}`);
+    }
+  }
+  return out;
+}
+
 /** 정본 헤더. `deliverable-xlsx.rule.md` §5.3·§5.4가 정한다 */
 const REQ_HEADER =
   '| 요구사항ID | 대분류 | 중분류 | 요구사항명 | 상세설명 | 적용방안 및 제약사항 | 우선순위 | 수용 | 관련 | 화면·상태 |';
@@ -381,6 +432,85 @@ check('표 헤더 통일', () => {
     if (!XLSX_TABLE.test(text)) fails.push(`${file} — 'xlsx 열 / 값' 표가 없다`);
     for (const key of ACTION_ROWS) {
       if (!text.includes(`| ${key} |`)) fails.push(`${file} — ${key} 행이 없다`);
+    }
+  }
+  return fails;
+});
+
+// 16. 근거 태그 누락 — 데이터 행에 §4 태그가 하나라도 있는가 (X1)
+//     "근거 없는 행을 쓰지 않는다"를 사람이 320행에서 셀 수는 없다.
+check('근거 태그 누락', () => {
+  const fails = [];
+  const targets = [
+    ['docs/specs/items.md', () => true],
+    ['docs/specs/data-definition.md', (h) => h === DATA_HEADER],
+    ...readdirSync(SCREENS)
+      .filter((f) => f.endsWith('.md'))
+      .map((f) => [`docs/specs/screens/${f}`, (h) => SCREEN_DATA_HEADER.test(h)]),
+  ];
+  for (const [rel, wanted] of targets) {
+    const lines = read(rel).split(LF);
+    for (let i = 0; i < lines.length; i += 1) {
+      if (!lines[i].startsWith('|') || !SEPARATOR.test(lines[i + 1] ?? '')) continue;
+      if (!wanted(lines[i])) continue;
+      const cells = splitRow(lines[i]);
+      /* 근거 열의 위치는 표마다 다르다 — 이름으로 찾는다 */
+      const at = cells.findIndex((c) => c === '근거' || c === '출처·근거');
+      if (at < 0) continue;
+      for (let j = i + 2; j < lines.length && lines[j].startsWith('|'); j += 1) {
+        const cell = splitRow(lines[j])[at] ?? '';
+        if (!EVIDENCE_TAG.test(cell) && !DITTO.test(cell))
+          fails.push(`${rel}:${j + 1} — 근거 없음(X1)`);
+      }
+    }
+  }
+  return fails;
+});
+
+// 17. 항목 단위 완전성 — 선언한 개수와 실제 항목 행이 맞는가, 화면이 없는 항목을 가리키지 않는가
+check('항목 단위 완전성', () => {
+  const fails = [];
+  const items = read('docs/specs/items.md');
+  const dict = itemIds(items);
+
+  /* §2.2 집합 요약이 스스로 개수를 선언한다. 그 숫자와 실제 행이 갈리면 어느 쪽이 맞는지 알 수 없다 */
+  const declared = new Map();
+  for (const m of items.matchAll(/^\| ((?:`[A-Z]{2,5}`(?: · )?)+) \| [^|]+\| ([^|]+)\|/gm)) {
+    const codes = [...m[1].matchAll(/`([A-Z]{2,5})`/g)].map((c) => c[1]);
+    const counts = m[2].split('·').map((n) => Number.parseInt(n.trim(), 10));
+    codes.forEach((code, k) => declared.set(code, counts[k]));
+  }
+  if (declared.size === 0) return ['items.md §2.2 집합 요약을 못 찾았다'];
+
+  for (const [code, want] of declared) {
+    const got = [...dict].filter((id) => id.startsWith(`${code}-`)).length;
+    if (got !== want) fails.push(`items.md — ${code} 선언 ${want} ≠ 항목 ${got}`);
+  }
+  const total = Number.parseInt(items.match(/\*\*(\d+)\*\* \(집합 \d+종\)/)?.[1] ?? '-1', 10);
+  if (total !== dict.size) fails.push(`items.md — 합계 ${total} ≠ 항목 ${dict.size}`);
+
+  /* 화면이 사전에 없는 항목을 가리키면 그 행은 근거를 잃는다.
+     역방향(사전에 있으나 화면에 없음)은 검사하지 않는다 — 설비 지표 5종처럼
+     설비 카드의 **형태** 안에서 읽히는 항목이 있어 오탐이 난다(§6.1의 "반복되는 최소 단위"). */
+  for (const file of readdirSync(SCREENS).filter((f) => f.endsWith('.md'))) {
+    for (const id of itemIds(readText(join(SCREENS, file)))) {
+      if (!dict.has(id)) fails.push(`${file} — ${id}가 items.md에 없다`);
+    }
+  }
+  return fails;
+});
+
+// 18. 잔재 ID — 타 프로젝트 양식에서 딸려 온 ID 접두사 (X5)
+//     커밋 2c0c07e가 실제로 밟은 함정이다. xlsx에는 지금도 살아 있다.
+//
+//     **`REQ-GU-`는 넣지 않는다.** 잔재 목록에 적어 뒀지만 `GU`는 우리 게스트 구분 코드다
+//     (README §4.2). 타 프로젝트도 게스트에 같은 코드를 써서 접두사만으로는 가를 수 없다 —
+//     그쪽 잔재는 `청약 공고 목록`처럼 내용으로 찾아야 한다.
+check('잔재 ID', () => {
+  const fails = [];
+  for (const file of specDocs) {
+    for (const m of readText(file).matchAll(/\b(ZB-|REQ-(?:US|EM)-|SCR-EM-)/g)) {
+      fails.push(`${relative(ROOT, file)} — 잔재 접두사 ${m[1]}`);
     }
   }
   return fails;

@@ -267,7 +267,7 @@
 | 요구사항ID | 화면ID | 데이터명 | 타입 | 단위 | 계산식/로직 | 출처·근거 | UI | UI 위치 |
 |---|---|---|---|---|---|---|---|---|
 | REQ-AD-010 | SCR-OP-004 | 시각 | ISO8601 | KST | — | `[설계]` 실측+예측 한 축 | Y | — |
-| REQ-AD-010 | SCR-OP-004 | 실측값 | number \| null | mg/L | — | 실측 구간에만. 예측 구간은 `null` | Y | — |
+| REQ-AD-010 | SCR-OP-004 | 실측값 | number \| null | mg/L | — | `[설계]` 실측 구간에만, 예측 구간은 `null`(**E4**) | Y | — |
 | REQ-AD-010 | SCR-OP-004 | 예측값 | number \| null | mg/L | — | `[원문 p.32·65]` | Y | — |
 | REQ-AD-009 | SCR-OP-004 | 신뢰구간 하한 | number \| null | mg/L | — | `[원문 p.32·65]` · **신뢰수준 `[TBD]`** | Y | — |
 | REQ-AD-009 | SCR-OP-004 | 신뢰구간 상한 | number \| null | mg/L | — | 동일 | Y | — |
@@ -296,11 +296,11 @@
 |---|---|---|---|---|---|---|---|---|
 | REQ-AD-031 | SCR-OP-009 | 검증 원천 | `lab`\|`analyzer` | — | — | 위탁 실험실 `[원문 p.38]` · 분석기 `[원문 발표 p.17]` **1개소뿐** | Y | — |
 | REQ-AD-031 | SCR-OP-009 | 발급번호 | string | — | — | 성적서 체계 `[데이터셋 Non_TMS_sites/05]` | Y | — |
-| REQ-AD-031 | SCR-OP-009 | 접수일 · 시험기간 | ISO8601 · string | KST | — | 성적서 항목 | Y | — |
-| REQ-AD-031 | SCR-OP-009 | 분석 기관 | string | — | — | 위탁 분석 기관 | Y | — |
+| REQ-AD-031 | SCR-OP-009 | 접수일 · 시험기간 | ISO8601 · string | KST | — | `[데이터셋 docs/datasets/Non_TMS_sites]` 성적서 항목 | Y | — |
+| REQ-AD-031 | SCR-OP-009 | 분석 기관 | string | — | — | `[데이터셋 docs/datasets/Non_TMS_sites]` 성적서의 위탁 분석 기관 | Y | — |
 | REQ-AD-031 | SCR-OP-009 | 시료 시각·접수번호 | ISO8601 · string | KST | — | **9:45부터 매시 8건** `[데이터셋 Non_TMS_sites/05]` | Y | — |
 | REQ-AD-031 | SCR-OP-009 | 항목별 실측값 | number | mg/L | — | TOC·TN·TP·SS·COD 5종. **값의 크기는 시연 계열에 맞춘다** `[설계]` — 형식만 성적서에서 가져왔다 | Y | — |
-| REQ-AD-031 | SCR-OP-009 | AI 추정값 | number \| null | mg/L | `[파생: 그 회차 실측 + 시연 오차]` | 실제 시스템은 운영 이력에서 그 시각 값을 읽는다(REQ-AD-030 미구현). **오차 폭은 시연값이며 성능 목표가 아니다** | Y | — |
+| REQ-AD-031 | SCR-OP-009 | AI 추정값 | number \| null | mg/L | `[파생: 그 회차 실측 + 시연 오차]` | `[PROVISIONAL]` 실제 시스템은 운영 이력에서 그 시각 값을 읽는다(REQ-AD-030 미구현). **오차 폭은 시연값이며 성능 목표가 아니다** | Y | — |
 | REQ-AD-031 | SCR-OP-009 | 오차 | number \| null | mg/L | `[파생: AI 추정 − 실측]` | 부호가 정보다 — 보정 방향을 정한다 `[설계]` | Y | — |
 | REQ-AD-031 | SCR-OP-009 | 추정 불가 사유 | string \| null | — | — | SS는 계측·추정 대상 아님 `[공정자료 p.5·19]` · COD는 폐지 `[공정자료 p.12·16]` | Y | — |
 | REQ-AD-031 | SCR-OP-009 | 결정계수 R² | number \| null | 0~1 | `[파생: 1 − 잔차제곱합/총제곱합]` · **항목별로 계산한다** | `[원문 p.38]` · **표본 2개 미만이면 `null`** — 한 점으로 정의되지 않는다(E3) · 모아서 계산하면 항목 간 크기 차이가 R²를 부풀린다 | Y | — |
