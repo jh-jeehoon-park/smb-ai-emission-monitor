@@ -11,6 +11,7 @@ import { getAlarmsForView } from '@/entities/alarm';
 import {
   EQUIPMENT_SORT_KEYS,
   EQUIPMENT_SORT_OPTIONS,
+  STATUS_TIMELINE_HOURS,
   getEquipment,
   sortEquipment,
   type Equipment,
@@ -21,6 +22,7 @@ import { useSelectedSiteId } from '@/features/site-selection';
 import { AlarmList } from '@/widgets/alarm-list';
 import { EquipmentPanel } from '@/widgets/equipment-panel';
 import { EquipmentDetailModal } from './equipment-detail-modal';
+import { StatusHeatmap } from './status-heatmap';
 import { cn } from '@/shared/lib/cn';
 import { CROSS_SITE_RANK_LIMIT, SORT_QUERY_KEY } from '../config/constants';
 import { rankAcrossSites } from '../lib/rank-across-sites';
@@ -60,10 +62,25 @@ export function EquipmentView() {
         <EquipmentPanel items={view.items} online={site.online} onSelect={(eq) => setOpenId(eq.id)} />
 
         <EquipmentDetailModal
+          siteId={siteId}
           equipment={view.items.find((eq) => eq.id === openId) ?? null}
           alarms={view.alarms}
           onClose={() => setOpenId(null)}
         />
+      </Panel>
+
+      <Panel
+        eyebrow={site.online ? `최근 ${STATUS_TIMELINE_HOURS}시간` : '수신 없음'}
+        title="설비별 상태 추이"
+        action={
+          site.online ? (
+            <span className="text-[12px] text-fg-subtle">
+              상태 이력 저장소가 없어 시연용으로 만든 값이다(REQ-AD-019)
+            </span>
+          ) : null
+        }
+      >
+        <StatusHeatmap siteId={siteId} items={view.items} />
       </Panel>
 
       <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_340px]">

@@ -1,18 +1,14 @@
+import { OPERATING_FILL } from '@/shared/config/operating-visual';
 import type { RibbonState } from '../lib/build-ribbon';
 
 /**
- * 상태별 채움.
+ * 상태별 채움 — 실체는 `shared/config/operating-visual.ts`에 있다.
  *
- * **새 색을 만들지 않는다.** 가동·방류·수신은 실측 계열색(`--actual`), 모름은 결측색
- * (`--missing`), 꺼짐은 중립면이다. 상태 등급 색(정상·주의·경고·위험)은 이 띠에 쓰지
- * 않는다 — 이 축은 등급이 아니라 켜짐/꺼짐이고, 섞으면 색이 뜻을 잃는다
- * (`design-system` §2). 등급 색은 이상 점수 행의 **배경 밴드**가 맡는다.
+ * 설비 상태 격자(SCR-OP-005)의 방지시설 줄이 같은 축을 쓰게 되면서 공유 위치로 올렸다
+ * (`code-organization.rule.md` §3 배치원칙 3). 두 화면이 다른 색으로 `가동`을 칠하면
+ * 같은 사실이 화면마다 달라 보인다.
  */
-export const RIBBON_FILL: Record<RibbonState, string> = {
-  on: 'var(--actual)',
-  off: 'var(--surface-3)',
-  unknown: 'var(--missing)',
-};
+export const RIBBON_FILL: Record<RibbonState, string> = OPERATING_FILL;
 
 /** 상태 띠 세 줄이 공유하는 범례. 행마다 다른 말(정지·중단·결측)은 hover 판독줄이 맡는다 */
 export const RIBBON_LEGEND = [

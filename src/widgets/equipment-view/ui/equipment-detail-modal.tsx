@@ -6,9 +6,11 @@ import { formatRelative } from '@/shared/lib/format';
 import { Modal, ModalFact, ModalFacts } from '@/shared/ui/modal';
 import { StatusBadge } from '@/shared/ui/status-badge';
 import { ALARM_PRIORITY_LABELS, type Alarm } from '@/entities/alarm';
-import type { Equipment } from '@/entities/equipment';
+import { daysUntilDepleted, type Equipment } from '@/entities/equipment';
+import { RulChart } from './rul-chart';
 
 interface EquipmentDetailModalProps {
+  siteId: string;
   equipment: Equipment | null;
   alarms: Alarm[];
   onClose: () => void;
@@ -23,7 +25,12 @@ interface EquipmentDetailModalProps {
  * 원문에 없는 것을 채우지 않는다 — 유지관리 이력·교체 주기·조치 절차는 저장소도 원천도 없다
  * (REQ-AD-019·021 `[TBD]`).
  */
-export function EquipmentDetailModal({ equipment, alarms, onClose }: EquipmentDetailModalProps) {
+export function EquipmentDetailModal({
+  siteId,
+  equipment,
+  alarms,
+  onClose,
+}: EquipmentDetailModalProps) {
   if (!equipment) {
     return <Modal open={false} onOpenChange={onClose} title="" />;
   }
@@ -69,6 +76,25 @@ export function EquipmentDetailModal({ equipment, alarms, onClose }: EquipmentDe
         유지관리 우선순위(MPI)는 산정식이 원문에 없어</strong> 순서를 매기는 상대 지수로만 쓴다
         [TBD-22]. 예지보전 입력은 전류·전력·운전시간이다 [원문 p.30·31].
       </p>
+
+      <div className="mt-4 border-t border-border pt-3">
+        <div className="mb-1 flex flex-wrap items-baseline justify-between gap-x-3">
+          <p className="text-[11px] text-fg-subtle">잔여 수명 추이</p>
+          <p className="text-[11px] text-fg-subtle">
+            0 도달 예상 <span className="num text-fg-muted">{daysUntilDepleted(equipment)}일 후</span>
+          </p>
+        </div>
+        <RulChart siteId={siteId} equipment={equipment} />
+        {/*
+          곡선의 뒤쪽 절반은 관측이 아니다. 그 사실을 그림 옆에 적지 않으면 파선도 산출값처럼
+          읽힌다(E3). RandomForest는 고장 확률을 내고 0에 닿는 날짜는 주지 않는다.
+        */}
+        <p className="mt-1.5 max-w-[60ch] text-[11px] leading-relaxed text-fg-subtle">
+          파선은 현재 감소 추세를 그대로 늘린 <strong className="text-fg-muted">단순 외삽</strong>이며
+          예지보전 모델의 산출이 아니다. 잔여 수명 이력은 저장소가 없어 시연용으로 만든 값이다
+          [REQ-AD-019 미구현].
+        </p>
+      </div>
 
       <div className="mt-4 border-t border-border pt-3">
         <p className="mb-2 text-[11px] text-fg-subtle">이 설비의 알람 {related.length}건</p>

@@ -88,6 +88,14 @@ export const STATUS_BAND: Record<StatusLevel, string> = {
 
 export const OUTAGE_BAND = 'var(--band-outage)';
 
+/**
+ * 격자 칸의 `정상` 채움.
+ *
+ * 마크 색과 배경 밴드 사이의 단이다. 히트맵은 대부분이 정상이라 마크 색으로 전부 칠하면
+ * 예외가 묻히고, 밴드로 칠하면 칸 자체가 사라진다. 값과 근거는 `design-system §2`.
+ */
+export const CELL_NORMAL = 'var(--cell-normal)';
+
 /** AI 산출값 전용 색. 상태 색과 섞지 않는다 — 실측과 추정을 구분해야 한다(E3) */
 export const AI_HEX = 'var(--ai)';
 /** AI 계열 면 채움. 보라 그래디언트는 AI 상투 패턴으로 검출되므로 평면으로 쓴다 */
