@@ -159,6 +159,7 @@ python .claude/skills/ui-ux-pro-max/scripts/search.py "dashboard" --stack shadcn
 | 폴더/레이어(FSD) 구조·slice 배치 결정 | `.claude/rules/frontend-architecture.rule.md` |
 | 마크다운 문서(.md) 작성·수정 | `.claude/rules/document-template.rule.md` |
 | **화면 추가·변경, 새 도메인 값 도입** | 위 **설계 명세** 절의 체크리스트 — `docs/specs/` 갱신은 구현과 같은 작업이다 |
+| **산출물 xlsx 3종(요구사항정의서·화면설계서·데이터 정의서) 작성·갱신** | `.claude/rules/deliverable-xlsx.rule.md` — 적합성 1순위. 근거 없는 행 금지, **영역이 아니라 항목 단위**로 쓴다 |
 | 테스트 작성·구현 후 검증 | `.claude/rules/test-guide.rule.md` |
 | 지시가 모호/검증 불가할 때 | `.claude/rules/unclear.rule.md` |
 | Figma node-id로 UI 구현 | `.claude/rules/figma-implementation.rule.md` — **현 단계 휴면**(Figma 파일 없음). 사용자가 node URL을 주면 그때 활성 |
