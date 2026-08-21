@@ -66,7 +66,7 @@ export function ProfileMenu({ className }: { className?: string }) {
       {open && (
         <div
           role="menu"
-          className="absolute right-0 z-20 mt-1.5 w-[228px] rounded-[6px] border border-border bg-surface p-3 shadow-lg"
+          className="absolute right-0 z-20 mt-1.5 w-[240px] rounded-[6px] border border-border bg-surface p-3 shadow-lg"
         >
           <div className="flex items-baseline justify-between gap-2">
             <p className="text-[11px] text-fg-subtle">역할 전환</p>
@@ -122,13 +122,13 @@ export function ProfileMenu({ className }: { className?: string }) {
             ))}
           </div>
 
-          {/* 관리자일 때만 계정이 둘이다. 사업장이 달라 화면 값이 통째로 바뀐다 */}
-          <div className="role-only-admin">
+          {/* 사업장 역할일 때만 계정이 둘이다. 사업장이 달라 화면 값이 통째로 바뀐다 */}
+          <div className="role-only-site">
             <div className="mt-3 border-t border-border pt-2.5">
               <p className="text-[11px] text-fg-subtle">계정 전환</p>
               <div
                 role="group"
-                aria-label="관리자 계정 전환"
+                aria-label="사업장 계정 전환"
                 className="mt-1.5 flex rounded-[4px] border border-border bg-surface-2 p-0.5"
               >
                 {ADMIN_ACCOUNTS.map((account, index) => (

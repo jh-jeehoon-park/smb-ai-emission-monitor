@@ -12,7 +12,6 @@ import { SegmentedControl } from '@/shared/ui/segmented-control';
 import { StatTile } from '@/shared/ui/stat-tile';
 import { StatusBadge } from '@/shared/ui/status-badge';
 import {
-  ALARMS,
   ALARM_CONDITION_LABELS,
   ALARM_PRIORITY_LABELS,
   ALARM_STATE_LABELS,
@@ -22,7 +21,7 @@ import {
   type AlarmState,
 } from '@/entities/alarm';
 import { getSite } from '@/entities/site';
-import { AlarmStateActions, useAlarmStates } from '@/features/alarm-ack';
+import { ALL_ALARMS, AlarmStateActions, useAlarmStates } from '@/features/alarm-ack';
 import { AlarmDetailModal } from './alarm-detail-modal';
 import { useSelectedSiteId } from '@/features/site-selection';
 import {
@@ -60,7 +59,7 @@ export function AlarmsView() {
   const [state, setState] = useQueryState(STATE_QUERY_KEY, STATE_FILTERS, 'all');
   const [scope, setScope] = useQueryState(SCOPE_QUERY_KEY, SCOPE_FILTERS, 'all');
 
-  const source = useMemo(() => [...ALARMS].sort(byRaisedAtDesc), []);
+  const source = useMemo(() => [...ALL_ALARMS].sort(byRaisedAtDesc), []);
   const { alarms, changedCount, setState: setAlarmState, reset } = useAlarmStates(source);
   /* 선택은 id로 들고 목록에서 되찾는다 — 알람 객체를 들면 확인 처리 뒤 상태가 옛 값으로 굳는다 */
   const [openId, setOpenId] = useState<string | null>(null);
@@ -69,7 +68,7 @@ export function AlarmsView() {
    * 범위 판정을 **한 곳에서만** 한다. 목록과 상단 타일이 각자 범위를 계산하던 탓에
    * 세그먼트를 '선택 사업장'으로 바꿔도 타일 숫자는 전 사업장 그대로였다.
    *
-   * 관리자에게 남의 사업장 합계가 보이면 자사 1개소라는 전제가 깨진다(회의 2026-08-13).
+   * 사업장에 남의 사업장 합계가 보이면 자사 1개소라는 전제가 깨진다(회의 2026-08-20).
    */
   const inScope = useMemo(
     () => (scope === 'site' ? alarms.filter((a) => a.siteId === siteId) : alarms),
@@ -126,8 +125,8 @@ export function AlarmsView() {
         title={`알람 이력 ${visible.length}건`}
         action={
           <div className="flex flex-wrap items-center gap-2">
-            {/* 관리자는 자사 1개소뿐이라 고를 것이 없다. 가드가 scope=site로 고정한다 */}
-            <div className="role-hide-admin">
+            {/* 사업장은 자사 1개소뿐이라 고를 것이 없다. 가드가 scope=site로 고정한다 */}
+            <div className="role-hide-site">
               <SegmentedControl
                 ariaLabel="사업장 범위"
                 options={SCOPE_OPTIONS}

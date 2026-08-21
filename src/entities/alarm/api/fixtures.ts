@@ -46,17 +46,6 @@ const ALARM_SOURCE: Omit<Alarm, 'priority'>[] = [
     state: 'open',
   },
   {
-    id: 'A-2478',
-    siteId: 'S-07',
-    level: 'caution',
-    condition: 'equipment',
-    siteName: '평택 도금 A라인',
-    title: '폭기 블로워 전류 이상 패턴',
-    detail: '정상 운전 패턴에서 벗어난 전류 파형이 반복 관측됨.',
-    raisedAtIso: '2026-08-21T13:41:00Z',
-    state: 'acknowledged',
-  },
-  {
     id: 'A-2477',
     siteId: 'S-05',
     level: 'caution',
@@ -92,6 +81,16 @@ const ALARM_SOURCE: Omit<Alarm, 'priority'>[] = [
 ];
 
 /** 우선순위는 등급에서 나온다 — 둘을 따로 적으면 어긋날 수 있다 `[INC-02]` */
+/**
+ * **설비 이상 알람을 손으로 쓰지 않는다** `[사용자 지적 2026-08-21]`.
+ *
+ * `A-2478`(S-07 폭기 블로워 전류 이상)을 지웠다 — 이 목록이 설비 상태와 **어긋났다.**
+ * 그 사업장의 설비 상태에서 신호가 걸린 것은 유입 펌프 #2인데 알람은 폭기 블로워를 가리켰다.
+ * 지금은 `buildEquipmentAlarms`가 설비 상태에서 만들고 `features/alarm-ack`가 합친다.
+ *
+ * **`A-2476`은 남긴다** — ECP 통신 두절은 설비 이상이 아니라 수신 계통 사건이라 설비 상태에서
+ * 나오지 않는다. 조건 코드가 `equipment`인 것은 원문 4종(p.32) 안에 통신 항목이 없어서다.
+ */
 export const ALARMS: Alarm[] = ALARM_SOURCE.map((alarm) => ({
   ...alarm,
   priority: PRIORITY_BY_LEVEL[alarm.level],
@@ -103,7 +102,7 @@ export const ALARMS: Alarm[] = ALARM_SOURCE.map((alarm) => ({
  *
  * 이전에는 인자를 받고도 전 사업장을 돌려주며 선택 사업장만 위로 올렸다. 이 함수를 쓰는
  * 곳은 셋 다 **단일 사업장 분석 옆의 "관련 알람" 패널**이라, 남의 사업장이 섞이면
- * 운영자에게도 오독이다. 전 사업장 목록은 알람 이력 화면(SCR-OP-007)이 맡는다.
+ * 시스템 관리자에게도 오독이다. 전 사업장 목록은 알람 이력 화면(SCR-OP-007)이 맡는다.
  */
 export function getAlarmsForView(siteId: string): Alarm[] {
   return ALARMS.filter((a) => a.siteId === siteId).sort((a, b) =>
@@ -117,7 +116,7 @@ export function countOpenAlarms(siteId: string): number {
 
 /**
  * 전 사업장 미확인 수. **이름으로 범위를 드러낸다** — 무인자 호출로 전 사업장을 세면
- * 호출부만 보고는 의도인지 실수인지 알 수 없다. 통합 관제(운영자 전용)가 쓴다.
+ * 호출부만 보고는 의도인지 실수인지 알 수 없다. 통합 관제(사업장에 닫힌 화면)가 쓴다.
  */
 export function countOpenAlarmsAcrossSites(): number {
   return ALARMS.filter((a) => a.state === 'open').length;

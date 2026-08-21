@@ -1,7 +1,11 @@
 'use client';
 
 import { Area, AreaChart, ResponsiveContainer, Tooltip, YAxis } from 'recharts';
-import { DISCHARGE_LIMITS } from '@/shared/config/discharge-limits';
+import {
+  UNRESOLVED_LIMIT_TEXT,
+  formatLimitRange,
+  type DischargeLimitTable,
+} from '@/shared/config/discharge-limits';
 import { MEASUREMENT_ITEMS } from '@/shared/config/measurement';
 import { ACTUAL_HEX, GRID_HEX, MISSING_HEX } from '@/shared/config/status-visual';
 import { formatClock, formatValue } from '@/shared/lib/format';
@@ -14,13 +18,23 @@ import { limitZone, type LimitZone } from '../lib/limit-zone';
 interface WaterQualityGridProps {
   data: MeasurementPoint[];
   codes: SeriesCode[];
+  /**
+   * 적용할 배출허용기준. **넘기지 않으면 기준을 그리지 않는다.**
+   *
+   * 훅으로 직접 읽지 않는 이유는 이 위젯이 **사업장을 알 필요가 없기** 때문이다 — `data`를
+   * 받아 그리는 리프이고, 훅을 부르면 `useSelectedSiteId` → `useRouter`로 이어져 라우터
+   * 없이는 렌더도 테스트도 못 한다(실제로 그렇게 터졌다). 어느 표를 쓸지는 **호스트가**
+   * 정한다: 방류 지점이면 기준을 넘기고, 공정 중간 단계면 넘기지 않는다 — 방류수 기준을
+   * 1차 침전 TOC에 그으면 없는 초과 판정을 만든다.
+   */
+  limits?: DischargeLimitTable;
 }
 
 /**
  * 단위가 다른 항목을 한 축에 겹치지 않는다 — pH 0~14와 EC 0~20,000을 같은 y축에 두면
  * 둘 다 읽을 수 없게 된다. 항목마다 자기 축을 가진 작은 차트로 나눈다(small multiples).
  */
-export function WaterQualityGrid({ data, codes }: WaterQualityGridProps) {
+export function WaterQualityGrid({ data, codes, limits }: WaterQualityGridProps) {
   /**
    * 열 수는 뷰포트가 아니라 **이 그리드가 실제로 받은 폭**을 따라야 한다.
    * 같은 위젯이 통합 관제(지도 옆 좁은 열)와 시계열 화면(전폭)에 함께 쓰인다 —
@@ -41,7 +55,7 @@ export function WaterQualityGrid({ data, codes }: WaterQualityGridProps) {
       <StaggerGroup className="-mr-px -mb-px grid grid-cols-2 @[560px]:grid-cols-4">
         {codes.map((code) => (
           <RiseItem key={code} className="border-r border-b border-border">
-            <MiniSeries code={code} data={data} />
+            <MiniSeries code={code} data={data} table={limits} />
           </RiseItem>
         ))}
       </StaggerGroup>
@@ -49,13 +63,22 @@ export function WaterQualityGrid({ data, codes }: WaterQualityGridProps) {
   );
 }
 
-function MiniSeries({ code, data }: { code: SeriesCode; data: MeasurementPoint[] }) {
+function MiniSeries({
+  code,
+  data,
+  table,
+}: {
+  code: SeriesCode;
+  data: MeasurementPoint[];
+  /** `undefined`면 기준을 그리지 않는다 — 방류 지점이 아닌 계열이다 */
+  table?: DischargeLimitTable;
+}) {
   const item = MEASUREMENT_ITEMS[code];
   const values = data.map((p) => p[code]);
   const latest = [...values].reverse().find((v) => v !== null) ?? null;
   const isMissingNow = values[values.length - 1] === null;
-  const zone = limitZone(code, values);
-  const overCount = countOverLimit(data, code);
+  const zone = table ? limitZone(code, values, table) : null;
+  const overCount = table ? countOverLimit(data, code, table) : null;
 
   /* 칸을 다 채워야 hover 면이 칸 전체에 걸린다 — 안 그러면 내용 높이만큼만 밝아진다 */
   return (
@@ -81,7 +104,13 @@ function MiniSeries({ code, data }: { code: SeriesCode; data: MeasurementPoint[]
       <p className="mt-0.5 truncate text-[11px] text-fg-muted">{item.label}</p>
 
       {/* 기준을 아는 항목인지, 안다면 넘었는지 — 두 사실을 구분해 적는다 */}
-      <LimitNote code={code} zone={zone} overCount={overCount} decimals={item.decimals} />
+      <LimitNote
+        code={code}
+        zone={zone}
+        overCount={overCount}
+        decimals={item.decimals}
+        table={table}
+      />
 
       {/* 작은 차트는 현재값이 이미 위에 텍스트로 있다. 항목마다 표를 또 두면 소음이다 */}
       <ChartFigure
@@ -172,24 +201,28 @@ function LimitNote({
   zone,
   overCount,
   decimals,
+  table,
 }: {
   code: SeriesCode;
   zone: LimitZone | null;
   overCount: number | null;
   decimals: number;
+  table?: DischargeLimitTable;
 }) {
-  const limit = DISCHARGE_LIMITS[code];
+  /* 기준을 그리지 않는 계열이면 문구도 없다 — `미확정`이라 적으면 기준이 있어야 하는 것처럼 읽힌다 */
+  if (!table) return null;
+
+  const limit = table[code];
   if (!limit) return null;
 
-  if (!zone || overCount === null) {
-    return <p className="mt-1 truncate text-[11px] text-fg-subtle">기준값 미확정 [TBD-45]</p>;
+  const range = formatLimitRange(limit, decimals);
+  if (!zone || overCount === null || range === null) {
+    return <p className="mt-1 truncate text-[11px] text-fg-subtle">{UNRESOLVED_LIMIT_TEXT}</p>;
   }
 
   return (
     <p className="mt-1 truncate text-[11px] text-fg-subtle" title={limit.source}>
-      <span className="num">
-        기준 {zone.min.toFixed(decimals)}–{zone.max.toFixed(decimals)}
-      </span>{' '}
+      <span className="num">기준 {range}</span>{' '}
       · {overCount === 0 ? '초과 없음' : `초과 ${overCount}건`}
     </p>
   );

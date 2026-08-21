@@ -8,6 +8,7 @@ import {
   normalizeAdminAccount,
   type AdminAccountKey,
 } from '../config/accounts';
+import { scopeOf } from '../config/constants';
 import {
   ADMIN_STORAGE_KEY,
   AUTH_STORAGE_KEY,
@@ -59,7 +60,7 @@ export function RoleProvider({ children }: { children: ReactNode }) {
   const [adminAccount, setAdminState] = useState<AdminAccountKey>(readAppliedAdmin);
 
   /**
-   * 관리자는 자사 1개소만 본다. 전환 즉시 URL을 자사로 바꿔 둔다 —
+   * 사업장 역할은 자사 1개소만 본다. 전환 즉시 URL을 자사로 바꿔 둔다 —
    * 라우트 가드가 나중에 되돌리게 두면 남의 사업장이 한 프레임 보인다.
    */
   const goToOwnSite = useCallback(
@@ -74,7 +75,8 @@ export function RoleProvider({ children }: { children: ReactNode }) {
       document.documentElement.setAttribute('data-role', next);
       write(ROLE_STORAGE_KEY, next);
       setRoleState(next);
-      if (next === 'admin') goToOwnSite(readAppliedAdmin());
+      /* 자사 1개소 범위로 바꾸면 URL의 사업장도 자사로 옮긴다. 역할 이름이 아니라 범위로 가른다 */
+      if (scopeOf(next) === 'own-site') goToOwnSite(readAppliedAdmin());
     },
     [goToOwnSite],
   );

@@ -1,7 +1,6 @@
 'use client';
 
 import {
-  Area,
   CartesianGrid,
   ComposedChart,
   Line,
@@ -15,11 +14,17 @@ import { ACTUAL_HEX, AI_HEX, AXIS_TEXT_HEX, GRID_HEX } from '@/shared/config/sta
 import { formatClock } from '@/shared/lib/format';
 import { ChartFigure } from '@/shared/ui/chart-figure';
 import { ChartTooltipRow, ChartTooltipShell } from '@/shared/ui/chart-tooltip';
-import { DISCHARGE_LIMITS } from '@/shared/config/discharge-limits';
+import {
+  DISCHARGE_LIMITS,
+  UNRESOLVED_LIMIT_TEXT,
+  type DischargeLimitTable,
+} from '@/shared/config/discharge-limits';
 import {
   hasPlottableValues,
   type ForecastSeriesCode,
   type ForecastSummary,
+  SERIES_ORIGIN_LABELS,
+  type SeriesOrigin,
 } from '@/entities/prediction';
 import { COMPACT_HEIGHT, FULL_HEIGHT } from '../config/constants';
 
@@ -29,9 +34,9 @@ interface ForecastChartProps {
   /**
    * 3단 보기에서 쓰는 낮은 변형.
    *
-   * **차트 규약은 그대로다** — 실선/파선 구분, 신뢰구간 밴드, `현재` 경계선, 색·툴팁이
-   * 같다. 같은 값을 두 변형이 다르게 보이면 안 된다. 줄이는 것은 높이와 눈금 밀도이고,
-   * 표·범례는 스택이 하나만 갖는다(단마다 반복되면 잡음이다).
+   * **차트 규약은 그대로다** — 계열 색, `현재` 경계선, 툴팁이 같다. 같은 값을 두 변형이
+   * 다르게 보이면 안 된다. 줄이는 것은 높이와 눈금 밀도이고, 표·범례는 스택이 하나만
+   * 갖는다(단마다 반복되면 잡음이다).
    */
   compact?: boolean;
   /**
@@ -41,11 +46,25 @@ interface ForecastChartProps {
   showTimeAxis?: boolean;
   /** `현재` 경계 라벨. 3단 보기에서는 **첫 단만** 그린다 — 경계선은 세 단에서 같은 시각이다 */
   showNowLabel?: boolean;
+  /**
+   * 사용자가 설정한 기준표.
+   *
+   * **밑줄 문구가 이것을 봐야 한다.** 정적 표를 직접 읽던 동안, 사용자가 기준치를 넣어도
+   * 차트 밑에는 `기준값 미확정`이 남아 카드는 `기준보다 높음`이라 말하는데 같은 화면이
+   * 그것을 반박했다.
+   */
+  limits?: DischargeLimitTable;
 }
 
 /**
- * 실측과 예측을 색만으로 구분하지 않는다 — 실선/파선으로도 나뉜다.
- * 신뢰구간은 두 경계선을 채운 밴드로 그린다(Recharts는 Area 두 겹으로 표현).
+ * 최근 6시간 계열.
+ *
+ * **예측선과 신뢰구간이 없다** `[회의 2026-08-20]` `[INC-109]`. TN·TP로 6시간을 예측하는
+ * 것이 아니고 6시간 예측의 대상은 아직 정해지지 않았다(`[TBD-52]`) — 없는 데이터로 곡선을
+ * 그리면 산출된 예측처럼 읽힌다(E3).
+ *
+ * 계열의 색은 **값의 출처**를 따른다 — TN·TP는 소프트 센싱 추정이라 계측과 같은 색으로
+ * 그리지 않는다. 색만으로 가르지 않고 범례와 표가 함께 적는다.
  */
 export function ForecastChart({
   summary,
@@ -53,13 +72,14 @@ export function ForecastChart({
   compact = false,
   showTimeAxis = true,
   showNowLabel = true,
+  limits,
 }: ForecastChartProps) {
-  const data = summary.points.map((p) => ({
-    ...p,
-    band: p.lower !== null && p.upper !== null ? [p.lower, p.upper] : null,
-  }));
+  const data = summary.points;
   const show = (v: number) => v.toFixed(summary.decimals);
   const height = compact ? COMPACT_HEIGHT : FULL_HEIGHT;
+  /* 추정 계열은 계측과 다른 색을 쓴다 — 한 화면에서 둘이 섞이면 추정이 계측으로 읽힌다(E3) */
+  const stroke = summary.origin === 'measured' ? ACTUAL_HEX : AI_HEX;
+  const originLabel = SERIES_ORIGIN_LABELS[summary.origin];
 
   /*
    * 그릴 값이 하나도 없으면 차트를 그리지 않는다.
@@ -112,35 +132,19 @@ export function ForecastChart({
           }
         />
 
-        <Area
-          dataKey="band"
-          stroke="none"
-          fill={AI_HEX}
-          fillOpacity={0.16}
-          connectNulls={false}
-          isAnimationActive={false}
-          activeDot={false}
-        />
+        {/*
+         * 계열 하나뿐이다. `connectNulls={false}`로 결측 구간을 **끊는다** — 이어 그리면
+         * 수신하지 못한 시간에도 값이 있었던 것처럼 보인다(E4).
+         */}
         <Line
           type="monotone"
-          dataKey="actual"
-          stroke={ACTUAL_HEX}
+          dataKey="value"
+          stroke={stroke}
           strokeWidth={2}
           dot={false}
           connectNulls={false}
           isAnimationActive={false}
-          activeDot={{ r: 3, strokeWidth: 0, fill: ACTUAL_HEX }}
-        />
-        <Line
-          type="monotone"
-          dataKey="forecast"
-          stroke={AI_HEX}
-          strokeWidth={2}
-          strokeDasharray="5 4"
-          dot={false}
-          connectNulls={false}
-          isAnimationActive={false}
-          activeDot={{ r: 3, strokeWidth: 0, fill: AI_HEX }}
+          activeDot={{ r: 3, strokeWidth: 0, fill: stroke }}
         />
 
         <Tooltip
@@ -151,30 +155,11 @@ export function ForecastChart({
             if (!row) return null;
             return (
               <ChartTooltipShell label={`${formatClock(String(label))} KST`}>
-                {row.actual !== null && (
-                  <ChartTooltipRow
-                    color={ACTUAL_HEX}
-                    name="실측"
-                    value={`${show(row.actual)} ${summary.unit}`}
-                  />
-                )}
-                {row.forecast !== null && (
-                  <>
-                    <ChartTooltipRow
-                      color={AI_HEX}
-                      name="AI 예측"
-                      value={`${show(row.forecast)} ${summary.unit}`}
-                      dashed
-                    />
-                    {row.lower !== null && row.upper !== null && (
-                      <ChartTooltipRow
-                        color={AI_HEX}
-                        name="신뢰구간"
-                        value={`${show(row.lower)} – ${show(row.upper)}`}
-                      />
-                    )}
-                  </>
-                )}
+                <ChartTooltipRow
+                  color={stroke}
+                  name={originLabel}
+                  value={row.value === null ? '수신 없음' : `${show(row.value)} ${summary.unit}`}
+                />
               </ChartTooltipShell>
             );
           }}
@@ -188,24 +173,23 @@ export function ForecastChart({
   return (
     <div>
       <ChartFigure
-        label={`${summary.targetLabel} 실측과 향후 ${summary.horizonHours}시간 AI 예측(신뢰구간 포함), KST 기준`}
+        label={`${summary.targetLabel} 최근 6시간 ${originLabel}, KST 기준`}
         rows={data}
         sampleEvery={6}
         columns={[
           { header: '시각(KST)', cell: (r) => formatClock(r.t) },
-          { header: `실측(${summary.unit})`, cell: (r) => (r.actual === null ? '—' : show(r.actual)) },
-          { header: `AI 예측(${summary.unit})`, cell: (r) => (r.forecast === null ? '—' : show(r.forecast)) },
           {
-            header: '신뢰구간',
-            cell: (r) => (r.lower === null || r.upper === null ? '—' : `${show(r.lower)} – ${show(r.upper)}`),
+            header: `${originLabel}(${summary.unit})`,
+            cell: (r) => (r.value === null ? '수신 없음' : show(r.value)),
           },
         ]}
       >
         {chart}
       </ChartFigure>
 
-      <ForecastLegend />
-      <ForecastLimitNote code={summary.code} />
+      <ForecastLegend origin={summary.origin} />
+      <ForecastHorizonNote />
+      <ForecastLimitNote code={summary.code} limits={limits} />
     </div>
   );
 }
@@ -220,16 +204,22 @@ export function ForecastChart({
  * 대상이 아니다). 셋을 뭉뚱그리면 유량 예측에까지 "기준 미확정"이 붙어, 있지도 않은 기준을
  * 기다리는 항목처럼 보인다.
  *
- * 기준이 확정되면 `discharge-limits.ts`에 값을 넣는 것만으로 이 문구가 사라진다.
+ * 사업장이 기준치를 설정하면 이 문구가 사라진다 `[회의 2026-08-20]`.
  */
-export function ForecastLimitNote({ code }: { code: ForecastSeriesCode }) {
-  const limit = DISCHARGE_LIMITS[code];
+export function ForecastLimitNote({
+  code,
+  limits = DISCHARGE_LIMITS,
+}: {
+  code: ForecastSeriesCode;
+  limits?: DischargeLimitTable;
+}) {
+  const limit = limits[code];
   if (!limit) return null;
   if (limit.unavailableReason === null) return null;
 
   return (
     <p className="mt-1.5 px-1 text-[11px] text-fg-subtle">
-      배출허용기준 미확정 [TBD-45] — 초과 가능성은 판정하지 않는다
+      {UNRESOLVED_LIMIT_TEXT} — 초과 가능성은 판정하지 않는다
     </p>
   );
 }
@@ -249,13 +239,31 @@ export function ForecastEmpty({ height }: { height: number }) {
   );
 }
 
+/**
+ * **6시간 예측을 그리지 않는다는 사실을 화면에 적는다.**
+ *
+ * 원문은 1~6시간 예측을 요구하고(`[원문 p.30·32·65]`) 발표자료가 화면 예시까지 둔다.
+ * 없는 것을 조용히 빼면 누락으로 보이므로 왜 없는지를 남긴다 — 있는 것처럼 그리는 것보다
+ * 없다고 적는 것이 맞다(E3).
+ */
+export function ForecastHorizonNote() {
+  return (
+    <p className="mt-1.5 px-1 text-[11px] leading-relaxed text-fg-subtle">
+      향후 6시간 예측은 그리지 않습니다 — 예측 대상 항목과 입력 데이터가 정해지지 않았습니다
+      [TBD-52]. TN·TP는 6시간 예측 대상이 아니라 소프트 센싱으로 **지금 값을 추정**하는
+      항목입니다 [회의 2026-08-20].
+    </p>
+  );
+}
+
 /** 3단 보기는 이 범례를 스택 전체에 하나만 둔다 — 계열 규약이 세 단에서 같기 때문이다 */
-export function ForecastLegend() {
+export function ForecastLegend({ origin }: { origin: SeriesOrigin }) {
   return (
     <ul className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 px-1">
-      <LegendItem color={ACTUAL_HEX} label="실측" />
-      <LegendItem color={AI_HEX} label="AI 예측" dashed />
-      <LegendItem color={AI_HEX} label="신뢰구간" swatch />
+      <LegendItem
+        color={origin === 'measured' ? ACTUAL_HEX : AI_HEX}
+        label={SERIES_ORIGIN_LABELS[origin]}
+      />
     </ul>
   );
 }

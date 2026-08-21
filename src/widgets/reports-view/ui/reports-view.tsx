@@ -1,10 +1,11 @@
 'use client';
 
 import { Download } from 'lucide-react';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { PROVISIONAL_DISPLAY_DECIMALS, PROVISIONAL_STATUS_LABELS } from '@/shared/config/provisional';
 import { STATUS_VISUAL, statusInk } from '@/shared/config/status-visual';
-import { DISPLAY_TIMEZONE, formatDateTime } from '@/shared/lib/format';
+import { csvFileName, downloadCsv } from '@/shared/lib/csv';
+import { DISPLAY_TIMEZONE, formatDateTime, formatValue } from '@/shared/lib/format';
 import { DEMO_NOW_ISO } from '@/shared/config/demo';
 import { SCOPE_FILTERS, SCOPE_OPTIONS, SCOPE_QUERY_KEY } from '@/shared/config/scope';
 import { useQueryState } from '@/shared/lib/use-query-state';
@@ -13,20 +14,41 @@ import { SegmentedControl } from '@/shared/ui/segmented-control';
 import { StatTile } from '@/shared/ui/stat-tile';
 import { StatusBadge } from '@/shared/ui/status-badge';
 import { SITES, getSite } from '@/entities/site';
+import { useDischargeLimits } from '@/features/discharge-limit-settings';
 import { useSelectedSiteId } from '@/features/site-selection';
+import { BucketReportPanel } from '@/widgets/bucket-report';
 import { PERIOD_HOURS, PERIOD_OPTIONS, PERIOD_QUERY_KEY } from '@/features/measurement-filter';
+import {
+  DEFAULT_BUCKET,
+  DEFAULT_STAT,
+  WATER_SERIES_CODES,
+  getMeasurementSeries,
+  type BucketStat,
+  type BucketUnit,
+} from '@/entities/measurement';
+import { SERIES_ORIGIN_LABELS, TrendChip } from '@/entities/prediction';
 import { buildSiteReport, toCsv, type SiteReportRow } from '../lib/build-report';
+import {
+  buildEstimateReport,
+  buildSensorReport,
+  limitVerdictLabel,
+  sensorReportToCsv,
+  type EstimateReportRow,
+  type SensorReportRow,
+} from '../lib/build-sensor-report';
 
 export function ReportsView() {
   const [period, setPeriod] = useQueryState(PERIOD_QUERY_KEY, PERIOD_HOURS, '24');
   const [scope, setScope] = useQueryState(SCOPE_QUERY_KEY, SCOPE_FILTERS, 'all');
   const { siteId } = useSelectedSiteId();
   const hours = Number(period);
+  /* 기준표는 사업장 설정에서 온다 — 리포트가 정적 표를 직접 읽으면 설정이 반영되지 않는다 */
+  const limits = useDischargeLimits();
 
   /**
    * 범위를 **URL로** 좁힌다. 역할로 행 수를 가르면 서버가 그린 표와 클라이언트가 그릴 표의
    * 행 수가 달라져 하이드레이션이 깨진다 — 서버는 역할을 모르지만 쿼리는 읽는다.
-   * 관리자는 라우트 가드가 `scope=site`로 고정한다(회의 2026-08-13: 자사 1개소).
+   * 사업장은 라우트 가드가 `scope=site`로 고정한다(회의 2026-08-20: 자사 1개소).
    */
   const allRows = useMemo(() => buildSiteReport(hours), [hours]);
   const rows = useMemo(
@@ -47,17 +69,36 @@ export function ReportsView() {
     [rows],
   );
 
-  const download = () => {
-    const csv = toCsv(rows, PROVISIONAL_STATUS_LABELS);
-    // 엑셀이 한글 CSV를 UTF-8로 인식하려면 BOM이 필요하다
-    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `배출관리_리포트_${DEMO_NOW_ISO.slice(0, 10)}_최근${hours}시간.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
-  };
+  /*
+   * **선택 사업장 하나의 센서 통계다.** 10개소 × 11항목을 한 표에 넣으면 110행이 되어
+   * 읽히지 않는다 — 회의가 요구한 것은 항목별 통계이고, 사업장 비교는 위 집계표가 이미 한다.
+   */
+  const sensors = useMemo(
+    () => buildSensorReport(siteId, hours, limits.table),
+    [siteId, hours, limits.table],
+  );
+  const estimates = useMemo(
+    () => buildEstimateReport(siteId, limits.table, limits.unresolvedReason),
+    [siteId, limits.table, limits.unresolvedReason],
+  );
+
+  /*
+   * **구간별 집계.** 위 통계표가 기간 전체를 한 줄로 접는 반면 이쪽은 시간의 흐름을 보인다
+   * `[사용자 요청 2026-08-21]`. 집계 단위·통계는 이 화면의 상태에 둔다 — 기간(`?period=`)은
+   * 이미 URL에 있고 여기에 두 키를 더하면 리포트 URL이 필터 세 개를 나른다.
+   */
+  const [bucket, setBucket] = useState<BucketUnit>(DEFAULT_BUCKET);
+  const [stat, setStat] = useState<BucketStat>(DEFAULT_STAT);
+  const points = useMemo(() => getMeasurementSeries(siteId), [siteId]);
+
+  const download = () =>
+    downloadCsv(
+      csvFileName('리포트', DEMO_NOW_ISO, hours),
+      toCsv(rows, PROVISIONAL_STATUS_LABELS),
+    );
+
+  const downloadSensors = () =>
+    downloadCsv(csvFileName('센서통계', DEMO_NOW_ISO, hours), sensorReportToCsv(sensors));
 
   return (
     <div className="space-y-3">
@@ -66,8 +107,8 @@ export function ReportsView() {
         title={scope === 'site' ? '배출 집계' : '사업장별 배출 집계'}
         action={
           <div className="flex flex-wrap items-center gap-2">
-            {/* 관리자는 자사 1개소뿐이라 고를 것이 없다 */}
-            <div className="role-hide-admin">
+            {/* 사업장은 자사 1개소뿐이라 고를 것이 없다 */}
+            <div className="role-hide-site">
               <SegmentedControl
                 ariaLabel="집계 범위"
                 options={SCOPE_OPTIONS}
@@ -127,6 +168,67 @@ export function ReportsView() {
           accent={totals.noDischarge > 0 ? statusInk(STATUS_VISUAL.caution) : undefined}
         />
       </div>
+
+      {/*
+       * **같은 표를 시계열 변화 화면과 공유한다** `[사용자 요청 2026-08-21]`. 각자 만들면
+       * 같은 사업장의 같은 구간이 두 화면에서 다른 값으로 보인다 — 결측을 세는 규칙 하나만
+       * 갈려도 그렇게 된다(E1).
+       *
+       * 수질 8종만 낸다 — 설비 계열(전류·전력·유량)은 배출 리포트의 축이 아니다.
+       */}
+      <BucketReportPanel
+        points={points}
+        codes={WATER_SERIES_CODES}
+        hours={hours}
+        unit={bucket}
+        stat={stat}
+        onUnitChange={setBucket}
+        onStatChange={setStat}
+        siteName={getSite(siteId).name}
+        baseIso={DEMO_NOW_ISO}
+      />
+
+      {/*
+       * **센서 값 리포트.** 회의가 요구한 것이다 — 이상 점수만이 아니라 센싱된 데이터의
+       * 기간 통계가 필요하다 `[회의 2026-08-20]`. 위 집계표는 사업장을 비교하고 이 표는
+       * 한 사업장의 항목을 훑는다 — 축이 달라 합치지 않는다.
+       */}
+      <Panel
+        eyebrow={`${getSite(siteId).name} · 최근 ${hours}시간`}
+        title="센서 값 기간 통계"
+        action={
+          <button
+            type="button"
+            onClick={downloadSensors}
+            className="flex cursor-pointer items-center gap-1.5 rounded-[4px] border border-border bg-surface px-2.5 py-1.5 text-[11px] text-fg-muted transition-colors duration-200 hover:border-border-strong hover:bg-surface-2 hover:text-fg"
+          >
+            <Download size={12} strokeWidth={2} />
+            CSV 내보내기
+          </button>
+        }
+        bodyClassName="p-0"
+      >
+        <SensorTable rows={sensors} />
+        <p className="border-t border-border px-4 py-2 text-[11px] leading-relaxed text-fg-subtle">
+          결측은 평균에서 빼고 건수로만 셉니다 — 0으로 채우면 값 자체가 거짓이 됩니다. 기준
+          판정은 <strong className="text-fg-muted">최신값</strong> 기준입니다(평균으로 하면
+          한때의 초과가 묻힙니다). {limits.unresolvedReason ?? '기준치가 설정되어 초과를 판정합니다.'}
+        </p>
+      </Panel>
+
+      {/*
+       * **TOC·TN·TP는 농도를 싣지 않는다.** 소프트 센싱으로는 절대값의 정확도를 맞추기
+       * 어렵다는 판단이라 오염도 추정 화면도 기준 대비만 낸다 `[회의 2026-08-20]` —
+       * 리포트가 숫자를 다시 적으면 그 판단이 화면 하나에서만 지켜진다.
+       */}
+      <Panel
+        eyebrow="기준 대비 높낮이"
+        title="오염도 판정"
+        action={<span className="text-[12px] text-fg-subtle">농도는 적지 않는다</span>}
+        bodyClassName="p-0"
+      >
+        <EstimateTable rows={estimates} />
+      </Panel>
 
       <Panel eyebrow="원문 미정 항목" title="이 리포트가 정하지 않은 것">
         <p className="max-w-[86ch] text-[12px] leading-relaxed text-fg-muted">
@@ -231,6 +333,109 @@ function ReportTable({ rows }: { rows: SiteReportRow[] }) {
               </tr>
             );
           })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+/**
+ * 센서별 기간 통계.
+ *
+ * 결측이 있는 항목은 **건수를 함께** 적는다 — 평균만 보이면 몇 개를 빼고 낸 평균인지 알 수 없다.
+ */
+function SensorTable({ rows }: { rows: SensorReportRow[] }) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[680px] border-collapse text-[12px]">
+        <thead>
+          <tr className="border-b border-border text-[11px] text-fg-subtle">
+            <th className="px-4 py-2 text-left font-normal">항목</th>
+            <th className="px-3 py-2 text-left font-normal">단위</th>
+            <th className="px-3 py-2 text-right font-normal">최소</th>
+            <th className="px-3 py-2 text-right font-normal">평균</th>
+            <th className="px-3 py-2 text-right font-normal">최대</th>
+            <th className="px-3 py-2 text-right font-normal">최신</th>
+            <th className="px-3 py-2 text-right font-normal">결측</th>
+            <th className="px-4 py-2 text-left font-normal">기준</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr key={row.code} className="border-b border-border last:border-0">
+              <td className="px-4 py-2">
+                <span className="font-semibold text-fg">{row.symbol}</span>
+                <span className="ml-1.5 text-[11px] text-fg-subtle">{row.label}</span>
+              </td>
+              <td className="px-3 py-2 text-fg-subtle">{row.unit || '—'}</td>
+              <td className="num px-3 py-2 text-right text-fg-muted">
+                {formatValue(row.code, row.stats.min)}
+              </td>
+              <td className="num px-3 py-2 text-right text-fg">
+                {formatValue(row.code, row.stats.avg)}
+              </td>
+              <td className="num px-3 py-2 text-right text-fg-muted">
+                {formatValue(row.code, row.stats.max)}
+              </td>
+              <td className="num px-3 py-2 text-right text-fg">
+                {formatValue(row.code, row.stats.latest)}
+              </td>
+              <td className="num px-3 py-2 text-right text-fg-subtle">
+                {row.stats.missingCount}/{row.stats.totalCount}
+              </td>
+              <td className="px-4 py-2">
+                {/* 기준이 없으면 `미판정`이다. `정상`으로 적으면 없는 판정을 만든다(E4) */}
+                <span
+                  style={{
+                    color: row.over ? statusInk(STATUS_VISUAL.critical) : undefined,
+                  }}
+                  className={row.over === null ? 'text-fg-subtle' : undefined}
+                >
+                  {limitVerdictLabel(row.over)}
+                </span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+/** TOC·TN·TP의 기준 대비. 값이 아니라 판정만 싣는다 */
+function EstimateTable({ rows }: { rows: EstimateReportRow[] }) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[420px] border-collapse text-[12px]">
+        <thead>
+          <tr className="border-b border-border text-[11px] text-fg-subtle">
+            <th className="px-4 py-2 text-left font-normal">항목</th>
+            <th className="px-3 py-2 text-left font-normal">값의 출처</th>
+            <th className="px-3 py-2 text-left font-normal">판정</th>
+            <th className="px-4 py-2 text-left font-normal">경향</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr key={row.code} className="border-b border-border last:border-0">
+              <td className="px-4 py-2">
+                <span className="font-semibold text-fg">{row.code}</span>
+                <span className="ml-1.5 text-[11px] text-fg-subtle">{row.label}</span>
+              </td>
+              <td className="px-3 py-2 text-fg-subtle">{SERIES_ORIGIN_LABELS[row.origin]}</td>
+              <td className="px-3 py-2">
+                <span className="text-fg" style={{ color: row.verdict.ink }}>
+                  {row.verdict.text}
+                </span>
+                {/* 무엇을 근거로 한 판정인지 적는다 — 기준 판정과 관측 판정이 한 열에 섞인다 */}
+                <span className="ml-1.5 text-[11px] text-fg-subtle">{row.verdict.basis}</span>
+              </td>
+              <td className="px-4 py-2">
+                {/* 표에서는 배경 없는 변형을 쓴다 — 행마다 칩이 들어가면 표가 시끄러워진다 */}
+                <TrendChip trend={row.trend} bare />
+              </td>
+            </tr>
+          ))}
         </tbody>
       </table>
     </div>

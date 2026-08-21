@@ -1,19 +1,31 @@
 import { DEMO_NOW_ISO } from '@/shared/config/demo';
 import { getScenario, siteSeed } from '@/shared/config/demo-scenario';
-import { PROVISIONAL_DOSING_UNIT } from '@/shared/config/provisional';
-import { clamp, createRng, roundTo } from '@/shared/lib/prng';
+import { MEASUREMENT_ITEMS } from '@/shared/config/measurement';
+import { PROVISIONAL_DOSING_UNIT, toOperatingDelta } from '@/shared/config/provisional';
+import { createRng, roundTo } from '@/shared/lib/prng';
 import {
   CHEMICAL_SAVING_RANGE,
   DOSING_DECIMALS,
   ENERGY_SAVING_TARGET,
+  OPERATING_WINDOW,
   OPTIMIZATION_MODEL_LABEL,
 } from '../config/constants';
-import type { DosingAdvice, OperatingAdvice, OptimizationSummary } from '../model/types';
+import type {
+  DosingAdvice,
+  OperatingAdvice,
+  OperatingSignal,
+  OperatingSignals,
+  OptimizationSummary,
+} from '../model/types';
 
 /** 시연용 기준 주입량. 단위와 마찬가지로 원문에 없다(PROVISIONAL) */
 const BASE_DOSE = 38;
 
 const INPUT_WINDOW_LABEL = '최근 24시간 운전·계측 데이터';
+
+/** 신호가 없는 상태. 계측을 넘기지 않은 화면이 이 값을 받는다 */
+const EMPTY_SIGNAL: OperatingSignal = { recent: null, baseline: null, ratio: null };
+const NO_SIGNALS: OperatingSignals = { dissolvedOxygen: EMPTY_SIGNAL, flow: EMPTY_SIGNAL };
 
 /**
  * 이상 상황이 심한 사업장일수록 약품을 더 붓고 있다고 본다.
@@ -37,37 +49,81 @@ function buildDosing(intensity: number, rng: () => number): DosingAdvice {
 }
 
 /**
- * 절대 단위(폭기량 m³/min, 펌프 회전수 rpm 등)가 원문에 없다.
- * 값을 지어내지 않고 **현재 대비 상대 변화**만 낸다 — 방향과 크기만으로도
- * 운전자가 판단할 수 있고, 단위가 확정되면 그때 절대값을 붙이면 된다.
+ * 운전 조건 제안 — **계측이 방향과 근거를 준다** `[사용자 결정 2026-08-21]`.
+ *
+ * 절대 단위(폭기량 m³/min, 펌프 회전수 rpm 등)가 원문에 없어 **현재 대비 상대 변화**만 낸다.
+ *
+ * 방향은 원문의 인과에서 온다.
+ * - 폭기량 — `폭기량 감소 → DO 저하 → 질산화 저해 → TN 증가` `[원문 p.24·62]`. DO가 내려가는
+ *   중이면 폭기량을 올린다(부호 `-1`).
+ * - 펌프 속도 — 유입 유량이 줄었는데 정격으로 돌 이유가 없다(부호 `+1`).
+ * - 주입 속도 — 우리가 권한 주입량을 따라간다. 공식은 아직 없다 `[TBD-51]`.
+ *
+ * 크기는 `PROVISIONAL_OPERATING_GAIN`이 정한다 — 원문이 "몇 %"를 주지 않는다.
+ *
+ * **신호가 없으면 그 행을 만들지 않는다.** 통신이 두절되거나 그 항목이 전부 결측이면 조정을
+ * 권할 근거가 없다 — `0%`를 내면 "조정할 필요가 없다고 판단했다"는 사실 주장이 된다(E4).
  */
-function buildOperating(intensity: number, rng: () => number): OperatingAdvice[] {
-  const aeration = Math.round(clamp(4 + intensity * 9 + rng() * 3, 2, 18));
-  const pump = -Math.round(clamp(2 + rng() * 6, 1, 10));
+function buildOperating(signals: OperatingSignals, dosing: DosingAdvice): OperatingAdvice[] {
+  const advices: OperatingAdvice[] = [];
+  const { dissolvedOxygen, flow } = signals;
 
-  return [
-    {
+  const show = (signal: OperatingSignal, code: 'DO' | 'flow') => {
+    const item = MEASUREMENT_ITEMS[code];
+    const fmt = (v: number | null) => (v === null ? '—' : v.toFixed(item.decimals));
+    return `${item.label} ${fmt(signal.baseline)} → ${fmt(signal.recent)} ${item.unit}`;
+  };
+
+  /* DO가 내려가면 폭기량을 올린다 — 부호가 원문 인과다 */
+  const aeration = toOperatingDelta(dissolvedOxygen.ratio, -1);
+  if (aeration !== null) {
+    advices.push({
       id: 'aeration',
       parameter: '폭기량',
       target: '폭기 블로워',
       deltaPercent: aeration,
-      reason: 'DO 하한 여유가 좁아 응집·질산화 효율이 떨어지는 구간이 있다',
-    },
-    {
+      observed: `${show(dissolvedOxygen, 'DO')} (최근 ${OPERATING_WINDOW.recentHours}시간 vs 직전 ${OPERATING_WINDOW.baselineHours}시간)`,
+      reason:
+        aeration > 0
+          ? '폭기 감소는 질산화를 저해해 TN을 올린다 [원문 p.24·62]'
+          : 'DO 여유가 늘어 폭기에 쓰는 전력을 줄일 수 있다 [원문 p.67 에너지 효율]',
+    });
+  }
+
+  /* 유입 유량이 줄면 펌프 속도도 줄인다 */
+  const pump = toOperatingDelta(flow.ratio, 1);
+  if (pump !== null) {
+    advices.push({
       id: 'inlet-pump',
       parameter: '펌프 속도',
       target: '유입 펌프',
       deltaPercent: pump,
-      reason: '유입 부하가 낮은 시간대에 정격으로 돌고 있다',
-    },
-    {
+      observed: `${show(flow, 'flow')} (같은 창)`,
+      reason:
+        pump > 0
+          ? '유입 부하가 늘었다 — 정격을 넘기지 않는 범위에서 올린다 [설계]'
+          : '유입 부하가 낮은데 정격으로 돌고 있다 [설계]',
+    });
+  }
+
+  /*
+   * 주입 속도는 **우리가 권한 주입량을 따라간다.** 계측에서 직접 내지 않는 이유는 산정 공식이
+   * 아직 없기 때문이다 `[TBD-51]` — 회의가 "약품 탱크에 유량계가 붙어 있다"고 확인해 줬으나
+   * 그 값으로 주입량을 계산하는 식은 받지 못했다.
+   */
+  if (dosing.savingRate > 0) {
+    advices.push({
       id: 'dosing-pump',
       parameter: '주입 속도',
       target: '약품주입 펌프',
-      deltaPercent: -Math.round(clamp(6 + intensity * 8, 4, 20)),
-      reason: '권장 주입량에 맞춰 속도를 낮춘다',
-    },
-  ];
+      /* 상한을 걸지 않는다 — 우리 배율이 아니라 원문 절감률 20~30%를 따라간다 `[원문 p.27·31]` */
+      deltaPercent: -Math.round(dosing.savingRate),
+      observed: `권장 주입량 ${dosing.recommendedDose} ${dosing.unit} · 현재 ${dosing.currentDose} ${dosing.unit}`,
+      reason: '권장 주입량에 맞춘다 — 산정 공식은 미확보 [TBD-51]',
+    });
+  }
+
+  return advices;
 }
 
 /**
@@ -75,7 +131,18 @@ function buildOperating(intensity: number, rng: () => number): OperatingAdvice[]
  * 그것은 measurement slice의 몫이고 slice끼리는 참조하지 않는다(FSD §8).
  * 화면이 계산한 값을 넣어 주면 목표값을 붙여 돌려준다.
  */
-export function getOptimization(siteId: string, energyNow: number | null): OptimizationSummary {
+export function getOptimization(
+  siteId: string,
+  energyNow: number | null,
+  /**
+   * 운전 조건 제안이 볼 계측 신호. **넘기지 않으면 운전 조건을 만들지 않는다.**
+   *
+   * 비용 절감 현황·관리자 요약은 약품·에너지만 쓴다 — 그 화면들에 계측 신호 계산을 강제하면
+   * 쓰지도 않을 값을 만들게 된다. 신호가 없다는 것은 **방향을 낼 근거가 없다**는 뜻이라
+   * 빈 목록이 정확한 답이다(E4).
+   */
+  signals: OperatingSignals = NO_SIGNALS,
+): OptimizationSummary {
   const scenario = getScenario(siteId);
   const intensity = scenario.eventRise / 74;
 
@@ -97,6 +164,7 @@ export function getOptimization(siteId: string, energyNow: number | null): Optim
   }
 
   const rng = createRng(siteSeed(siteId, 31337));
+  const dosing = buildDosing(intensity, rng);
 
   return {
     online: true,
@@ -104,7 +172,8 @@ export function getOptimization(siteId: string, energyNow: number | null): Optim
     inputWindowLabel: INPUT_WINDOW_LABEL,
     modelLabel: OPTIMIZATION_MODEL_LABEL,
     energy,
-    dosing: buildDosing(intensity, rng),
-    operating: buildOperating(intensity, rng),
+    dosing,
+    /* 주입 속도 제안이 주입량 권고를 따라가므로 같은 값을 넘긴다 */
+    operating: buildOperating(signals, dosing),
   };
 }

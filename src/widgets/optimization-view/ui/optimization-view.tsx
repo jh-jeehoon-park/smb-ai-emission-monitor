@@ -6,14 +6,14 @@ import { DISPLAY_TIMEZONE, formatDateTime } from '@/shared/lib/format';
 import { cn } from '@/shared/lib/cn';
 import { Panel } from '@/shared/ui/panel';
 import { StatTile } from '@/shared/ui/stat-tile';
-import { energyIntensity, getMeasurementSeries } from '@/entities/measurement';
+import { energyIntensity, getMeasurementSeries, windowChange } from '@/entities/measurement';
 import {
   CHEMICAL_SAVING_RANGE,
-  COST_EXAMPLE_KRW,
   DOSING_DECIMALS,
   ENERGY_DECIMALS,
   ENERGY_SAVING_TARGET,
   OPEX_SAVING_TARGET,
+  OPERATING_WINDOW,
   OPTIMIZATION_INPUT_LABEL,
   getOptimization,
   type DosingAdvice,
@@ -22,7 +22,6 @@ import {
 import { getSite } from '@/entities/site';
 import { useSelectedSiteId } from '@/features/site-selection';
 
-const KRW = new Intl.NumberFormat('ko-KR');
 
 export function OptimizationView() {
   const { siteId } = useSelectedSiteId();
@@ -33,8 +32,18 @@ export function OptimizationView() {
    * slice끼리 참조하지 않으므로(FSD §8) 두 도메인을 잇는 일은 위젯이 한다.
    */
   const summary = useMemo(() => {
-    const energyNow = energyIntensity(getMeasurementSeries(siteId));
-    return getOptimization(siteId, energyNow);
+    const series = getMeasurementSeries(siteId);
+    const energyNow = energyIntensity(series);
+    /*
+     * 운전 조건의 방향·근거도 계측에서 온다 `[사용자 결정 2026-08-21]`. 예전에는 조정폭이
+     * 난수였고 조정 이유가 사업장·시각과 무관한 고정 문장이라 계측을 본 판단처럼 읽혔다.
+     */
+    const { recentHours, baselineHours } = OPERATING_WINDOW;
+    const signals = {
+      dissolvedOxygen: windowChange(series, 'DO', recentHours, baselineHours),
+      flow: windowChange(series, 'flow', recentHours, baselineHours),
+    };
+    return getOptimization(siteId, energyNow, signals);
   }, [siteId]);
 
   if (!summary.online) {
@@ -54,8 +63,6 @@ export function OptimizationView() {
   }
 
   const { dosing } = summary;
-  const savedChemical = Math.round((COST_EXAMPLE_KRW.annualChemical * dosing.savingRate) / 100);
-  const savedPower = Math.round((COST_EXAMPLE_KRW.annualPower * ENERGY_SAVING_TARGET) / 100);
 
   return (
     <div className="space-y-3">
@@ -114,38 +121,36 @@ export function OptimizationView() {
         eyebrow={`${summary.operating.length}개 운영 변수`}
         title="설비 운전 조건 제안"
         action={
-          <span className="text-[12px] text-fg-subtle">
-            절대 단위가 원문에 없어 상대 변화로 표기
+          <span className="max-w-[42ch] text-[12px] text-fg-subtle">
+            계측에서 방향을 내고 절대 단위는 원문에 없어 상대 변화로 표기
           </span>
         }
         bodyClassName="p-0"
       >
-        <ul className="divide-y divide-border">
-          {summary.operating.map((advice) => (
-            <li key={advice.id}>
-              <OperatingRow advice={advice} />
-            </li>
-          ))}
-        </ul>
+        {summary.operating.length === 0 ? (
+          /* 신호가 없으면 제안을 만들지 않는다 — 무엇이 없어서인지를 적는다(R19·E4) */
+          <p className="px-4 py-3 text-[12px] leading-relaxed text-fg-subtle">
+            최근 {OPERATING_WINDOW.recentHours}시간의 DO·유량 변화가 조정 문턱 아래이거나 표본이
+            없어 조정을 권하지 않습니다. 값을 지어내 `0%`로 적으면 &ldquo;조정할 필요가 없다고
+            판단했다&rdquo;는 말이 됩니다.
+          </p>
+        ) : (
+          <ul className="divide-y divide-border">
+            {summary.operating.map((advice) => (
+              <li key={advice.id}>
+                <OperatingRow advice={advice} />
+              </li>
+            ))}
+          </ul>
+        )}
       </Panel>
 
-      <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-        <Panel eyebrow="사업계획서 p.32·p.34 예시 기준" title="예상 비용 절감액">
-          <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-[12px]">
-            <CostRow
-              label="연 약품비"
-              base={COST_EXAMPLE_KRW.annualChemical}
-              saved={savedChemical}
-            />
-            <CostRow label="연 전력비" base={COST_EXAMPLE_KRW.annualPower} saved={savedPower} />
-          </dl>
-          <p className="mt-3 max-w-[70ch] border-t border-border pt-2.5 text-[12px] leading-relaxed text-fg-subtle">
-            <strong className="text-fg-muted">이 사업장의 실제 비용이 아닙니다.</strong> 원문이 든
-            예시 금액(연 약품비 1,000만 원 · 연 전력비 500만 원)에 위 절감률을 적용한 값입니다.
-            사업장별 약품 단가와 계약 전력이 원문에 없어 금액을 사업장마다 만들지 않았습니다.
-          </p>
-        </Panel>
-
+      {/*
+       * **예상 비용 절감액 패널을 없앴다** `[회의 2026-08-20]`. 사업장별 약품 단가·계약 전력
+       * 단가가 원문에 없어(`[TBD-41]`) 금액이 전부 원문 예시값이었고, 회의가 그 검증 불가를
+       * 이유로 절감액 표시를 내리게 했다. **절감률 %는 남는다** — 원문 성과지표다.
+       */}
+      <div className="grid gap-3">
         <Panel eyebrow="E3 · 산출 근거" title="이 값이 나온 배경">
           <dl className="grid grid-cols-1 gap-y-2 text-[11px] sm:grid-cols-2 sm:gap-x-6">
             <Meta label="산출 모델" value={`${summary.modelLabel} (다중 에이전트 강화학습)`} />
@@ -320,6 +325,10 @@ function OperatingRow({ advice }: { advice: OperatingAdvice }) {
           {advice.parameter}
           <span className="ml-2 text-[11px] text-fg-subtle">{advice.target}</span>
         </span>
+        {/* 관측값을 먼저 적는다 — 계측을 근거로 말하려면 그 값이 화면에 있어야 한다(E3) */}
+        <span className="num mt-0.5 block text-[11px] leading-relaxed text-fg-muted">
+          {advice.observed}
+        </span>
         <span className="mt-0.5 block text-[11px] leading-relaxed text-fg-subtle">
           {advice.reason}
         </span>
@@ -349,19 +358,6 @@ function OperatingRow({ advice }: { advice: OperatingAdvice }) {
         {up ? '+' : ''}
         {advice.deltaPercent}%
       </span>
-    </div>
-  );
-}
-
-function CostRow({ label, base, saved }: { label: string; base: number; saved: number }) {
-  return (
-    <div>
-      <dt className="text-[11px] text-fg-subtle">{label}</dt>
-      <dd className="num mt-1 text-[19px] font-semibold leading-none text-fg">
-        −{KRW.format(saved)}
-        <span className="ml-1 text-[11px] font-normal text-fg-subtle">원/년</span>
-      </dd>
-      <dd className="num mt-1 text-[11px] text-fg-subtle">기준 {KRW.format(base)}원/년</dd>
     </div>
   );
 }

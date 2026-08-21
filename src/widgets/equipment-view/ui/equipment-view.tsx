@@ -2,13 +2,15 @@
 
 import { useMemo, useState } from 'react';
 import { DEMO_NOW_ISO } from '@/shared/config/demo';
-import { STATUS_VISUAL, statusInk } from '@/shared/config/status-visual';
+import { OPERATING_FILL } from '@/shared/config/operating-visual';
+import { STATUS_VISUAL } from '@/shared/config/status-visual';
 import { useQueryState } from '@/shared/lib/use-query-state';
 import { Panel } from '@/shared/ui/panel';
 import { SegmentedControl } from '@/shared/ui/segmented-control';
 import { StatusBadge } from '@/shared/ui/status-badge';
-import { getAlarmsForView } from '@/entities/alarm';
+
 import {
+  EQUIPMENT_SIGNAL_LABELS,
   EQUIPMENT_SORT_KEYS,
   EQUIPMENT_SORT_OPTIONS,
   STATUS_TIMELINE_HOURS,
@@ -18,6 +20,7 @@ import {
   type EquipmentSortKey,
 } from '@/entities/equipment';
 import { SITES, getSite } from '@/entities/site';
+import { allAlarmsForSite } from '@/features/alarm-ack';
 import { useSelectedSiteId } from '@/features/site-selection';
 import { AlarmList } from '@/widgets/alarm-list';
 import { EquipmentPanel } from '@/widgets/equipment-panel';
@@ -27,7 +30,7 @@ import { cn } from '@/shared/lib/cn';
 import { CROSS_SITE_RANK_LIMIT, SORT_QUERY_KEY } from '../config/constants';
 import { rankAcrossSites } from '../lib/rank-across-sites';
 
-const DEFAULT_SORT: EquipmentSortKey = 'mpi';
+const DEFAULT_SORT: EquipmentSortKey = 'status';
 const OFFLINE_SITE_COUNT = SITES.filter((site) => !site.online).length;
 
 export function EquipmentView() {
@@ -40,7 +43,8 @@ export function EquipmentView() {
   const view = useMemo(
     () => ({
       items: sortEquipment(getEquipment(siteId), sortBy),
-      alarms: getAlarmsForView(siteId).filter((a) => a.condition === 'equipment'),
+      /* 설비 상태에서 만든 알람이 여기 들어온다 — 손으로 쓴 목록에는 두 사업장만 있었다 */
+      alarms: allAlarmsForSite(siteId).filter((a) => a.condition === 'equipment'),
     }),
     [siteId, sortBy],
   );
@@ -48,7 +52,7 @@ export function EquipmentView() {
   return (
     <div className="space-y-3">
       <Panel
-        eyebrow={`RandomForest · 예지보전 · ${site.name}`}
+        eyebrow={`설비 이상 탐지 · ${site.name}`}
         title="설비 상태 요약"
         action={
           <SegmentedControl
@@ -62,7 +66,6 @@ export function EquipmentView() {
         <EquipmentPanel items={view.items} online={site.online} onSelect={(eq) => setOpenId(eq.id)} />
 
         <EquipmentDetailModal
-          siteId={siteId}
           equipment={view.items.find((eq) => eq.id === openId) ?? null}
           alarms={view.alarms}
           onClose={() => setOpenId(null)}
@@ -88,7 +91,9 @@ export function EquipmentView() {
           eyebrow={site.online ? `${view.items.length}대` : '수신 없음'}
           title="설비 상세"
           action={
-            <span className="text-[12px] text-fg-subtle">MPI 산정식은 원문에 없다(TBD-22)</span>
+            <span className="text-[12px] text-fg-subtle">
+              진동 센서 사양은 원문에 없다(TBD-49)
+            </span>
           }
           bodyClassName="p-0"
         >
@@ -113,13 +118,13 @@ export function EquipmentView() {
       {/* 정비 인력이 사업장을 가로지른다는 전제의 블록이다. 자사 1개소에는 해당하지 않고,
           상단 설비 표와 같은 설비가 그대로 다시 나와 중복이 된다 */}
       <Panel
-        className="role-hide-admin"
+        className="role-hide-site"
         eyebrow={`실증 ${SITES.length}개소 전체`}
-        title="유지관리 우선순위 추천"
+        title="이상 발생 설비 순위"
         action={
           <span className="text-[12px] text-fg-subtle">
             {OFFLINE_SITE_COUNT > 0
-              ? `통신 두절 ${OFFLINE_SITE_COUNT}개소는 현재 지표가 없어 제외`
+              ? `통신 두절 ${OFFLINE_SITE_COUNT}개소는 수신값이 없어 제외`
               : '정비 인력은 사업장을 가로질러 움직인다'}
           </span>
         }
@@ -163,14 +168,13 @@ function CrossSiteRanking({ selectedSiteId }: { selectedSiteId: string }) {
             {/* 수치는 한 덩어리로 묶어 좁은 화면에서 통째로 다음 줄로 내려가게 한다 */}
             <span className="flex shrink-0 items-center gap-3">
               <StatusBadge level={row.equipment.status} size="sm" />
-              <span className="num w-[76px] text-right text-[11px] text-fg-muted">
-                고장 {row.equipment.failureProbability}%
+              <span className="w-[112px] text-right text-[11px] text-fg-muted">
+                {row.equipment.signals.length === 0
+                  ? '이상 없음'
+                  : row.equipment.signals.map((sig) => EQUIPMENT_SIGNAL_LABELS[sig]).join(' · ')}
               </span>
               <span className="num w-[56px] text-right text-[11px] text-fg-muted">
-                {row.equipment.remainingUsefulLifeDays}일
-              </span>
-              <span className="num w-[44px] text-right text-[13px] text-fg">
-                {row.equipment.maintenancePriorityIndex}
+                {row.equipment.anomalyHours === null ? '—' : `${row.equipment.anomalyHours}시간`}
               </span>
             </span>
           </li>
@@ -188,45 +192,39 @@ function EquipmentTable({ items }: { items: Equipment[] }) {
           <tr className="border-b border-border text-[11px] text-fg-subtle">
             <th className="px-4 py-2 text-left font-normal">설비</th>
             <th className="px-3 py-2 text-left font-normal">상태</th>
-            <th className="px-3 py-2 text-right font-normal">고장 확률</th>
-            <th className="px-3 py-2 text-right font-normal">잔여 수명</th>
-            <th className="px-3 py-2 text-right font-normal">MPI</th>
+            <th className="px-3 py-2 text-left font-normal">가동</th>
+            <th className="px-3 py-2 text-left font-normal">이상 신호</th>
+            <th className="px-3 py-2 text-right font-normal">이상 지속</th>
             <th className="px-4 py-2 text-right font-normal">누적 가동</th>
           </tr>
         </thead>
         <tbody>
           {items.map((eq) => {
-            const visual = STATUS_VISUAL[eq.status];
+            const state = eq.running === null ? 'unknown' : eq.running ? 'on' : 'off';
             return (
               <tr key={eq.id} className="border-b border-border last:border-0">
                 <td className="px-4 py-2.5 text-fg">{eq.name}</td>
                 <td className="px-3 py-2.5">
                   <StatusBadge level={eq.status} size="sm" />
                 </td>
-                <td className="px-3 py-2.5 text-right">
-                  <span className="num" style={{ color: statusInk(visual) }}>
-                    {eq.failureProbability}%
-                  </span>
-                  {/* 숫자만으로는 4대의 차이가 눈에 안 들어온다. 같은 축의 막대를 곁들인다 */}
-                  <span
-                    aria-hidden
-                    className="ml-2 inline-block h-[3px] w-14 overflow-hidden rounded-full bg-surface-3 align-middle"
-                  >
+                <td className="px-3 py-2.5">
+                  <span className="flex items-center gap-1.5 text-fg-muted">
+                    {/* 색이 뜻을 갖는 축이라 점을 곁들인다. 등급 색이 아니라 가동 색이다 */}
                     <span
-                      className="block h-full rounded-full"
-                      style={{
-                        width: `${eq.failureProbability}%`,
-                        backgroundColor: visual.hex,
-                        opacity: 0.8,
-                      }}
+                      aria-hidden
+                      className="size-1.5 shrink-0 rounded-full"
+                      style={{ backgroundColor: OPERATING_FILL[state] }}
                     />
+                    {RUN_LABEL[state]}
                   </span>
+                </td>
+                <td className="px-3 py-2.5 text-fg-muted">
+                  {eq.signals.length === 0
+                    ? '없음'
+                    : eq.signals.map((sig) => EQUIPMENT_SIGNAL_LABELS[sig]).join(' · ')}
                 </td>
                 <td className="num px-3 py-2.5 text-right text-fg-muted">
-                  {eq.remainingUsefulLifeDays}일
-                </td>
-                <td className="num px-3 py-2.5 text-right text-fg">
-                  {eq.maintenancePriorityIndex}
+                  {eq.anomalyHours === null ? '—' : `${eq.anomalyHours}시간`}
                 </td>
                 <td className="num px-4 py-2.5 text-right text-fg-subtle">
                   {eq.runtimeHours.toLocaleString('ko-KR')}h
@@ -239,3 +237,5 @@ function EquipmentTable({ items }: { items: Equipment[] }) {
     </div>
   );
 }
+
+const RUN_LABEL = { on: '가동', off: '정지', unknown: '모름' } as const;

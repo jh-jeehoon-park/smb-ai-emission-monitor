@@ -8,14 +8,13 @@ import { STATUS_VISUAL } from '@/shared/config/status-visual';
 import { cn } from '@/shared/lib/cn';
 import { formatRelative } from '@/shared/lib/format';
 import {
-  ALARMS,
   ALARM_PRIORITY_LABELS,
   openAlarms,
   type Alarm,
   type AlarmPriority,
 } from '@/entities/alarm';
 import { ADMIN_ACCOUNTS } from '@/entities/user';
-import { useAlarmStates } from '@/features/alarm-ack';
+import { ALL_ALARMS, useAlarmStates } from '@/features/alarm-ack';
 import { useSiteHref } from '@/features/site-selection';
 import { ALARM_NAV_HREF } from '../config/navigation';
 import { HEADER_ALARM_LIMIT } from '../config/constants';
@@ -26,14 +25,14 @@ import { HEADER_ALARM_LIMIT } from '../config/constants';
  * 알람을 보려면 알람 이력 화면으로 들어가야 했다 — 어느 화면에 있든 방금 무슨 일이
  * 있었는지 알 수 있어야 한다.
  *
- * **범위가 역할마다 다르다.** 운영자·게스트는 전 사업장, 관리자는 자사 1개소다.
+ * **범위가 역할마다 다르다.** 시스템 관리자·지자체는 전 사업장, 사업장은 자사 1개소다.
  * 서버는 역할을 모르므로(첫 페인트 전 `data-role`로만 들어온다) 렌더 중에 분기하면
  * hydration이 깨진다 — 세 벌을 모두 그리고 CSS가 고른다. 사이드바 배지와 같은 방식이다.
  */
 export function AlarmMenu() {
   const [open, setOpen] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
-  const { alarms, setState } = useAlarmStates(ALARMS);
+  const { alarms, setState } = useAlarmStates(ALL_ALARMS);
 
   useEffect(() => {
     if (!open) return;
@@ -67,7 +66,7 @@ export function AlarmMenu() {
       >
         <Bell aria-hidden size={13} strokeWidth={1.9} />
         {/* 역할마다 숫자가 다르다. 세 벌을 그리고 CSS가 고른다 */}
-        <CountBadge alarms={alarms} className="role-hide-admin" />
+        <CountBadge alarms={alarms} className="role-hide-site" />
         {ADMIN_ACCOUNTS.map((account, index) => (
           <CountBadge
             key={account.key}
@@ -83,7 +82,7 @@ export function AlarmMenu() {
           role="menu"
           className="absolute right-0 z-20 mt-1.5 w-[320px] rounded-[6px] border border-border bg-surface shadow-lg"
         >
-          <AlarmPanel alarms={alarms} onAcknowledge={acknowledge} className="role-hide-admin" />
+          <AlarmPanel alarms={alarms} onAcknowledge={acknowledge} className="role-hide-site" />
           {ADMIN_ACCOUNTS.map((account, index) => (
             <AlarmPanel
               key={account.key}

@@ -5,7 +5,15 @@ export {
   adminSiteId,
   normalizeAdminAccount,
 } from './config/accounts';
-export { ROLES, ROLE_PROFILES, SCREEN_ROLES, canRoleSee } from './config/constants';
+export {
+  ROLES,
+  ROLE_PROFILES,
+  ROLE_SWITCH_BLOCKED_REASON,
+  SCREEN_ROLES,
+  SWITCHABLE_ROLES,
+  canRoleSee,
+  scopeOf,
+} from './config/constants';
 export {
   ADMIN_STORAGE_KEY,
   AUTH_STORAGE_KEY,

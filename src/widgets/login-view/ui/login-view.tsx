@@ -8,7 +8,7 @@ import { BrandMark } from '@/shared/ui/brand-mark';
 import { Eyebrow } from '@/shared/ui/eyebrow';
 import { ThemeToggle } from '@/shared/ui/theme';
 import { RiseItem, StaggerGroup } from '@/shared/ui/motion';
-import { useRole } from '@/entities/user';
+import { DEFAULT_ROLE, ROLE_PROFILES, useRole } from '@/entities/user';
 import { BrandPanel } from './brand-panel';
 
 /**
@@ -63,8 +63,11 @@ export function LoginView() {
               </h2>
               <p className="mt-2 text-[12px] leading-relaxed text-fg-muted">
                 시연 계정이 입력되어 있습니다. 로그인하면{' '}
-                <strong className="font-semibold text-fg">운영자</strong>로 들어가며, 역할은 오른쪽
-                위 계정 메뉴에서 바꿉니다.
+                {/* 역할명을 박아 두지 않는다 — 기본 역할이 바뀌면 이 문구만 남아 어긋난다 */}
+                <strong className="font-semibold text-fg">
+                  {ROLE_PROFILES[DEFAULT_ROLE].label}
+                </strong>
+                로 들어가며, 역할은 오른쪽 위 계정 메뉴에서 바꿉니다.
               </p>
             </RiseItem>
 

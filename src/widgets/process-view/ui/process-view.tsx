@@ -9,7 +9,7 @@ import { ACTUAL_HEX, AI_HEX, MISSING_HEX } from '@/shared/config/status-visual';
 import { useQueryState } from '@/shared/lib/use-query-state';
 import { Panel } from '@/shared/ui/panel';
 import { RiseItem, StaggerGroup } from '@/shared/ui/motion';
-import { getEquipment } from '@/entities/equipment';
+import { EQUIPMENT_SIGNAL_LABELS, getEquipment } from '@/entities/equipment';
 import {
   ESTIMATED_ITEMS,
   OPTICAL_ITEMS,
@@ -18,10 +18,13 @@ import {
   STAGE_IDS,
   STAGE_QUERY_KEY,
   getOperatingState,
-  getProcessStages,
 } from '@/entities/process';
 import { getSite } from '@/entities/site';
+import { NO_STAGE_CODES_REASON, useProcess, type ResolvedStage } from '@/features/process-settings';
 import { useSelectedSiteId } from '@/features/site-selection';
+import { MEASUREMENT_ITEMS } from '@/shared/config/measurement';
+import { formatValue } from '@/shared/lib/format';
+import { stageReadings } from '../lib/stage-readings';
 import { ProcessDiagram } from './process-diagram';
 
 const GRADE_HEX: Record<MeasurementGrade, string> = {
@@ -40,16 +43,35 @@ const GRADE_HEX: Record<MeasurementGrade, string> = {
 export function ProcessView() {
   const { siteId } = useSelectedSiteId();
   const site = getSite(siteId);
-  const stages = getProcessStages();
+  /* 켠 단계만 온다. 무엇을 켤지는 사업장 설정이 정한다 `[회의 2026-08-20]` */
+  const { stages, disabled, isUserSet } = useProcess();
 
   const [stageId, setStageId] = useQueryState(STAGE_QUERY_KEY, STAGE_IDS, STAGE_IDS[0]!);
-  const selected = stages.find((s) => s.id === stageId) ?? stages[0]!;
+  /* 끈 단계가 URL에 남아 있을 수 있다 — 없는 단계를 고르면 첫 단계로 떨어진다 */
+  const selected = stages.find((s) => s.stage.id === stageId) ?? stages[0];
 
   const operating = useMemo(() => getOperatingState(siteId), [siteId]);
   const equipment = useMemo(() => getEquipment(siteId), [siteId]);
 
   // 설비는 equipment slice가 갖는다. 공정은 배치만 알고 둘을 잇는 일은 여기서 한다(FSD §8)
-  const stageEquipment = equipment.filter((e) => selected.equipmentIds.includes(e.id));
+  const stageEquipment = selected
+    ? equipment.filter((e) => selected.stage.equipmentIds.includes(e.id))
+    : [];
+
+  /*
+   * 단계를 전부 끄면 그릴 것이 없다. 빈 SVG를 두면 고장으로 읽히므로 왜 비었는지 적는다
+   * (R19) — 설정으로 되돌릴 수 있다는 것까지 말해야 막힌 화면이 되지 않는다.
+   */
+  if (!selected) {
+    return (
+      <Panel eyebrow={site.name} title="폐수처리 공정">
+        <p className="max-w-[64ch] py-8 text-center text-[12px] leading-relaxed text-fg-subtle">
+          활성화된 공정 단계가 없습니다. 사업장 설정 &gt; 공정 구성에서 이 사업장의 단계를
+          켜면 공정도를 그립니다 [회의 2026-08-20].
+        </p>
+      </Panel>
+    );
+  }
 
   return (
     <StaggerGroup className="space-y-3">
@@ -59,22 +81,34 @@ export function ProcessView() {
 
       <RiseItem>
         <Panel
-          eyebrow={`${site.name} · 표준 6단계`}
+          eyebrow={`${site.name} · ${isUserSet ? '사용자 설정' : '표준'} ${stages.length}단계`}
           title="폐수처리 공정"
           action={<GradeLegend />}
           bodyClassName="overflow-x-auto p-4"
         >
-          <ProcessDiagram stages={stages} selectedId={selected.id} onSelect={setStageId} />
+          <ProcessDiagram
+            stages={stages}
+            siteId={siteId}
+            selectedId={selected.stage.id}
+            onSelect={setStageId}
+          />
           <p className="mt-3 max-w-[92ch] border-t border-border pt-2.5 text-[12px] leading-relaxed text-fg-subtle">
-            공정 구성은 사업장이 달라도 같습니다. 사업장마다 조금씩 다르지만 원문·데이터에 단계
-            구성이 없습니다(TBD-44).
+            표준 공정은 5단계입니다 [회의 2026-08-20]. 사업장마다 공정이 달라 **최대 공정**을
+            두고 필요한 단계만 켭니다 — 사업장 설정 &gt; 공정 구성에서 바꿉니다.
+            {disabled.length > 0 && ` 지금 ${disabled.length}단계를 껐습니다.`} 단계별 계측
+            항목은 원문에 없어 설정으로 받습니다 [TBD-53].
           </p>
         </Panel>
       </RiseItem>
 
       <RiseItem>
         <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,380px)]">
-          <StageDetail stage={selected} equipment={stageEquipment} online={site.online} />
+          <StageDetail
+            resolved={selected}
+            readings={stageReadings(siteId, selected)}
+            equipment={stageEquipment}
+            online={site.online}
+          />
           <DischargePoint />
         </div>
       </RiseItem>
@@ -153,20 +187,53 @@ function GradeLegend() {
 }
 
 function StageDetail({
-  stage,
+  resolved,
+  readings,
   equipment,
   online,
 }: {
-  stage: ReturnType<typeof getProcessStages>[number];
+  resolved: ResolvedStage;
+  readings: ReturnType<typeof stageReadings>;
   equipment: ReturnType<typeof getEquipment>;
   online: boolean;
 }) {
+  const { stage } = resolved;
+
   return (
     <Panel
       eyebrow={`${stage.order}단계 · ${PROVISIONAL_MEASUREMENT_GRADE_LABELS[stage.grade]}`}
       title={stage.name}
     >
       <p className="text-[12px] text-fg-muted">{stage.units.join(' · ')}</p>
+
+      {/*
+       * **이 단계에서 재는 값.** 회의가 요구한 공정별 모니터링이다 `[회의 2026-08-20]`.
+       * 설정하지 않았으면 이유를 적는다 — 빈 칸은 "재지 않는 단계"로 읽힌다.
+       */}
+      <div className="mt-3 border-t border-border pt-2.5">
+        {readings.length === 0 ? (
+          <p className="text-[11px] leading-relaxed text-fg-subtle">{NO_STAGE_CODES_REASON}</p>
+        ) : (
+          <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[12px] sm:grid-cols-3">
+            {readings.map((reading) => (
+              <div key={reading.code}>
+                <dt className="text-[11px] text-fg-subtle">
+                  {MEASUREMENT_ITEMS[reading.code].symbol}
+                </dt>
+                <dd className="num mt-0.5 text-fg">
+                  {/* 결측을 0으로 채우지 않는다 — 그 지점이 0을 잰 것이 아니다(E4) */}
+                  {reading.latest === null ? '수신 없음' : formatValue(reading.code, reading.latest)}
+                  {reading.latest !== null && (
+                    <span className="ml-1 text-[10px] font-normal text-fg-subtle">
+                      {MEASUREMENT_ITEMS[reading.code].unit}
+                    </span>
+                  )}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        )}
+      </div>
 
       <p
         className="mt-3 border-t border-border pt-2.5 text-[12px] leading-relaxed"
@@ -180,8 +247,13 @@ function StageDetail({
           {equipment.map((item) => (
             <li key={item.id} className="flex items-baseline justify-between gap-3 text-[12px]">
               <span className="text-fg">{item.name}</span>
-              <span className="num text-fg-subtle">
-                {online ? `고장 확률 ${item.failureProbability}%` : '수신 없음'}
+              {/* 고장 확률이 있던 자리다. 회의가 예지보전을 내리게 해 이상 여부만 적는다 `[INC-107]` */}
+              <span className="text-fg-subtle">
+                {!online
+                  ? '수신 없음'
+                  : item.signals.length === 0
+                    ? '이상 없음'
+                    : item.signals.map((s) => EQUIPMENT_SIGNAL_LABELS[s]).join(' · ')}
               </span>
             </li>
           ))}

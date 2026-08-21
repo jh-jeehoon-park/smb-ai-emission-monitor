@@ -1,6 +1,7 @@
 /** slice Public API — 바깥에서는 이 파일만 import 한다(FSD §6) */
 export { getOperatingState, getProcessStages } from './api/fixtures';
 export {
+  ALL_PROCESS_STAGES,
   ESTIMATED_ITEMS,
   OPTICAL_ITEMS,
   PROBE_ITEMS,

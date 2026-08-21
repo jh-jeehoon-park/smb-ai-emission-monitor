@@ -14,6 +14,7 @@ export type MeasurementItemCode =
   | 'current'
   | 'power'
   | 'flow'
+  | 'vibration'
   | 'TN'
   | 'TP';
 
@@ -148,6 +149,26 @@ export const MEASUREMENT_ITEMS: Record<MeasurementItemCode, MeasurementItem> = {
     category: 'equipment',
     decimals: PROVISIONAL_DECIMALS.flow,
   },
+  /**
+   * 진동 — **설비 이상 탐지의 주 입력** `[회의 2026-08-20]`.
+   *
+   * 고장 확률·잔여 수명을 내는 예지보전은 어렵고, 현실적으로 가능한 것은 진동 센서로
+   * 이상을 탐지해 알리는 것과 가동 상태 확인이라는 판단이다(`[INC-107]`).
+   *
+   * **사양이 없다** `[TBD-49]`. 계측 사양표(p.55)에는 전류·전력·유량 3종만 있고 진동이 없다 —
+   * 목표시스템 그림과 출력 화면 예시에만 나온다(`[원문 발표 p.11·18 그림]`, `[INC-96]`).
+   * 단위·범위를 지어내지 않고 비워 둔다. 화면은 **이상 여부만** 보이고 값은 내지 않는다.
+   */
+  vibration: {
+    code: 'vibration',
+    label: '진동',
+    symbol: 'Vib',
+    unit: '',
+    range: [0, 0],
+    accuracy: '원문 미규정',
+    category: 'equipment',
+    decimals: PROVISIONAL_DECIMALS.vibration,
+  },
   // TN·TP는 직접 계측 센서 사양이 원문에 없다. AI 추정(Soft Sensing) 대상이다(발표자료 p.17).
   TN: {
     code: 'TN',
@@ -182,6 +203,13 @@ export const WATER_QUALITY_CODES: MeasurementItemCode[] = [
   'TOC',
 ];
 
+/**
+ * 설비 계열 3종. **진동을 넣지 않는다.**
+ *
+ * 이 배열은 *시계열로 그릴 수 있는* 설비 채널이다. 진동은 단위·범위가 없어(`[TBD-49]`)
+ * y축을 세울 수 없고, 지금 화면이 쓰는 것은 값이 아니라 **이상 여부**다. 넣으면 시계열
+ * 화면이 빈 계열을 하나 더 그린다 — 없는 데이터를 있는 것처럼 보이게 된다.
+ */
 export const EQUIPMENT_CODES: MeasurementItemCode[] = ['current', 'power', 'flow'];
 
 /**

@@ -1,4 +1,8 @@
-import { hasLimit, isOverLimit } from '@/shared/config/discharge-limits';
+import {
+  hasLimit,
+  isOverLimit,
+  type DischargeLimitTable,
+} from '@/shared/config/discharge-limits';
 import type { MeasurementPoint, SeriesCode } from '../model/types';
 
 /**
@@ -9,11 +13,15 @@ import type { MeasurementPoint, SeriesCode } from '../model/types';
  * 둔갑한다(E4 · `discharge-limits.ts`).
  *
  * 결측 표본은 세지 않는다 — 수신하지 못한 것이지 기준 안에 있었던 것이 아니다.
+ *
+ * `table`을 넘기면 사용자가 설정한 기준으로 센다. 안 넘기면 정적 표다 — 기본값이 있어
+ * 기존 호출은 그대로 돈다.
  */
 export function countOverLimit(
   points: readonly MeasurementPoint[],
   code: SeriesCode,
+  table?: DischargeLimitTable,
 ): number | null {
-  if (!hasLimit(code)) return null;
-  return points.filter((p) => isOverLimit(code, p[code]) === true).length;
+  if (!hasLimit(code, table)) return null;
+  return points.filter((p) => isOverLimit(code, p[code], table) === true).length;
 }

@@ -31,6 +31,7 @@ export function rankAcrossSites(limit: number): RankedEquipment[] {
     }
   }
 
-  const byMpi = compareEquipment('mpi');
-  return all.sort((a, b) => byMpi(a.equipment, b.equipment)).slice(0, limit);
+  /* 이상이 나쁜 순으로 줄을 세운다. MPI가 사라졌으므로 등급이 그 자리를 받는다 `[INC-107]` */
+  const bySeverity = compareEquipment('status');
+  return all.sort((a, b) => bySeverity(a.equipment, b.equipment)).slice(0, limit);
 }

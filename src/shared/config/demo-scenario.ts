@@ -252,7 +252,7 @@ export const SITE_SCENARIOS: SiteScenario[] = [
     eventRise: 2,
     online: true,
     outageStartOffset: null,
-    /** 지금 중단 2시간째. 관리자2의 사업장이라 관리자 화면에서도 이 상태가 보인다 */
+    /** 지금 중단 2시간째. 사업장2 계정의 사업장이라 자사 현황에서도 이 상태가 보인다 */
     dischargeGap: { startOffset: 24, hours: 2 },
     idleDischargeWindow: null,
     regionGrade: null,

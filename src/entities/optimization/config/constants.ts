@@ -41,6 +41,15 @@ export const TMS_AVOIDED_KRW_RANGE: readonly [number, number] = [150_000_000, 25
 /** 2년차 이후 연간 절감 합계 (p.40). 항목 합계와 맞지 않는다(INC-70) */
 export const ANNUAL_SAVING_KRW_RANGE: readonly [number, number] = [27_500_000, 33_500_000];
 
+/**
+ * 운전 조건 제안이 보는 창. **두 구간을 겹치지 않게 나눈다.**
+ *
+ * `[설계]` 원문이 창 길이를 주지 않는다. 최근 1시간은 12표본(5분 주기)이라 잡음 하나에
+ * 흔들리지 않을 만큼이고, 직전 5시간은 그날 운전 패턴이 보일 만큼이다. 입력 대상 기간
+ * 라벨(`최근 24시간`)과 다르며 화면이 창을 적는다(**E3**).
+ */
+export const OPERATING_WINDOW = { recentHours: 1, baselineHours: 5 } as const;
+
 export const OPTIMIZATION_MODEL_LABEL = 'XMARL-PPO';
 
 /**

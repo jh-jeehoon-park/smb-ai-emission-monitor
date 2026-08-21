@@ -7,7 +7,12 @@ import { DISPLAY_TIMEZONE, formatDateTime } from '@/shared/lib/format';
 import { Panel } from '@/shared/ui/panel';
 import { StatTile } from '@/shared/ui/stat-tile';
 import { countAnomalyAlarms } from '@/entities/alarm';
-import { getEquipment, sortEquipment, type Equipment } from '@/entities/equipment';
+import {
+  EQUIPMENT_SIGNAL_LABELS,
+  getEquipment,
+  sortEquipment,
+  type Equipment,
+} from '@/entities/equipment';
 import { energyIntensity, getMeasurementSeries } from '@/entities/measurement';
 import {
   ANNUAL_SAVING_KRW_RANGE,
@@ -32,8 +37,8 @@ const manwon = (krw: number) => formatKrw(krw, PROVISIONAL_DISPLAY_DECIMALS.savi
 const rate = (value: number) => `${value.toFixed(RATE_DECIMALS)}%`;
 
 /**
- * 관리자가 이 시스템에 돈을 내는 이유를 담는 화면이다. 운영자가 "어디가 이상한가"를
- * 묻는다면 관리자는 "얼마 아꼈나"를 묻는다(회의 2026-08-13).
+ * 사업장이 이 시스템에 돈을 내는 이유를 담는 화면이다. 통합 관제가 "어디가 이상한가"를
+ * 묻는다면 사업장은 "얼마 아꼈나"를 묻는다(회의 2026-08-13).
  *
  * **금액은 전부 원문 예시 사업장 기준이다.** 사업장별 약품 단가·계약 전력 단가가
  * 원문에 없어(TBD-41) 실금액을 만들 수 없다. 화면 위에 그 사실을 상시 노출한다.
@@ -48,7 +53,7 @@ export function CostSavingsView() {
   }, [siteId]);
 
   const detections = countAnomalyAlarms(siteId);
-  const equipment = useMemo(() => sortEquipment(getEquipment(siteId), 'rul'), [siteId]);
+  const equipment = useMemo(() => sortEquipment(getEquipment(siteId), 'status'), [siteId]);
 
   if (!summary.online) {
     return (
@@ -121,8 +126,8 @@ export function CostSavingsView() {
 
         <Panel
           eyebrow="펌프 · 폭기장치만 대상"
-          title="설비 교체 시점"
-          action={<span className="text-[12px] text-fg-subtle">잔여 수명 순</span>}
+          title="설비 이상 현황"
+          action={<span className="text-[12px] text-fg-subtle">상태 나쁜 순</span>}
         >
           <ReplacementList equipment={equipment} />
         </Panel>
@@ -291,6 +296,13 @@ function AvoidedIncidents({ detections }: { detections: number }) {
   );
 }
 
+/**
+ * **교체 시점을 내지 않는다** `[회의 2026-08-20]` `[INC-107]`.
+ *
+ * 예전에는 잔여 수명으로 "n일 후"를 적었는데, 예지보전으로 그 값을 내기 어렵다는 판단이라
+ * 값 자체가 사라졌다. 교체 계획은 이상 신호로 대신할 수 없다 — **비슷한 값으로 메우지 않고
+ * 무엇이 없는지 적는다.**
+ */
 function ReplacementList({ equipment }: { equipment: Equipment[] }) {
   return (
     <div className="space-y-2">
@@ -302,18 +314,23 @@ function ReplacementList({ equipment }: { equipment: Equipment[] }) {
           <div className="min-w-0">
             <p className="truncate text-[12px] text-fg">{item.name}</p>
             <p className="text-[11px] text-fg-subtle">
-              고장 확률 <span className="num">{item.failureProbability}</span>% · 누적 가동{' '}
-              <span className="num">{NUMBER.format(item.runtimeHours)}</span>시간
+              누적 가동 <span className="num">{NUMBER.format(item.runtimeHours)}</span>시간
             </p>
           </div>
-          <p className="num shrink-0 text-[13px] font-semibold" style={{ color: statusInk(STATUS_VISUAL[item.status]) }}>
-            {item.remainingUsefulLifeDays}일 후
+          <p
+            className="shrink-0 text-[12px] font-semibold"
+            style={{ color: statusInk(STATUS_VISUAL[item.status]) }}
+          >
+            {item.signals.length === 0
+              ? '이상 없음'
+              : item.signals.map((sig) => EQUIPMENT_SIGNAL_LABELS[sig]).join(' · ')}
           </p>
         </div>
       ))}
       <p className="pt-1 text-[11px] leading-relaxed text-fg-subtle">
-        예지보전 대상은 <strong className="font-medium text-fg-muted">펌프·폭기장치</strong>뿐입니다.
-        다른 설비를 넣으면 원문 범위를 넘습니다. 잔여 수명의 단위(일)는 원문에 없어 임시값입니다.
+        <strong className="font-medium text-fg-muted">교체 시점은 내지 않습니다.</strong> 잔여
+        수명을 산출하는 예지보전이 어렵다는 판단이라 [회의 2026-08-20] 이상 신호만 적습니다.
+        교체 계획은 이상 여부로 대신할 수 없습니다.
       </p>
     </div>
   );

@@ -7,6 +7,10 @@ export { ALARMS, getAlarmsForView, countAnomalyAlarms } from './api/fixtures';
 export { countOpen, openAlarms, openCountBySite, countByPriorityIn } from './lib/count';
 export { raisedWhileNotDischarging } from './lib/discharge-context';
 export {
+  buildEquipmentAlarms,
+  type EquipmentAlarmInput,
+} from './lib/build-equipment-alarms';
+export {
   ALARM_PRIORITY_LABELS,
   ALARM_CONDITION_LABELS,
   ALARM_STATE_LABELS,

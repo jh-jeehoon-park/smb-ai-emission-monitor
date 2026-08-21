@@ -5,7 +5,7 @@
 | 항목 | 내용 |
 |------|------|
 | 문서명 | 항목 사전 |
-| 버전 | v1.0.0 |
+| 버전 | v1.2.0 |
 | 작성일 | 2026-08-20 |
 | 기반 문서 | /.claude/rules/deliverable-xlsx.rule.md, /docs/specs/README.md, /docs/specs/data-definition.md, /docs/applications/HSKorea_AI_Application_Proposal.pdf, /docs/applications/AIoT_Emission_Control_System.pdf |
 
@@ -13,7 +13,9 @@
 
 | 버전 | 날짜 | 작성자 | 변경 내용 |
 |------|------|--------|-----------|
+| v1.2.0 | 2026-08-20 | Claude | **공정 단계 6 → 5** `[회의 2026-08-20]` `[INC-110]` — 표준 공정이 5단계이고 방류는 마지막 단계의 끝이다. `PS-discharge`를 `PS-advanced`에 합쳤다. 합계 76 → 75 |
 | v1.0.0 | 2026-08-20 | Claude | 신규 작성 — 화면에 보이는 항목을 집합별로 등재. 근거를 **여기 한 번만** 쓰고 화면 문서 §3.1은 항목ID로 참조한다(`deliverable-xlsx.rule.md` §6.2). **14집합 75항목**. 작성 중 EC 표시 단위 모순을 발견해 `INC-106`으로 등록했다 |
+| v1.1.0 | 2026-08-20 | Claude | **진동 등재** `[회의 2026-08-20]` — 설비 이상 탐지의 주 입력이다. 계측 항목 13 → 14, 합계 75 → 76. 사양(단위·범위·정확도)은 계측 사양표에 없어 `[TBD-49]`로 비웠고 **값을 표시하지 않고 이상 여부만 낸다**고 적었다. `EQUIPMENT_SERIES_CODES`에는 넣지 않는다 — y축을 세울 수 없어 시계열 화면이 빈 계열을 그린다 |
 
 ---
 
@@ -40,14 +42,14 @@
 
 | 집합코드 | 집합 | 개수 | 단일 출처 |
 |---|---|---|---|
-| `MEAS` | 계측 항목 | 13 | `src/shared/config/measurement.ts` `MEASUREMENT_ITEMS` |
+| `MEAS` | 계측 항목 | 14 | `src/shared/config/measurement.ts` `MEASUREMENT_ITEMS` |
 | `EQ` | 설비 | 4 — **시연값** `[TBD-48]` | `src/entities/equipment/api/fixtures.ts` `EQUIPMENT_TEMPLATE` |
 | `EQM` | 설비 지표 | 5 | `src/entities/equipment/model/types.ts` |
 | `FCST` | 예측·추정 대상 | 4 | `src/entities/prediction/config/constants.ts` |
 | `LV` | 상태 등급 | 4 | `src/shared/config/provisional.ts` `PROVISIONAL_STATUS_LEVELS` |
 | `BAND` | 이상 점수 구간 | 4 | 같은 파일 `PROVISIONAL_ANOMALY_BANDS` |
 | `ALP` · `ALC` · `ALS` | 알람 우선순위·조건·상태 | 3 · 4 · 3 | `src/entities/alarm/model/types.ts` |
-| `PS` | 공정 단계 | 6 | `src/entities/process/config/constants.ts` `PROCESS_STAGES` |
+| `PS` | 공정 단계 | 5 | `src/entities/process/config/constants.ts` `PROCESS_STAGES` |
 | `ANA` | 수분석 항목 | 5 | `src/entities/water-analysis/config/constants.ts` `ANALYSIS_ITEMS` |
 | `LGL` | 법정 점검 항목 | 5 | `src/shared/config/discharge-limits.ts` `LEGAL_CHECK_ITEMS` |
 | `XAI` | XAI 기여 변수 | 5 | `src/entities/anomaly/api/fixtures.ts` |
@@ -73,12 +75,14 @@
 | `MEAS-current` | 전류 | I | A | 0~500 | ±1% | 1 | `[원문 p.55]` · 설비 운전 센서 `[사용자 확인 2026-08-19]` |
 | `MEAS-power` | 전력 | P | kW | 0~100 | ±1% | 1 | `[원문 p.55]` |
 | `MEAS-flow` | 유량 | Q | m³/day | 0~1,000 | ±2% | 0 | `[원문 p.55]` |
+| `MEAS-vibration` | 진동 | Vib | **원문 미규정** | **원문 미규정** | 원문 미규정 | — | `[회의 2026-08-20]` 설비 이상 탐지의 주 입력 · **사양이 없다** `[TBD-49]` — 계측 사양표 `[원문 p.55]`에 없고 목표시스템 그림·출력 화면 예시에만 나온다 `[원문 발표 p.11·18 그림]` `[INC-96]`. **값을 표시하지 않고 이상 여부만 낸다** |
 | `MEAS-TN` | 총질소 | TN | mg/L | 0~100 | AI 추정 | 1 | `[원문 발표 p.17]` Soft Sensing · **계측기 없이 AI로만 추정** `[사용자 확인 2026-08-19]` |
 | `MEAS-TP` | 총인 | TP | mg/L | 0~20 | AI 추정 | 2 | 같음 |
 
 **수질 8종** = `pH · EC · turbidity · DO · temperature · chromaticity · NO3N · TOC` (`WATER_SERIES_CODES`)
 **설비 3종** = `current · power · flow` (`EQUIPMENT_SERIES_CODES`)
 **AI 추정 2종** = `TN · TP` — 계측 8종에 들어가지 않는다
+**이상 탐지 입력 1종** = `vibration` — **시계열 계열이 아니다.** 단위·범위가 없어 y축을 세울 수 없으므로 `EQUIPMENT_SERIES_CODES`에 넣지 않았다. 넣으면 시계열 화면이 빈 계열을 그린다
 
 > **`NH₄-N`은 등재하지 않았다.** 발표 p.15 AutoEncoder 입력층 그림에는 있으나 계측 사양 8종(`[원문 p.55]`)에 없다 `[INC-98]`. 재지 않는 항목을 화면에 두면 없는 계측을 주장한다.
 
@@ -181,8 +185,7 @@
 | `PS-primary` | 1차 침전 | AI 추정 | 같음 · 응집제 투입 지점 `[공정자료 p.4·6]` |
 | `PS-biological` | 생물학적 처리 | 계측 없음 | 같음 |
 | `PS-secondary` | 2차 침전 | 계측 없음 | 같음 |
-| `PS-advanced` | 고도 처리 및 소독 | 계측 없음 | 같음 |
-| `PS-discharge` | 측정 및 방류 | 실측 | 같음 · 계측 지점 |
+| `PS-advanced` | 고도 처리 및 소독 · 방류 | 실측 | 같음 · 방류구 계측 지점 · **방류를 이 단계에 합쳤다** `[회의 2026-08-20]` `[INC-110]` |
 
 ---
 

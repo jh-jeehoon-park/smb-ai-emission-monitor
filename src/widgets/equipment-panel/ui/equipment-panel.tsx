@@ -1,9 +1,9 @@
 "use client";
 
-import { STATUS_VISUAL } from "@/shared/config/status-visual";
-import { RiseItem, StaggerGroup, motion } from "@/shared/ui/motion";
+import { OPERATING_FILL } from "@/shared/config/operating-visual";
+import { RiseItem, StaggerGroup } from "@/shared/ui/motion";
 import { StatusBadge } from "@/shared/ui/status-badge";
-import type { Equipment } from "@/entities/equipment";
+import { EQUIPMENT_SIGNAL_LABELS, type Equipment } from "@/entities/equipment";
 
 export function EquipmentPanel({
   items,
@@ -23,7 +23,7 @@ export function EquipmentPanel({
         <p className="num text-[26px] leading-none text-fg-subtle">—</p>
         <p className="text-[12px] text-fg-muted">설비 수신값 없음</p>
         <p className="max-w-[46ch] text-[11px] leading-relaxed text-fg-subtle">
-          ECP 통신이 두절되어 예지보전 지표가 산출되지 않았습니다. 복구 시 로컬
+          ECP 통신이 두절되어 설비 상태를 수신하지 못했습니다. 복구 시 로컬
           버퍼가 일괄 전송됩니다.
         </p>
       </div>
@@ -37,8 +37,8 @@ export function EquipmentPanel({
    */
   return (
     <StaggerGroup className="grid gap-x-5 gap-y-3 sm:grid-cols-2 xl:grid-cols-4 xl:gap-x-0 xl:divide-x xl:divide-border">
-      {items.map((eq, i) => {
-        const visual = STATUS_VISUAL[eq.status];
+      {items.map((eq) => {
+        const state = eq.running === null ? "unknown" : eq.running ? "on" : "off";
         return (
           /*
            * 카드 안에 카드를 넣지 않는다 — 구분선과 여백으로 위계를 만든다.
@@ -66,29 +66,31 @@ export function EquipmentPanel({
               <StatusBadge level={eq.status} size="sm" />
             </div>
 
-            <div className="mt-2 grid grid-cols-3 gap-2 text-[11px]">
-              <Metric label="고장 확률" value={`${eq.failureProbability}%`} />
+            {/*
+             * 고장 확률·잔여 수명·MPI가 있던 자리다. 회의가 예지보전을 내리게 해
+             * `[INC-107]` **값이 아니라 상태**를 보인다 — 가동 여부와 걸린 신호.
+             *
+             * 진행 막대도 없앴다. 채울 값(고장 확률 %)이 사라졌고, 이상 여부는 0~100이
+             * 아니라 있음/없음이라 막대로 표현할 축이 아니다.
+             */}
+            <div className="mt-2 grid grid-cols-2 gap-2 text-[11px]">
+              <Metric label="가동" value={RUN_LABEL[state]} dot={OPERATING_FILL[state]} />
               <Metric
-                label="잔여 수명"
-                value={`${eq.remainingUsefulLifeDays}일`}
+                label="이상 신호"
+                value={
+                  eq.signals.length === 0
+                    ? "없음"
+                    : eq.signals.map((s) => EQUIPMENT_SIGNAL_LABELS[s]).join(" · ")
+                }
               />
-              {/* MPI 산정식은 원문에 없다(TBD-22). 값만 상대 지수로 보여준다. */}
-              <Metric label="MPI" value={String(eq.maintenancePriorityIndex)} />
             </div>
 
-            <div className="mt-2 h-[3px] w-full overflow-hidden rounded-full bg-surface-3">
-              <motion.div
-                className="h-full rounded-full"
-                style={{ backgroundColor: visual.hex, opacity: 0.8 }}
-                initial={{ width: 0 }}
-                animate={{ width: `${eq.failureProbability}%` }}
-                transition={{
-                  duration: 0.55,
-                  delay: 0.08 * i,
-                  ease: [0.16, 1, 0.3, 1],
-                }}
-              />
-            </div>
+            {/* 지속은 이상이 있을 때만 뜻이 있다. 없을 때 `—`를 두면 빈 칸이 하나 더 늘어난다 */}
+            {eq.anomalyHours !== null && (
+              <p className="mt-1.5 text-[11px] text-fg-subtle">
+                <span className="num">{eq.anomalyHours}시간</span> 이어짐
+              </p>
+            )}
           </RiseItem>
         );
       })}
@@ -96,11 +98,29 @@ export function EquipmentPanel({
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
+const RUN_LABEL = { on: "가동", off: "정지", unknown: "모름" } as const;
+
+/**
+ * 지표 한 칸.
+ *
+ * `dot`은 가동 상태처럼 **색이 뜻을 갖는** 값에만 준다. 등급 색이 아니라 `OPERATING_FILL`을
+ * 쓴다 — 켜짐/꺼짐은 등급이 아니고, 초록으로 칠한 `가동`은 `정상 등급`으로 읽힌다
+ * (`design-system §2`).
+ */
+function Metric({ label, value, dot }: { label: string; value: string; dot?: string }) {
   return (
     <div>
       <p className="text-fg-subtle">{label}</p>
-      <p className="num mt-0.5 text-[13px] text-fg">{value}</p>
+      <p className="mt-0.5 flex items-center gap-1.5 text-[13px] text-fg">
+        {dot && (
+          <span
+            aria-hidden
+            className="size-1.5 shrink-0 rounded-full"
+            style={{ backgroundColor: dot }}
+          />
+        )}
+        {value}
+      </p>
     </div>
   );
 }

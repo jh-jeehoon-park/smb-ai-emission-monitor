@@ -21,11 +21,12 @@ export function SiteSelector({ className }: { className?: string }) {
 
   return (
     <>
-      {/* 관리자는 자사 1개소뿐이라 고를 것이 없다. 드롭다운을 두면 남의 사업장으로 갈 수 있다.
-          역할로 분기하지 않고 두 벌을 그린 뒤 CSS가 고른다 — 서버는 역할을 모른다 */}
+      {/* 사업장은 자사 1개소뿐이라 고를 것이 없다. 드롭다운을 두면 남의 사업장으로 갈 수 있다.
+          역할로 분기하지 않고 두 벌을 그린 뒤 CSS가 고른다 — 서버는 역할을 모른다.
+          지자체는 관할 내 다개소라 세 번째 상태가 필요하다 — 지자체 구현 때 만든다 */}
       {/* 정렬은 안쪽에서 한다. `role-only-*`가 바깥에 display:block을 강제하므로
           바깥에 flex를 걸면 죽고, 상태 점이 inline이 되어 크기를 잃는다(실제로 사라졌다) */}
-      <div className={cn('role-only-admin', className)}>
+      <div className={cn('role-only-site', className)}>
         <div className="flex items-center gap-2 rounded-[4px] border border-border bg-surface px-2.5 py-1.5 text-[12px] text-fg">
           <span
             aria-hidden
@@ -40,7 +41,7 @@ export function SiteSelector({ className }: { className?: string }) {
 
       <div
         className={cn(
-          'role-hide-admin relative inline-flex items-center',
+          'role-hide-site relative inline-flex items-center',
           className,
         )}
       >

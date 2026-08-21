@@ -2,16 +2,16 @@
 
 import { useRef, useState } from 'react';
 import { OPERATING_FILL, OPERATING_UNKNOWN_OPACITY } from '@/shared/config/operating-visual';
-import { PROVISIONAL_STATUS_LABELS, PROVISIONAL_STATUS_LEVELS } from '@/shared/config/provisional';
-import { CELL_NORMAL, MISSING_HEX, STATUS_VISUAL } from '@/shared/config/status-visual';
+import { MISSING_HEX, STATUS_VISUAL } from '@/shared/config/status-visual';
 import { DISPLAY_TIMEZONE, formatClock } from '@/shared/lib/format';
 import { ChartTooltipRow, ChartTooltipShell } from '@/shared/ui/chart-tooltip';
 import {
+  EQUIPMENT_SIGNAL_LABELS,
   STATUS_TIMELINE_HOURS,
-  getStatusTimeline,
+  getRunTimeline,
   getTreatmentTimeline,
   type Equipment,
-  type EquipmentStatusCell,
+  type EquipmentRunCell,
   type TreatmentCell,
 } from '@/entities/equipment';
 import {
@@ -27,6 +27,17 @@ const MISSING_FILL = `repeating-linear-gradient(45deg, ${MISSING_HEX} 0 2px, tra
 
 /** 방지시설 줄은 설비가 아니라 별도 축이라 행 키를 따로 든다 */
 const TREATMENT_ROW_KEY = 'treatment';
+
+/** 이상이 걸린 칸에 얹는 형태 부호. 색만으로 가르지 않는다 */
+const ANOMALY_GLYPH = '▲';
+
+const RUN_LABEL = { on: '가동', off: '정지', unknown: '모름' } as const;
+const TREATMENT_LABEL = { on: '가동', off: '미가동', unknown: '모름' } as const;
+
+type RunState = keyof typeof RUN_LABEL;
+
+const runStateOf = (running: boolean | null): RunState =>
+  running === null ? 'unknown' : running ? 'on' : 'off';
 
 interface HoverTarget {
   /** 어느 행인가 — 설비 id 또는 `treatment` */
@@ -44,21 +55,23 @@ interface HoverTarget {
 }
 
 /**
- * 설비 × 시간 상태 격자.
+ * 설비 × 시간 **가동 격자**.
  *
- * `[원문 발표 p.18 그림]`의 **설비별 상태 Heatmap**을 따른다 — 행이 설비, 열이 00~24시,
- * 칸 색이 등급.
+ * `[원문 발표 p.18 그림]`의 설비별 Heatmap 형태를 따른다 — 행이 설비, 열이 00~24시.
+ * **칸이 말하는 것은 등급이 아니라 가동 여부다** `[회의 2026-08-20]` `[INC-107]`. 회의가
+ * 확인 가능하다고 정리한 것이 on/off와 이상 알림 둘이라 격자도 그 둘만 담는다.
+ *
+ * 색은 가동/정지/모름이고 **이상은 글리프로** 얹는다. 등급 색을 채움에 쓰지 않는 이유는
+ * 켜짐/꺼짐이 등급이 아니기 때문이다(`design-system §2`: 색은 상태를 뜻할 때만 쓴다) —
+ * 방지시설 줄이 이미 같은 규칙을 쓴다.
  *
  * `<table>`로 짠다. 격자를 `div`로 그리면 스크린리더에 120개의 색만 남는다. 표는 행·열
- * 머리글을 함께 읽어 주므로 "폭기 블로워 #1, 14시, 경고"가 그대로 전달된다.
- *
- * **정상 칸은 눌러 두고 벗어난 칸만 세운다** — 하루의 대부분이 정상이라 전부 진하게 칠하면
- * 96칸이 균일한 색벽이 되어 예외가 묻힌다(`dataviz` 안티패턴 "thick saturated blocks").
+ * 머리글을 함께 읽어 주므로 "폭기 블로워 #1, 14시, 가동, 진동 이상"이 그대로 전달된다.
  */
 export function StatusHeatmap({ siteId, items }: { siteId: string; items: Equipment[] }) {
   const rows = items.map((equipment) => ({
     equipment,
-    cells: getStatusTimeline(siteId, equipment),
+    cells: getRunTimeline(siteId, equipment),
   }));
   const treatment = getTreatmentTimeline(siteId);
   const [hover, setHover] = useState<HoverTarget | null>(null);
@@ -85,13 +98,16 @@ export function StatusHeatmap({ siteId, items }: { siteId: string; items: Equipm
    * 아는 칸이 하나도 없으면 격자를 그리지 않는다. 120칸을 전부 빗금으로 채우면 정보가 아니라
    * 잡음이고, 같은 화면의 다른 패널은 이미 글로 비어 있음을 말한다(R19).
    */
-  if (!rows.some((row) => row.cells.some((cell) => cell.level !== null))) {
+  if (!rows.some((row) => row.cells.some((cell) => cell.running !== null))) {
     return (
       <p className="py-8 text-center text-[12px] text-fg-subtle">
-        통신이 두절된 사업장입니다. 수신한 시간이 없어 상태 격자를 그리지 않습니다.
+        통신이 두절된 사업장입니다. 수신한 시간이 없어 가동 격자를 그리지 않습니다.
       </p>
     );
   }
+
+  const hasMissing = rows.some((row) => row.cells.some((cell) => cell.running === null));
+  const hasAnomaly = rows.some((row) => row.cells.some((cell) => cell.signals.length > 0));
 
   return (
     <div className="space-y-2">
@@ -102,8 +118,8 @@ export function StatusHeatmap({ siteId, items }: { siteId: string; items: Equipm
             style={{ minWidth: STATUS_TIMELINE_HOURS * HEATMAP_CELL_MIN_PX + HEATMAP_LABEL_PX }}
           >
             <caption className="sr-only">
-              설비별 24시간 상태 등급. 행은 설비, 열은 시각, 칸은 그 시간의 등급이다. 마지막
-              행은 방지시설 가동 여부다.
+              설비별 24시간 가동 상태. 행은 설비, 열은 시각, 칸은 그 시간의 가동 여부와 이상
+              신호다. 마지막 행은 방지시설 가동 여부다.
             </caption>
 
             <thead>
@@ -141,13 +157,12 @@ export function StatusHeatmap({ siteId, items }: { siteId: string; items: Equipm
                     {equipment.name}
                   </th>
                   {cells.map((cell) => (
-                    <StatusCell
+                    <RunCell
                       key={cell.hourOffset}
                       cell={cell}
+                      level={equipment.status}
                       active={hover?.rowKey === equipment.id && hover.column === cell.hourOffset}
-                      onMove={(e) =>
-                        track(e, (x, y) => statusHover(equipment, cell, x, y))
-                      }
+                      onMove={(e) => track(e, (x, y) => runHover(equipment, cell, x, y))}
                     />
                   ))}
                 </tr>
@@ -185,33 +200,36 @@ export function StatusHeatmap({ siteId, items }: { siteId: string; items: Equipm
         {hover && <HeatmapTooltip hover={hover} />}
       </div>
 
-      <HeatmapLegend hasMissing={rows.some((r) => r.cells.some((c) => c.level === null))} />
+      <HeatmapLegend hasMissing={hasMissing} hasAnomaly={hasAnomaly} />
     </div>
   );
 }
 
 /**
- * 등급 칸.
+ * 가동 칸.
  *
- * 정상은 눌러 둔 채움(`CELL_NORMAL`)이고 주의 이상만 마크 색(`STATUS_VISUAL`)을 쓴다.
- * 마크 색으로 전부 칠하면 96칸이 균일한 색벽이 되고, 배경 밴드로 칠하면 칸 자체가 사라진다.
- *
- * 형태 글리프도 **벗어난 칸에만** 붙인다. 96칸 전부에 찍으면 색각 보조가 아니라 잡음이 되고,
- * `dataviz`의 "never a number on every point"에 걸린다. 예외를 표시하는 것이 요점이다.
+ * 채움은 가동/정지/모름이고 **이상이 걸린 칸에만** 글리프를 얹는다. 96칸 전부에 찍으면
+ * 색각 보조가 아니라 잡음이 되고, `dataviz`의 "never a number on every point"에 걸린다 —
+ * 예외를 표시하는 것이 요점이다.
  */
-function StatusCell({
+function RunCell({
   cell,
+  level,
   active,
   onMove,
 }: {
-  cell: EquipmentStatusCell;
+  cell: EquipmentRunCell;
+  /** 이상 글리프에 쓸 등급 색. 채움에는 쓰지 않는다 */
+  level: Equipment['status'];
   active: boolean;
   onMove: (event: React.MouseEvent) => void;
 }) {
   const hour = formatClock(cell.iso);
+  const state = runStateOf(cell.running);
+  const anomaly = cell.signals.length > 0;
 
-  /* 수신하지 못한 시간을 정상으로도 이상으로도 칠하지 않는다(E4) */
-  if (cell.level === null) {
+  /* 수신하지 못한 시간을 가동으로도 정지로도 칠하지 않는다(E4) */
+  if (state === 'unknown') {
     return (
       <td
         onMouseMove={onMove}
@@ -223,25 +241,27 @@ function StatusCell({
     );
   }
 
-  const visual = STATUS_VISUAL[cell.level];
-  const normal = cell.level === 'normal';
-
   return (
     <td
       onMouseMove={onMove}
       className="h-5 rounded-[2px] text-center align-middle"
       style={{
-        backgroundColor: normal ? CELL_NORMAL : visual.hex,
+        backgroundColor: OPERATING_FILL[state],
         outline: active ? OUTLINE : undefined,
       }}
     >
-      {!normal && (
-        <span aria-hidden className="text-[8px] leading-none" style={{ color: visual.on }}>
-          {visual.glyph}
+      {anomaly && (
+        <span
+          aria-hidden
+          className="text-[8px] leading-none"
+          style={{ color: STATUS_VISUAL[level].hex }}
+        >
+          {ANOMALY_GLYPH}
         </span>
       )}
       <span className="sr-only">
-        {hour} {PROVISIONAL_STATUS_LABELS[cell.level]}
+        {hour} {RUN_LABEL[state]}
+        {anomaly && ` · ${cell.signals.map((s) => EQUIPMENT_SIGNAL_LABELS[s]).join(' · ')}`}
       </span>
     </td>
   );
@@ -269,7 +289,11 @@ function TreatmentCellView({
   const state = cell.idle === null ? 'unknown' : cell.idle ? 'off' : 'on';
 
   return (
-    <td onMouseMove={onMove} className="pt-2 align-middle" style={{ outline: active ? OUTLINE : undefined }}>
+    <td
+      onMouseMove={onMove}
+      className="pt-2 align-middle"
+      style={{ outline: active ? OUTLINE : undefined }}
+    >
       {/*
        * **칸 간격을 덮어 연속된 띠로 만든다.** 이 줄은 시각이 아니라 **구간**의 축이고,
        * 끊긴 자리가 곧 미가동이다. 1px 간격이 남으면 띠가 이미 잘게 쪼개져 있어 진짜 끊김이
@@ -300,9 +324,7 @@ function TreatmentCellView({
  * 판독 툴팁.
  *
  * **다른 차트와 같은 껍데기를 쓴다**(`ChartTooltipShell`) — 화면마다 다른 툴팁을 만들지
- * 않는다는 규칙 그대로다(P9). 세로로 훑는 격자라 시각·설비·등급을 세로로 쌓는다.
- *
- * 양 끝 열에서는 정렬을 뒤집는다. 가운데 정렬만 하면 격자 밖으로 나간다.
+ * 않는다는 규칙 그대로다(P9). 세로로 훑는 격자라 시각·설비·상태를 세로로 쌓는다.
  */
 function HeatmapTooltip({ hover }: { hover: HoverTarget }) {
   return (
@@ -321,21 +343,15 @@ function HeatmapTooltip({ hover }: { hover: HoverTarget }) {
       }}
     >
       <ChartTooltipShell label={`${formatClock(hover.iso)} ${DISPLAY_TIMEZONE}`}>
-        {hover.equipmentName && (
-          <p className="text-[11px] text-fg-muted">{hover.equipmentName}</p>
-        )}
+        {hover.equipmentName && <p className="text-[11px] text-fg-muted">{hover.equipmentName}</p>}
         {hover.body}
       </ChartTooltipShell>
     </div>
   );
 }
 
-function statusHover(
-  equipment: Equipment,
-  cell: EquipmentStatusCell,
-  x: number,
-  y: number,
-): HoverTarget {
+function runHover(equipment: Equipment, cell: EquipmentRunCell, x: number, y: number): HoverTarget {
+  const state = runStateOf(cell.running);
   return {
     rowKey: equipment.id,
     column: cell.hourOffset,
@@ -345,14 +361,26 @@ function statusHover(
     y,
     flip: false,
     body:
-      cell.level === null ? (
+      state === 'unknown' ? (
         <ChartTooltipRow color={MISSING_HEX} name="수신 없음" value="—" />
       ) : (
-        <ChartTooltipRow
-          color={STATUS_VISUAL[cell.level].hex}
-          name="등급"
-          value={PROVISIONAL_STATUS_LABELS[cell.level]}
-        />
+        <>
+          {/* 행 이름과 값이 둘 다 `가동`이면 무엇이 이름인지 읽히지 않는다 */}
+          <ChartTooltipRow
+            color={OPERATING_FILL[state]}
+            name="가동 상태"
+            value={RUN_LABEL[state]}
+          />
+          {/* 이상이 없는 칸에 `없음` 행을 달지 않는다 — 96칸 툴팁마다 같은 말이 붙는다 */}
+          {cell.signals.map((signal) => (
+            <ChartTooltipRow
+              key={signal}
+              color={STATUS_VISUAL[equipment.status].hex}
+              name="이상"
+              value={EQUIPMENT_SIGNAL_LABELS[signal]}
+            />
+          ))}
+        </>
       ),
   };
 }
@@ -377,35 +405,49 @@ function treatmentHover(cell: TreatmentCell, x: number, y: number): HoverTarget 
   };
 }
 
-const TREATMENT_LABEL = { on: '가동', off: '미가동', unknown: '모름' } as const;
-
 /** 짚은 **그 칸만** 응답한다는 것을 보인다(`dataviz` — the hovered mark lifts) */
 const OUTLINE = '1px solid var(--border-strong)';
 
-function HeatmapLegend({ hasMissing }: { hasMissing: boolean }) {
+function HeatmapLegend({
+  hasMissing,
+  hasAnomaly,
+}: {
+  hasMissing: boolean;
+  hasAnomaly: boolean;
+}) {
   return (
     <ul className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-border pt-2 text-[11px] text-fg-subtle">
-      {PROVISIONAL_STATUS_LEVELS.map((level) => {
-        const visual = STATUS_VISUAL[level];
-        const normal = level === 'normal';
-        return (
-          <li key={level} className="flex items-center gap-1">
-            <span
-              aria-hidden
-              className="flex h-2.5 w-3.5 items-center justify-center rounded-[1px] text-[6px] leading-none"
-              style={{
-                backgroundColor: normal ? CELL_NORMAL : visual.hex,
-                color: visual.on,
-              }}
-            >
-              {normal ? '' : visual.glyph}
-            </span>
-            {PROVISIONAL_STATUS_LABELS[level]}
-          </li>
-        );
-      })}
+      <li className="flex items-center gap-1">
+        <span
+          aria-hidden
+          className="h-2.5 w-3.5 rounded-[1px]"
+          style={{ backgroundColor: OPERATING_FILL.on }}
+        />
+        가동
+      </li>
+      <li className="flex items-center gap-1">
+        <span
+          aria-hidden
+          className="h-2.5 w-3.5 rounded-[1px]"
+          style={{ backgroundColor: OPERATING_FILL.off }}
+        />
+        정지
+      </li>
 
       {/* 일어나지 않은 상태의 범례는 잡음이다. 격자에 있을 때만 설명한다 */}
+      {hasAnomaly && (
+        <li className="flex items-center gap-1">
+          <span
+            aria-hidden
+            className="flex h-2.5 w-3.5 items-center justify-center text-[7px] leading-none"
+            style={{ color: STATUS_VISUAL.warning.hex }}
+          >
+            {ANOMALY_GLYPH}
+          </span>
+          이상 신호
+        </li>
+      )}
+
       {hasMissing && (
         <li className="flex items-center gap-1">
           <span

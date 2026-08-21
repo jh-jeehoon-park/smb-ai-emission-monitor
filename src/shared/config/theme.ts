@@ -1,6 +1,8 @@
+import { STORAGE_KEYS } from './storage';
+
 export type Theme = 'light' | 'dark';
 
-export const THEME_STORAGE_KEY = 'aquasense-theme';
+export const THEME_STORAGE_KEY = STORAGE_KEYS.theme;
 export const DEFAULT_THEME: Theme = 'dark';
 
 export function normalizeTheme(value: string | undefined | null): Theme {

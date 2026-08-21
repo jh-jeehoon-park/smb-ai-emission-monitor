@@ -2,6 +2,7 @@
 export {
   ForecastChart,
   ForecastEmpty,
+  ForecastHorizonNote,
   ForecastLegend,
   ForecastLimitNote,
 } from './ui/forecast-chart';

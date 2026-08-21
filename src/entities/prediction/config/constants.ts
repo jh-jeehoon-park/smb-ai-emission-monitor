@@ -1,5 +1,14 @@
 import { PROVISIONAL_DECIMALS } from '@/shared/config/provisional';
 
+/**
+ * 계열이 덮는 시간. **예측 구간이 아니라 관측 구간이다** `[INC-109]`.
+ *
+ * 회의가 6시간 예측을 내리게 한 뒤에도 패널 제목 네 곳이 `향후 6시간 예측`으로 남아
+ * 있었다 — 그리지 않는 예측을 제목이 주장하는 셈이다(E3·X3). 같은 `6`이지만 뜻이
+ * 다르므로 `FORECAST_HORIZON_HOURS`를 재사용하지 않는다.
+ */
+export const SERIES_WINDOW_HOURS = 6;
+
 /** **오염도** 3항목. 경향 카드 3장과 `전체` 3단 차트가 이 목록으로 정해진다(FR-12) */
 export const FORECAST_TARGET_CODES = ['TOC', 'TN', 'TP'] as const;
 export type ForecastTargetCode = (typeof FORECAST_TARGET_CODES)[number];
@@ -24,8 +33,15 @@ export interface ForecastTargetProfile {
    * TOC는 원문에 R²가 없어 null이다 — 지어내면 검증된 성능처럼 읽힌다(E3).
    */
   r2: number | null;
-  /** 경향 판정에 쓰는 항목별 보정 — 항목마다 반응 속도가 다르다 */
-  trendOffset: number;
+  /**
+   * 사인 파형의 위상(rad). **항목마다 벌려 둔다.**
+   *
+   * 예전에는 `trendOffset`이 경향 판정에 직접 더해져 항목 차이를 만들었다. 판정을 계열
+   * 기울기로 옮기면서 그 축이 죽었고, 파형이 인덱스만의 함수라 **세 항목이 같은 구간에서
+   * 같은 방향으로** 움직였다 — 카드 3장이 늘 같은 답을 낸다. 위상을 벌려 항목 차이를
+   * 파형 자체에 둔다.
+   */
+  phase: number;
   base: number;
   amplitude: number;
   noise: number;
@@ -53,7 +69,7 @@ export const FORECAST_TARGETS: Record<ForecastTargetCode, ForecastTargetProfile>
     decimals: PROVISIONAL_DECIMALS.TOC,
     // 원문은 TN·TP의 R²만 제시한다. TOC 값은 없다.
     r2: null,
-    trendOffset: 0.1,
+    phase: 0,
     base: 25.5,
     amplitude: 2.4,
     noise: 1.6,
@@ -69,7 +85,8 @@ export const FORECAST_TARGETS: Record<ForecastTargetCode, ForecastTargetProfile>
     decimals: PROVISIONAL_DECIMALS.TN,
     // 사업계획서 p.27 현재 검증 수준. 원문이 0.78~0.89(p.31)·정확도 88.6%(p.67)로도 적어 갈린다(INC-20·21)
     r2: 0.886,
-    trendOffset: 0.05,
+    /* 2π를 셋으로 나눈 값 — 세 항목이 서로 가장 멀어진다 */
+    phase: 2.1,
     base: 16,
     amplitude: 1.5,
     noise: 0.9,
@@ -85,7 +102,7 @@ export const FORECAST_TARGETS: Record<ForecastTargetCode, ForecastTargetProfile>
     decimals: PROVISIONAL_DECIMALS.TP,
     // 사업계획서 p.27 현재 검증 수준 (INC-20·21)
     r2: 0.782,
-    trendOffset: -0.15,
+    phase: 4.2,
     base: 1.5,
     amplitude: 0.18,
     noise: 0.12,
@@ -112,7 +129,7 @@ export const FLOW_FORECAST: ForecastTargetProfile = {
   unit: 'm³/day',
   decimals: PROVISIONAL_DECIMALS.flow,
   r2: null,
-  trendOffset: 0,
+  phase: 1.05,
   base: 412,
   amplitude: 58,
   noise: 26,

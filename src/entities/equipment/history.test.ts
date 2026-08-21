@@ -1,14 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { PROVISIONAL_STATUS_LEVELS } from '@/shared/config/provisional';
+import {
+  PROVISIONAL_EQUIPMENT_ANOMALY_RULE,
+  PROVISIONAL_STATUS_LEVELS,
+  toEquipmentStatus,
+} from '@/shared/config/provisional';
 import { TIMELINE_POINT_COUNT, isMissingAt, isTreatmentIdleAt } from '@/shared/lib/timeline';
 import {
-  RUL_HISTORY_DAYS,
+  EQUIPMENT_SIGNAL_LABELS,
   STATUS_TIMELINE_HOURS,
-  daysUntilDepleted,
   getEquipment,
-  getRulHistory,
-  getRulSeries,
-  getStatusTimeline,
+  getRunTimeline,
   getTreatmentTimeline,
 } from '@/entities/equipment';
 import { SAMPLES_PER_STATUS_CELL } from './config/constants';
@@ -16,82 +17,70 @@ import { SAMPLES_PER_STATUS_CELL } from './config/constants';
 const online = getEquipment('S-02');
 const offline = getEquipment('S-04');
 
-describe('잔여 수명 추이', () => {
-  const history = getRulHistory('S-02', online[0]!);
-
-  it('오늘까지 하루 간격으로 이어진다', () => {
-    expect(history).toHaveLength(RUL_HISTORY_DAYS + 1);
-    expect(history[history.length - 1]!.dayOffset).toBe(0);
-  });
-
-  /**
-   * **늘어나면 안 된다.** 잔여 수명이 늘려면 정비가 있어야 하는데 우리에겐 정비 이력이
-   * 없다(`REQ-AD-019`). 오르내리면 화면이 설명할 수 없는 사건을 암시한다.
-   */
-  it('과거에서 오늘로 올수록 줄어든다', () => {
-    for (let i = 1; i < history.length; i += 1) {
-      expect(history[i]!.rul).toBeLessThanOrEqual(history[i - 1]!.rul);
+/**
+ * 회의가 예지보전을 내리게 했다 `[INC-107]`. **없어진 것을 테스트가 못박는다** —
+ * 나중에 누군가 편의로 되살리면 여기서 걸린다. 원문 성과지표가 아직 그 값을 요구하므로
+ * 되살리려는 힘이 계속 있다.
+ */
+describe('설비 — 내린 값이 돌아오지 않는다', () => {
+  it('고장 확률·잔여 수명·MPI 필드가 없다', () => {
+    for (const equipment of online) {
+      expect(equipment).not.toHaveProperty('failureProbability');
+      expect(equipment).not.toHaveProperty('remainingUsefulLifeDays');
+      expect(equipment).not.toHaveProperty('maintenancePriorityIndex');
     }
   });
 
-  it('오늘 값이 카드의 잔여 수명과 같다 — 그래프와 숫자가 갈리면 안 된다', () => {
-    expect(history[history.length - 1]!.rul).toBe(online[0]!.remainingUsefulLifeDays);
+  it('대신 가동 상태와 이상 신호를 갖는다', () => {
+    for (const equipment of online) {
+      expect(equipment).toHaveProperty('running');
+      expect(equipment).toHaveProperty('signals');
+      expect(PROVISIONAL_STATUS_LEVELS).toContain(equipment.status);
+    }
   });
 
-  it('설비마다 다른 자취를 갖는다', () => {
-    const a = getRulHistory('S-02', online[0]!).map((p) => p.rul);
-    const b = getRulHistory('S-02', online[1]!).map((p) => p.rul);
-    expect(a).not.toEqual(b);
-  });
-
-  it('같은 설비는 몇 번을 불러도 같다 — 시드가 고정이다', () => {
-    expect(getRulHistory('S-02', online[0]!)).toEqual(history);
-  });
-});
-
-describe('예측 계열', () => {
-  const series = getRulSeries('S-02', online[0]!);
-  const today = series.find((p) => p.day === 0)!;
-
-  it('오늘을 사이에 두고 지나온 값과 앞날이 나뉜다', () => {
-    expect(series.filter((p) => p.day < 0).every((p) => p.actual !== null && p.projected === null))
-      .toBe(true);
-    expect(series.filter((p) => p.day > 0).every((p) => p.actual === null && p.projected !== null))
-      .toBe(true);
-  });
-
-  /** 오늘 칸에 둘 다 없으면 파선이 하루 떨어진 곳에서 따로 시작해 선이 끊겨 보인다 */
-  it('오늘 칸은 두 값을 같이 갖는다', () => {
-    expect(today.actual).toBe(today.projected);
-  });
-
-  it('마지막 점이 0이다 — 어디서 바닥에 닿는지가 이 그래프의 요지다', () => {
-    expect(series[series.length - 1]!.projected).toBe(0);
-    expect(series[series.length - 1]!.day).toBe(daysUntilDepleted(online[0]!));
-  });
-
-  it('앞날도 단조 감소다', () => {
-    const ahead = series.filter((p) => p.day > 0).map((p) => p.projected!);
-    for (let i = 1; i < ahead.length; i += 1) {
-      expect(ahead[i]!).toBeLessThanOrEqual(ahead[i - 1]!);
+  /** 신호는 진동·전류 둘뿐이다. 유량·전력은 설비 하나의 이상으로 돌릴 수 없다 */
+  it('이상 신호가 정의된 둘 안에 있다', () => {
+    const known = Object.keys(EQUIPMENT_SIGNAL_LABELS);
+    for (const equipment of online) {
+      for (const signal of equipment.signals) expect(known).toContain(signal);
     }
   });
 });
 
-describe('고갈 예상 시점', () => {
-  it('고장 확률이 높을수록 빨리 닿는다', () => {
-    const sorted = [...online].sort((a, b) => b.failureProbability - a.failureProbability);
-    const risky = sorted[0]!;
-    const safe = sorted[sorted.length - 1]!;
-    /* 남은 수명 자체가 다르므로 하루당 감소가 더 큰지로 본다 */
-    expect(risky.remainingUsefulLifeDays / daysUntilDepleted(risky)).toBeGreaterThan(
-      safe.remainingUsefulLifeDays / daysUntilDepleted(safe),
-    );
+describe('설비 등급 — 신호 개수와 지속으로 정한다', () => {
+  const { criticalSignals, warningHours } = PROVISIONAL_EQUIPMENT_ANOMALY_RULE;
+
+  it('신호가 없으면 정상이다', () => {
+    expect(toEquipmentStatus(0, null)).toBe('normal');
+    expect(toEquipmentStatus(0, 99)).toBe('normal');
+  });
+
+  it('신호가 둘 이상이면 위험이다 — 한 부위 문제로 보기 어렵다', () => {
+    expect(toEquipmentStatus(criticalSignals, 0)).toBe('critical');
+  });
+
+  it('하나가 오래 이어지면 경고, 스쳐 지나가면 주의다', () => {
+    expect(toEquipmentStatus(1, warningHours)).toBe('warning');
+    expect(toEquipmentStatus(1, warningHours - 1)).toBe('caution');
+  });
+
+  /** 신호가 있는데 지속을 모르면 정상도 아니고 오래됐다고 단정할 수도 없다(E4) */
+  it('지속을 모르면 주의에 둔다', () => {
+    expect(toEquipmentStatus(1, null)).toBe('caution');
+  });
+
+  it('카드의 등급이 그 규칙과 같다 — 두 곳에서 따로 계산하지 않는다', () => {
+    for (const equipment of online) {
+      expect(equipment.status).toBe(
+        toEquipmentStatus(equipment.signals.length, equipment.anomalyHours),
+      );
+    }
   });
 });
 
-describe('상태 격자', () => {
-  const cells = getStatusTimeline('S-02', online[0]!);
+describe('가동 격자', () => {
+  const cells = getRunTimeline('S-02', online[0]!);
 
   it('24칸이다 — 원문 예시가 00시~24시를 시간 단위로 끊는다', () => {
     expect(cells).toHaveLength(STATUS_TIMELINE_HOURS);
@@ -105,16 +94,9 @@ describe('상태 격자', () => {
     expect(STATUS_TIMELINE_HOURS * SAMPLES_PER_STATUS_CELL).toBe(TIMELINE_POINT_COUNT);
   });
 
-  it('등급은 정의된 4단계 안에 있다', () => {
-    for (const cell of cells) {
-      if (cell.level === null) continue;
-      expect(PROVISIONAL_STATUS_LEVELS).toContain(cell.level);
-    }
-  });
-
   /**
-   * **결측·미가동은 이 파일이 새로 만들지 않는다.** 두 축을 각자 만들면 한 화면이
-   * 서로 다른 말을 한다 — 리본·시계열과 같은 단일 원천을 따라야 한다.
+   * **결측은 이 파일이 새로 만들지 않는다.** 두 축을 각자 만들면 한 화면이 서로 다른 말을
+   * 한다 — 리본·시계열과 같은 단일 원천을 따라야 한다.
    */
   it('한 시간 안에 결측이 하나라도 있으면 그 칸은 모름이다', () => {
     cells.forEach((cell, hour) => {
@@ -122,31 +104,43 @@ describe('상태 격자', () => {
       const anyMissing = Array.from({ length: SAMPLES_PER_STATUS_CELL }, (_, k) =>
         isMissingAt('S-02', from + k),
       ).some(Boolean);
-      expect(cell.level === null).toBe(anyMissing);
+      expect(cell.running === null).toBe(anyMissing);
     });
   });
 
-  it('통신 두절 사업장은 전 칸이 모름이다 — 정상으로 채우지 않는다(E4)', () => {
-    const offlineCells = getStatusTimeline('S-04', offline[0]!);
-    expect(offlineCells.every((c) => c.level === null)).toBe(true);
-  });
-
-  /**
-   * **마지막 칸이 곧 지금이다.** 카드·표는 `equipment.status`를 쓰므로 여기가 어긋나면
-   * 한 화면이 현재 상태를 두 가지로 말한다.
-   */
-  it('마지막 칸이 카드의 현재 등급과 같다', () => {
-    for (const equipment of online) {
-      const timeline = getStatusTimeline('S-02', equipment);
-      const now = timeline[timeline.length - 1]!;
-      if (now.level === null) continue;
-      expect(now.level).toBe(equipment.status);
+  it('모르는 칸은 이상 신호도 비어 있다 — 모르면서 이상이라 적지 않는다', () => {
+    for (const cell of cells) {
+      if (cell.running === null) expect(cell.signals).toHaveLength(0);
     }
   });
 
-  it('하루가 평평하지 않다 — 한 등급뿐이면 격자를 그릴 이유가 없다', () => {
-    const levels = new Set(cells.map((c) => c.level).filter((l) => l !== null));
-    expect(levels.size).toBeGreaterThan(1);
+  it('통신 두절 사업장은 전 칸이 모름이다 — 정지로 채우지 않는다(E4)', () => {
+    const offlineCells = getRunTimeline('S-04', offline[0]!);
+    expect(offlineCells.every((c) => c.running === null)).toBe(true);
+  });
+
+  /**
+   * **마지막 칸이 곧 지금이다.** 카드·표는 `equipment.running`을 쓰므로 여기가 어긋나면
+   * 한 화면이 현재 상태를 두 가지로 말한다.
+   */
+  it('마지막 칸이 카드의 현재 가동 상태와 같다', () => {
+    for (const equipment of online) {
+      const timeline = getRunTimeline('S-02', equipment);
+      const now = timeline[timeline.length - 1]!;
+      if (now.running === null) continue;
+      expect(now.running).toBe(equipment.running);
+    }
+  });
+
+  it('이상 구간이 카드의 지속 시간과 맞는다', () => {
+    for (const equipment of online) {
+      const marked = getRunTimeline('S-02', equipment).filter((c) => c.signals.length > 0).length;
+      expect(marked).toBe(equipment.anomalyHours ?? 0);
+    }
+  });
+
+  it('같은 설비는 몇 번을 불러도 같다 — 시드가 고정이다', () => {
+    expect(getRunTimeline('S-02', online[0]!)).toEqual(cells);
   });
 });
 
@@ -157,8 +151,8 @@ describe('방지시설 가동 줄', () => {
    */
   it('설비 격자와 칸 수·시각이 맞는다', () => {
     const treatment = getTreatmentTimeline('S-02');
-    const status = getStatusTimeline('S-02', online[0]!);
-    expect(treatment.map((c) => c.iso)).toEqual(status.map((c) => c.iso));
+    const run = getRunTimeline('S-02', online[0]!);
+    expect(treatment.map((c) => c.iso)).toEqual(run.map((c) => c.iso));
   });
 
   it('판정은 방류 의심 축이 이미 한 것을 시간으로 묶기만 한다', () => {

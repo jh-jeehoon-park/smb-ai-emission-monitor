@@ -10,10 +10,10 @@ import { cn } from '@/shared/lib/cn';
 import { DISPLAY_TIMEZONE, formatDateTime } from '@/shared/lib/format';
 import { BrandMark } from '@/shared/ui/brand-mark';
 import { ThemeToggle } from '@/shared/ui/theme';
-import { ALARMS, openAlarms } from '@/entities/alarm';
+import { openAlarms } from '@/entities/alarm';
 import { ADMIN_ACCOUNTS, ProfileMenu, ROLES, canRoleSee } from '@/entities/user';
 import { getSite } from '@/entities/site';
-import { useAlarmStates } from '@/features/alarm-ack';
+import { ALL_ALARMS, useAlarmStates } from '@/features/alarm-ack';
 import { SiteSelector, useSelectedSiteId, useSiteHref } from '@/features/site-selection';
 import {
   ALARM_NAV_HREF,
@@ -129,17 +129,17 @@ function hiddenForClass(item: NavItem): string {
 }
 
 /**
- * 미확인 알람 수. **역할·계정마다 숫자가 다르다** — 운영자·게스트는 전 사업장,
- * 관리자는 자사 1개소다. 서버는 둘 다 모르므로 세 벌을 렌더하고 CSS가 고른다.
+ * 미확인 알람 수. **역할·계정마다 숫자가 다르다** — 시스템 관리자·지자체는 전 사업장,
+ * 사업장은 자사 1개소다. 서버는 둘 다 모르므로 세 벌을 렌더하고 CSS가 고른다.
  * 렌더 중에 역할로 분기해 숫자를 하나만 그리면 하이드레이션이 깨진다.
  */
 function AlarmBadge() {
   /* 헤더 알림과 **같은 상태**를 본다. 정적 fixture를 읽으면 확인 처리를 해도 줄지 않는다 */
-  const { alarms } = useAlarmStates(ALARMS);
+  const { alarms } = useAlarmStates(ALL_ALARMS);
 
   return (
     <>
-      <Badge count={openAlarms(alarms).length} className="role-hide-admin" />
+      <Badge count={openAlarms(alarms).length} className="role-hide-site" />
       {ADMIN_ACCOUNTS.map((account, index) => (
         <Badge
           key={account.key}
@@ -170,12 +170,12 @@ function Badge({ count, className }: { count: number; className: string }) {
 /**
  * 로고와 시스템명을 눌러 첫 화면으로 간다 `[사용자 요청 2026-08-20]`.
  *
- * 목적지는 **역할이 정한다** — 관리자에게는 통합 관제가 닫혀 있어 모두를 `/`로 보내면
+ * 목적지는 **역할이 정한다** — 사업장에는 통합 관제가 닫혀 있어 모두를 `/`로 보내면
  * 라우트 가드가 곧바로 되돌린다. 역할을 바꿨을 때 가는 곳과 같은 값을 쓴다(`homeHrefFor`).
  *
  * **그런데 렌더 중에 역할로 `href`를 가를 수 없다.** 서버는 localStorage를 모르므로 서버가
  * 그린 `/`와 클라이언트가 그릴 `/overview`가 어긋나 하이드레이션이 깨진다 — 실제로 깨졌고,
- * React가 "This won't be patched up"이라 경고하며 관리자에게 잘못된 링크가 남았다.
+ * React가 "This won't be patched up"이라 경고하며 사업장 역할에 잘못된 링크가 남았다.
  * 그래서 **목적지마다 한 벌씩 그리고 CSS가 고른다**(`design-system §2.0`). 숨은 쪽은
  * `display:none`이라 탭 순서에도 남지 않는다.
  */

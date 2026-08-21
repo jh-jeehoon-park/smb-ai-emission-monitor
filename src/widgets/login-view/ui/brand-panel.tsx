@@ -26,7 +26,7 @@ export function BrandPanel() {
         <p className="mt-4 max-w-[34ch] break-keep text-[14px] leading-relaxed text-fg-muted">
           {/* AI 산출 4종을 줄여 적지 않는다 — 하나를 빼면 범위가 달라 보인다(A2) */}
           현장 센서와 ECP가 모은 수질·설비 시계열을 Cloud AI가 읽고, 이상 탐지 · 수질 예측 ·
-          오염도 추정 · 설비 예지보전 결과를 한 화면으로 돌려줍니다.
+          오염도 추정 · 설비 이상 탐지 결과를 한 화면으로 돌려줍니다.
         </p>
 
         <dl className="mt-10 grid max-w-[520px] grid-cols-2 gap-px overflow-hidden rounded-[6px] border border-border bg-border">

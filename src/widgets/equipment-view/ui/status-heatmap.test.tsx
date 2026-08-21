@@ -34,19 +34,21 @@ function statusCellAt(row: number, column: number): HTMLElement {
   return rows[row + 1]!.querySelectorAll('td')[column] as HTMLElement;
 }
 
-describe('상태 격자 판독 툴팁', () => {
+describe('가동 격자 판독 툴팁', () => {
   it('처음에는 뜨지 않는다', () => {
     const { tooltip } = renderGrid();
     expect(tooltip()).toBeNull();
   });
 
-  it('칸에 올리면 시각·설비·등급을 낸다', () => {
+  it('칸에 올리면 시각·설비·가동을 낸다', () => {
     const { tooltip } = renderGrid();
     fireEvent.mouseMove(statusCellAt(0, 0));
 
     const tip = within(tooltip() as HTMLElement);
     expect(tip.getByText(online[0]!.name)).toBeTruthy();
-    expect(tip.getByText('등급')).toBeTruthy();
+    /* 칸이 말하는 것이 등급에서 가동으로 바뀌었다 `[INC-107]` */
+    expect(tip.getByText('가동 상태')).toBeTruthy();
+    expect(tip.queryByText('등급')).toBeNull();
     /* 표시 기준 시간대를 함께 적는다(E5) */
     expect(tip.getByText(/KST$/)).toBeTruthy();
   });
@@ -96,7 +98,7 @@ describe('상태 격자 판독 툴팁', () => {
    * 방지시설 줄은 등급이 아니라 켜짐/꺼짐 축이다. 툴팁이 `등급`이라고 말하면 그 구분이
    * 화면에서 사라진다(`TBD-46`).
    */
-  it('방지시설 줄은 등급이 아니라 가동 여부를 낸다', () => {
+  it('방지시설 줄은 설비 가동과 다른 이름을 쓴다', () => {
     const { tooltip } = renderGrid();
     const rows = screen.getAllByRole('row');
     const treatmentRow = rows[rows.length - 1]!;
@@ -104,11 +106,12 @@ describe('상태 격자 판독 툴팁', () => {
 
     const tip = within(tooltip() as HTMLElement);
     expect(tip.getByText('방지시설')).toBeTruthy();
-    expect(tip.queryByText('등급')).toBeNull();
+    /* 설비 행과 같은 이름을 쓰면 다섯 번째 설비처럼 읽힌다(`TBD-46`) */
+    expect(tip.queryByText('가동 상태')).toBeNull();
   });
 
-  /** 결측 칸에 등급을 지어내지 않는다(E4) */
-  it('수신 없는 칸은 등급 대신 수신 없음을 낸다', () => {
+  /** 결측 칸에 가동 여부를 지어내지 않는다(E4) */
+  it('수신 없는 칸은 가동 대신 수신 없음을 낸다', () => {
     const { tooltip } = renderGrid();
     const missingColumn = getStatusCells().findIndex((text) => text.includes('수신 없음'));
     expect(missingColumn).toBeGreaterThanOrEqual(0);
@@ -116,7 +119,7 @@ describe('상태 격자 판독 툴팁', () => {
     fireEvent.mouseMove(statusCellAt(0, missingColumn));
     const tip = within(tooltip() as HTMLElement);
     expect(tip.getByText('수신 없음')).toBeTruthy();
-    expect(tip.queryByText('등급')).toBeNull();
+    expect(tip.queryByText('가동 상태')).toBeNull();
   });
 });
 
@@ -124,7 +127,7 @@ describe('통신 두절 사업장', () => {
   it('격자를 그리지 않는다 — 전 칸 빗금은 정보가 아니다', () => {
     render(<StatusHeatmap siteId="S-04" items={getEquipment('S-04')} />);
     expect(screen.queryByRole('table')).toBeNull();
-    expect(screen.getByText(/상태 격자를 그리지 않습니다/)).toBeTruthy();
+    expect(screen.getByText(/가동 격자를 그리지 않습니다/)).toBeTruthy();
   });
 });
 

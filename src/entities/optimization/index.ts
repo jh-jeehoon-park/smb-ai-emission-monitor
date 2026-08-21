@@ -7,6 +7,7 @@ export {
   ENERGY_DECIMALS,
   ENERGY_SAVING_TARGET,
   INCIDENT_AVOIDED_KRW_RANGE,
+  OPERATING_WINDOW,
   OPEX_SAVING_TARGET,
   COST_EXAMPLE_KRW,
   OPTIMIZATION_INPUT_LABEL,
@@ -19,5 +20,6 @@ export type {
   OptimizationSummary,
   DosingAdvice,
   OperatingAdvice,
+  OperatingSignals,
   EnergyAdvice,
 } from './model/types';

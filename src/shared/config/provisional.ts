@@ -54,6 +54,81 @@ export const PROVISIONAL_ANOMALY_TICKS: number[] = [
 ];
 
 /**
+ * 운전 조건 조정폭의 **크기**를 정하는 배율. 방향과 근거는 계측이 준다.
+ *
+ * **왜 필요한가** — 원문은 조정 대상(`폭기량, 펌프 속도 등` p.67)과 인과(`폭기량 감소 → DO
+ * 저하 → 질산화 저해 → TN 증가` p.24·62)까지 주고 **몇 %를 조정하라는 값은 주지 않는다.**
+ * 관측된 변화율을 그대로 조정폭으로 쓰면 DO가 20% 떨어진 순간 폭기량 +20%를 권하게 되는데
+ * 그 등가성에도 근거가 없다.
+ *
+ * **원문에 왜 없는가** — XMARL-PPO가 낼 값이고(p.66) 모델이 아직 없다.
+ *
+ * **확정되면 무엇을 바꾸나** — 모델이 붙으면 이 배율과 `buildOperating`이 함께 사라진다.
+ * 화면은 서버가 준 조정폭을 그리기만 한다.
+ *
+ * **상한을 둔다.** 계측이 튀는 순간 `+180%` 같은 제안이 나오면 그것이 곧 안전 문제다 —
+ * 우리는 제어하지 않지만(REQ-CO-002 미구현) 운영자가 손으로 따라 할 수 있다.
+ */
+export const PROVISIONAL_OPERATING_GAIN = {
+  /** 관측 변화율을 조정폭으로 옮길 때의 배율 */
+  ratio: 0.6,
+  /** 조정폭 상한 % — 양방향 공통 */
+  maxPercent: 20,
+  /** 이보다 작은 변화는 조정을 권하지 않는다 — 잡음에 설비를 흔들지 않는다 */
+  minPercent: 2,
+} as const;
+
+/**
+ * 관측 변화율(`recent / baseline`)을 조정폭 %로.
+ *
+ * `sign`은 인과의 방향이다 — DO가 내려가면 폭기량을 **올려야** 하므로 `-1`, 유입 유량이
+ * 내려가면 펌프 속도도 **내려야** 하므로 `+1`.
+ *
+ * 값이 없거나 변화가 문턱 아래면 `null`이다. `0`을 돌려주면 "조정할 필요가 없다고 판단했다"는
+ * 사실 주장이 되는데, 판단하지 못한 것과 다르다(E4).
+ */
+export function toOperatingDelta(ratio: number | null, sign: 1 | -1): number | null {
+  if (ratio === null) return null;
+
+  const { ratio: gain, maxPercent, minPercent } = PROVISIONAL_OPERATING_GAIN;
+  const raw = (ratio - 1) * 100 * gain * sign;
+  if (Math.abs(raw) < minPercent) return null;
+
+  const clamped = Math.max(-maxPercent, Math.min(maxPercent, raw));
+  return Math.round(clamped);
+}
+
+/**
+ * 설비 이상을 등급으로 나누는 임시 규칙. **원문에 판정 기준이 없다** `[TBD-50]`.
+ *
+ * 예전에는 고장 확률이 등급을 정했는데 회의가 그것을 내리게 했다 `[INC-107]`. 남은 축은
+ * **이상 신호의 개수와 지속 시간** 둘뿐이라 그것으로 나눈다 — 진동 사양이 없어(`[TBD-49]`)
+ * 값의 크기는 쓸 수 없다.
+ *
+ * 이상 점수 구간(`PROVISIONAL_ANOMALY_BANDS`)과 **다른 축이다.** 그쪽은 0~100 점수를
+ * 자르고 이쪽은 신호를 센다. 등급 라벨만 공유한다.
+ */
+export const PROVISIONAL_EQUIPMENT_ANOMALY_RULE = {
+  /** 신호가 이 개수 이상이면 위험 — 두 가지가 동시에 걸리면 한 부위 문제로 보기 어렵다 */
+  criticalSignals: 2,
+  /** 신호 하나가 이 시간 이상 이어지면 경고 — 스쳐 지난 것과 이어지는 것을 가른다 */
+  warningHours: 3,
+} as const;
+
+/**
+ * 설비 등급을 낸다. 규칙은 위 상수가 갖고, 여기서는 그것을 읽기만 한다.
+ *
+ * `hours`가 `null`이면 지속을 모르는 것이다 — 신호가 있으니 `정상`은 아니고, 오래됐다고
+ * 단정할 근거도 없어 `주의`에 둔다(E4).
+ */
+export function toEquipmentStatus(signalCount: number, hours: number | null): StatusLevel {
+  if (signalCount <= 0) return 'normal';
+  if (signalCount >= PROVISIONAL_EQUIPMENT_ANOMALY_RULE.criticalSignals) return 'critical';
+  if (hours !== null && hours >= PROVISIONAL_EQUIPMENT_ANOMALY_RULE.warningHours) return 'warning';
+  return 'caution';
+}
+
+/**
  * 항목별 표시 소수 자릿수. 원문은 센서 정확도(±0.1 등)만 규정하고 표시 자릿수를 정하지 않았다
  * (data-dictionary.md §10 #2). 정확도 한 자리 아래까지 보이도록 잡았다.
  */
@@ -69,6 +144,12 @@ export const PROVISIONAL_DECIMALS: Record<string, number> = {
   current: 1,
   power: 1,
   flow: 0,
+  /**
+   * 진동은 **값을 표시하지 않는다.** 단위·범위가 원문에 없어(`[TBD-49]`) 화면은 이상 여부만
+   * 낸다. 그래도 여기 적어 두는 이유는 `PROVISIONAL_DECIMALS`가 `Record<string, number>`라
+   * 빠뜨리면 `undefined`가 `number`로 통과해 조용히 `NaN`을 만들기 때문이다.
+   */
+  vibration: 0,
   // TN은 TOC와 값 크기가 비슷해(십 단위 mg/L) 같은 자릿수를 쓴다. TP는 한 자릿수라 두 자리가 필요하다.
   TN: 1,
   TP: 2,

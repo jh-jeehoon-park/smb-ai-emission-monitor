@@ -2,8 +2,8 @@
 
 import { useMemo } from 'react';
 import { DEMO_NOW_ISO } from '@/shared/config/demo';
-import { FORECAST_HORIZON_HOURS } from '@/shared/config/measurement';
 import { PROVISIONAL_DISPLAY_DECIMALS } from '@/shared/config/provisional';
+import { isOverLimit } from '@/shared/config/discharge-limits';
 import { STATUS_VISUAL, statusInk } from '@/shared/config/status-visual';
 import { formatDateTime } from '@/shared/lib/format';
 import { getOutageWindow } from '@/shared/lib/timeline';
@@ -12,19 +12,24 @@ import { Panel } from '@/shared/ui/panel';
 import { CountUp, RiseItem, StaggerGroup } from '@/shared/ui/motion';
 import { StatusBadge } from '@/shared/ui/status-badge';
 import {
-  ALARMS,
   countByPriorityIn,
   countOpen,
-  getAlarmsForView,
   openCountBySite,
 } from '@/entities/alarm';
 import { ALARM_PRIORITY_LABELS, type AlarmPriority } from '@/entities/alarm';
 import { getAnomalySeries, getAnomalySummary } from '@/entities/anomaly';
 import { getEquipment } from '@/entities/equipment';
 import { WATER_SERIES_CODES, getMeasurementSeries } from '@/entities/measurement';
-import { TREND_LABELS, formatR2, getForecast } from '@/entities/prediction';
+import {
+  SERIES_ORIGIN_LABELS,
+  SERIES_WINDOW_HOURS,
+  TrendChip,
+  formatR2,
+  getForecast,
+  trendVerdict,
+} from '@/entities/prediction';
 import { SITES, getSite } from '@/entities/site';
-import { useAlarmStates } from '@/features/alarm-ack';
+import { ALL_ALARMS, allAlarmsForSite, useAlarmStates } from '@/features/alarm-ack';
 import { useSelectedSiteId } from '@/features/site-selection';
 import { AlarmList } from '@/widgets/alarm-list';
 import { AnomalyPanel } from '@/widgets/anomaly-panel';
@@ -33,16 +38,19 @@ import { EquipmentPanel } from '@/widgets/equipment-panel';
 import { ForecastChart } from '@/widgets/forecast-chart';
 import { SiteMapLegend, SiteMapPanel } from '@/widgets/site-map';
 import { SiteWallboard } from '@/widgets/site-wallboard';
+import { useDischargeLimits } from '@/features/discharge-limit-settings';
 import { WaterQualityGrid } from '@/widgets/water-quality-grid';
 
 export function DashboardView() {
   const { siteId: selectedSiteId, setSiteId: setSelectedSiteId } = useSelectedSiteId();
 
   const site = getSite(selectedSiteId);
+  /* 사용자가 설정한 기준치. 화면마다 따로 읽으면 같은 항목이 화면마다 다른 기준을 갖는다 */
+  const limits = useDischargeLimits();
   /* 확인 처리가 헤더 알림·사이드바와 함께 반영되도록 공유 상태를 읽는다 */
-  const { alarms: allAlarms } = useAlarmStates(ALARMS);
+  const { alarms: allAlarms } = useAlarmStates(ALL_ALARMS);
   const alarmCounts = openCountBySite(allAlarms);
-  /* 통합 관제는 운영자 전용(회의 2026-08-13)이라 전 사업장 집계가 맞다 */
+  /* 통합 관제는 사업장 역할에 닫혀 있어(회의 2026-08-20) 전 사업장 집계가 맞다 */
   const totalOpen = countOpen(allAlarms);
   const priorityCounts = countByPriorityIn(allAlarms);
 
@@ -54,7 +62,7 @@ export function DashboardView() {
       anomalySummary: getAnomalySummary(selectedSiteId),
       forecast: getForecast(selectedSiteId),
       equipment: getEquipment(selectedSiteId),
-      alarmIds: new Set(getAlarmsForView(selectedSiteId).map((a) => a.id)),
+      alarmIds: new Set(allAlarmsForSite(selectedSiteId).map((a) => a.id)),
       outage: getOutageWindow(selectedSiteId),
     }),
     [selectedSiteId],
@@ -66,8 +74,8 @@ export function DashboardView() {
        1280 미만에서는 레일을 만들지 않는다 — 1024에서 나누면 오른쪽에 210px밖에 남지 않아
        KPI 타일이 44px로 뭉개진다. 대신 지도가 본문 위에 전폭으로 놓인다. */
     <div className="grid gap-3 xl:grid-cols-[544px_minmax(0,1fr)]">
-      {/* eyebrow에 역할이 아니라 범위를 적는다. 역할은 사이드바가 보여주고, 이 화면은
-          운영자 전용이라 역할명을 박아 두면 역할을 바꿔도 남아 어긋난다(회의 2026-08-13) */}
+      {/* eyebrow에 역할이 아니라 범위를 적는다. 역할은 사이드바가 보여주고, 역할명을
+          박아 두면 역할이 바뀔 때 이 문구만 남아 어긋난다 — 2026-08-20 회의가 실제로 그렇게 만들었다 */}
       <Panel
         eyebrow="전 사업장"
         title="사업장 위치"
@@ -144,7 +152,12 @@ export function DashboardView() {
               }
               bodyClassName="p-0"
             >
-              <WaterQualityGrid data={detail.series} codes={WATER_SERIES_CODES} />
+              {/* 사업장 계열은 방류구 계열이라 기준을 적용한다 */}
+              <WaterQualityGrid
+                data={detail.series}
+                codes={WATER_SERIES_CODES}
+                limits={limits.table}
+              />
               <p className="max-w-[76ch] border-t border-border px-4 py-2.5 text-[12px] leading-relaxed text-fg-subtle">
                 {!site.online
                   ? 'ECP 통신이 두절되어 수신값이 없습니다. 결측은 0으로 채우지 않고 비워 둡니다.'
@@ -160,7 +173,7 @@ export function DashboardView() {
 
             <Panel
               eyebrow="LSTM + Attention"
-              title={`${detail.forecast.targetLabel} · 향후 ${FORECAST_HORIZON_HOURS}시간 예측`}
+              title={`${detail.forecast.targetLabel} · 최근 ${SERIES_WINDOW_HOURS}시간 추이`}
               action={
                 <span className="max-w-[46ch] text-[12px] text-fg-subtle">
                   {detail.forecast.online
@@ -169,38 +182,44 @@ export function DashboardView() {
                 </span>
               }
             >
-              <ForecastChart summary={detail.forecast} nowIso={DEMO_NOW_ISO} />
+              <ForecastChart summary={detail.forecast} nowIso={DEMO_NOW_ISO} limits={limits.table} />
 
               {/* 카드 안에 카드를 넣지 않는다 — 세로 구분선만으로 나눈다 */}
               <div className="mt-4 grid grid-cols-3 divide-x divide-border border-t border-border pt-3">
-                {detail.forecast.trends.map((t) => (
-                  <div key={t.code} className="px-3 first:pl-0 last:pr-0">
-                    <div className="flex items-baseline justify-between gap-1">
-                      <span className="text-[11px] uppercase tracking-[0.1em] text-fg-subtle">
-                        {t.code}
-                      </span>
-                      <span
-                        className="text-[11px]"
-                        style={{
-                          color:
-                            t.trend === 'rising'
-                              ? statusInk(STATUS_VISUAL.warning)
-                              : 'var(--fg-muted)',
-                        }}
+{/*
+                 * **농도를 적지 않는다** `[회의 2026-08-20]`. 이 화면만 숫자를 그대로 찍고
+                 * 있었다 — 같은 결정이 오염도 추정·리포트에서는 지켜지는데 여기서만 깨지면
+                 * 관제 화면을 보는 사람이 그 숫자를 계측된 농도로 읽는다(E3).
+                 *
+                 * 판정 문구·색·칩은 `entities/prediction`이 낸다. 위젯이 각자 분기를 들고
+                 * 있던 동안 이 화면은 TOC(직접 계측)에도 `AI 추정`을 박아 놨다.
+                 */}
+                {detail.forecast.trends.map((t) => {
+                  const verdict = trendVerdict(
+                    t,
+                    isOverLimit(t.code, t.value, limits.table),
+                    limits.unresolvedReason,
+                  );
+                  return (
+                    <div key={t.code} className="px-3 first:pl-0 last:pr-0">
+                      <div className="flex items-baseline justify-between gap-1">
+                        <span className="text-[11px] uppercase tracking-[0.1em] text-fg-subtle">
+                          {t.code}
+                        </span>
+                        <TrendChip trend={t.trend} bare />
+                      </div>
+                      <p
+                        className="mt-1.5 text-[14px] font-semibold leading-snug text-fg"
+                        style={{ color: verdict.ink }}
                       >
-                        {t.trend === 'rising' ? '▲' : t.trend === 'falling' ? '▼' : '—'}{' '}
-                        {TREND_LABELS[t.trend]}
-                      </span>
+                        {verdict.text}
+                      </p>
+                      <p className="num mt-1 text-[11px] text-fg-subtle">
+                        R² {formatR2(t.r2)} · {SERIES_ORIGIN_LABELS[t.origin]}
+                      </p>
                     </div>
-                    <p className="num mt-1.5 text-[17px] leading-none text-fg">
-                      {t.value === null ? '—' : t.value.toFixed(t.decimals)}
-                      <span className="ml-1 text-[11px] text-fg-subtle">{t.unit}</span>
-                    </p>
-                    <p className="num mt-1 text-[11px] text-fg-subtle">
-                      R² {formatR2(t.r2)} · AI 추정
-                    </p>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </Panel>
           </div>
@@ -222,11 +241,9 @@ export function DashboardView() {
 
         {/* 설비는 4대를 가로로 편다 — 세로로 쌓으면 오른쪽 열만 길어져 왼쪽 아래가 빈다 */}
         <Panel
-          eyebrow="RandomForest · 예지보전"
+          eyebrow="설비 이상 탐지"
           title={`설비 상태 · ${site.name}`}
-          action={
-            <span className="text-[12px] text-fg-subtle">유지관리 우선순위(MPI) 높은 순</span>
-          }
+          action={<span className="text-[12px] text-fg-subtle">상태 나쁜 순</span>}
         >
           <EquipmentPanel items={detail.equipment} online={site.online} />
         </Panel>

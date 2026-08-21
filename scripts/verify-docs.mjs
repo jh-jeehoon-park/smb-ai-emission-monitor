@@ -104,6 +104,7 @@ const SCREEN_DATA_HEADER = /^\| 데이터 \| [^|]+\| 단위 \| 출처·근거 \|
 const XLSX_TABLE = /^\| xlsx 열 \| 값 \|$/m;
 const ACTION_ROWS = ['SUBMIT', 'CANCEL', 'After Action'];
 const ITEM_SECTION = /^#{3,4} 3(\.\d+)? 항목 목록\s*$/m;
+const ITEM_TABLE = /^\| 항목ID \| 영역 \| 구성요소 \| 형태 \| 근거 \|$/;
 
 const CHART_TAG = /<(Area|Bar|Composed|Line|Pie|Radar|RadialBar|Scatter)Chart([^>]*)>/g;
 
@@ -259,6 +260,19 @@ check('문서 규격', () => {
 // 8. 화면 목록 정합 — screens.md와 각 화면 문서가 같은 말을 하는가
 check('화면 목록 정합', () => {
   const list = read('docs/specs/screens.md');
+  /*
+   * §5 매트릭스 헤더가 역할 이름의 정본이다. 화면 문서의 §2.1 표도 같은 이름을 쓴다.
+   *
+   * **파이프를 이스케이프해 잇는다.** 헤더 문자열을 그대로 정규식에 넣으면 `|`가
+   * 교대(alternation)로 해석되어 매칭이 통째로 어긋나고, 캡처 그룹이 비어 `.trim()`이
+   * 터진다 — 실제로 그렇게 터졌다.
+   */
+  const roleLabels = list
+    .match(/^\| 화면 ID \| 화면 \| (.+) \| 근거 \|$/m)?.[1]
+    ?.split('|')
+    .map((s) => s.trim());
+  if (!roleLabels?.length) return ['screens.md §5 권한 매트릭스 헤더를 못 찾았다'];
+  const ROLE_HEADER = roleLabels.join(` ${ESCAPED_PIPE} `);
   const kinds = new Map(
     [...list.matchAll(/^\| \d+\.\d+ \| (SCR-(?:AD|OP|GU|CO)-\d{3}) \|[^|]+\|[^|]+\| ([^|]+)\|/gm)].map((m) => [
       m[1],
@@ -278,7 +292,14 @@ check('화면 목록 정합', () => {
     if (!id) continue;
     const kind = text.match(/^\| 화면 구분 \| ([^|]+)\|/m)?.[1].trim();
     if (kind !== kinds.get(id)) fails.push(`${id} 화면구분 — 목록 '${kinds.get(id)}' ≠ 문서 '${kind}'`);
-    const pm = text.match(/\| 관리자 \| 운영자 \| 게스트 \|\n\|[-| ]+\|\n\| ([^|]+)\| ([^|]+)\| ([^|]+)\|/);
+    /*
+     * **역할 이름을 이 스크립트에 박지 않는다.** 예전에는 `| 관리자 | 운영자 | 게스트 |`를
+     * 정규식에 적어 두었는데, 2026-08-20 회의가 역할을 교체하자 표를 못 찾아 `null`이 됐다.
+     * 이름은 `screens.md` §5 헤더가 갖고 있으므로 거기서 가져온다 — 정의를 두 곳에 두지 않는다.
+     */
+    const pm = text.match(
+      new RegExp(`\\| ${ROLE_HEADER} \\|${LF}\\|[-| ]+\\|${LF}\\| ([^|]+)\\| ([^|]+)\\| ([^|]+)\\|`),
+    );
     const perm = pm ? [pm[1], pm[2], pm[3]].map((s) => s.trim()).join(' / ') : null;
     if (perm !== perms.get(id)) fails.push(`${id} 권한 — 목록 '${perms.get(id)}' ≠ 문서 '${perm}'`);
   }
@@ -446,7 +467,10 @@ check('근거 태그 누락', () => {
     ['docs/specs/data-definition.md', (h) => h === DATA_HEADER],
     ...readdirSync(SCREENS)
       .filter((f) => f.endsWith('.md'))
-      .map((f) => [`docs/specs/screens/${f}`, (h) => SCREEN_DATA_HEADER.test(h)]),
+      .map((f) => [
+        `docs/specs/screens/${f}`,
+        (h) => SCREEN_DATA_HEADER.test(h) || ITEM_TABLE.test(h),
+      ]),
   ];
   for (const [rel, wanted] of targets) {
     const lines = read(rel).split(LF);
@@ -458,9 +482,17 @@ check('근거 태그 누락', () => {
       const at = cells.findIndex((c) => c === '근거' || c === '출처·근거');
       if (at < 0) continue;
       for (let j = i + 2; j < lines.length && lines[j].startsWith('|'); j += 1) {
-        const cell = splitRow(lines[j])[at] ?? '';
-        if (!EVIDENCE_TAG.test(cell) && !DITTO.test(cell))
-          fails.push(`${rel}:${j + 1} — 근거 없음(X1)`);
+        const cells = splitRow(lines[j]);
+        const cell = cells[at] ?? '';
+        if (EVIDENCE_TAG.test(cell) || DITTO.test(cell)) continue;
+        /*
+         * `항목 목록` 표는 사전 항목을 **항목ID로 가리킨다**(E1) — 근거를 되풀이해 적지 않는다.
+         * 그 행은 `근거` 열이 `—`이고, 사전에 있는 항목ID를 대는 것으로 근거를 댄 것이다.
+         * 형태 칸에 태그를 적은 행도 있다(`20~30%` `[원문 p.27·31]`) — 같은 행 안이면 받는다.
+         */
+        if (cells[0] === '항목ID' || /`[A-Z]{2,5}-/.test(cells[0] ?? '')) continue;
+        if (ITEM_TABLE.test(lines[i]) && cells.some((c) => EVIDENCE_TAG.test(c))) continue;
+        fails.push(`${rel}:${j + 1} — 근거 없음(X1)`);
       }
     }
   }

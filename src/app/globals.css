@@ -248,38 +248,41 @@
    * 메뉴를 전부 렌더하고 CSS가 가린다. 숨은 항목이 DOM에 남지만 이건 인가가 아니라
    * 시연 표시다(E6 예외). 백엔드가 생기면 서버가 걸러 보낸다.
    */
-  :root[data-role='admin'] .role-hide-admin,
-  :root[data-role='operator'] .role-hide-operator,
-  :root[data-role='guest'] .role-hide-guest {
+  :root[data-role='site'] .role-hide-site,
+  :root[data-role='system'] .role-hide-system,
+  :root[data-role='gov'] .role-hide-gov {
     display: none;
   }
 
   /* 현재 역할일 때만 보이는 것 — 설명 문구처럼 하나만 나와야 하는 자리 */
-  .role-only-admin,
-  .role-only-operator,
-  .role-only-guest {
+  .role-only-site,
+  .role-only-system,
+  .role-only-gov {
     display: none;
   }
-  :root[data-role='admin'] .role-only-admin,
-  :root[data-role='operator'] .role-only-operator,
-  :root[data-role='guest'] .role-only-guest {
+  :root[data-role='site'] .role-only-site,
+  :root[data-role='system'] .role-only-system,
+  :root[data-role='gov'] .role-only-gov {
     display: block;
   }
 
   /*
-   * 관리자 계정 축. 역할이 admin이어도 **어느 계정인가**에 따라 숫자가 달라지는 자리가
+   * 사업장 계정 축. 역할이 site여도 **어느 계정인가**에 따라 숫자가 달라지는 자리가
    * 있다(사이드바 알람 배지). 역할 클래스만으로는 가를 수 없어 축을 하나 더 둔다.
+   *
+   * 클래스 이름의 `admin`은 역사다 — 2026-08-20 회의가 `관리자`를 `사업장`으로 바꿨지만
+   * localStorage 키(`aquasense-admin`)와 묶여 있어 함께 고치지 않았다(`accounts.ts` 참조).
    */
   /*
-   * 두 축을 **한 선택자에서** 본다. `role-only-admin`과 따로 걸면 두 규칙이 display를
-   * 다투고, 나중에 선언된 쪽이 이겨 운영자에게도 관리자 배지가 보인다(실제로 그랬다).
+   * 두 축을 **한 선택자에서** 본다. `role-only-site`와 따로 걸면 두 규칙이 display를
+   * 다투고, 나중에 선언된 쪽이 이겨 시스템 관리자에게도 사업장 배지가 보인다(실제로 그랬다).
    */
   .admin-only-1,
   .admin-only-2 {
     display: none;
   }
-  :root[data-role='admin'][data-admin='admin-1'] .admin-only-1,
-  :root[data-role='admin'][data-admin='admin-2'] .admin-only-2 {
+  :root[data-role='site'][data-admin='admin-1'] .admin-only-1,
+  :root[data-role='site'][data-admin='admin-2'] .admin-only-2 {
     display: block;
   }
 
@@ -292,9 +295,9 @@
   }
 
   /* 선택된 역할 버튼 — aria-checked를 서버가 정하면 하이드레이션이 깨지므로 CSS가 칠한다 */
-  :root[data-role='admin'] .role-pick-admin,
-  :root[data-role='operator'] .role-pick-operator,
-  :root[data-role='guest'] .role-pick-guest {
+  :root[data-role='site'] .role-pick-site,
+  :root[data-role='system'] .role-pick-system,
+  :root[data-role='gov'] .role-pick-gov {
     background: var(--surface);
     color: var(--fg);
     box-shadow: 0 1px 2px rgb(0 0 0 / 6%);

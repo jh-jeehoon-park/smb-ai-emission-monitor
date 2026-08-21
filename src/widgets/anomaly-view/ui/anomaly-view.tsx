@@ -75,13 +75,13 @@ export function AnomalyView() {
           <IdleDischargePanel siteId={siteId} points={detail.points} />
         </Panel>
 
-        {/* 비교가 이 블록의 존재 이유다. 자사 1개소뿐인 관리자에게는 성립하지 않는다 */}
+        {/* 비교가 이 블록의 존재 이유다. 자사 1개소뿐인 사업장에는 성립하지 않는다 */}
         <Panel
           eyebrow={`실증 ${SITES.length}개소`}
           title="사업장별 이상 점수"
           action={<span className="text-[12px] text-fg-subtle">점수 높은 순 · 클릭하여 전환</span>}
           bodyClassName="p-0"
-          className="role-hide-admin"
+          className="role-hide-site"
         >
           <SiteScoreRanking selectedId={siteId} onSelect={setSiteId} />
         </Panel>

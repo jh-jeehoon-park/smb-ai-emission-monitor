@@ -17,6 +17,7 @@ import {
   normalizeAdminAccount,
 } from './config/accounts';
 import { DEFAULT_ROLE, SESSION_INIT_SCRIPT, normalizeRole } from './config/session';
+import type { Role } from './model/types';
 import { SITES } from '@/entities/site';
 
 const MATRIX = readFileSync(
@@ -24,14 +25,29 @@ const MATRIX = readFileSync(
   'utf8',
 );
 
-/** `| SCR-OP-001 | 통합 관제 | ✕ | R | R | …` 에서 세 역할 칸을 뽑는다 */
-function docAccess(screenId: string): Record<string, boolean> | null {
-  const row = MATRIX.split('\n').find((l) => l.startsWith(`| ${screenId} |`));
-  if (!row) return null;
+/**
+ * §5 권한 매트릭스에서 그 화면의 역할별 접근 가능 여부를 뽑는다.
+ *
+ * **열 위치를 가정하지 않고 헤더의 역할 라벨로 찾는다.** 예전에는 `cells[3]/[4]/[5]`를
+ * 관리자·운영자·게스트로 고정해 읽었는데, 2026-08-20 회의가 역할을 교체하면서 열 이름과
+ * 순서가 함께 바뀌자 **파서가 조용히 다른 열을 읽었다.** 라벨로 찾으면 순서가 바뀌어도 맞다.
+ */
+const ROLE_BY_LABEL = new Map(ROLES.map((role) => [ROLE_PROFILES[role].label, role]));
+
+function docAccess(screenId: string): Partial<Record<Role, boolean>> | null {
+  const rows = MATRIX.split('\n');
+  const header = rows.find((l) => l.startsWith('| 화면 ID | 화면 |'));
+  const row = rows.find((l) => l.startsWith(`| ${screenId} |`));
+  if (!header || !row) return null;
+
+  const headerCells = header.split('|').map((c) => c.trim());
   const cells = row.split('|').map((c) => c.trim());
-  // 0 빈칸 · 1 화면ID · 2 화면명 · 3 관리자 · 4 운영자 · 5 게스트
-  const allow = (cell: string) => !cell.includes('✕');
-  return { admin: allow(cells[3]), operator: allow(cells[4]), guest: allow(cells[5]) };
+  const out: Partial<Record<Role, boolean>> = {};
+  headerCells.forEach((label, index) => {
+    const role = ROLE_BY_LABEL.get(label);
+    if (role) out[role] = !cells[index]?.includes('✕');
+  });
+  return out;
 }
 
 describe('역할 — 문서와 코드가 갈리지 않는다', () => {
@@ -43,6 +59,8 @@ describe('역할 — 문서와 코드가 갈리지 않는다', () => {
       for (const role of ROLES) {
         expect(canRoleSee(screenId, role), `${screenId} × ${role}`).toBe(doc![role]);
       }
+      /* 라벨로 찾으므로 세 역할이 다 잡혔는지 확인한다 — 못 찾으면 undefined가 되어 조용히 통과한다 */
+      expect(Object.keys(doc!).length, `${screenId} 열 매칭 실패`).toBe(ROLES.length);
     },
   );
 
@@ -52,23 +70,23 @@ describe('역할 — 문서와 코드가 갈리지 않는다', () => {
     }
   });
 
-  it('통합 관제는 관리자에게 닫혀 있다 — 회의 2026-08-13', () => {
-    expect(canRoleSee('SCR-OP-001', 'admin')).toBe(false);
-    expect(canRoleSee('SCR-OP-001', 'operator')).toBe(true);
+  it('통합 관제는 사업장에 닫혀 있다 — 지도·10개소 월보드가 자사 1개소에 의미가 없다', () => {
+    expect(canRoleSee('SCR-OP-001', 'site')).toBe(false);
+    expect(canRoleSee('SCR-OP-001', 'system')).toBe(true);
   });
 
   /**
-   * 관리자의 첫 화면은 **현황**이지 손익이 아니다.
+   * 사업장의 첫 화면은 **현황**이지 손익이 아니다.
    *
    * 가드가 `NAV_ITEMS`의 첫 접근 가능 항목을 폴백으로 쓰므로 순서가 곧 첫 화면이다.
    * SCR-AD-003을 앞에서 치우면 다시 손익 화면으로 떨어진다 — 그때 여기서 걸린다.
    */
-  it('관리자로 바꾸면 자사 현황으로 옮겨 간다 — 라우트 가드의 대체 화면', () => {
-    expect(NAV_ITEMS.find((item) => canRoleSee(item.screenId, 'admin'))?.href).toBe('/overview');
+  it('사업장으로 바꾸면 자사 현황으로 옮겨 간다 — 라우트 가드의 대체 화면', () => {
+    expect(NAV_ITEMS.find((item) => canRoleSee(item.screenId, 'site'))?.href).toBe('/overview');
   });
 
-  it('운영자·게스트의 대체 화면은 그대로 통합 관제다', () => {
-    for (const role of ['operator', 'guest'] as const) {
+  it('시스템 관리자·지자체의 대체 화면은 통합 관제다', () => {
+    for (const role of ['system', 'gov'] as const) {
       expect(NAV_ITEMS.find((item) => canRoleSee(item.screenId, role))?.href).toBe('/');
     }
   });
@@ -76,13 +94,25 @@ describe('역할 — 문서와 코드가 갈리지 않는다', () => {
 
 describe('세션 — 하이드레이션이 깨지지 않게', () => {
   it('알 수 없는 값은 기본 역할로 떨어진다', () => {
-    expect(normalizeRole('admin')).toBe('admin');
+    expect(normalizeRole('site')).toBe('site');
+    /* 회의 이전 값이다. 키에 판을 붙여 읽지 않지만, 읽더라도 기본 역할로 떨어져야 한다 */
+    expect(normalizeRole('admin')).toBe(DEFAULT_ROLE);
     expect(normalizeRole('root')).toBe(DEFAULT_ROLE);
     expect(normalizeRole(null)).toBe(DEFAULT_ROLE);
   });
 
-  it('기본 역할은 운영자다 — 구현된 8개가 운영자 화면이라 진입 즉시 볼 것이 있다', () => {
-    expect(DEFAULT_ROLE).toBe('operator');
+  it('기본 역할은 시스템 관리자다 — 구현된 화면 대부분이 전 사업장 관제라 진입 즉시 볼 것이 있다', () => {
+    expect(DEFAULT_ROLE).toBe('system');
+  });
+
+  /**
+   * 역할 리터럴이 `<head>` 인라인 문자열 안에 박혀 있던 적이 있다. 그때 이름을 바꾸면
+   * 컴파일은 통과하고 **역할 전환만 조용히 안 먹었다.** 이제 `ROLES`에서 만든다.
+   */
+  it('INIT 스크립트가 현재 역할 세 개를 전부 담는다', () => {
+    for (const role of ROLES) {
+      expect(SESSION_INIT_SCRIPT, `${role}가 INIT 스크립트에 없다`).toContain(`'${role}'`);
+    }
   });
 
   it('INIT 스크립트가 첫 페인트 전에 data-role을 세운다', () => {
@@ -101,7 +131,7 @@ describe('세션 — 하이드레이션이 깨지지 않게', () => {
   });
 });
 
-describe('관리자 계정 — 범위 축', () => {
+describe('사업장 계정 — 범위 축', () => {
   it('두 계정이 서로 다른 실재 사업장을 가리킨다', () => {
     const ids = ADMIN_ACCOUNTS.map((a) => a.siteId);
     expect(new Set(ids).size).toBe(ADMIN_ACCOUNTS.length);
@@ -146,17 +176,17 @@ describe('관리자 계정 — 범위 축', () => {
 });
 
 /**
- * 게스트는 **전환만** 막는다. 역할 자체를 없애는 것이 아니다 —
- * 권한 매트릭스는 게스트가 볼 수 있는 화면을 그대로 규정하고 있고,
- * 저장된 역할이 게스트인 세션도 계속 동작해야 한다.
+ * 지자체는 **전환만** 막는다. 역할 자체를 없애는 것이 아니다 —
+ * 권한 매트릭스는 지자체가 볼 수 있는 화면을 그대로 규정하고 있고,
+ * 관할 지역 범위를 구현하면 전환을 연다 `[사용자 지시 2026-08-20]`.
  */
-describe('역할 전환 — 게스트는 시연에서 고를 수 없다', () => {
-  it('전환 목록에 게스트가 없다', () => {
-    expect(SWITCHABLE_ROLES).not.toContain('guest');
+describe('역할 전환 — 지자체는 아직 고를 수 없다', () => {
+  it('전환 목록에 지자체가 없다', () => {
+    expect(SWITCHABLE_ROLES).not.toContain('gov');
   });
 
-  it('관리자·운영자는 전환할 수 있다', () => {
-    expect(SWITCHABLE_ROLES).toEqual(expect.arrayContaining(['admin', 'operator']));
+  it('사업장·시스템 관리자는 전환할 수 있다', () => {
+    expect(SWITCHABLE_ROLES).toEqual(expect.arrayContaining(['site', 'system']));
   });
 
   /** 전환 목록은 전체 역할의 부분집합이어야 한다 — 없는 역할을 고를 수 있으면 안 된다 */
@@ -164,18 +194,23 @@ describe('역할 전환 — 게스트는 시연에서 고를 수 없다', () => 
     for (const role of SWITCHABLE_ROLES) expect(ROLES).toContain(role);
   });
 
-  it('게스트는 여전히 유효한 역할이다 — 저장된 세션이 깨지지 않는다', () => {
-    expect(normalizeRole('guest')).toBe('guest');
-    expect(ROLES).toContain('guest');
+  it('지자체는 유효한 역할이다 — 권한 매트릭스가 이미 규정한다', () => {
+    expect(normalizeRole('gov')).toBe('gov');
+    expect(ROLES).toContain('gov');
   });
 
-  it('게스트의 화면 접근 권한은 그대로다', () => {
-    expect(canRoleSee('SCR-OP-001', 'guest')).toBe(true);
-    expect(canRoleSee('SCR-AD-003', 'guest')).toBe(false);
+  it('지자체의 화면 접근 권한은 정의돼 있다', () => {
+    expect(canRoleSee('SCR-OP-001', 'gov')).toBe(true);
+    expect(canRoleSee('SCR-AD-003', 'gov')).toBe(false);
+  });
+
+  /** 범위 축이 역할마다 하나로 정해진다 — 회의가 사용자 유형과 범위를 함께 못박았다 */
+  it('세 역할의 범위가 서로 다르다', () => {
+    expect(new Set(ROLES.map((role) => ROLE_PROFILES[role].scope)).size).toBe(ROLES.length);
   });
 
   /** 못 누르는 이유가 화면에 적혀야 한다 — 흐릿하기만 하면 고장으로 읽힌다 */
   it('막힌 이유 문구가 있다', () => {
-    expect(ROLE_SWITCH_BLOCKED_REASON).toContain('게스트');
+    expect(ROLE_SWITCH_BLOCKED_REASON).toContain('지자체');
   });
 });

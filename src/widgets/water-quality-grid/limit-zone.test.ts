@@ -1,76 +1,45 @@
 import { describe, expect, it } from 'vitest';
 import { DISCHARGE_LIMITS } from '@/shared/config/discharge-limits';
-import { countOverLimit, type MeasurementPoint } from '@/entities/measurement';
 import { limitZone } from './lib/limit-zone';
 
-const point = (pH: number | null): MeasurementPoint =>
-  ({ t: '2026-08-21T00:00:00Z', pH }) as MeasurementPoint;
+const USER_MAX = {
+  ...DISCHARGE_LIMITS,
+  TOC: { min: null, max: 40, source: '사업장 설정', unavailableReason: null },
+};
 
-describe('기준 구간 — 기준이 있는 항목만 그린다', () => {
-  it('pH는 구간을 갖는다', () => {
-    const zone = limitZone('pH', [7.0, 7.2]);
-    expect(zone).not.toBeNull();
-    expect(zone!.min).toBe(5.8);
-    expect(zone!.max).toBe(8.6);
-  });
-
-  /** 선을 그으려면 지역구분·배출량 규모 표가 있어야 한다 — 없으면 긋지 않는다 */
-  it('TOC·EC·수온은 구간이 없다', () => {
-    for (const code of ['TOC', 'EC', 'temperature'] as const) {
-      expect(limitZone(code, [10, 20])).toBeNull();
-    }
-  });
-});
-
-describe('y축이 기준을 담는다 — 사업장끼리 비교되게', () => {
-  /** 값이 기준 한가운데여도 dataMin~dataMax로 두면 화면 가득 요동쳐 보인다 */
-  it('데이터가 좁아도 축은 기준 밖까지 열린다', () => {
-    const zone = limitZone('pH', [7.0, 7.05])!;
+describe('기준에 맞춘 y축', () => {
+  it('양방향 기준은 위아래를 모두 축에 넣는다', () => {
+    const zone = limitZone('pH', [7, 7.2], DISCHARGE_LIMITS)!;
+    expect(zone.min).toBe(5.8);
+    expect(zone.max).toBe(8.6);
     expect(zone.domain[0]).toBeLessThan(5.8);
     expect(zone.domain[1]).toBeGreaterThan(8.6);
   });
 
-  it('같은 항목이면 사업장이 달라도 같은 축을 쓴다', () => {
-    const low = limitZone('pH', [5.94, 6.7])!;
-    const high = limitZone('pH', [7.5, 8.27])!;
-    expect(low.domain).toEqual(high.domain);
+  /**
+   * **사용자가 상한을 넣으면 축이 그것에 맞아야 한다.** 예전에는 `min`이 없으면 `null`을
+   * 돌려줘서, 값을 넣어도 격자가 계속 `기준값 미확정`으로 적고 y축은 데이터에 붙었다.
+   */
+  it('상한만 있는 기준도 축을 낸다', () => {
+    const zone = limitZone('TOC', [24, 28], USER_MAX)!;
+    expect(zone.min).toBeNull();
+    expect(zone.max).toBe(40);
+    expect(zone.domain[1]).toBeGreaterThan(40);
   });
 
-  /** 넘은 값이 축 밖으로 잘리면 초과를 눈으로 못 본다 */
-  it('기준을 넘은 값이 있으면 축이 그 값까지 넓어진다', () => {
-    const zone = limitZone('pH', [9.4])!;
-    expect(zone.domain[1]).toBeGreaterThanOrEqual(9.4);
+  /** 눈금이 데이터에 따라 달라지면 "같은 항목의 모든 사업장이 같은 눈금"이 깨진다 */
+  it('기준 안에 있는 값들은 축을 흔들지 않는다', () => {
+    const a = limitZone('TOC', [10, 12], USER_MAX)!;
+    const b = limitZone('TOC', [30, 33], USER_MAX)!;
+    expect(a.domain[1]).toBe(b.domain[1]);
   });
 
-  it('전 구간 결측이어도 축은 기준으로 정해진다', () => {
-    const zone = limitZone('pH', [null, null])!;
-    expect(zone.domain[0]).toBeLessThan(5.8);
-    expect(zone.domain[1]).toBeGreaterThan(8.6);
-  });
-});
-
-describe('초과 건수 — 모름과 없음을 구분한다(E4)', () => {
-  it('기준이 없는 항목은 0이 아니라 null이다', () => {
-    expect(countOverLimit([], 'TOC')).toBeNull();
-    expect(countOverLimit([], 'EC')).toBeNull();
+  it('기준을 넘은 값이 있으면 그 값까지 넓힌다 — 잘리면 초과를 못 본다', () => {
+    const zone = limitZone('TOC', [24, 52], USER_MAX)!;
+    expect(zone.domain[1]).toBeGreaterThan(52);
   });
 
-  it('기준 안이면 0건이다', () => {
-    expect(countOverLimit([point(7.0), point(8.6), point(5.8)], 'pH')).toBe(0);
-  });
-
-  it('벗어난 표본만 센다', () => {
-    expect(countOverLimit([point(5.79), point(7.0), point(8.61)], 'pH')).toBe(2);
-  });
-
-  /** 수신하지 못한 것이지 기준 안에 있었던 것이 아니다 */
-  it('결측은 세지 않는다', () => {
-    expect(countOverLimit([point(null), point(null)], 'pH')).toBe(0);
-  });
-});
-
-describe('화면이 기준의 출처를 잃지 않는다', () => {
-  it('pH 기준에는 허가증 확인 문구가 붙어 있다', () => {
-    expect(DISCHARGE_LIMITS.pH?.source).toContain('허가증');
+  it('기준을 모르는 항목은 축을 내지 않는다', () => {
+    expect(limitZone('TOC', [24, 28], DISCHARGE_LIMITS)).toBeNull();
   });
 });

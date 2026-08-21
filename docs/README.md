@@ -5,7 +5,7 @@
 | 항목 | 내용 |
 |------|------|
 | 문서명 | 문서 색인 |
-| 버전 | v1.2.0 |
+| 버전 | v1.3.0 |
 | 작성일 | 2026-08-06 |
 | 기반 문서 | /docs/applications/HSKorea_AI_Application_Proposal.pdf, /docs/applications/AIoT_Emission_Control_System.pdf |
 
@@ -16,6 +16,7 @@
 | v1.0.0 | 2026-08-06 | Claude | 신규 작성 — 원문 분석 산출 문서 7종의 목적·범위·참조 순서 정리 |
 | v1.1.0 | 2026-08-06 | Claude | 문서 디렉터리 재구성 반영 — 분석 문서 5종을 `analysis/`, 설계 착수용 문서 2종을 `requirements/`로 이동하고 전 문서 상호 참조 경로 갱신. §2에 디렉터리 구조도 추가 |
 | v1.2.0 | 2026-08-13 | Claude | `specs/`(설계 명세) 추가 반영 — §2 구조도·구분표, §3.3 문서 목록, §4 읽는 순서에 등록. `page-data-spec/`은 `specs/`로 흡수 후 삭제. §2에 "정리한 것"과 "결정한 것"의 경계 명시 |
+| v1.3.0 | 2026-08-20 | Claude | `screen-guide.md`(화면 설명 대사) 등록 — §3.4 신설, §4 읽는 순서 4번의 **첫 걸음**으로 지정. 이미 만든 화면을 파악할 때 300줄짜리 설계 명세부터 열지 않게 한다. **문서 규격을 따르지 않는 유일한 문서**라 `specs/` 밖에 둔 이유도 함께 적었다 `[사용자 지시 2026-08-20]` |
 
 ---
 
@@ -84,6 +85,14 @@ docs/
 
 > xlsx 3종(v0.1)은 같은 디렉터리에 있으며 **각 권한별 화면 구현이 끝난 뒤** 위 markdown에서 옮겨 채운다.
 
+### 3.4 그 밖
+
+| 문서 | 담는 내용 | 주로 쓰는 상황 |
+|------|-----------|----------------|
+| [screen-guide.md](screen-guide.md) | 화면 13개를 **보여주며 말하는 대사**. 무엇을 보는 화면인지와 그 숫자가 어떻게 나온 값인지 | 시연·설명 준비 |
+
+> **문서 규격(문서 정보·변경 이력)을 따르지 않는 유일한 문서다** `[사용자 지시 2026-08-20]`. 대사만 남기려고 그렇게 했고, 그래서 `docs/specs/` 밖에 둔다 — 저 아래는 규격 검사를 받는다.
+
 ---
 
 ## 4. 읽는 순서
@@ -91,7 +100,7 @@ docs/
 1. **처음 참여한다면** → [project-overview.md](analysis/project-overview.md) → [system-architecture.md](analysis/system-architecture.md) → [glossary.md](analysis/glossary.md)
 2. **화면을 기획·설계한다면** → [functional-requirements.md](requirements/functional-requirements.md) → [data-dictionary.md](analysis/data-dictionary.md) → [source-inconsistencies.md](requirements/source-inconsistencies.md) §3·§4
 3. **AI 결과 표시를 구현한다면** → [ai-model-spec.md](analysis/ai-model-spec.md) → [data-dictionary.md](analysis/data-dictionary.md) §7
-4. **이미 만든 화면을 파악한다면** → [specs/README.md](specs/README.md) §3(표기 규약) → [specs/screens.md](specs/screens.md) → 해당 [specs/screens/](specs/screens/) 문서
+4. **이미 만든 화면을 파악한다면** → [screen-guide.md](screen-guide.md)(화면별 설명 대사) → [specs/README.md](specs/README.md) §3(표기 규약) → [specs/screens.md](specs/screens.md) → 해당 [specs/screens/](specs/screens/) 문서
 5. **새 화면을 추가한다면** → [specs/README.md](specs/README.md) §8(체크리스트)·§9(템플릿). **구현과 같은 작업에서 문서도 함께 쓴다**
 
 ---

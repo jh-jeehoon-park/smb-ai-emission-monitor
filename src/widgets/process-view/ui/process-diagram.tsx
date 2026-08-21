@@ -7,18 +7,22 @@ import {
   PROVISIONAL_MEASUREMENT_GRADE_LABELS,
   type MeasurementGrade,
 } from '@/shared/config/provisional';
+import { MEASUREMENT_ITEMS } from '@/shared/config/measurement';
 import { ACTUAL_HEX, AI_HEX, MISSING_HEX } from '@/shared/config/status-visual';
+import { formatValue } from '@/shared/lib/format';
 import type { ProcessStage } from '@/entities/process';
+import type { ResolvedStage } from '@/features/process-settings';
 import {
   BASIN_FLOOR,
   DIAGRAM_HEIGHT,
-  DIAGRAM_WIDTH,
   NODE_HEIGHT,
   NODE_TOP,
   NODE_WIDTH,
+  diagramWidth,
   nodeCenterY,
   nodeX,
 } from '../config/layout';
+import { stageReadings, type StageReading } from '../lib/stage-readings';
 
 /**
  * 계측 등급 색. **상태 등급 색이 아니다** — `status-visual.ts`가 실측·추정·결측을 가르는
@@ -43,20 +47,34 @@ const STAGE_ICONS: Record<string, LucideIcon> = {
   primary: Layers,
   biological: Wind,
   secondary: Droplets,
-  advanced: ShieldCheck,
-  discharge: Gauge,
+  advanced: Gauge,
 };
 
+/** 아이콘이 없는 플러스 알파 단계의 기본값. 목록이 오면 위 표에 넣는다 `[TBD-53]` */
+const FALLBACK_ICON = ShieldCheck;
+
+/**
+ * 노드 하나에 적는 계측값의 최대 개수.
+ *
+ * 140px 안에 두 줄이 들어간다. 넘치면 `+n`으로 접는다 — 다 적으면 글자가 노드를 넘고,
+ * 접은 것을 감추면 몇 개가 더 있는지 알 수 없다.
+ */
+const MAX_READINGS = 4;
+
 interface Props {
-  stages: readonly ProcessStage[];
+  /** **켠 단계만** 온다. 무엇을 켤지는 `features/process-settings`가 정한다 */
+  stages: readonly ResolvedStage[];
+  siteId: string;
   selectedId: string;
   onSelect: (id: string) => void;
 }
 
-export function ProcessDiagram({ stages, selectedId, onSelect }: Props) {
+export function ProcessDiagram({ stages, siteId, selectedId, onSelect }: Props) {
+  const width = diagramWidth(stages.length);
+
   return (
     <svg
-      viewBox={`0 0 ${DIAGRAM_WIDTH} ${DIAGRAM_HEIGHT}`}
+      viewBox={`0 0 ${width} ${DIAGRAM_HEIGHT}`}
       className="w-full min-w-[900px]"
       role="group"
       aria-label="폐수처리 공정 흐름"
@@ -71,40 +89,42 @@ export function ProcessDiagram({ stages, selectedId, onSelect }: Props) {
           <stop offset="100%" stopColor="#fff" stopOpacity="0" />
         </linearGradient>
         <mask id="process-grid-mask">
-          <rect width={DIAGRAM_WIDTH} height={DIAGRAM_HEIGHT} fill="url(#process-grid-fade)" />
+          <rect width={width} height={DIAGRAM_HEIGHT} fill="url(#process-grid-fade)" />
         </mask>
       </defs>
 
       <rect
-        width={DIAGRAM_WIDTH}
+        width={width}
         height={DIAGRAM_HEIGHT}
         fill="url(#process-grid)"
         mask="url(#process-grid-mask)"
       />
 
-      {stages.slice(0, -1).map((stage) => (
-        <Pipe key={stage.id} order={stage.order} />
+      {stages.slice(0, -1).map((resolved, index) => (
+        <Pipe key={resolved.stage.id} index={index} />
       ))}
 
-      {stages.map((stage) => (
+      {stages.map((resolved, index) => (
         <BasinNode
-          key={stage.id}
-          stage={stage}
-          selected={stage.id === selectedId}
+          key={resolved.stage.id}
+          stage={resolved.stage}
+          index={index}
+          readings={stageReadings(siteId, resolved)}
+          selected={resolved.stage.id === selectedId}
           onSelect={onSelect}
         />
       ))}
 
-      <EstimateBranch stages={stages} />
+      <EstimateBranch count={stages.length} />
     </svg>
   );
 }
 
 /** 수조 사이를 잇는 관. 굵은 관 안쪽으로 물이 흐른다 */
-function Pipe({ order }: { order: number }) {
+function Pipe({ index }: { index: number }) {
   // 노드 안쪽까지 6px 물린다. 파이프를 먼저 그리므로 겹친 부분은 노드가 덮는다
-  const x1 = nodeX(order) + NODE_WIDTH - 6;
-  const x2 = nodeX(order + 1) + 6;
+  const x1 = nodeX(index) + NODE_WIDTH - 6;
+  const x2 = nodeX(index + 1) + 6;
   const y = nodeCenterY();
 
   return (
@@ -131,18 +151,23 @@ function Pipe({ order }: { order: number }) {
 
 function BasinNode({
   stage,
+  index,
+  readings,
   selected,
   onSelect,
 }: {
   stage: ProcessStage;
+  index: number;
+  readings: StageReading[];
   selected: boolean;
   onSelect: (id: string) => void;
 }) {
-  const x = nodeX(stage.order);
+  const x = nodeX(index);
   const hex = GRADE_HEX[stage.grade];
   const floorY = NODE_TOP + NODE_HEIGHT - BASIN_FLOOR;
-  const Icon = STAGE_ICONS[stage.id] ?? Filter;
-  const measured = stage.grade === 'actual';
+  const Icon = STAGE_ICONS[stage.id] ?? FALLBACK_ICON;
+  /* 설정된 항목이 있으면 그것이 곧 계측 지점이다 — 등급 상수보다 사용자 설정이 먼저다 */
+  const measured = readings.length > 0 || stage.grade === 'actual';
 
   return (
     <g
@@ -207,6 +232,13 @@ function BasinNode({
         {PROVISIONAL_MEASUREMENT_GRADE_LABELS[stage.grade]}
       </text>
 
+      {/*
+       * **그 지점의 지금 값.** 회의가 요구한 것이 이것이다 — HMI가 공정마다 값을 띄우는
+       * 것처럼 노드에 적는다 `[회의 2026-08-20]`. 설정하지 않은 단계는 비운다 —
+       * 지어내면 없는 계측을 주장한다(`[TBD-53]`).
+       */}
+      <Readings x={x} readings={readings} />
+
       {/* 실측 지점은 센서가 실제로 꽂혀 있다는 표시를 준다 */}
       {measured && (
         <g>
@@ -219,14 +251,53 @@ function BasinNode({
 }
 
 /**
+ * 단계마다 적는 계측값.
+ *
+ * **값이 없으면 `수신 없음`이다** — 0으로 채우면 그 지점이 0을 재고 있다는 뜻이 된다(E4).
+ * 넘치는 것은 `+n`으로 접는다. 다 적으면 글자가 노드를 넘는다.
+ */
+function Readings({ x, readings }: { x: number; readings: StageReading[] }) {
+  if (readings.length === 0) return null;
+
+  const shown = readings.slice(0, MAX_READINGS);
+  const rest = readings.length - shown.length;
+  /* 두 개씩 두 줄. 한 줄에 넷을 넣으면 140px에서 잘린다 */
+  const lines = [shown.slice(0, 2), shown.slice(2)].filter((line) => line.length > 0);
+
+  return (
+    <g>
+      {lines.map((line, row) => (
+        <text
+          key={row}
+          x={x + 12}
+          y={NODE_TOP + 104 + row * 14}
+          className="fill-fg text-[10px]"
+        >
+          {line
+            .map(
+              (reading) =>
+                `${MEASUREMENT_ITEMS[reading.code].symbol} ${
+                  reading.latest === null ? '—' : formatValue(reading.code, reading.latest)
+                }`,
+            )
+            .join('  ')}
+          {row === lines.length - 1 && rest > 0 && (
+            <tspan className="fill-fg-subtle">{`  +${rest}`}</tspan>
+          )}
+        </text>
+      ))}
+    </g>
+  );
+}
+
+/**
  * 마지막 단계에서 갈라져 나오는 AI 추정. **직접 재지 않는 항목이라 선을 나눈다** —
  * 같은 관에 이어 그리면 프로브가 TN·TP도 재는 것처럼 읽힌다(E3).
  */
-function EstimateBranch({ stages }: { stages: readonly ProcessStage[] }) {
-  const last = stages[stages.length - 1];
-  if (!last) return null;
+function EstimateBranch({ count }: { count: number }) {
+  if (count === 0) return null;
 
-  const x = nodeX(last.order) + NODE_WIDTH / 2;
+  const x = nodeX(count - 1) + NODE_WIDTH / 2;
   const y1 = NODE_TOP + NODE_HEIGHT;
   const y2 = y1 + 30;
 
