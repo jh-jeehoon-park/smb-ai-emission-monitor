@@ -33,7 +33,7 @@ export function ProcessStageForm({ siteId }: { siteId: string }) {
           const on = codes !== undefined;
 
           return (
-            <li key={stage.id} className="rounded-[4px] border border-border px-3 py-2.5">
+            <li key={stage.id} className="rounded-nested border border-border px-3 py-2.5">
               <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
                 <label className="flex cursor-pointer items-center gap-2 text-[12px] text-fg">
                   <input

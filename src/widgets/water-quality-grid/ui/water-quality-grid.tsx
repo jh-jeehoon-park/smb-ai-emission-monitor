@@ -9,6 +9,8 @@ import {
 import { MEASUREMENT_ITEMS } from '@/shared/config/measurement';
 import { ACTUAL_HEX, GRID_HEX, MISSING_HEX } from '@/shared/config/status-visual';
 import { formatClock, formatValue } from '@/shared/lib/format';
+import { BADGE_BASE } from '@/shared/ui/badge';
+import { VALUE_MD } from '@/shared/ui/type-scale';
 import { ChartFigure } from '@/shared/ui/chart-figure';
 import { ChartTooltipRow, ChartTooltipShell } from '@/shared/ui/chart-tooltip';
 import { RiseItem, StaggerGroup } from '@/shared/ui/motion';
@@ -43,18 +45,16 @@ export function WaterQualityGrid({ data, codes, limits }: WaterQualityGridProps)
   return (
     <div className="@container">
       {/*
-       * 격자선을 **칸의 테두리로** 긋는다. 예전에는 `gap-px` + 컨테이너 `bg-border`로 그었는데,
-       * 그러면 칸이 행 높이를 다 채우지 못할 때 그 밑바탕이 그대로 드러난다 — pH 카드만
-       * 기준 문구 한 줄이 더 있어 첫 행이 높아졌고, 나머지 카드 아래로 넓은 색면이 깔렸다.
+       * 칸을 **선이 아니라 면과 간격으로** 나눈다 `[사용자 지시 2026-08-24]`.
        *
-       * 음수 여백은 **마지막 열·행의 테두리를 패널 테두리와 겹치게** 하려는 것이다. 없으면
-       * 오른쪽에 2px 선이 생기고 아래 캡션의 `border-t`와도 겹쳐 이중선이 된다.
-       * `nth-child`로 끝단을 골라내는 방법도 있으나 열 수가 컨테이너 폭에 따라 2↔4로 바뀌어
-       * 규칙이 서로를 되돌리게 된다.
+       * 예전에는 칸마다 `border-r border-b`를 걸고 음수 여백으로 끝단을 잘라 냈다. 칸의
+       * 높이가 서로 다르면(pH만 기준 문구가 한 줄 더 있다) 짧은 칸의 아래 선이 격자 바닥에
+       * 닿지 않아 선이 끊겨 보였고, 열 수가 컨테이너 폭에 따라 2↔4로 바뀌어 `nth-child`로
+       * 끝단을 고르는 방법도 서로를 되돌렸다. 면은 높이와 무관하게 칸을 그대로 보여 준다.
        */}
-      <StaggerGroup className="-mr-px -mb-px grid grid-cols-2 @[560px]:grid-cols-4">
+      <StaggerGroup className="grid grid-cols-2 gap-2 @[560px]:grid-cols-4">
         {codes.map((code) => (
-          <RiseItem key={code} className="border-r border-b border-border">
+          <RiseItem key={code}>
             <MiniSeries code={code} data={data} table={limits} />
           </RiseItem>
         ))}
@@ -80,22 +80,22 @@ function MiniSeries({
   const zone = table ? limitZone(code, values, table) : null;
   const overCount = table ? countOverLimit(data, code, table) : null;
 
-  /* 칸을 다 채워야 hover 면이 칸 전체에 걸린다 — 안 그러면 내용 높이만큼만 밝아진다 */
+  /* `h-full`이 있어야 칸 높이가 서로 달라도 격자 한 행이 같은 높이로 선다 */
   return (
-    <div className="group h-full bg-surface p-3 transition-colors duration-200 hover:bg-surface-2">
+    <div className="h-full rounded-nested bg-surface-2 p-3">
       <div className="flex items-baseline justify-between gap-2">
         <span className="text-[11px] font-medium tracking-[0.08em] text-fg-subtle">
           {item.symbol}
         </span>
         {isMissingNow && (
-          <span className="rounded-[3px] bg-missing/20 px-1 py-px text-[11px] text-fg-subtle">
+          <span className={`${BADGE_BASE} bg-missing/20 text-fg-subtle`}>
             수신 없음
           </span>
         )}
       </div>
 
       <div className="mt-1 flex items-baseline gap-1">
-        <span className="num text-[19px] font-medium leading-none text-fg">
+        <span className={`num ${VALUE_MD} text-fg`}>
           {formatValue(code, latest)}
         </span>
         {item.unit && <span className="text-[11px] text-fg-subtle">{item.unit}</span>}
@@ -114,6 +114,7 @@ function MiniSeries({
 
       {/* 작은 차트는 현재값이 이미 위에 텍스트로 있다. 항목마다 표를 또 두면 소음이다 */}
       <ChartFigure
+        bare
         label={`${item.label}(${item.symbol}) 최근 24시간 추이${
           item.unit ? `, 단위 ${item.unit}` : ''
         }, KST 기준. 현재값 ${formatValue(code, latest)}`}
@@ -174,6 +175,8 @@ function MiniSeries({
               {/* 결측은 이어 그리지 않는다 — 끊긴 자리가 통신 두절을 말해 준다(E4) */}
               <Area
                 type="monotone"
+                strokeLinecap="round"
+                strokeLinejoin="round"
                 dataKey={code}
                 stroke={ACTUAL_HEX}
                 strokeWidth={1.4}

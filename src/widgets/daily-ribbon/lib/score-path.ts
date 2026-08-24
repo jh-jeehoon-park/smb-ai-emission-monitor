@@ -1,3 +1,5 @@
+import { smoothPath } from '@/shared/lib/smooth-path';
+
 export interface ScoreSegment {
   /** 면적 — 밑변까지 닫힌 path */
   area: string;
@@ -16,16 +18,22 @@ export interface ScoreSegment {
  *
  * 표본이 하나뿐인 조각은 버린다 — 점 하나로는 선을 그을 수 없고, 면적만 남기면
  * 폭 0의 보이지 않는 도형이 된다.
+ *
+ * 선은 **부드럽게** 잇는다 `[사용자 지시 2026-08-24]`. 보간이 점 사이에서 값의 범위를
+ * 넘지 않는 monotone cubic이라 그리지 않은 점수 봉우리가 생기지 않는다(`smoothPath`).
  */
 export function toScorePath(scores: (number | null)[]): ScoreSegment[] {
   const segments: ScoreSegment[] = [];
-  let points: string[] = [];
+  let points: { x: number; y: number }[] = [];
   let from = 0;
 
   const flush = (to: number) => {
     if (points.length >= 2) {
-      const line = `M${points.join(' L')}`;
-      segments.push({ area: `M${from},100 L${points.join(' L')} L${to},100 Z`, line });
+      const line = smoothPath(points);
+      /* 면적은 **같은 곡선**을 쓰고 앞뒤로 밑변만 붙인다. 곡선의 첫 `M`을 밑변에서
+         올라오는 `L`로 바꿔야 선과 면적의 윗변이 어긋나지 않는다 */
+      const curve = line.replace(/^M([^ ]+)/, 'L$1');
+      segments.push({ area: `M${from},100 ${curve} L${to},100 Z`, line });
     }
     points = [];
   };
@@ -36,7 +44,7 @@ export function toScorePath(scores: (number | null)[]): ScoreSegment[] {
       return;
     }
     if (points.length === 0) from = index;
-    points.push(`${index},${100 - score}`);
+    points.push({ x: index, y: 100 - score });
   });
   flush(scores.length - 1);
 

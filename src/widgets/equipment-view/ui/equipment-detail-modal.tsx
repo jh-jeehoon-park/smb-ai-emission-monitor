@@ -51,9 +51,8 @@ export function EquipmentDetailModal({
       onOpenChange={(next) => {
         if (!next) onClose();
       }}
-      eyebrow="설비 이상 탐지"
       title={equipment.name}
-      footer={<StatusBadge level={equipment.status} size="sm" />}
+      footer={<StatusBadge level={equipment.status} />}
     >
       <ModalFacts>
         <ModalFact label="상태 등급" value={PROVISIONAL_STATUS_LABELS[equipment.status]} />

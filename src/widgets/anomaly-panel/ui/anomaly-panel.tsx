@@ -5,6 +5,7 @@ import { STATUS_VISUAL, statusInk } from '@/shared/config/status-visual';
 import { formatDateTime } from '@/shared/lib/format';
 import { AnomalyGauge } from '@/shared/ui/anomaly-gauge';
 import { Eyebrow } from '@/shared/ui/eyebrow';
+import { VALUE_LG } from '@/shared/ui/type-scale';
 import { CountUp, motion } from '@/shared/ui/motion';
 import type { AnomalySummary } from '@/entities/anomaly';
 
@@ -13,7 +14,7 @@ export function AnomalyPanel({ summary }: { summary: AnomalySummary }) {
   if (summary.score === null || summary.level === null) {
     return (
       <div className="flex h-full flex-col justify-center gap-2 py-6 text-center">
-        <p className="num text-[32px] leading-none text-fg-subtle">—</p>
+        <p className={`num ${VALUE_LG} text-fg-subtle`}>—</p>
         <p className="text-[12px] text-fg-muted">산출값 없음</p>
         <p className="max-w-[34ch] self-center text-[11px] leading-relaxed text-fg-subtle">
           ECP 통신이 두절되어 이상 점수가 산출되지 않았습니다. 마지막 수신{' '}

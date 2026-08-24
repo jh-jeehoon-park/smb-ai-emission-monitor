@@ -24,7 +24,7 @@ export function AnomalyGauge({ score, className, showScale = true }: AnomalyGaug
   return (
     <div className={cn('w-full', className)}>
       <div
-        className="relative h-2.5 w-full overflow-hidden rounded-[2px] bg-surface-3"
+        className="relative h-2.5 w-full overflow-hidden rounded-full bg-surface-3"
         role="meter"
         aria-valuenow={score}
         aria-valuemin={0}

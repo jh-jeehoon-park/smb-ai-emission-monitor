@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { DEMO_NOW_ISO } from '@/shared/config/demo';
 import { DISPLAY_TIMEZONE, formatDateTime, formatRelative } from '@/shared/lib/format';
 import { cn } from '@/shared/lib/cn';
+import { BADGE_BASE } from '@/shared/ui/badge';
 import { SCOPE_FILTERS, SCOPE_OPTIONS, SCOPE_QUERY_KEY } from '@/shared/config/scope';
 import { useQueryState } from '@/shared/lib/use-query-state';
 import { STATUS_VISUAL, statusInk } from '@/shared/config/status-visual';
@@ -35,15 +36,17 @@ import {
 
 /* 마크 색(--{level})은 3:1만 만족한다. 글자에는 4.5:1을 맞춘 --{level}-ink를 쓴다 */
 const PRIORITY_CHIP: Record<AlarmPriority, string> = {
-  urgent: 'border-critical/45 bg-chip-critical text-critical-ink',
-  caution: 'border-warning/35 bg-chip-warning text-warning-ink',
-  info: 'border-border-strong bg-surface-3 text-fg-muted',
+  urgent: 'bg-chip-critical text-critical-ink',
+  caution: 'bg-chip-warning text-warning-ink',
+  /* 원문 팔레트의 `정보 활성화` = 파랑. `알람 목록`의 우선순위 칩과 같은 값이다 */
+  info: 'bg-chip-info text-info-ink',
 };
 
+/* 상태는 등급이 아니다 — 상태색을 쓰지 않고 중립 면의 밝기로 셋을 가른다 */
 const STATE_CHIP: Record<AlarmState, string> = {
-  open: 'border-border-strong bg-surface-3 text-fg',
-  acknowledged: 'border-border bg-surface-2 text-fg-muted',
-  resolved: 'border-border bg-surface-2 text-fg-subtle',
+  open: 'bg-surface-3 text-fg',
+  acknowledged: 'bg-surface-2 text-fg-muted',
+  resolved: 'bg-surface-2 text-fg-subtle',
 };
 
 /** 최신 알람이 위로. 이력 화면의 기본 관심은 방금 무슨 일이 있었는가다 */
@@ -103,8 +106,8 @@ export function AlarmsView() {
   );
 
   return (
-    <div className="space-y-3">
-      <div className="grid gap-3 sm:grid-cols-3">
+    <div className="space-y-6">
+      <div className="grid gap-6 sm:grid-cols-3">
         <StatTile
           label="미확인"
           value={`${tally.open}건`}
@@ -121,7 +124,6 @@ export function AlarmsView() {
       </div>
 
       <Panel
-        eyebrow={scopeLabel}
         title={`알람 이력 ${visible.length}건`}
         action={
           <div className="flex flex-wrap items-center gap-2">
@@ -148,10 +150,9 @@ export function AlarmsView() {
             />
           </div>
         }
-        bodyClassName="p-0"
       >
         {visible.length === 0 ? (
-          <p className="px-4 py-10 text-center text-[12px] text-fg-subtle">
+          <p className=" py-10 text-center text-[12px] text-fg-subtle">
             조건에 맞는 알람이 없습니다.
           </p>
         ) : (
@@ -171,7 +172,7 @@ export function AlarmsView() {
         onChange={setAlarmState}
       />
 
-      <Panel eyebrow="시연 안내" title="상태 전이">
+      <Panel title="상태 전이">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="max-w-[68ch] text-[12px] leading-relaxed text-fg-muted">
             확인·조치 버튼은 <strong className="text-fg">이 브라우저 안에서만</strong> 상태를
@@ -204,7 +205,7 @@ function AlarmRow({
   onOpen: () => void;
 }) {
   return (
-    <div className="flex flex-wrap items-start gap-x-3 gap-y-1.5 px-4 py-2.5">
+    <div className="flex flex-wrap items-start gap-x-3 gap-y-1.5 py-2.5">
       {/*
        * 제목을 버튼으로 둔다 — 행 전체를 누르게 하면 안쪽 확인·조치 버튼과 조작이 겹친다.
        * 키보드로도 순서대로 닿는다.
@@ -216,7 +217,7 @@ function AlarmRow({
        * 나란히 붙여 봤더니 위험(빨강)과 긴급(빨강)이 같은 색 칩 두 개로 보여 중복으로 읽혔다.
        * 대응 규칙은 원문에 없어 추정이다 `[INC-02]` — 근거는 `docs/specs/assumptions.md` §3.1.
        */}
-      <StatusBadge level={alarm.level} size="sm" />
+      <StatusBadge level={alarm.level} />
 
       <div className="min-w-0 flex-1 basis-[220px]">
         <button
@@ -250,7 +251,8 @@ function AlarmRow({
       <div className="flex w-[248px] shrink-0 items-center justify-end gap-2">
         <span
           className={cn(
-            'whitespace-nowrap rounded-[3px] border px-1.5 py-0.5 text-[11px]',
+            BADGE_BASE,
+            'whitespace-nowrap',
             PRIORITY_CHIP[alarm.priority],
           )}
         >
@@ -258,7 +260,8 @@ function AlarmRow({
         </span>
         <span
           className={cn(
-            'whitespace-nowrap rounded-[3px] border px-1.5 py-0.5 text-[11px]',
+            BADGE_BASE,
+            'whitespace-nowrap',
             STATE_CHIP[alarm.state],
           )}
         >

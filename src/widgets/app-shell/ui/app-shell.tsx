@@ -7,9 +7,11 @@ import { BRAND_NAME } from '@/shared/config/constants';
 import { DEMO_NOTICE, DEMO_NOW_ISO } from '@/shared/config/demo';
 import { COLLECTION_INTERVAL_MINUTES } from '@/shared/config/measurement';
 import { cn } from '@/shared/lib/cn';
+import { BADGE_BASE } from '@/shared/ui/badge';
 import { DISPLAY_TIMEZONE, formatDateTime } from '@/shared/lib/format';
 import { BrandMark } from '@/shared/ui/brand-mark';
 import { ThemeToggle } from '@/shared/ui/theme';
+import { InfoTip } from '@/shared/ui/tooltip';
 import { openAlarms } from '@/entities/alarm';
 import { ADMIN_ACCOUNTS, ProfileMenu, ROLES, canRoleSee } from '@/entities/user';
 import { getSite } from '@/entities/site';
@@ -41,22 +43,20 @@ export function AppShell({ children }: { children: ReactNode }) {
         본문으로 건너뛰기
       </a>
 
-      <aside className="sticky top-0 hidden h-screen w-[212px] shrink-0 flex-col border-r border-border bg-surface lg:flex">
+      <aside className="sticky top-0 hidden h-screen w-[296px] shrink-0 flex-col border-r border-border bg-surface lg:flex">
         <BrandHome />
         <SiteNav pathname={pathname} />
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-10 border-b border-border bg-bg">
-          <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 lg:px-6">
-            <div className="flex items-center gap-3">
-              <h1 className="text-[14px] font-semibold tracking-tight text-fg">
-                {navLabelOf(pathname)}
-              </h1>
-              <span className="rounded-[3px] border border-border-strong bg-surface-2 px-1.5 py-0.5 text-[11px] uppercase tracking-[0.1em] text-fg-subtle">
+        <header className="sticky top-0 z-10 border-b border-border bg-surface">
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-4 lg:px-6">
+            <div className="flex min-w-0 items-center gap-3">
+              <SiteSelector className="w-[208px]" />
+              <span className={cn(BADGE_BASE, 'bg-surface-2 uppercase tracking-[0.1em] text-fg-subtle')}>
                 Demo
               </span>
-              <SiteSelector className="w-[208px]" />
+              <DemoNotice />
             </div>
 
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-fg-subtle">
@@ -67,20 +67,47 @@ export function AppShell({ children }: { children: ReactNode }) {
               <ProfileMenu />
             </div>
           </div>
-
-          {/* 헤더 시계는 현재 시각이고 데이터는 고정 시점 기준이다. 둘을 같은 줄에서
-              구분해 주지 않으면 차트 날짜가 오늘이 아닌 이유를 알 수 없다 */}
-          <p className="border-t border-border bg-surface px-4 py-1.5 text-[12px] text-fg-subtle lg:px-6">
-            {DEMO_NOTICE} · 데이터 기준{' '}
-            <span className="num">{formatDateTime(DEMO_NOW_ISO)}</span> {DISPLAY_TIMEZONE}
-          </p>
         </header>
 
-        <main id="main" tabIndex={-1} className="flex-1 px-4 py-4 lg:px-6 lg:py-5">
+        <main id="main" tabIndex={-1} className="flex-1 px-4 py-4 lg:px-6 lg:py-6">
+          {/*
+           * 화면명은 본문의 첫 줄이다 `[사용자 지시 2026-08-24]`. 헤더에 두면 사업장 선택·
+           * 시계·알림과 한 줄에서 자리를 다투고, 스크롤해도 붙어 있어 본문의 시작을 가린다.
+           * 여기 두면 본문 콘텐츠와 왼쪽 끝이 맞고 스크롤과 함께 올라간다.
+           */}
+          <h1 className="mb-4 text-[20px] font-bold leading-tight tracking-tight text-fg lg:mb-5">
+            {navLabelOf(pathname)}
+          </h1>
           {children}
         </main>
       </div>
     </div>
+  );
+}
+
+/**
+ * 시연 데이터임과 **데이터 기준 시각**을 알린다.
+ *
+ * 헤더 시계는 현재 시각이고 본문 값은 고정 시점의 것이다. 둘을 구분해 주지 않으면
+ * 차트 날짜가 오늘이 아닌 이유를 알 수 없다 — 예전에는 헤더 아래 띠로 상시 노출했는데
+ * 전 화면에서 한 줄을 차지해 아이콘 + 툴팁으로 옮겼다 `[사용자 지시 2026-08-24]`.
+ *
+ * `Demo` 뱃지가 옆에 남아 **시연 데이터라는 사실 자체는 호버 없이도 보인다** —
+ * 툴팁에는 기준 시각처럼 필요할 때 확인하는 것만 담는다.
+ */
+function DemoNotice() {
+  return (
+    <InfoTip
+      label="시연 데이터 안내"
+      content={
+        <>
+          {DEMO_NOTICE}
+          <br />
+          데이터 기준 <span className="num">{formatDateTime(DEMO_NOW_ISO)}</span>{' '}
+          {DISPLAY_TIMEZONE} · 헤더 시계는 현재 시각입니다
+        </>
+      }
+    />
   );
 }
 
@@ -158,7 +185,8 @@ function Badge({ count, className }: { count: number; className: string }) {
   return (
     <span
       className={cn(
-        'num rounded-full bg-critical/16 px-1.5 py-px text-[11px] text-critical-ink',
+        BADGE_BASE,
+        'num min-w-5 justify-center rounded-full bg-critical/16 text-critical-ink',
         className,
       )}
     >
@@ -190,8 +218,9 @@ function BrandHome() {
           key={href}
           href={withSite(href)}
           className={cn(
-            'flex cursor-pointer items-center gap-2 border-b border-border px-4 py-4',
-            'transition-colors duration-200 hover:bg-surface-2',
+            /* overflow-hidden은 안전망이다 — nowrap 텍스트가 예상보다 넓어도 본문 위로
+               삐져나오지 않는다. 폭에 20px 여유를 두었으므로 실제로 잘릴 일은 없다 */
+            'flex cursor-pointer items-center gap-2 overflow-hidden px-6 py-5',
             'focus-visible:outline focus-visible:-outline-offset-2 focus-visible:outline-border-strong',
             /* 이 목적지를 쓰지 않는 역할에서는 감춘다 */
             ROLES.filter((role) => homeHrefFor(role) !== href)
@@ -199,13 +228,16 @@ function BrandHome() {
               .join(' '),
           )}
         >
-          <BrandMark size={28} />
-          <div className="min-w-0">
-            {/* 사업계획서 p.37·p.118의 국문 정식명. 폭이 좁아 줄여 쓰고 싶어지지만 줄이지 않는다(A2). */}
-            <p className="break-keep text-[13px] font-semibold leading-[1.35] tracking-tight text-fg">
-              {BRAND_NAME}
-            </p>
-          </div>
+          <BrandMark size={24} />
+          {/*
+           * 사업계획서 p.37·p.118의 국문 정식명. 폭이 좁아 줄여 쓰고 싶어지지만 줄이지 않는다(A2).
+           * `whitespace-nowrap`이 두 줄을 막고, 13px `font-bold`에서 텍스트 폭이 약 202px이라
+           * 마크·간격·여백을 뺀 216px에 14px 여유를 두고 들어간다 — 잘리지 않는다.
+           * **더 키우려면 사이드바를 더 늘려야 한다** — 14px은 218px이 필요해 296px로는 넘친다.
+           */}
+          <p className="whitespace-nowrap text-[13px] font-bold leading-tight tracking-tight text-fg">
+            {BRAND_NAME}
+          </p>
         </Link>
       ))}
     </>
@@ -216,7 +248,7 @@ function SiteNav({ pathname }: { pathname: string }) {
   const withSite = useSiteHref();
 
   return (
-    <nav className="flex-1 space-y-0.5 p-2">
+    <nav className="flex-1 space-y-1 overflow-y-auto px-3.5 pb-4">
       {NAV_ITEMS.map((item) => {
         const active = item.href === pathname;
         return (
@@ -225,14 +257,16 @@ function SiteNav({ pathname }: { pathname: string }) {
             href={withSite(item.href)}
             aria-current={active ? 'page' : undefined}
             className={cn(
-              'flex w-full items-center gap-2.5 rounded-[4px] px-2.5 py-2 text-[12px]',
+              'flex w-full items-center gap-2.5 rounded-[10px] p-2.5 text-[14px] font-medium',
               'transition-colors duration-200',
-              active ? 'bg-surface-2 text-fg' : 'text-fg-muted hover:bg-surface-2/60 hover:text-fg',
+              active
+                ? 'bg-surface-2 font-semibold text-fg'
+                : 'text-fg-muted hover:bg-surface-2/60 hover:text-fg',
               hiddenForClass(item),
             )}
           >
-            <item.icon size={14} strokeWidth={1.9} />
-            <span className="flex-1 text-left">{item.label}</span>
+            <item.icon size={20} strokeWidth={1.9} className="shrink-0" />
+            <span className="min-w-0 flex-1 break-keep text-left">{item.label}</span>
             {item.href === ALARM_NAV_HREF && <AlarmBadge />}
           </Link>
         );

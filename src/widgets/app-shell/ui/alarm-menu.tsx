@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import { DEMO_NOW_ISO } from '@/shared/config/demo';
 import { STATUS_VISUAL } from '@/shared/config/status-visual';
 import { cn } from '@/shared/lib/cn';
+import { BADGE_BASE } from '@/shared/ui/badge';
 import { formatRelative } from '@/shared/lib/format';
 import {
   ALARM_PRIORITY_LABELS,
@@ -152,7 +153,7 @@ function AlarmPanel({
             <li key={alarm.id} className="border-b border-border px-3 py-2.5 last:border-0">
               <div className="flex items-center justify-between gap-2 text-[11px]">
                 <span
-                  className="shrink-0 rounded-[3px] px-1.5 py-0.5"
+                  className={BADGE_BASE}
                   style={{
                     backgroundColor: `color-mix(in srgb, ${priorityHex(alarm.priority)} 16%, transparent)`,
                     color: priorityHex(alarm.priority),

@@ -6,6 +6,7 @@ import { STATUS_VISUAL, statusInk } from '@/shared/config/status-visual';
 import { DISPLAY_TIMEZONE, formatDateTime } from '@/shared/lib/format';
 import { Panel } from '@/shared/ui/panel';
 import { StatTile } from '@/shared/ui/stat-tile';
+import { VALUE_LG, VALUE_MD } from '@/shared/ui/type-scale';
 import { countAnomalyAlarms } from '@/entities/alarm';
 import {
   EQUIPMENT_SIGNAL_LABELS,
@@ -27,7 +28,6 @@ import {
   getOptimization,
   type CostSavings,
 } from '@/entities/optimization';
-import { getSite } from '@/entities/site';
 import { useSelectedSiteId } from '@/features/site-selection';
 
 const NUMBER = new Intl.NumberFormat('ko-KR');
@@ -45,7 +45,6 @@ const rate = (value: number) => `${value.toFixed(RATE_DECIMALS)}%`;
  */
 export function CostSavingsView() {
   const { siteId } = useSelectedSiteId();
-  const site = getSite(siteId);
 
   const summary = useMemo(() => {
     const energyNow = energyIntensity(getMeasurementSeries(siteId));
@@ -57,9 +56,9 @@ export function CostSavingsView() {
 
   if (!summary.online) {
     return (
-      <Panel eyebrow={site.name} title="비용 절감 현황">
+      <Panel title="비용 절감 현황">
         <div className="flex flex-col items-center justify-center gap-1.5 py-12 text-center">
-          <p className="num text-[26px] leading-none text-fg-subtle">—</p>
+          <p className={`num ${VALUE_LG} text-fg-subtle`}>—</p>
           <p className="text-[12px] text-fg-muted">산출 불가</p>
           <p className="max-w-[52ch] text-[12px] leading-relaxed text-fg-subtle">
             ECP 통신이 두절되어 절감액의 입력인 약품 주입량·전력 계측이 없습니다. 마지막 산출{' '}
@@ -74,10 +73,10 @@ export function CostSavingsView() {
   const savings = calcCostSavings(summary.dosing.savingRate, summary.energy.savingRate);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-6">
       <ExampleCostNotice />
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <StatTile
           label="월 절감 (예시 기준)"
           value={manwon(savings.monthlyKrw)}
@@ -102,7 +101,6 @@ export function CostSavingsView() {
       </div>
 
       <Panel
-        eyebrow={site.name}
         title="절감 실적 — 목표 대비"
         action={<span className="text-[12px] text-fg-subtle">목표는 전부 원문 수치</span>}
       >
@@ -115,9 +113,8 @@ export function CostSavingsView() {
         />
       </Panel>
 
-      <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <Panel
-          eyebrow="가정 기반"
           title="막은 사고"
           action={<span className="text-[12px] text-fg-subtle">건수와 금액을 나눠 적는다</span>}
         >
@@ -125,7 +122,6 @@ export function CostSavingsView() {
         </Panel>
 
         <Panel
-          eyebrow="펌프 · 폭기장치만 대상"
           title="설비 이상 현황"
           action={<span className="text-[12px] text-fg-subtle">상태 나쁜 순</span>}
         >
@@ -133,15 +129,15 @@ export function CostSavingsView() {
         </Panel>
       </div>
 
-      <Panel eyebrow="초년도 1회성" title="TMS 구축 비용 회피">
+      <Panel title="TMS 구축 비용 회피">
         <TmsAvoidance />
       </Panel>
 
-      <Panel eyebrow="월별 누적 추이" title="산출 불가">
+      <Panel title="산출 불가">
         <MonthlyTrendEmpty />
       </Panel>
 
-      <Panel eyebrow="산출 근거" title="이 값이 나온 배경">
+      <Panel title="이 값이 나온 배경">
         <Basis savings={savings} detections={detections} />
       </Panel>
     </div>
@@ -179,7 +175,7 @@ function AiProvenance({
 
 function ExampleCostNotice() {
   return (
-    <p className="rounded-[5px] border border-border bg-surface-2 px-3 py-2 text-[12px] leading-relaxed text-fg-muted">
+    <p className="rounded-nested border border-border bg-surface-2 px-3 py-2 text-[12px] leading-relaxed text-fg-muted">
       금액은 <strong className="font-semibold text-fg">원문이 든 예시 사업장 기준</strong>이며 이
       사업장의 실제 비용이 아닙니다. 약품 단가와 계약 전력 단가가 원문에 없어 사업장별 실금액을
       낼 수 없습니다. 절감<strong className="font-semibold text-fg">률</strong>은 이 사업장의
@@ -271,14 +267,14 @@ function AvoidedIncidents({ detections }: { detections: number }) {
     <div className="space-y-3">
       <div>
         <p className="text-[11px] text-fg-subtle">조기 탐지</p>
-        <p className="num mt-1 text-[26px] font-semibold leading-none tracking-tight text-fg">
+        <p className={`num mt-1 ${VALUE_LG} text-fg`}>
           {detections}건
         </p>
       </div>
 
       <div className="border-t border-border pt-3">
         <p className="text-[11px] text-fg-subtle">회피 가능 비용 (가정)</p>
-        <p className="num mt-1 text-[18px] font-semibold leading-none tracking-tight text-fg-muted">
+        <p className={`num mt-1 ${VALUE_MD} text-fg-muted`}>
           {manwon(detections * low)} ~ {manwon(detections * high)}
         </p>
         <p className="mt-2 text-[11px] leading-relaxed text-fg-subtle">
@@ -288,7 +284,7 @@ function AvoidedIncidents({ detections }: { detections: number }) {
         </p>
       </div>
 
-      <p className="rounded-[4px] bg-surface-2 px-2.5 py-2 text-[11px] leading-relaxed text-fg-subtle">
+      <p className="rounded-nested bg-surface-2 px-2.5 py-2 text-[11px] leading-relaxed text-fg-subtle">
         <strong className="font-medium text-fg-muted">실제 사고 발생 여부와 무관한 상한값입니다.</strong>{' '}
         탐지했어도 사고로 이어지지 않았을 수 있어 위 절감률과 합산하지 않습니다.
       </p>
@@ -341,7 +337,7 @@ function TmsAvoidance() {
 
   return (
     <div className="space-y-2">
-      <p className="num text-[22px] font-semibold leading-none tracking-tight text-fg">
+      <p className={`num ${VALUE_LG} text-fg`}>
         {manwon(low)} ~ {manwon(high)}
       </p>
       <p className="text-[11px] leading-relaxed text-fg-subtle">
@@ -357,7 +353,7 @@ function TmsAvoidance() {
 function MonthlyTrendEmpty() {
   return (
     <div className="flex flex-col items-center justify-center gap-1.5 py-8 text-center">
-      <p className="num text-[26px] leading-none text-fg-subtle">—</p>
+      <p className={`num ${VALUE_LG} text-fg-subtle`}>—</p>
       <p className="text-[12px] text-fg-muted">월별 추이를 만들 수 없습니다</p>
       <p className="max-w-[56ch] text-[12px] leading-relaxed text-fg-subtle">
         이 화면의 계측 데이터는 <span className="num">24</span>시간 구간뿐입니다. 월별 절감 추이를
@@ -404,7 +400,7 @@ function Basis({ savings, detections }: { savings: CostSavings; detections: numb
   return (
     <dl className="grid gap-2 sm:grid-cols-2">
       {items.map((item) => (
-        <div key={item.term} className="rounded-[4px] bg-surface-2 px-2.5 py-2">
+        <div key={item.term} className="rounded-nested bg-surface-2 px-2.5 py-2">
           <dt className="text-[11px] text-fg-subtle">{item.term}</dt>
           <dd className="mt-0.5 text-[12px] leading-relaxed text-fg-muted">{item.desc}</dd>
         </div>

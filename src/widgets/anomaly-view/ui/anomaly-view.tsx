@@ -14,7 +14,7 @@ import { Sparkline } from '@/shared/ui/sparkline';
 import { getAlarmsForView } from '@/entities/alarm';
 import { getAnomalySeries, getAnomalySummary, findIdleDischargeRuns } from '@/entities/anomaly';
 import { getMeasurementSeries } from '@/entities/measurement';
-import { SITES, getSite } from '@/entities/site';
+import { SITES } from '@/entities/site';
 import type { Site } from '@/entities/site';
 import { useSelectedSiteId, useSiteHref } from '@/features/site-selection';
 import { AlarmList } from '@/widgets/alarm-list';
@@ -27,7 +27,6 @@ const RANKING_SPARK_POINTS = 40;
 export function AnomalyView() {
   const { siteId, setSiteId } = useSelectedSiteId();
   const withSite = useSiteHref();
-  const site = getSite(siteId);
 
   const detail = useMemo(
     () => ({
@@ -42,10 +41,9 @@ export function AnomalyView() {
   );
 
   return (
-    <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_340px]">
-      <div className="min-w-0 space-y-3">
+    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
+      <div className="min-w-0 space-y-6">
         <Panel
-          eyebrow={`AutoEncoder · ${site.name}`}
           title="이상 점수 타임라인"
           action={
             <div className="flex flex-wrap items-center gap-3">
@@ -68,35 +66,26 @@ export function AnomalyView() {
           * 이상 점수와 **다른 축**의 탐지다 — 점수가 낮아도 여기서 잡힌다.
           * 발표 p.11 그림이 이 기능을 `이상배출 조기탐지` 그룹에 두었기에 같은 화면에 둔다.
           */}
-        <Panel
-          eyebrow={`의심 구간 ${detail.idleRuns.length}건`}
-          title="방지시설 미가동 중 방류 의심"
-        >
+        <Panel title="방지시설 미가동 중 방류 의심">
           <IdleDischargePanel siteId={siteId} points={detail.points} />
         </Panel>
 
         {/* 비교가 이 블록의 존재 이유다. 자사 1개소뿐인 사업장에는 성립하지 않는다 */}
         <Panel
-          eyebrow={`실증 ${SITES.length}개소`}
           title="사업장별 이상 점수"
           action={<span className="text-[12px] text-fg-subtle">점수 높은 순 · 클릭하여 전환</span>}
-          bodyClassName="p-0"
           className="role-hide-site"
         >
           <SiteScoreRanking selectedId={siteId} onSelect={setSiteId} />
         </Panel>
       </div>
 
-      <div className="space-y-3">
-        <Panel eyebrow={site.name} title="이상 탐지 결과">
+      <div className="space-y-6">
+        <Panel title="이상 탐지 결과">
           <AnomalyPanel summary={detail.summary} />
         </Panel>
 
-        <Panel
-          eyebrow={`이상 탐지 조건 ${detail.alarms.length}건`}
-          title="관련 알람"
-          bodyClassName="px-4 py-3"
-        >
+        <Panel title="관련 알람">
           <AlarmList alarms={detail.alarms} nowIso={DEMO_NOW_ISO} selectedSiteId={siteId} />
         </Panel>
       </div>
@@ -164,17 +153,11 @@ function RankingRow({
       onClick={() => onSelect(site.id)}
       aria-current={selected ? 'true' : undefined}
       className={cn(
-        'flex w-full cursor-pointer items-center gap-3 px-4 py-2 text-left',
+        'flex w-full cursor-pointer items-center gap-3 py-2 text-left',
         'transition-colors duration-200 hover:bg-surface-2',
         selected && 'bg-surface-2',
       )}
     >
-      <span
-        aria-hidden
-        className="h-7 w-[3px] shrink-0 rounded-full"
-        style={{ backgroundColor: visual ? visual.hex : 'var(--missing)' }}
-      />
-
       <span className="min-w-0 flex-1">
         <span className="block truncate text-[12px] text-fg">{site.name}</span>
         <span className="block truncate text-[11px] text-fg-subtle">

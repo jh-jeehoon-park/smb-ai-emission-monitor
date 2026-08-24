@@ -4,13 +4,11 @@ import * as Dialog from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
 import { useEffect, useRef, type ReactNode } from 'react';
 import { cn } from '@/shared/lib/cn';
-import { Eyebrow } from './eyebrow';
 
 interface ModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title: string;
-  eyebrow?: string;
   /** 닫힌 상태에서는 본문 없이 마운트만 유지한다 — 포커스 복원 대상을 잃지 않기 위해서다 */
   children?: ReactNode;
   /** 하단 액션 줄. 없으면 닫기 버튼만 남는다 */
@@ -33,7 +31,6 @@ export function Modal({
   open,
   onOpenChange,
   title,
-  eyebrow,
   children,
   footer,
   className,
@@ -77,14 +74,13 @@ export function Modal({
             'fixed left-1/2 top-1/2 z-50 w-[min(560px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2',
             // 내용이 길면 모달 안에서 스크롤한다. 화면 밖으로 밀리면 닫기 버튼을 못 누른다
             'max-h-[calc(100vh-3rem)] overflow-y-auto',
-            'rounded-[6px] border border-border-strong bg-surface shadow-xl',
+            'rounded-panel border border-border-strong bg-surface shadow-xl',
             className,
           )}
         >
-          <header className="flex items-start justify-between gap-3 border-b border-border px-4 py-3">
+          <header className="flex items-center justify-between gap-3 border-b border-border px-5 py-4">
             <div className="min-w-0">
-              {eyebrow && <Eyebrow>{eyebrow}</Eyebrow>}
-              <Dialog.Title className="text-[13px] font-semibold leading-snug text-fg">
+              <Dialog.Title className="text-[15px] font-bold leading-snug text-fg">
                 {title}
               </Dialog.Title>
             </div>
@@ -96,10 +92,10 @@ export function Modal({
             </Dialog.Close>
           </header>
 
-          <div className="p-4">{children}</div>
+          <div className="p-5">{children}</div>
 
           {footer && (
-            <footer className="flex flex-wrap items-center justify-end gap-2 border-t border-border px-4 py-3">
+            <footer className="flex flex-wrap items-center justify-end gap-2 border-t border-border px-5 py-4">
               {footer}
             </footer>
           )}

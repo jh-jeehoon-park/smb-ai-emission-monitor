@@ -3,6 +3,7 @@
 import { OPERATING_FILL } from "@/shared/config/operating-visual";
 import { RiseItem, StaggerGroup } from "@/shared/ui/motion";
 import { StatusBadge } from "@/shared/ui/status-badge";
+import { VALUE_LG } from '@/shared/ui/type-scale';
 import { EQUIPMENT_SIGNAL_LABELS, type Equipment } from "@/entities/equipment";
 
 export function EquipmentPanel({
@@ -20,7 +21,7 @@ export function EquipmentPanel({
   if (!online) {
     return (
       <div className="flex flex-col items-center justify-center gap-1.5 py-8 text-center">
-        <p className="num text-[26px] leading-none text-fg-subtle">—</p>
+        <p className={`num ${VALUE_LG} text-fg-subtle`}>—</p>
         <p className="text-[12px] text-fg-muted">설비 수신값 없음</p>
         <p className="max-w-[46ch] text-[11px] leading-relaxed text-fg-subtle">
           ECP 통신이 두절되어 설비 상태를 수신하지 못했습니다. 복구 시 로컬
@@ -63,7 +64,7 @@ export function EquipmentPanel({
                   {eq.name}
                 </p>
               )}
-              <StatusBadge level={eq.status} size="sm" />
+              <StatusBadge level={eq.status} />
             </div>
 
             {/*

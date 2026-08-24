@@ -233,7 +233,7 @@ function RunCell({
     return (
       <td
         onMouseMove={onMove}
-        className="h-5 rounded-[2px]"
+        className="h-5 rounded-[3px]"
         style={{ backgroundImage: MISSING_FILL, outline: active ? OUTLINE : undefined }}
       >
         <span className="sr-only">{hour} 수신 없음</span>
@@ -244,7 +244,7 @@ function RunCell({
   return (
     <td
       onMouseMove={onMove}
-      className="h-5 rounded-[2px] text-center align-middle"
+      className="h-5 rounded-[3px] text-center align-middle"
       style={{
         backgroundColor: OPERATING_FILL[state],
         outline: active ? OUTLINE : undefined,
@@ -420,7 +420,7 @@ function HeatmapLegend({
       <li className="flex items-center gap-1">
         <span
           aria-hidden
-          className="h-2.5 w-3.5 rounded-[1px]"
+          className="h-2.5 w-3.5 rounded-[2px]"
           style={{ backgroundColor: OPERATING_FILL.on }}
         />
         가동
@@ -428,7 +428,7 @@ function HeatmapLegend({
       <li className="flex items-center gap-1">
         <span
           aria-hidden
-          className="h-2.5 w-3.5 rounded-[1px]"
+          className="h-2.5 w-3.5 rounded-[2px]"
           style={{ backgroundColor: OPERATING_FILL.off }}
         />
         정지
@@ -452,7 +452,7 @@ function HeatmapLegend({
         <li className="flex items-center gap-1">
           <span
             aria-hidden
-            className="h-2.5 w-3.5 rounded-[1px]"
+            className="h-2.5 w-3.5 rounded-[2px]"
             style={{ backgroundImage: MISSING_FILL }}
           />
           수신 없음
@@ -462,13 +462,13 @@ function HeatmapLegend({
       <li className="ml-auto flex items-center gap-1">
         <span
           aria-hidden
-          className="h-2 w-3.5 rounded-[1px]"
+          className="h-2 w-3.5 rounded-[2px]"
           style={{ backgroundColor: OPERATING_FILL.on }}
         />
         방지시설 가동
         <span
           aria-hidden
-          className="ml-1.5 h-2 w-3.5 rounded-[1px]"
+          className="ml-1.5 h-2 w-3.5 rounded-[2px]"
           style={{ backgroundColor: OPERATING_FILL.off }}
         />
         미가동

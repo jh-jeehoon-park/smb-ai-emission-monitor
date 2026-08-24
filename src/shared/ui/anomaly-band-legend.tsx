@@ -10,7 +10,7 @@ export function AnomalyBandLegend({ className }: { className?: string }) {
         <span key={level} className="flex items-center gap-1 text-[11px] text-fg-subtle">
           <span
             aria-hidden
-            className="inline-block size-1.5 rounded-[1px]"
+            className="inline-block size-1.5 rounded-[2px]"
             style={{ backgroundColor: STATUS_VISUAL[level].hex, opacity: 0.6 }}
           />
           {anomalyBandLabel(level)}

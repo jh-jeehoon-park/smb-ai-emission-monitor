@@ -1,4 +1,5 @@
 import { cn } from '@/shared/lib/cn';
+import { BADGE_BASE } from '@/shared/ui/badge';
 import { TREND_VISUAL } from '../config/trend-visual';
 import { TREND_LABELS, type Trend } from '../model/types';
 
@@ -34,10 +35,9 @@ export function TrendChip({
   return (
     <span
       className={cn(
-        'inline-flex shrink-0 items-center gap-1 text-[11px]',
-        visual.text,
         /* 표에서는 배경·테두리를 뺀다. 글자색과 글리프는 그대로 남는다 */
-        !bare && cn('rounded-[3px] border px-1.5 py-0.5', visual.chip),
+        bare ? 'inline-flex shrink-0 items-center gap-1 text-[12px]' : cn(BADGE_BASE, visual.chip),
+        visual.text,
         className,
       )}
     >

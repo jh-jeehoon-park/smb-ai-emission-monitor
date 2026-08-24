@@ -13,6 +13,7 @@ import { DISPLAY_TIMEZONE, formatClock, formatDateTime } from '@/shared/lib/form
 import { useQueryState } from '@/shared/lib/use-query-state';
 import { ChartFigure } from '@/shared/ui/chart-figure';
 import { Panel } from '@/shared/ui/panel';
+import { VALUE_MD } from '@/shared/ui/type-scale';
 import {
   FLOW_FORECAST,
   FLOW_FORECAST_CODE,
@@ -32,7 +33,6 @@ import {
   type ForecastTargetCode,
   type TrendEstimate,
 } from '@/entities/prediction';
-import { getSite } from '@/entities/site';
 import {
   useDischargeLimits,
   type DischargeLimitsView,
@@ -62,7 +62,6 @@ export function PredictionView() {
   /* 기준표는 사업장 설정에서 온다 — 화면이 정적 표를 직접 읽으면 설정이 반영되지 않는다 */
   const limits = useDischargeLimits();
   const [view, setView] = useQueryState(TARGET_QUERY_KEY, TARGET_VIEWS, DEFAULT_VIEW);
-  const site = getSite(siteId);
 
   /* 전체 보기에서는 세 항목을 모두 만든다. 데이터는 이미 세 벌 다 생성돼 있다 */
   const showAll = view === ALL_TARGETS;
@@ -81,9 +80,8 @@ export function PredictionView() {
   const peak = peakValue(forecast);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-6">
       <Panel
-        eyebrow={`${forecast.modelLabel} · ${site.name}`}
         title={
           showAll
             ? `TOC · TN · TP · 최근 ${SERIES_WINDOW_HOURS}시간 추이`
@@ -160,7 +158,7 @@ export function PredictionView() {
        */}
       <LimitMonitor trends={forecast.trends} limits={limits} />
 
-      <div className="grid gap-3 lg:grid-cols-3">
+      <div className="grid gap-6 lg:grid-cols-3">
         {forecast.trends.map((trend) => (
           <TrendCard
             key={trend.code}
@@ -172,7 +170,7 @@ export function PredictionView() {
         ))}
       </div>
 
-      <Panel eyebrow="Soft Sensing" title="추정 대상과 계측 대상">
+      <Panel title="추정 대상과 계측 대상">
         <p className="max-w-[86ch] text-[12px] leading-relaxed text-fg-muted">
           TOC는 센서로 직접 계측하고,{' '}
           <strong className="text-fg">TN·TP는 계측 센서가 없어 소프트 센싱 추정만 존재한다</strong>
@@ -315,23 +313,21 @@ function LimitMonitor({
 
   return (
     <Panel
-      eyebrow="배출허용기준"
       title="적용 기준치"
       action={
         <span className="text-[12px] text-fg-subtle">
           {classificationLabel ?? '사업장 분류 미설정'}
         </span>
       }
-      bodyClassName="p-0"
     >
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[520px] border-collapse text-[12px]">
+        <table className="w-full min-w-[520px] border-separate border-spacing-0 text-[12px]">
           <thead>
-            <tr className="border-b border-border text-[11px] text-fg-subtle">
-              <th className="px-4 py-2 text-left font-normal">항목</th>
-              <th className="px-3 py-2 text-right font-normal">기준치</th>
-              <th className="px-3 py-2 text-left font-normal">판정</th>
-              <th className="px-4 py-2 text-left font-normal">출처</th>
+            <tr className="text-[12px] font-semibold text-fg-muted [&>th]:bg-surface-2 [&>th:first-child]:rounded-l-nested [&>th:last-child]:rounded-r-nested">
+              <th className="px-3 py-3 text-left">항목</th>
+              <th className="px-3 py-3 text-right">기준치</th>
+              <th className="px-3 py-3 text-left">판정</th>
+              <th className="px-3 py-3 text-left">출처</th>
             </tr>
           </thead>
           <tbody>
@@ -342,12 +338,12 @@ function LimitMonitor({
               const verdict = trendVerdict(trend, over, limits.unresolvedReason);
 
               return (
-                <tr key={trend.code} className="border-b border-border last:border-0">
-                  <td className="px-4 py-2">
+                <tr key={trend.code} className="[&>*]:border-b [&>*]:border-border">
+                  <td className="px-3 py-3.5">
                     <span className="font-semibold text-fg">{trend.code}</span>
                     <span className="ml-1.5 text-[11px] text-fg-subtle">{trend.label}</span>
                   </td>
-                  <td className="num px-3 py-2 text-right">
+                  <td className="num px-3 py-3.5 text-right">
                     {range === null ? (
                       <span className="text-fg-subtle">—</span>
                     ) : (
@@ -356,11 +352,11 @@ function LimitMonitor({
                       </span>
                     )}
                   </td>
-                  <td className="px-3 py-2" style={{ color: verdict.ink }}>
+                  <td className="px-3 py-3.5" style={{ color: verdict.ink }}>
                     {verdict.text}
                   </td>
                   {/* 우리가 넣은 값이 아니라 사용자가 넣은 값임을 심사자가 바로 알아야 한다 */}
-                  <td className="px-4 py-2 text-[11px] text-fg-subtle">
+                  <td className="px-3 py-3.5 text-[11px] text-fg-subtle">
                     {limit && limit.unavailableReason === null
                       ? limit.source
                       : UNRESOLVED_LIMIT_TEXT}
@@ -371,7 +367,7 @@ function LimitMonitor({
           </tbody>
         </table>
       </div>
-      <p className="max-w-[86ch] border-t border-border px-4 py-2 text-[11px] leading-relaxed text-fg-subtle">
+      <p className="max-w-[86ch] border-t border-border py-2 text-[11px] leading-relaxed text-fg-subtle">
         기준치는 <strong className="text-fg-muted">지역구분 · 1일 폐수배출량 규모 · 항목</strong>으로
         갈립니다 [공정자료 p.11].{' '}
         <strong className="text-fg-muted">법령이 원천이므로 우리가 값을 채우지 않습니다</strong> —
@@ -407,7 +403,6 @@ function TrendCard({
 
   return (
     <Panel
-      eyebrow={trend.label}
       title={trend.code}
       className={selected ? 'border-border-strong' : undefined}
       action={
@@ -434,7 +429,7 @@ function TrendCard({
          * "이 카드엔 값이 없다"로 읽혔다.
          */}
         <p
-          className="text-[19px] font-semibold leading-tight tracking-tight text-fg"
+          className={`${VALUE_MD} text-fg`}
           style={{ color: headline.ink }}
         >
           {headline.text}

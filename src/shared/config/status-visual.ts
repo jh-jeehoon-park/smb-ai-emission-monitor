@@ -9,7 +9,6 @@ export interface StatusVisual {
   /** Tailwind 클래스 — 테마 전환은 CSS 변수가 알아서 처리한다 */
   text: string;
   bg: string;
-  border: string;
   /**
    * 차트 마크에 쓰는 색. Recharts는 CSS 클래스를 받지 않지만 SVG는 CSS 변수를 받는다.
    * 리터럴 hex를 넣으면 테마를 바꿔도 차트만 그대로 남는다.
@@ -17,10 +16,6 @@ export interface StatusVisual {
   hex: string;
   /** 글자에 쓸 색. 마크는 3:1이면 되지만 글자는 4.5:1이 필요해 따로 둔다 */
   ink: string;
-  /** 이 색을 **배경으로** 깔았을 때 그 위에 올릴 글자색 */
-  on: string;
-  /** 색에만 의존하지 않도록 형태로도 등급을 구분한다 */
-  glyph: string;
 }
 
 /**
@@ -32,41 +27,29 @@ export const STATUS_VISUAL: Record<StatusLevel, StatusVisual> = {
     token: 'normal',
     text: 'text-normal-ink',
     bg: 'bg-chip-normal',
-    border: 'border-normal/30',
     hex: 'var(--normal)',
     ink: 'var(--normal-ink)',
-    on: 'var(--normal-on)',
-    glyph: '●',
   },
   caution: {
     token: 'caution',
     text: 'text-caution-ink',
     bg: 'bg-chip-caution',
-    border: 'border-caution/35',
     hex: 'var(--caution)',
     ink: 'var(--caution-ink)',
-    on: 'var(--caution-on)',
-    glyph: '◆',
   },
   warning: {
     token: 'warning',
     text: 'text-warning-ink',
     bg: 'bg-chip-warning',
-    border: 'border-warning/35',
     hex: 'var(--warning)',
     ink: 'var(--warning-ink)',
-    on: 'var(--warning-on)',
-    glyph: '▲',
   },
   critical: {
     token: 'critical',
     text: 'text-critical-ink',
     bg: 'bg-chip-critical',
-    border: 'border-critical/45',
     hex: 'var(--critical)',
     ink: 'var(--critical-ink)',
-    on: 'var(--critical-on)',
-    glyph: '■',
   },
 };
 

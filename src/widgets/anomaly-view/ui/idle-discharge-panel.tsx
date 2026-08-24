@@ -48,7 +48,7 @@ export function IdleDischargePanel({ siteId, points }: IdleDischargePanelProps) 
           {runs.map((run) => (
             <li
               key={run.fromIso}
-              className="rounded-[4px] border border-border bg-surface-2 px-3 py-2.5"
+              className="rounded-nested border border-border bg-surface-2 px-3 py-2.5"
             >
               <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
                 <p className="num text-[12px] text-fg">

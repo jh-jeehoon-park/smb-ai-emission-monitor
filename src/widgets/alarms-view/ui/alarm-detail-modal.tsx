@@ -9,7 +9,6 @@ import { DISPLAY_TIMEZONE, formatDateTime, formatRelative, formatValue } from '@
 import { isDischargingAt, isTreatmentIdleAt, timelineIndexAt } from '@/shared/lib/timeline';
 import { Modal, ModalFact, ModalFacts } from '@/shared/ui/modal';
 import {
-  ALARM_CONDITION_LABELS,
   ALARM_PRIORITY_LABELS,
   ALARM_STATE_LABELS,
   raisedWhileNotDischarging,
@@ -56,7 +55,6 @@ export function AlarmDetailModal({ alarm, onClose, onChange }: AlarmDetailModalP
       onOpenChange={(next) => {
         if (!next) onClose();
       }}
-      eyebrow={`${ALARM_PRIORITY_LABELS[alarm.priority]} · ${ALARM_CONDITION_LABELS[alarm.condition]}`}
       title={alarm.title}
       footer={
         <>

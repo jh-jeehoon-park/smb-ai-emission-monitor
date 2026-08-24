@@ -5,6 +5,15 @@ interface Column<T> {
   cell: (row: T) => string;
 }
 
+/**
+ * 그래프가 놓이는 면 `[사용자 지시 2026-08-24]`.
+ *
+ * 카드 면(흰색)과 **거의 구분되지 않을 만큼** 옅다 — 흰 배경 대비 1.1:1이다.
+ * 목적은 강조가 아니라 "여기부터 그래프"라는 경계를 주는 것이고, 더 진하게 하면
+ * 그래프 안의 상태 색과 밴드가 이 면과 경쟁한다.
+ */
+export const CHART_SURFACE = 'rounded-nested bg-surface-2 p-3';
+
 interface ChartFigureProps<T> {
   /** 차트가 무엇을 보여주는지 한 문장. 스크린리더는 이 문장을 먼저 읽는다 */
   label: string;
@@ -14,6 +23,11 @@ interface ChartFigureProps<T> {
   columns?: Column<T>[];
   /** 시계열 전체를 표에 담지 않는다. 288행을 읽히면 아무도 끝까지 못 듣는다 */
   sampleEvery?: number;
+  /**
+   * 그래프 면을 이 컴포넌트가 깔지 않는다. 이미 옅은 면 위에 놓인 그래프에 쓴다 —
+   * 같은 톤을 두 겹 깔면 경계가 두 줄로 보인다(계측 격자의 칸이 그렇다).
+   */
+  bare?: boolean;
 }
 
 /**
@@ -30,6 +44,7 @@ export function ChartFigure<T>({
   rows,
   columns,
   sampleEvery = 1,
+  bare = false,
 }: ChartFigureProps<T>) {
   const hasTable = Boolean(rows?.length && columns?.length);
   const sampled = rows?.filter((_, i) => i % sampleEvery === 0) ?? [];
@@ -50,7 +65,12 @@ export function ChartFigure<T>({
        * `widgets/water-quality-grid/ui/water-quality-grid.tsx`). 이 핸들러는 포커스 가능한
        * 다른 자손이 생겨도 같은 증상이 돌아오지 않게 남겨 둔다.
        */}
-      <div role="img" aria-label={label} onMouseDown={(e) => e.preventDefault()}>
+      <div
+        role="img"
+        aria-label={label}
+        onMouseDown={(e) => e.preventDefault()}
+        className={bare ? undefined : CHART_SURFACE}
+      >
         {children}
       </div>
 

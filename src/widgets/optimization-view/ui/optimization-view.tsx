@@ -6,6 +6,7 @@ import { DISPLAY_TIMEZONE, formatDateTime } from '@/shared/lib/format';
 import { cn } from '@/shared/lib/cn';
 import { Panel } from '@/shared/ui/panel';
 import { StatTile } from '@/shared/ui/stat-tile';
+import { VALUE_LG, VALUE_MD } from '@/shared/ui/type-scale';
 import { energyIntensity, getMeasurementSeries, windowChange } from '@/entities/measurement';
 import {
   CHEMICAL_SAVING_RANGE,
@@ -19,13 +20,11 @@ import {
   type DosingAdvice,
   type OperatingAdvice,
 } from '@/entities/optimization';
-import { getSite } from '@/entities/site';
 import { useSelectedSiteId } from '@/features/site-selection';
 
 
 export function OptimizationView() {
   const { siteId } = useSelectedSiteId();
-  const site = getSite(siteId);
 
   /**
    * 에너지 효율은 계측에서 계산해 최적화 슬라이스에 넘긴다.
@@ -48,9 +47,9 @@ export function OptimizationView() {
 
   if (!summary.online) {
     return (
-      <Panel eyebrow={site.name} title="운영 최적화">
+      <Panel title="운영 최적화">
         <div className="flex flex-col items-center justify-center gap-1.5 py-12 text-center">
-          <p className="num text-[26px] leading-none text-fg-subtle">—</p>
+          <p className={`num ${VALUE_LG} text-fg-subtle`}>—</p>
           <p className="text-[12px] text-fg-muted">산출값 없음</p>
           <p className="max-w-[52ch] text-[12px] leading-relaxed text-fg-subtle">
             ECP 통신이 두절되어 최적화가 산출되지 않았습니다. 마지막 산출{' '}
@@ -65,8 +64,8 @@ export function OptimizationView() {
   const { dosing } = summary;
 
   return (
-    <div className="space-y-3">
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="space-y-6">
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <StatTile
           label="약품비 절감"
           value={`${dosing.savingRate}%`}
@@ -95,9 +94,8 @@ export function OptimizationView() {
         />
       </div>
 
-      <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <Panel
-          eyebrow={`${summary.modelLabel} · ${site.name}`}
           title="약품 주입량 최적화"
           action={<span className="text-[12px] text-fg-subtle">현재 대비 권장</span>}
         >
@@ -105,7 +103,6 @@ export function OptimizationView() {
         </Panel>
 
         <Panel
-          eyebrow="에너지 효율"
           title="kWh/m³"
           action={<span className="text-[12px] text-fg-subtle">계측 전력·유량에서 산출</span>}
         >
@@ -118,18 +115,16 @@ export function OptimizationView() {
       </div>
 
       <Panel
-        eyebrow={`${summary.operating.length}개 운영 변수`}
         title="설비 운전 조건 제안"
         action={
           <span className="max-w-[42ch] text-[12px] text-fg-subtle">
             계측에서 방향을 내고 절대 단위는 원문에 없어 상대 변화로 표기
           </span>
         }
-        bodyClassName="p-0"
       >
         {summary.operating.length === 0 ? (
           /* 신호가 없으면 제안을 만들지 않는다 — 무엇이 없어서인지를 적는다(R19·E4) */
-          <p className="px-4 py-3 text-[12px] leading-relaxed text-fg-subtle">
+          <p className=" py-3 text-[12px] leading-relaxed text-fg-subtle">
             최근 {OPERATING_WINDOW.recentHours}시간의 DO·유량 변화가 조정 문턱 아래이거나 표본이
             없어 조정을 권하지 않습니다. 값을 지어내 `0%`로 적으면 &ldquo;조정할 필요가 없다고
             판단했다&rdquo;는 말이 됩니다.
@@ -150,8 +145,8 @@ export function OptimizationView() {
        * 단가가 원문에 없어(`[TBD-41]`) 금액이 전부 원문 예시값이었고, 회의가 그 검증 불가를
        * 이유로 절감액 표시를 내리게 했다. **절감률 %는 남는다** — 원문 성과지표다.
        */}
-      <div className="grid gap-3">
-        <Panel eyebrow="E3 · 산출 근거" title="이 값이 나온 배경">
+      <div className="grid gap-6">
+        <Panel title="이 값이 나온 배경">
           <dl className="grid grid-cols-1 gap-y-2 text-[11px] sm:grid-cols-2 sm:gap-x-6">
             <Meta label="산출 모델" value={`${summary.modelLabel} (다중 에이전트 강화학습)`} />
             <Meta
@@ -184,7 +179,7 @@ function DosingCompare({ dosing }: { dosing: DosingAdvice }) {
         <div>
           <p className="text-[11px] text-fg-subtle">권장 주입량</p>
           <p
-            className="num mt-1 text-[30px] font-semibold leading-none tracking-tight"
+            className={`num mt-1 ${VALUE_LG}`}
             style={{ color: statusInk(STATUS_VISUAL.normal) }}
           >
             {dosing.recommendedDose.toFixed(DOSING_DECIMALS)}
@@ -193,7 +188,7 @@ function DosingCompare({ dosing }: { dosing: DosingAdvice }) {
         </div>
         <div className="text-right">
           <p className="text-[11px] text-fg-subtle">현재</p>
-          <p className="num mt-1 text-[17px] leading-none text-fg-muted">
+          <p className={`num mt-1 ${VALUE_MD} text-fg-muted`}>
             {dosing.currentDose.toFixed(DOSING_DECIMALS)}
             <span className="ml-1 text-[11px] text-fg-subtle">{dosing.unit}</span>
           </p>
@@ -288,7 +283,7 @@ function EnergyCompare({
         <div>
           <p className="text-[11px] text-fg-subtle">최적화 적용 시</p>
           <p
-            className="num mt-1 text-[30px] font-semibold leading-none tracking-tight"
+            className={`num mt-1 ${VALUE_LG}`}
             style={{ color: statusInk(STATUS_VISUAL.normal) }}
           >
             {target.toFixed(ENERGY_DECIMALS)}
@@ -297,7 +292,7 @@ function EnergyCompare({
         </div>
         <div className="text-right">
           <p className="text-[11px] text-fg-subtle">현재</p>
-          <p className="num mt-1 text-[17px] leading-none text-fg-muted">
+          <p className={`num mt-1 ${VALUE_MD} text-fg-muted`}>
             {current.toFixed(ENERGY_DECIMALS)}
           </p>
           <p className="num mt-1 text-[11px]" style={{ color: statusInk(STATUS_VISUAL.normal) }}>
@@ -319,7 +314,7 @@ function OperatingRow({ advice }: { advice: OperatingAdvice }) {
   const magnitude = Math.min(Math.abs(advice.deltaPercent), 20) * 5;
 
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-4 py-2.5">
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 py-2.5">
       <span className="min-w-0 flex-1 basis-[200px]">
         <span className="block text-[12px] text-fg">
           {advice.parameter}

@@ -1,4 +1,5 @@
 import { BRAND_NAME } from '@/shared/config/constants';
+import { smoothPath } from '@/shared/lib/smooth-path';
 import { BrandMark } from '@/shared/ui/brand-mark';
 import { Eyebrow } from '@/shared/ui/eyebrow';
 import { GRID_PITCH_PX, PLATFORM_HIGHLIGHTS, SIGNAL_POINTS } from '../config/brand-panel';
@@ -63,9 +64,7 @@ function GridBackdrop() {
 
 function SignalBackdrop() {
   const step = 100 / (SIGNAL_POINTS.length - 1);
-  const points = SIGNAL_POINTS.map((v, i) => `${(i * step).toFixed(2)},${(100 - v).toFixed(2)}`).join(
-    ' ',
-  );
+  const d = smoothPath(SIGNAL_POINTS.map((v, i) => ({ x: i * step, y: 100 - v })));
 
   return (
     <svg
@@ -74,18 +73,20 @@ function SignalBackdrop() {
       preserveAspectRatio="none"
       className="pointer-events-none absolute inset-x-0 bottom-0 h-[46%] w-full text-border-strong"
     >
-      <polyline
-        points={points}
+      <path
+        d={d}
         fill="none"
         stroke="currentColor"
         strokeWidth={0.45}
+        strokeLinecap="round"
         vectorEffect="non-scaling-stroke"
       />
-      <polyline
-        points={points}
+      <path
+        d={d}
         fill="none"
         stroke="currentColor"
         strokeWidth={0.45}
+        strokeLinecap="round"
         strokeDasharray="3 5"
         vectorEffect="non-scaling-stroke"
         transform="translate(0 9)"

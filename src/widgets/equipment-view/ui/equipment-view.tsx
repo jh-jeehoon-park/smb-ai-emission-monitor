@@ -3,7 +3,6 @@
 import { useMemo, useState } from 'react';
 import { DEMO_NOW_ISO } from '@/shared/config/demo';
 import { OPERATING_FILL } from '@/shared/config/operating-visual';
-import { STATUS_VISUAL } from '@/shared/config/status-visual';
 import { useQueryState } from '@/shared/lib/use-query-state';
 import { Panel } from '@/shared/ui/panel';
 import { SegmentedControl } from '@/shared/ui/segmented-control';
@@ -13,7 +12,6 @@ import {
   EQUIPMENT_SIGNAL_LABELS,
   EQUIPMENT_SORT_KEYS,
   EQUIPMENT_SORT_OPTIONS,
-  STATUS_TIMELINE_HOURS,
   getEquipment,
   sortEquipment,
   type Equipment,
@@ -50,9 +48,8 @@ export function EquipmentView() {
   );
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-6">
       <Panel
-        eyebrow={`설비 이상 탐지 · ${site.name}`}
         title="설비 상태 요약"
         action={
           <SegmentedControl
@@ -73,7 +70,6 @@ export function EquipmentView() {
       </Panel>
 
       <Panel
-        eyebrow={site.online ? `최근 ${STATUS_TIMELINE_HOURS}시간` : '수신 없음'}
         title="설비별 상태 추이"
         action={
           site.online ? (
@@ -86,31 +82,25 @@ export function EquipmentView() {
         <StatusHeatmap siteId={siteId} items={view.items} />
       </Panel>
 
-      <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_340px]">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
         <Panel
-          eyebrow={site.online ? `${view.items.length}대` : '수신 없음'}
           title="설비 상세"
           action={
             <span className="text-[12px] text-fg-subtle">
               진동 센서 사양은 원문에 없다(TBD-49)
             </span>
           }
-          bodyClassName="p-0"
         >
           {site.online ? (
             <EquipmentTable items={view.items} />
           ) : (
-            <p className="px-4 py-10 text-center text-[12px] text-fg-subtle">
+            <p className=" py-10 text-center text-[12px] text-fg-subtle">
               통신이 두절된 사업장입니다. 마지막 수신 이후의 설비 지표가 없어 표를 비워 둡니다.
             </p>
           )}
         </Panel>
 
-        <Panel
-          eyebrow={`설비 이상 조건 ${view.alarms.length}건`}
-          title="관련 알람"
-          bodyClassName="px-4 py-3"
-        >
+        <Panel title="관련 알람">
           <AlarmList alarms={view.alarms} nowIso={DEMO_NOW_ISO} selectedSiteId={siteId} />
         </Panel>
       </div>
@@ -119,7 +109,6 @@ export function EquipmentView() {
           상단 설비 표와 같은 설비가 그대로 다시 나와 중복이 된다 */}
       <Panel
         className="role-hide-site"
-        eyebrow={`실증 ${SITES.length}개소 전체`}
         title="이상 발생 설비 순위"
         action={
           <span className="text-[12px] text-fg-subtle">
@@ -128,7 +117,6 @@ export function EquipmentView() {
               : '정비 인력은 사업장을 가로질러 움직인다'}
           </span>
         }
-        bodyClassName="p-0"
       >
         <CrossSiteRanking selectedSiteId={siteId} />
       </Panel>
@@ -143,21 +131,15 @@ function CrossSiteRanking({ selectedSiteId }: { selectedSiteId: string }) {
   return (
     <ol className="divide-y divide-border">
       {rows.map((row, index) => {
-        const visual = STATUS_VISUAL[row.equipment.status];
         return (
           <li
             key={`${row.siteId}-${row.equipment.id}`}
             className={cn(
-              'flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2',
+              'flex flex-wrap items-center gap-x-3 gap-y-1 py-2',
               row.siteId === selectedSiteId && 'bg-surface-2',
             )}
           >
             <span className="num w-5 shrink-0 text-[11px] text-fg-subtle">{index + 1}</span>
-            <span
-              aria-hidden
-              className="h-6 w-[3px] shrink-0 rounded-full"
-              style={{ backgroundColor: visual.hex }}
-            />
             <span className="min-w-0 flex-1 basis-[180px] text-[12px] text-fg">
               {row.equipment.name}
               <span className="ml-2 text-[11px] text-fg-subtle">
@@ -167,7 +149,7 @@ function CrossSiteRanking({ selectedSiteId }: { selectedSiteId: string }) {
 
             {/* 수치는 한 덩어리로 묶어 좁은 화면에서 통째로 다음 줄로 내려가게 한다 */}
             <span className="flex shrink-0 items-center gap-3">
-              <StatusBadge level={row.equipment.status} size="sm" />
+              <StatusBadge level={row.equipment.status} />
               <span className="w-[112px] text-right text-[11px] text-fg-muted">
                 {row.equipment.signals.length === 0
                   ? '이상 없음'
@@ -187,27 +169,27 @@ function CrossSiteRanking({ selectedSiteId }: { selectedSiteId: string }) {
 function EquipmentTable({ items }: { items: Equipment[] }) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[620px] border-collapse text-[12px]">
+      <table className="w-full min-w-[620px] border-separate border-spacing-0 text-[12px]">
         <thead>
-          <tr className="border-b border-border text-[11px] text-fg-subtle">
-            <th className="px-4 py-2 text-left font-normal">설비</th>
-            <th className="px-3 py-2 text-left font-normal">상태</th>
-            <th className="px-3 py-2 text-left font-normal">가동</th>
-            <th className="px-3 py-2 text-left font-normal">이상 신호</th>
-            <th className="px-3 py-2 text-right font-normal">이상 지속</th>
-            <th className="px-4 py-2 text-right font-normal">누적 가동</th>
+          <tr className="text-[12px] font-semibold text-fg-muted [&>th]:bg-surface-2 [&>th:first-child]:rounded-l-nested [&>th:last-child]:rounded-r-nested">
+            <th className="px-3 py-3 text-left">설비</th>
+            <th className="px-3 py-3 text-left">상태</th>
+            <th className="px-3 py-3 text-left">가동</th>
+            <th className="px-3 py-3 text-left">이상 신호</th>
+            <th className="px-3 py-3 text-right">이상 지속</th>
+            <th className="px-3 py-3 text-right">누적 가동</th>
           </tr>
         </thead>
         <tbody>
           {items.map((eq) => {
             const state = eq.running === null ? 'unknown' : eq.running ? 'on' : 'off';
             return (
-              <tr key={eq.id} className="border-b border-border last:border-0">
-                <td className="px-4 py-2.5 text-fg">{eq.name}</td>
-                <td className="px-3 py-2.5">
-                  <StatusBadge level={eq.status} size="sm" />
+              <tr key={eq.id} className="[&>*]:border-b [&>*]:border-border">
+                <td className="px-3 py-3.5 text-fg">{eq.name}</td>
+                <td className="px-3 py-3.5">
+                  <StatusBadge level={eq.status} />
                 </td>
-                <td className="px-3 py-2.5">
+                <td className="px-3 py-3.5">
                   <span className="flex items-center gap-1.5 text-fg-muted">
                     {/* 색이 뜻을 갖는 축이라 점을 곁들인다. 등급 색이 아니라 가동 색이다 */}
                     <span
@@ -218,15 +200,15 @@ function EquipmentTable({ items }: { items: Equipment[] }) {
                     {RUN_LABEL[state]}
                   </span>
                 </td>
-                <td className="px-3 py-2.5 text-fg-muted">
+                <td className="px-3 py-3.5 text-fg-muted">
                   {eq.signals.length === 0
                     ? '없음'
                     : eq.signals.map((sig) => EQUIPMENT_SIGNAL_LABELS[sig]).join(' · ')}
                 </td>
-                <td className="num px-3 py-2.5 text-right text-fg-muted">
+                <td className="num px-3 py-3.5 text-right text-fg-muted">
                   {eq.anomalyHours === null ? '—' : `${eq.anomalyHours}시간`}
                 </td>
-                <td className="num px-4 py-2.5 text-right text-fg-subtle">
+                <td className="num px-3 py-3.5 text-right text-fg-subtle">
                   {eq.runtimeHours.toLocaleString('ko-KR')}h
                 </td>
               </tr>

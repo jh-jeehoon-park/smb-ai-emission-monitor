@@ -69,16 +69,16 @@ export function DischargeLimitEditor({ siteId }: { siteId: string }) {
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[720px] border-collapse text-[12px]">
+        <table className="w-full min-w-[720px] border-separate border-spacing-0 text-[12px]">
           <caption className="sr-only">
             지역구분별 방류 기준치. 행은 지역구분, 열은 법정 점검 항목이다. 값을 지우면 미설정으로
             돌아간다.
           </caption>
           <thead>
-            <tr className="border-b border-border text-[11px] text-fg-subtle">
-              <th className="px-3 py-2 text-left font-normal">지역구분</th>
+            <tr className="text-[12px] font-semibold text-fg-muted [&>th]:bg-surface-2 [&>th:first-child]:rounded-l-nested [&>th:last-child]:rounded-r-nested">
+              <th className="px-3 py-3 text-left">지역구분</th>
               {LEGAL_CHECK_ITEMS.map((item) => (
-                <th key={item.label} className="px-3 py-2 text-left font-normal">
+                <th key={item.label} className="px-3 py-3 text-left">
                   {item.label}
                 </th>
               ))}
@@ -86,10 +86,10 @@ export function DischargeLimitEditor({ siteId }: { siteId: string }) {
           </thead>
           <tbody>
             {REGION_GRADES.map((region) => (
-              <tr key={region} className="border-b border-border last:border-0">
+              <tr key={region} className="[&>*]:border-b [&>*]:border-border">
                 <th
                   scope="row"
-                  className="whitespace-nowrap px-3 py-2.5 text-left font-normal text-fg"
+                  className="whitespace-nowrap px-3 py-3.5 text-left font-normal text-fg"
                 >
                   {region}
                   {own.regionGrade === region ? (
@@ -97,7 +97,7 @@ export function DischargeLimitEditor({ siteId }: { siteId: string }) {
                   ) : null}
                 </th>
                 {LEGAL_CHECK_ITEMS.map((item) => (
-                  <td key={item.label} className="px-3 py-2 align-top">
+                  <td key={item.label} className="px-3 py-3.5 align-top">
                     <ItemCell
                       code={item.code}
                       label={item.label}

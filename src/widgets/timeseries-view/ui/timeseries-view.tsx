@@ -11,10 +11,11 @@ import {
   type DischargeLimitTable,
 } from '@/shared/config/discharge-limits';
 import { COLLECTION_INTERVAL_MINUTES, MEASUREMENT_ITEMS } from '@/shared/config/measurement';
-import { DISPLAY_TIMEZONE, formatDateTime, formatValue } from '@/shared/lib/format';
+import { DISPLAY_TIMEZONE, formatValue } from '@/shared/lib/format';
 import { useQueryState } from '@/shared/lib/use-query-state';
 import { getOutageWindow } from '@/shared/lib/timeline';
 import { Panel } from '@/shared/ui/panel';
+import { InfoTip } from '@/shared/ui/tooltip';
 import {
   getMeasurementSeries,
   sliceRecentHours,
@@ -25,6 +26,7 @@ import {
   BUCKET_STATS,
   DEFAULT_BUCKET,
   DEFAULT_STAT,
+  outageNotice,
 } from '@/entities/measurement';
 import { getSite } from '@/entities/site';
 import { MeasurementFilterBar, useMeasurementFilter } from '@/features/measurement-filter';
@@ -65,18 +67,20 @@ export function TimeseriesView() {
   const [stat, setStat] = useQueryState(STAT_QUERY_KEY, BUCKET_STATS, DEFAULT_STAT);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-6">
       <Panel
-        eyebrow={`${site.name} · ${site.region}`}
         title="수질·설비 시계열"
-        action={<MeasurementFilterBar filter={filter} />}
-        bodyClassName="p-0"
+        action={
+          <span className="flex flex-wrap items-center gap-2">
+            <MeasurementFilterBar filter={filter} />
+            <InfoTip
+              label="조회 조건과 결측 표시 방식"
+              content={`최근 ${filter.hours}시간 · ${COLLECTION_INTERVAL_MINUTES}분 주기 · ${DISPLAY_TIMEZONE}. ${outageNotice(site.online, view.outage)}`}
+            />
+          </span>
+        }
       >
         <WaterQualityGrid data={view.points} codes={filter.codes} limits={limits.table} />
-        <p className="max-w-[80ch] border-t border-border px-4 py-2.5 text-[12px] leading-relaxed text-fg-subtle">
-          최근 {filter.hours}시간 · {COLLECTION_INTERVAL_MINUTES}분 주기 · {DISPLAY_TIMEZONE}.{' '}
-          {outageNotice(site.online, view.outage)}
-        </p>
       </Panel>
 
       {/*
@@ -99,7 +103,6 @@ export function TimeseriesView() {
       />
 
       <Panel
-        eyebrow={`${filter.codes.length}개 항목 · 전 구간`}
         title="항목별 요약"
         action={
           <div className="flex flex-wrap items-center gap-2">
@@ -121,7 +124,6 @@ export function TimeseriesView() {
             </button>
           </div>
         }
-        bodyClassName="p-0"
       >
         <StatsTable rows={view.stats} limits={limits.table} />
         {/*
@@ -129,7 +131,7 @@ export function TimeseriesView() {
          * 적었고, 적용 구간은 사업장마다 허가증으로 갈린다. 나머지 항목은 표를 고를 2축
          * (지역구분·배출량 규모)이 없어 아예 판정하지 않는다.
          */}
-        <div className="max-w-[80ch] space-y-2 border-t border-border px-4 py-2.5 text-[12px] leading-relaxed text-fg-subtle">
+        <div className="max-w-[80ch] space-y-2 border-t border-border py-2.5 text-[12px] leading-relaxed text-fg-subtle">
           <p>
             pH 기준 5.80–8.60은 통상 적용 범위이며, 정확한 구간은 사업장 폐수배출시설
             설치허가(신고)증에서 확인한다 [공정자료 p.11]. 나머지 항목은 아래 두 축이 정해져야
@@ -165,25 +167,6 @@ export function TimeseriesView() {
 }
 
 /**
- * 구간 × 항목 표.
- *
- * **통계 하나만 보인다.** 11항목 × 3통계 = 33열은 표가 아니라 벽이다 — 어느 통계를 볼지는
- * 위 세그먼트가 정한다.
- *
- * 시각을 왼쪽에 고정한다(`sticky`). 항목이 11개면 가로로 넘치는데 시각이 함께 밀려나면
- * 어느 구간의 값인지 알 수 없다.
- */
-function outageNotice(online: boolean, outage: { fromIso: string; toIso: string } | null): string {
-  if (!online) {
-    return 'ECP 통신이 두절되어 수신값이 없습니다. 결측은 0으로 채우지 않고 비워 둡니다.';
-  }
-  if (outage) {
-    return `${formatDateTime(outage.fromIso)}–${formatDateTime(outage.toIso)} 구간은 통신 두절로 수신값이 없습니다.`;
-  }
-  return '이 구간에는 결측이 없습니다.';
-}
-
-/**
  * 기준을 아는 항목만 값을 적는다.
  *
  * 세 상태를 구분한다 — **판정 가능**(pH), **기준표 미확보**(TOC), **기준 대상 아님**(수온·전류 등).
@@ -206,41 +189,41 @@ function StatsTable({
 }) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[560px] border-collapse text-[12px]">
+      <table className="w-full min-w-[560px] border-separate border-spacing-0 text-[12px]">
         <thead>
-          <tr className="border-b border-border text-[11px] text-fg-subtle">
-            <th className="px-4 py-2 text-left font-normal">항목</th>
-            <th className="px-3 py-2 text-left font-normal">단위</th>
-            <th className="px-3 py-2 text-left font-normal">배출허용기준</th>
-            <th className="px-3 py-2 text-right font-normal">최소</th>
-            <th className="px-3 py-2 text-right font-normal">평균</th>
-            <th className="px-3 py-2 text-right font-normal">최대</th>
-            <th className="px-3 py-2 text-right font-normal">최신</th>
-            <th className="px-4 py-2 text-right font-normal">결측</th>
+          <tr className="text-[12px] font-semibold text-fg-muted [&>th]:bg-surface-2 [&>th:first-child]:rounded-l-nested [&>th:last-child]:rounded-r-nested">
+            <th className="px-3 py-3 text-left">항목</th>
+            <th className="px-3 py-3 text-left">단위</th>
+            <th className="px-3 py-3 text-left">배출허용기준</th>
+            <th className="px-3 py-3 text-right">최소</th>
+            <th className="px-3 py-3 text-right">평균</th>
+            <th className="px-3 py-3 text-right">최대</th>
+            <th className="px-3 py-3 text-right">최신</th>
+            <th className="px-3 py-3 text-right">결측</th>
           </tr>
         </thead>
         <tbody>
           {rows.map(({ code, stats }) => {
             const item = MEASUREMENT_ITEMS[code];
             return (
-              <tr key={code} className="border-b border-border last:border-0">
-                <td className="px-4 py-2">
+              <tr key={code} className="[&>*]:border-b [&>*]:border-border">
+                <td className="px-3 py-3.5">
                   <span className="font-semibold text-fg">{item.symbol}</span>
                   <span className="ml-1.5 text-[11px] text-fg-subtle">{item.label}</span>
                 </td>
-                <td className="px-3 py-2 text-fg-subtle">{item.unit || '—'}</td>
-                <td className="num px-3 py-2 text-fg-subtle">{limitText(code, item.decimals, limits)}</td>
-                <td className="num px-3 py-2 text-right text-fg-muted">
+                <td className="px-3 py-3.5 text-fg-subtle">{item.unit || '—'}</td>
+                <td className="num px-3 py-3.5 text-fg-subtle">{limitText(code, item.decimals, limits)}</td>
+                <td className="num px-3 py-3.5 text-right text-fg-muted">
                   {formatValue(code, stats.min)}
                 </td>
-                <td className="num px-3 py-2 text-right text-fg">{formatValue(code, stats.avg)}</td>
-                <td className="num px-3 py-2 text-right text-fg-muted">
+                <td className="num px-3 py-3.5 text-right text-fg">{formatValue(code, stats.avg)}</td>
+                <td className="num px-3 py-3.5 text-right text-fg-muted">
                   {formatValue(code, stats.max)}
                 </td>
-                <td className="num px-3 py-2 text-right text-fg">
+                <td className="num px-3 py-3.5 text-right text-fg">
                   {formatValue(code, stats.latest)}
                 </td>
-                <td className="num px-4 py-2 text-right text-fg-subtle">
+                <td className="num px-3 py-3.5 text-right text-fg-subtle">
                   {stats.missingCount > 0 ? `${stats.missingCount}/${stats.totalCount}` : '없음'}
                 </td>
               </tr>

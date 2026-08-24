@@ -64,7 +64,6 @@ export function BucketReportPanel({
 
   return (
     <Panel
-      eyebrow={`${rows.length}구간 · ${codes.length}개 항목 · 최근 ${hours}시간`}
       title="구간별 집계"
       action={
         <div className="flex flex-wrap items-center gap-2">
@@ -95,10 +94,9 @@ export function BucketReportPanel({
           </button>
         </div>
       }
-      bodyClassName="p-0"
     >
       <BucketTable rows={rows} codes={codes} stat={stat} />
-      <p className="max-w-[80ch] border-t border-border px-4 py-2.5 text-[12px] leading-relaxed text-fg-subtle">
+      <p className="max-w-[80ch] border-t border-border py-2.5 text-[12px] leading-relaxed text-fg-subtle">
         구간마다 {STAT_LABELS[stat]}을 냅니다. 결측은 계산에서 빼고 건수로만 세며, 구간 전체가
         결측이면 <strong className="text-fg-muted">수신 없음</strong>입니다 — 0으로 채우면 값
         자체가 거짓이 됩니다. <strong className="text-fg-muted">일·월 집계는 없습니다</strong> —
@@ -120,7 +118,7 @@ function BucketTable({
 }) {
   if (rows.length === 0) {
     return (
-      <p className="px-4 py-8 text-center text-[12px] text-fg-subtle">
+      <p className=" py-8 text-center text-[12px] text-fg-subtle">
         이 구간에 표본이 없습니다.
       </p>
     );
@@ -128,44 +126,44 @@ function BucketTable({
 
   return (
     <div className="max-h-[560px] overflow-auto">
-      <table className="w-full border-collapse text-[12px]">
+      <table className="w-full border-separate border-spacing-0 text-[12px]">
         <caption className="sr-only">
           구간별 {STAT_LABELS[stat]}. 행은 구간 시작 시각, 열은 계측 항목이다.
         </caption>
-        <thead className="sticky top-0 z-10 bg-surface">
-          <tr className="border-b border-border text-[11px] text-fg-subtle">
-            <th scope="col" className="sticky left-0 bg-surface px-4 py-2 text-left font-normal">
+        <thead className="sticky top-0 z-10">
+          <tr className="text-[12px] font-semibold text-fg-muted [&>th]:bg-surface-2 [&>th:first-child]:rounded-l-nested [&>th:last-child]:rounded-r-nested">
+            <th scope="col" className="sticky left-0 bg-surface-2 px-3 py-3 text-left">
               구간
             </th>
             {codes.map((code) => (
-              <th key={code} scope="col" className="px-3 py-2 text-right font-normal">
+              <th key={code} scope="col" className="px-3 py-3 text-right">
                 {MEASUREMENT_ITEMS[code].symbol}
                 {MEASUREMENT_ITEMS[code].unit && (
                   <span className="ml-1 text-fg-subtle">{MEASUREMENT_ITEMS[code].unit}</span>
                 )}
               </th>
             ))}
-            <th scope="col" className="px-4 py-2 text-right font-normal">
+            <th scope="col" className="px-3 py-3 text-right">
               결측
             </th>
           </tr>
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={row.startIso} className="border-b border-border last:border-0">
+            <tr key={row.startIso} className="[&>*]:border-b [&>*]:border-border">
               <th
                 scope="row"
-                className="num sticky left-0 bg-surface px-4 py-2 text-left font-normal text-fg-muted"
+                className="num sticky left-0 bg-surface py-3.5 text-left font-normal text-fg-muted"
               >
                 {formatClock(row.startIso)}
               </th>
               {codes.map((code) => (
-                <td key={code} className="num px-3 py-2 text-right text-fg">
+                <td key={code} className="num px-3 py-3.5 text-right text-fg">
                   {/* 구간 전체가 결측이면 값이 아니라 사실을 적는다(E4) */}
                   {formatValue(code, row.values[code] ?? null)}
                 </td>
               ))}
-              <td className="num px-4 py-2 text-right text-fg-subtle">
+              <td className="num px-3 py-3.5 text-right text-fg-subtle">
                 {row.missingCount}/{row.totalCount}
               </td>
             </tr>

@@ -18,6 +18,7 @@ export {
 export { bucketByMinutes, sliceRecentHours, summarizeSeries } from './lib/series-stats';
 export { energyIntensity } from './lib/energy';
 export { windowChange, type WindowChange } from './lib/window-change';
+export { outageNotice } from './lib/outage-notice';
 export { buildBucketReport, bucketReportToCsv, type BucketRow } from './lib/bucket-report';
 export { countOverLimit } from './lib/limit';
 export type { SeriesBucket, SeriesStats } from './lib/series-stats';

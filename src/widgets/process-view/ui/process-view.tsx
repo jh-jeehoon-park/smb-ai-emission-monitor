@@ -44,7 +44,7 @@ export function ProcessView() {
   const { siteId } = useSelectedSiteId();
   const site = getSite(siteId);
   /* 켠 단계만 온다. 무엇을 켤지는 사업장 설정이 정한다 `[회의 2026-08-20]` */
-  const { stages, disabled, isUserSet } = useProcess();
+  const { stages, disabled } = useProcess();
 
   const [stageId, setStageId] = useQueryState(STAGE_QUERY_KEY, STAGE_IDS, STAGE_IDS[0]!);
   /* 끈 단계가 URL에 남아 있을 수 있다 — 없는 단계를 고르면 첫 단계로 떨어진다 */
@@ -64,7 +64,7 @@ export function ProcessView() {
    */
   if (!selected) {
     return (
-      <Panel eyebrow={site.name} title="폐수처리 공정">
+      <Panel title="폐수처리 공정">
         <p className="max-w-[64ch] py-8 text-center text-[12px] leading-relaxed text-fg-subtle">
           활성화된 공정 단계가 없습니다. 사업장 설정 &gt; 공정 구성에서 이 사업장의 단계를
           켜면 공정도를 그립니다 [회의 2026-08-20].
@@ -74,17 +74,16 @@ export function ProcessView() {
   }
 
   return (
-    <StaggerGroup className="space-y-3">
+    <StaggerGroup className="space-y-6">
       <RiseItem>
         <OperatingBar site={site.name} operating={operating} />
       </RiseItem>
 
       <RiseItem>
         <Panel
-          eyebrow={`${site.name} · ${isUserSet ? '사용자 설정' : '표준'} ${stages.length}단계`}
           title="폐수처리 공정"
           action={<GradeLegend />}
-          bodyClassName="overflow-x-auto p-4"
+          bodyClassName="overflow-x-auto"
         >
           <ProcessDiagram
             stages={stages}
@@ -102,7 +101,7 @@ export function ProcessView() {
       </RiseItem>
 
       <RiseItem>
-        <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,380px)]">
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,380px)]">
           <StageDetail
             resolved={selected}
             readings={stageReadings(siteId, selected)}
@@ -128,7 +127,7 @@ function OperatingBar({
   operating: ReturnType<typeof getOperatingState>;
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-[6px] border border-border bg-surface px-4 py-3 text-[12px]">
+    <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-panel border border-card-border bg-surface p-5 shadow-panel text-[12px]">
       <span className="text-fg-muted">{site}</span>
 
       <span className="flex items-center gap-1.5">
@@ -200,10 +199,7 @@ function StageDetail({
   const { stage } = resolved;
 
   return (
-    <Panel
-      eyebrow={`${stage.order}단계 · ${PROVISIONAL_MEASUREMENT_GRADE_LABELS[stage.grade]}`}
-      title={stage.name}
-    >
+    <Panel title={stage.name}>
       <p className="text-[12px] text-fg-muted">{stage.units.join(' · ')}</p>
 
       {/*
@@ -261,7 +257,7 @@ function StageDetail({
       )}
 
       {stage.grade === 'none' && (
-        <p className="mt-3 rounded-[4px] bg-surface-2 px-2.5 py-2 text-[11px] leading-relaxed text-fg-subtle">
+        <p className="mt-3 rounded-nested bg-surface-2 px-2.5 py-2 text-[11px] leading-relaxed text-fg-subtle">
           이 단계는 계측하지 않습니다. 전처리·침전 구간에 계측기가 적은 것은 이 시스템의 한계가
           아니라 업계 표준입니다 — 계측은 제어가 필요한 곳과 법이 요구하는 곳에 몰립니다.
         </p>
@@ -273,7 +269,7 @@ function StageDetail({
 /** 우리가 실제로 재는 한 점. 여기서 법정 5항목이 완성된다 */
 function DischargePoint() {
   return (
-    <Panel eyebrow="6단계 · 실측" title="계측 지점">
+    <Panel title="계측 지점">
       <div className="space-y-3 text-[12px]">
         <div>
           <p className="text-[11px] text-fg-subtle">다항목 프로브 (단일 프로브 통합)</p>
@@ -295,7 +291,7 @@ function DischargePoint() {
             78.2%.
           </p>
         </div>
-        <div className="rounded-[4px] bg-surface-2 px-2.5 py-2">
+        <div className="rounded-nested bg-surface-2 px-2.5 py-2">
           <p className="text-[11px] text-fg-subtle">법정 방류 기준 점검 대상</p>
           <p className="num mt-0.5 text-[12px] font-semibold text-fg">
             {REGULATED_ITEMS.join(' · ')}
@@ -309,16 +305,16 @@ function DischargePoint() {
 /** 안 보이는 곳을 감추지 않는다. 시연에서 물어보기 전에 화면이 먼저 말한다 */
 function NotMeasured() {
   return (
-    <Panel eyebrow="확인 필요" title="이 화면이 재지 않는 것">
+    <Panel title="이 화면이 재지 않는 것">
       <dl className="grid gap-2 sm:grid-cols-2">
-        <div className="rounded-[4px] bg-surface-2 px-2.5 py-2">
+        <div className="rounded-nested bg-surface-2 px-2.5 py-2">
           <dt className="text-[11px] text-fg-subtle">송풍기 (폭기장치) · TBD-42</dt>
           <dd className="mt-0.5 text-[12px] leading-relaxed text-fg-muted">
             예지보전 대상으로 원문이 다섯 번 언급하지만 무엇으로 재는지 규정이 없습니다. 개별
             신호가 규정된 설비는 약품주입펌프뿐입니다.
           </dd>
         </div>
-        <div className="rounded-[4px] bg-surface-2 px-2.5 py-2">
+        <div className="rounded-nested bg-surface-2 px-2.5 py-2">
           <dt className="text-[11px] text-fg-subtle">프로브 설치 지점 · TBD-43</dt>
           <dd className="mt-0.5 text-[12px] leading-relaxed text-fg-muted">
             원문에 설치 위치 서술이 없습니다. 실증 데이터가 방류구 기준이라 6단계에 그렸습니다.

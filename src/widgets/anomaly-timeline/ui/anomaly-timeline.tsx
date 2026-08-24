@@ -114,6 +114,8 @@ export function AnomalyTimeline({ data, outage }: AnomalyTimelineProps) {
         />
         <Area
           type="monotone"
+          strokeLinecap="round"
+          strokeLinejoin="round"
           dataKey="score"
           stroke={AI_HEX}
           strokeWidth={2}

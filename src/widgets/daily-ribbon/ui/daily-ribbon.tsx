@@ -18,6 +18,7 @@ import { cn } from '@/shared/lib/cn';
 import { DISPLAY_TIMEZONE, formatClock } from '@/shared/lib/format';
 import { TIMELINE_POINT_COUNT, timelineIsoAt } from '@/shared/lib/timeline';
 import { AnomalyBandLegend } from '@/shared/ui/anomaly-band-legend';
+import { CHART_SURFACE } from '@/shared/ui/chart-figure';
 import { ChartTooltipRow, ChartTooltipShell } from '@/shared/ui/chart-tooltip';
 import {
   RIBBON_FILL,
@@ -77,8 +78,9 @@ export function DailyRibbon({ data, dateIso }: { data: RibbonData; dateIso: stri
     <div className="space-y-2">
       <Caption data={data} dateIso={dateIso} />
 
+      {/* 그래프 면. 여백이 격자 전체를 함께 밀므로 오버레이의 좌표 기준도 같이 옮겨간다 */}
       <div
-        className="grid gap-x-3"
+        className={`grid gap-x-3 ${CHART_SURFACE}`}
         style={{
           gridTemplateColumns: `${RIBBON_LABEL_WIDTH}px minmax(0, 1fr)`,
           gridTemplateRows: RIBBON_GRID_ROWS,
@@ -150,7 +152,7 @@ export function DailyRibbon({ data, dateIso }: { data: RibbonData; dateIso: stri
             <li key={item.state} className="flex items-center gap-1 text-[11px] text-fg-subtle">
               <span
                 aria-hidden
-                className="inline-block h-2 w-3 rounded-[1px]"
+                className="inline-block h-2 w-3 rounded-[2px]"
                 style={{
                   backgroundColor: RIBBON_FILL[item.state],
                   opacity: item.state === 'unknown' ? 0.45 : 1,

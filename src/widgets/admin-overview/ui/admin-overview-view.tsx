@@ -74,14 +74,13 @@ export function AdminOverviewView() {
   const worstEquipment = detail.equipment[0];
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-6">
       <Panel
-        eyebrow={`${site.name} · ${site.region}`}
         title="일간 운전"
         action={
           <div className="flex items-center gap-2 text-[12px]">
             {site.status ? (
-              <StatusBadge level={site.status} size="sm" />
+              <StatusBadge level={site.status} />
             ) : (
               <span className="text-fg-subtle">수신 없음</span>
             )}
@@ -91,7 +90,7 @@ export function AdminOverviewView() {
         <DailyRibbon data={detail.ribbon} dateIso={DEMO_NOW_ISO} />
       </Panel>
 
-      <StaggerGroup className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <StaggerGroup className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <RiseItem>
           <StatTile
             label="이상 점수"
@@ -143,18 +142,17 @@ export function AdminOverviewView() {
         </RiseItem>
       </StaggerGroup>
 
-      <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_320px]">
-        <Panel eyebrow="AutoEncoder · XAI" title="이상 탐지 결과">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <Panel title="이상 탐지 결과">
           <AnomalyPanel summary={detail.anomalySummary} />
         </Panel>
 
-        <Panel eyebrow={`미확인 ${openAlarms}건`} title="알람" bodyClassName="px-4 py-3">
+        <Panel title="알람">
           <AlarmList alarms={alarms} nowIso={DEMO_NOW_ISO} selectedSiteId={siteId} />
         </Panel>
       </div>
 
       <Panel
-        eyebrow="설비 이상 탐지"
         title="설비 상태"
         action={<span className="text-[12px] text-fg-subtle">상태 나쁜 순</span>}
       >

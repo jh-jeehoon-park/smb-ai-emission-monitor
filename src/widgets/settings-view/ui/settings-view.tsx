@@ -3,7 +3,6 @@
 import { useQueryState } from '@/shared/lib/use-query-state';
 import { Panel } from '@/shared/ui/panel';
 import { SegmentedControl } from '@/shared/ui/segmented-control';
-import { getSite } from '@/entities/site';
 import { useRole } from '@/entities/user';
 import {
   DischargeLimitEditor,
@@ -35,7 +34,6 @@ import {
  */
 export function SettingsView() {
   const { siteId } = useSelectedSiteId();
-  const site = getSite(siteId);
   const { role } = useRole();
   /*
    * 역할이 다루는 탭만 남긴다. **URL 기본값도 그중 첫 탭이어야 한다** — 사업장이 `?tab=`
@@ -48,9 +46,8 @@ export function SettingsView() {
   const process = useProcess();
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-6">
       <Panel
-        eyebrow={site.name}
         title="사업장 설정"
         action={
           <SegmentedControl
@@ -86,7 +83,6 @@ export function SettingsView() {
 
       {tab === 'classification' && (
         <Panel
-          eyebrow="기준표를 고르는 두 축"
           title="사업장 분류"
           action={<span className="text-[12px] text-fg-subtle">허가증에서 확인한 값을 넣는다</span>}
         >
@@ -96,7 +92,6 @@ export function SettingsView() {
 
       {tab === 'limits' && (
         <Panel
-          eyebrow="지역구분 × 규모 × 법정 5항목"
           title="방류 기준치"
           action={<span className="text-[12px] text-fg-subtle">빈 칸은 미설정이며 0이 아니다</span>}
         >
@@ -106,7 +101,6 @@ export function SettingsView() {
 
       {tab === 'process' && (
         <Panel
-          eyebrow="최대 공정에서 고른다"
           title="공정 구성"
           action={
             <span className="text-[12px] text-fg-subtle">

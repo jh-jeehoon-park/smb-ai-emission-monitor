@@ -1,6 +1,7 @@
 'use client';
 
 import { cn } from '@/shared/lib/cn';
+import { BADGE_BASE } from '@/shared/ui/badge';
 import { formatRelative } from '@/shared/lib/format';
 import { RiseItem, StaggerGroup } from '@/shared/ui/motion';
 import {
@@ -15,23 +16,12 @@ import {
  * 우선순위 색은 상태 등급 색과 같은 팔레트를 쓰되, 두 축이 같다고 단정하지 않는다.
  * 등급 4단계와 우선순위 3단계의 대응 관계는 원문에 없다(TBD-21).
  */
-const PRIORITY_STYLE: Record<AlarmPriority, { hex: string; chip: string; glyph: string }> = {
-  urgent: {
-    hex: 'var(--critical-ink)',
-    chip: 'bg-chip-critical text-critical-ink border-critical/45',
-    glyph: '■',
-  },
-  caution: {
-    hex: 'var(--warning-ink)',
-    chip: 'bg-chip-warning text-warning-ink border-warning/35',
-    glyph: '▲',
-  },
-  // 정보 등급에 상태색을 주면 '정상'과 헷갈린다. 중립 잉크로 둔다.
-  info: {
-    hex: 'var(--fg-muted)',
-    chip: 'bg-surface-3 text-fg-muted border-border-strong',
-    glyph: '●',
-  },
+const PRIORITY_STYLE: Record<AlarmPriority, { chip: string }> = {
+  urgent: { chip: 'bg-chip-critical text-critical-ink' },
+  caution: { chip: 'bg-chip-warning text-warning-ink' },
+  /* 원문 팔레트가 파랑을 `정보 활성화`로 정해 두었다. 예전에는 중립 회색이었는데
+     그 이유가 "초록(정상)과 헷갈린다"였고, 파랑은 그 문제가 없다 */
+  info: { chip: 'bg-chip-info text-info-ink' },
 };
 
 export function AlarmList({
@@ -43,6 +33,11 @@ export function AlarmList({
   nowIso: string;
   selectedSiteId: string;
 }) {
+  /* 0건이면 카드 본문이 통째로 비어 무엇이 없는지 알 수 없다(R19) */
+  if (alarms.length === 0) {
+    return <p className="py-6 text-center text-[12px] text-fg-subtle">해당하는 알람이 없습니다.</p>;
+  }
+
   return (
     <StaggerGroup className="divide-y divide-border">
       {alarms.map((alarm, index) => {
@@ -59,29 +54,22 @@ export function AlarmList({
              */}
             <article
               className={cn(
-                'group flex gap-3 pb-2.5 transition-colors duration-200 hover:bg-surface-2/60',
+                'flex gap-3 pb-2.5',
                 index > 0 && 'pt-2.5',
               )}
             >
-              <span
-                aria-hidden
-                className="mt-1 text-[8px] leading-none"
-                style={{ color: style.hex }}
-              >
-                {style.glyph}
-              </span>
-
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-1.5">
                   <span
                     className={cn(
-                      'rounded-[3px] border px-1.5 py-px text-[11px] font-medium',
+                      BADGE_BASE,
+                      'font-medium',
                       style.chip,
                     )}
                   >
                     {ALARM_PRIORITY_LABELS[alarm.priority]}
                   </span>
-                  <span className="rounded-[3px] bg-surface-3 px-1.5 py-px text-[11px] text-fg-muted">
+                  <span className={cn(BADGE_BASE, 'bg-surface-3 text-fg-muted')}>
                     {ALARM_CONDITION_LABELS[alarm.condition]}
                   </span>
                   <span

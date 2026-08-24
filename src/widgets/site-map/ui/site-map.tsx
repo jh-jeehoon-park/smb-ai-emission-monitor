@@ -522,16 +522,7 @@ function SelectedSiteCard({ site }: { site: Site }) {
       <div className="mt-1 flex items-center justify-between gap-2 text-[11px]">
         <span className="truncate text-fg-subtle">{site.address}</span>
         <span className="shrink-0" style={{ color: ink }}>
-          {level ? (
-            <>
-              <span aria-hidden className="mr-1 text-[8px]">
-                {visual?.glyph}
-              </span>
-              {PROVISIONAL_STATUS_LABELS[level]}
-            </>
-          ) : (
-            '통신 두절'
-          )}
+          {level ? PROVISIONAL_STATUS_LABELS[level] : '통신 두절'}
         </span>
       </div>
     </div>

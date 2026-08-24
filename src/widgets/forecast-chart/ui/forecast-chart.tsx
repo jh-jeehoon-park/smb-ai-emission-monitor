@@ -138,6 +138,8 @@ export function ForecastChart({
          */}
         <Line
           type="monotone"
+          strokeLinecap="round"
+          strokeLinejoin="round"
           dataKey="value"
           stroke={stroke}
           strokeWidth={2}
