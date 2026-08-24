@@ -28,39 +28,48 @@ export function AnomalyPanel({ summary }: { summary: AnomalySummary }) {
   const level = summary.level;
   const score = summary.score;
 
+  /*
+   * 셋을 **가로로 나눈다** `[사용자 지시 2026-08-24]` — 점수·근거·기여 변수.
+   * 세로로 쌓으면 카드가 길어져 그 아래 전폭 타임라인이 화면 밖으로 밀린다.
+   * 좁아지면(컨테이너 512px 미만) 다시 쌓는다 — 카드 본문이 1280px에서 376px이라
+   * 세 칸을 나누면 110px씩이 되어 XAI 막대의 라벨과 퍼센트가 한 줄에 들어가지 않는다.
+   */
   return (
-    <div className="flex h-full flex-col gap-4">
-      <div className="flex items-end gap-3">
-        <p
-          className="num text-[46px] font-semibold leading-none tracking-tight"
-          style={{ color: statusInk(visual) }}
-        >
-          <CountUp value={score} />
-        </p>
-        <div className="pb-1">
-          <p className="text-[13px] font-medium" style={{ color: statusInk(visual) }}>
-            {PROVISIONAL_STATUS_LABELS[level]}
-          </p>
-          <p className="text-[11px] text-fg-subtle">이상 점수 / 100</p>
+    <div className="@container">
+      <div className="grid gap-5 @[32rem]:grid-cols-[auto_minmax(0,1fr)_minmax(0,1.2fr)] @[32rem]:items-start">
+        {/* 점수 — 폭을 내용에 맞춘다. 게이지가 아래 붙어 한 덩어리로 읽힌다 */}
+        <div className="min-w-0 @[32rem]:w-[150px]">
+          <div className="flex items-end gap-3">
+            <p
+              className="num text-[46px] font-semibold leading-none tracking-tight"
+              style={{ color: statusInk(visual) }}
+            >
+              <CountUp value={score} />
+            </p>
+            <div className="pb-1">
+              <p className="text-[13px] font-medium" style={{ color: statusInk(visual) }}>
+                {PROVISIONAL_STATUS_LABELS[level]}
+              </p>
+              <p className="text-[11px] text-fg-subtle">이상 점수 / 100</p>
+            </div>
+          </div>
+          <AnomalyGauge score={score} className="mt-3" />
         </div>
-      </div>
 
-      <AnomalyGauge score={score} />
+        {/* AI 산출값은 언제·무엇을 근거로 나왔는지 함께 보여야 한다(E3) */}
+        <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px]">
+          <dt className="text-fg-subtle">산출 모델</dt>
+          <dd className="text-right text-fg-muted">{summary.modelLabel}</dd>
+          <dt className="text-fg-subtle">대상 기간</dt>
+          <dd className="text-right text-fg-muted">{summary.windowLabel}</dd>
+          <dt className="text-fg-subtle">산출 시각</dt>
+          <dd className="num text-right text-fg-muted">
+            {formatDateTime(summary.computedAtIso)} KST
+          </dd>
+        </dl>
 
-      {/* AI 산출값은 언제·무엇을 근거로 나왔는지 함께 보여야 한다(E3) */}
-      <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5 border-y border-border py-2.5 text-[11px]">
-        <dt className="text-fg-subtle">산출 모델</dt>
-        <dd className="text-right text-fg-muted">{summary.modelLabel}</dd>
-        <dt className="text-fg-subtle">대상 기간</dt>
-        <dd className="text-right text-fg-muted">{summary.windowLabel}</dd>
-        <dt className="text-fg-subtle">산출 시각</dt>
-        <dd className="num text-right text-fg-muted">
-          {formatDateTime(summary.computedAtIso)} KST
-        </dd>
-      </dl>
-
-      <div className="flex-1">
-        <Eyebrow className="mb-2">주요 기여 변수 · XAI</Eyebrow>
+        <div className="min-w-0">
+          <Eyebrow className="mb-2">주요 기여 변수 · XAI</Eyebrow>
         <ul className="space-y-2">
           {summary.contributions.map((c, i) => (
             <li key={c.label}>
@@ -91,6 +100,7 @@ export function AnomalyPanel({ summary }: { summary: AnomalySummary }) {
             </li>
           ))}
         </ul>
+        </div>
       </div>
     </div>
   );

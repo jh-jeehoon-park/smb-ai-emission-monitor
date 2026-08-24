@@ -9,6 +9,8 @@ import { formatDateTime } from '@/shared/lib/format';
 import { getOutageWindow } from '@/shared/lib/timeline';
 import { AnomalyBandLegend } from '@/shared/ui/anomaly-band-legend';
 import { Modal } from '@/shared/ui/modal';
+import Link from 'next/link';
+import { ChevronRight } from 'lucide-react';
 import { Panel } from '@/shared/ui/panel';
 import { CountUp, RiseItem, StaggerGroup } from '@/shared/ui/motion';
 import { cn } from '@/shared/lib/cn';
@@ -36,7 +38,7 @@ import {
 } from '@/entities/prediction';
 import { SITES, getSite } from '@/entities/site';
 import { ALL_ALARMS, allAlarmsForSite, useAlarmStates } from '@/features/alarm-ack';
-import { SiteTabs, useSelectedSiteId } from '@/features/site-selection';
+import { SiteTabs, useSelectedSiteId, useSiteHref } from '@/features/site-selection';
 import { AlarmList } from '@/widgets/alarm-list';
 import { AnomalyPanel } from '@/widgets/anomaly-panel';
 import { AnomalyTimeline } from '@/widgets/anomaly-timeline';
@@ -49,6 +51,7 @@ import { WaterQualityGrid } from '@/widgets/water-quality-grid';
 
 export function DashboardView() {
   const { siteId: selectedSiteId, setSiteId: setSelectedSiteId } = useSelectedSiteId();
+  const withSite = useSiteHref();
   /* 월보드 카드를 누른 사업장. 선택(상세 대상)과 **다른 축이다** — 알람만 열고 닫는다 */
   const [alarmSiteId, setAlarmSiteId] = useState<string | null>(null);
 
@@ -126,26 +129,39 @@ export function DashboardView() {
        * 지도 머리에 두었을 때는 폭이 460px뿐이라 탭이 세 줄로 접혔다 — 여기서는 본문 전폭을
        * 써서 10개가 한 줄에 들어간다. 아래 격자 전체가 이 탭의 결과라는 것도 위치로 드러난다.
        */}
-      <div className="space-y-3">
+      {/*
+       * 제목 · 탭 · 상세 격자를 **한 구역으로 묶는다** `[사용자 지시 2026-08-24]`.
+       *
+       * 테두리로 테를 두르고 여백을 준다. **면은 깔지 않는다** — 안이 전부 흰 카드라
+       * 면까지 깔면 카드를 담은 카드가 되고, 본문 배경(`#f3f4f5`)과 `--surface-2`(#f0f3f6)는
+       * 차이가 1.01:1이라 깔아도 보이지 않는다. 테 안쪽은 본문 배경이 그대로 비치므로
+       * 카드와 이질감이 생기지 않는다.
+       *
+       * 간격도 함께 쓴다 — 안쪽 12px, 바깥 24px. 탭이 무엇을 바꾸는지를 거리로도 말한다.
+       */}
+      <section className="space-y-3 rounded-panel border border-card-border p-4 lg:p-5">
         {/*
          * 구역 제목. 화면명(h1) 아래 두 번째 단이라 그보다 작고, 카드 제목(15px)보다는 커야
-         * 카드가 이 구역에 속한 것으로 읽힌다 `[사용자 지시 2026-08-24]`.
+         * 카드가 이 구역에 속한 것으로 읽힌다.
          */}
-        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+        <div className="flex items-center gap-1.5">
           <h2 className="text-[16px] font-bold leading-tight tracking-tight text-fg">
             사업장 상세
           </h2>
-          <p className="text-[12px] text-fg-subtle">탭으로 고른 한 개소를 아래에서 자세히 본다</p>
+          <InfoTip
+            label="이 구역의 범위"
+            content="탭으로 고른 한 개소를 아래에서 자세히 봅니다. 위 요약은 전 사업장 기준입니다."
+          />
         </div>
         <SiteTabs sites={SITES} selectedId={selectedSiteId} onSelect={setSelectedSiteId} />
-      </div>
 
-      {/* 지도는 스크롤해도 남는 좌측 레일에 둔다. 상세를 보는 동안에도 전체 위치가 보여야 한다.
-          500 = 지도 영역 + 패널 좌우 패딩 20×2. 지도는 `w-full max-w-[510px]`로 유동이라
-          이 폭에서 460px로 그려진다.
-          1280 미만에서는 레일을 만들지 않는다 — 1024에서 나누면 오른쪽에 210px밖에 남지 않아
-          KPI 타일이 44px로 뭉개진다. 대신 지도가 본문 위에 전폭으로 놓인다. */}
-      <div className="grid gap-6 xl:grid-cols-[500px_minmax(0,1fr)]">
+        {/* 지도는 스크롤해도 남는 좌측 레일에 둔다. 상세를 보는 동안에도 전체 위치가 보여야 한다.
+            440 = 지도 영역 + 패널 좌우 패딩 20×2. 지도는 `w-full max-w-[510px]`로 유동이라
+            이 폭에서 400px로 그려진다 — 구역 테가 좌우 20px씩을 먹어 1280px에서 타일 격자
+            컨테이너가 2열 하한(384px) 밑으로 떨어졌다. 지도를 40px 더 내주고 되돌린다.
+            1280 미만에서는 레일을 만들지 않는다 — 1024에서 나누면 오른쪽에 210px밖에 남지 않아
+            KPI 타일이 44px로 뭉개진다. 대신 지도가 본문 위에 전폭으로 놓인다. */}
+        <div className="grid gap-6 xl:grid-cols-[440px_minmax(0,1fr)]">
         <Panel
           title="사업장 위치"
           action={<SiteMapLegend />}
@@ -155,6 +171,39 @@ export function DashboardView() {
         </Panel>
 
         <div className="@container min-w-0 space-y-6">
+        {/*
+         * **이상 탐지 결과가 상세의 첫 카드다** `[사용자 지시 2026-08-24]`.
+         *
+         * 올리면서 **이상 점수 타임라인을 같은 카드에 녹였다.** 예전에는 타임라인이 왼쪽 열,
+         * 판정이 오른쪽 1/3 칸에 흩어져 있었다 — 점수의 시간 흐름과 그 점수를 만든 기여
+         * 변수는 한 판정의 두 면이라, 카드를 나누면 같은 산출을 두 번 설명하게 된다.
+         */}
+        <Panel
+          title="이상 탐지 결과"
+          action={
+            <span className="flex items-center gap-3">
+              <AnomalyBandLegend />
+              {/* 이 카드가 요약이라는 것과 어디서 더 볼 수 있는지를 한 자리에서 말한다 */}
+              <Link
+                href={withSite('/anomaly')}
+                aria-label="이상 탐지 상세 화면으로 이동"
+                className="shrink-0 cursor-pointer rounded-chip p-0.5 text-fg-subtle transition-colors duration-200 hover:bg-surface-2 hover:text-fg"
+              >
+                <ChevronRight aria-hidden size={18} strokeWidth={2} />
+              </Link>
+            </span>
+          }
+        >
+          {/*
+           * 판정(점수·근거·기여 변수)을 가로 한 줄로 두고 **타임라인을 그 아래 전폭**에 둔다
+           * `[사용자 지시 2026-08-24]`. 시간축은 넓을수록 읽히므로 카드 폭을 다 준다.
+           */}
+          <div className="space-y-5">
+            <AnomalyPanel summary={detail.anomalySummary} />
+            <AnomalyTimeline data={detail.anomalySeries} outage={detail.outage} />
+          </div>
+        </Panel>
+
         {/* 타일 3장. 2열에서 셋째가 혼자 반 칸을 차지하지 않도록 그 칸만 넓힌다 */}
         <StaggerGroup className="grid grid-cols-1 gap-6 @sm:grid-cols-2 @2xl:grid-cols-3 [&>*:nth-child(3)]:@sm:col-span-2 [&>*:nth-child(3)]:@2xl:col-span-1">
           <RiseItem>
@@ -203,10 +252,6 @@ export function DashboardView() {
                 codes={WATER_SERIES_CODES}
                 limits={limits.table}
               />
-            </Panel>
-
-            <Panel title="이상 점수 타임라인" action={<AnomalyBandLegend />}>
-              <AnomalyTimeline data={detail.anomalySeries} outage={detail.outage} />
             </Panel>
 
             <Panel
@@ -262,10 +307,6 @@ export function DashboardView() {
           </div>
 
           <div className="space-y-6">
-            <Panel title="이상 탐지 결과">
-              <AnomalyPanel summary={detail.anomalySummary} />
-            </Panel>
-
             <Panel title="알람">
               <AlarmList
                 alarms={allAlarms.filter((a) => detail.alarmIds.has(a.id))}
@@ -283,8 +324,9 @@ export function DashboardView() {
         >
           <EquipmentPanel items={detail.equipment} online={site.online} />
         </Panel>
+          </div>
         </div>
-      </div>
+      </section>
 
       <SiteAlarmsModal
         siteId={alarmSiteId}

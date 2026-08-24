@@ -43,7 +43,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         본문으로 건너뛰기
       </a>
 
-      <aside className="sticky top-0 hidden h-screen w-[296px] shrink-0 flex-col border-r border-border bg-surface lg:flex">
+      <aside className="sticky top-0 hidden h-screen w-[312px] shrink-0 flex-col border-r border-border bg-surface lg:flex">
         <BrandHome />
         <SiteNav pathname={pathname} />
       </aside>
@@ -228,14 +228,17 @@ function BrandHome() {
               .join(' '),
           )}
         >
-          <BrandMark size={24} />
+          <BrandMark size={28} />
           {/*
            * 사업계획서 p.37·p.118의 국문 정식명. 폭이 좁아 줄여 쓰고 싶어지지만 줄이지 않는다(A2).
-           * `whitespace-nowrap`이 두 줄을 막고, 13px `font-bold`에서 텍스트 폭이 약 202px이라
-           * 마크·간격·여백을 뺀 216px에 14px 여유를 두고 들어간다 — 잘리지 않는다.
-           * **더 키우려면 사이드바를 더 늘려야 한다** — 14px은 218px이 필요해 296px로는 넘친다.
+           * `whitespace-nowrap`이 두 줄을 막고, 14px `font-bold`에서 텍스트 폭이 약 218px이라
+           * 마크·간격·여백을 뺀 232px에 14px 여유를 두고 들어간다 — 잘리지 않는다.
+           *
+           * **크기와 폭은 함께 움직인다.** 1px 키울 때마다 약 16px이 더 필요하고, 그만큼
+           * 본문이 줄어든다 — 지금은 1280px에서 상세 오른쪽 열이 416px로 타일 2열 하한(384px)
+           * 위에 있다. 더 키우려면 지도 레일(480px)을 함께 줄여야 한다.
            */}
-          <p className="whitespace-nowrap text-[13px] font-bold leading-tight tracking-tight text-fg">
+          <p className="whitespace-nowrap text-[14px] font-bold leading-tight tracking-tight text-fg">
             {BRAND_NAME}
           </p>
         </Link>

@@ -3,7 +3,6 @@
 import { STATUS_VISUAL, statusInk } from '@/shared/config/status-visual';
 import { cn } from '@/shared/lib/cn';
 import { BADGE_BASE } from '@/shared/ui/badge';
-import { Sparkline } from '@/shared/ui/sparkline';
 import { StatusBadge } from '@/shared/ui/status-badge';
 import { VALUE_LG } from '@/shared/ui/type-scale';
 import { RiseItem, StaggerGroup } from '@/shared/ui/motion';
@@ -33,7 +32,6 @@ export function SiteWallboard({ sites, alarmCounts, onOpenAlarms }: SiteWallboar
       <StaggerGroup className="grid grid-cols-2 gap-3 @[520px]:grid-cols-3 @[860px]:grid-cols-5">
         {sites.map((site) => {
           const visual = site.status ? STATUS_VISUAL[site.status] : null;
-          const accent = visual ? visual.hex : 'var(--missing)';
           const open = alarmCounts[site.id] ?? 0;
 
           return (
@@ -44,24 +42,20 @@ export function SiteWallboard({ sites, alarmCounts, onOpenAlarms }: SiteWallboar
                 aria-haspopup="dialog"
                 aria-label={`${site.name} 미확인 알람 ${open}건 보기`}
                 className={cn(
-                  'flex h-full w-full cursor-pointer flex-col gap-4 rounded-nested border bg-surface p-4 text-left',
+                  'flex h-full w-full cursor-pointer flex-col gap-3 rounded-nested border bg-surface p-4 text-left',
                   'transition-colors duration-200',
                   'border-border hover:border-border-strong hover:bg-surface-2',
                 )}
               >
                 {/*
-                 * 제목은 왼쪽, 점수는 오른쪽 `[사용자 지시 2026-08-24]`.
-                 * 점수에 라벨을 달지 않는다 — 카드가 이상 점수 월보드라 무엇인지는 패널 제목이 말한다.
+                 * 두 줄로 줄인다 `[사용자 지시 2026-08-24]`. 업종·지역은 지웠다 — 카드를
+                 * 훑는 목적은 **어디가 위험한가**이고 그 답은 점수·등급·알람이다.
+                 * 업종·지역은 지도 핀 툴팁과 알람 모달이 갖고 있다.
                  */}
                 <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="truncate text-[14px] font-bold leading-tight text-fg">
-                      {site.name}
-                    </p>
-                    <p className="mt-1 truncate text-[12px] text-fg-subtle">
-                      {site.industry} · {site.region}
-                    </p>
-                  </div>
+                  <p className="min-w-0 truncate text-[14px] font-bold leading-tight text-fg">
+                    {site.name}
+                  </p>
                   <p
                     className={`num shrink-0 ${VALUE_LG}`}
                     style={{ color: visual ? statusInk(visual) : 'var(--fg-subtle)' }}
@@ -70,21 +64,14 @@ export function SiteWallboard({ sites, alarmCounts, onOpenAlarms }: SiteWallboar
                   </p>
                 </div>
 
-                {/* 추세는 카드 폭을 다 쓴다 — 72px 안에서는 24시간의 모양이 뭉개졌다 */}
-                <Sparkline
-                  values={site.spark}
-                  color={accent}
-                  width={160}
-                  height={26}
-                  strokeWidth={2}
-                  fluid
-                />
-
                 {/*
-                 * 아래 줄은 **줄바꿈을 허용한다** — 5열에서는 뱃지와 알람 문구가 한 줄에
-                 * 들어가지만 2열로 줄면 카드가 좁아진다. `flex-wrap`이 없으면 문구가 밀려 잘린다.
+                 * 알람은 왼쪽, 등급은 오른쪽 — 위 줄의 이름·점수와 같은 축이라 두 줄이
+                 * 한 표처럼 읽힌다. 좁아지면 등급이 아래로 내려간다(`flex-wrap`).
                  */}
                 <div className="mt-auto flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+                  <p className="text-[12px] text-fg-subtle">
+                    미확인 알람 <span className="num font-bold text-fg">{open}</span>건
+                  </p>
                   {/*
                    * 통신 두절은 등급이 아니라 **수신 상태**라 등급색을 쓰지 않고 중립면에 둔다 —
                    * 회색 뱃지를 등급 팔레트에 넣으면 `정상`과 같은 축으로 읽힌다.
@@ -94,10 +81,6 @@ export function SiteWallboard({ sites, alarmCounts, onOpenAlarms }: SiteWallboar
                   ) : (
                     <span className={`${BADGE_BASE} bg-surface-3 text-fg-muted`}>통신 두절</span>
                   )}
-
-                  <p className="text-[12px] text-fg-subtle">
-                    미확인 알람 <span className="num font-bold text-fg">{open}</span>건
-                  </p>
                 </div>
               </button>
             </RiseItem>
