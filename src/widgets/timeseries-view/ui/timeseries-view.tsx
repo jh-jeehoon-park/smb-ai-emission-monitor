@@ -36,6 +36,8 @@ import { WaterQualityGrid } from '@/widgets/water-quality-grid';
 import { BucketReportPanel } from '@/widgets/bucket-report';
 import { BUCKET_QUERY_KEY, STAT_QUERY_KEY } from '../config/constants';
 import { statsToCsv } from '../lib/stats-csv';
+import { TABLE_HEAD_ROW } from '@/shared/ui/table';
+import { ACTION_BUTTON_QUIET } from '@/shared/ui/action-button';
 
 export function TimeseriesView() {
   const { siteId } = useSelectedSiteId();
@@ -80,7 +82,12 @@ export function TimeseriesView() {
           </span>
         }
       >
-        <WaterQualityGrid data={view.points} codes={filter.codes} limits={limits.table} />
+        <WaterQualityGrid
+          data={view.points}
+          codes={filter.codes}
+          limits={limits.table}
+          windowHours={filter.hours}
+        />
       </Panel>
 
       {/*
@@ -106,9 +113,6 @@ export function TimeseriesView() {
         title="항목별 요약"
         action={
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[12px] text-fg-subtle">
-              결측은 평균에서 제외하고 건수로 센다
-            </span>
             {/*
               * **리포트 형식으로도 볼 수 있어야 한다** `[회의 2026-08-20]`. 리포트 화면과
               * 같은 CSV 유틸을 쓴다(`shared/lib/csv`) — 화면마다 따로 만들면 한쪽이 BOM을
@@ -117,7 +121,7 @@ export function TimeseriesView() {
             <button
               type="button"
               onClick={download}
-              className="flex cursor-pointer items-center gap-1.5 rounded-[4px] border border-border bg-surface px-2.5 py-1.5 text-[11px] text-fg-muted transition-colors duration-200 hover:border-border-strong hover:bg-surface-2 hover:text-fg"
+              className={ACTION_BUTTON_QUIET}
             >
               <Download size={12} strokeWidth={2} />
               CSV 내보내기
@@ -189,17 +193,17 @@ function StatsTable({
 }) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[560px] border-separate border-spacing-0 text-[12px]">
+      <table className="w-full min-w-[560px] border-separate border-spacing-0 text-[12px] text-center">
         <thead>
-          <tr className="text-[12px] font-semibold text-fg-muted [&>th]:bg-surface-2 [&>th:first-child]:rounded-l-nested [&>th:last-child]:rounded-r-nested">
-            <th className="px-3 py-3 text-left">항목</th>
-            <th className="px-3 py-3 text-left">단위</th>
-            <th className="px-3 py-3 text-left">배출허용기준</th>
-            <th className="px-3 py-3 text-right">최소</th>
-            <th className="px-3 py-3 text-right">평균</th>
-            <th className="px-3 py-3 text-right">최대</th>
-            <th className="px-3 py-3 text-right">최신</th>
-            <th className="px-3 py-3 text-right">결측</th>
+          <tr className={TABLE_HEAD_ROW}>
+            <th className="px-3 py-3 text-center">항목</th>
+            <th className="px-3 py-3 text-center">단위</th>
+            <th className="px-3 py-3 text-center">배출허용기준</th>
+            <th className="px-3 py-3 text-center">최소</th>
+            <th className="px-3 py-3 text-center">평균</th>
+            <th className="px-3 py-3 text-center">최대</th>
+            <th className="px-3 py-3 text-center">최신</th>
+            <th className="px-3 py-3 text-center">결측</th>
           </tr>
         </thead>
         <tbody>
@@ -209,21 +213,21 @@ function StatsTable({
               <tr key={code} className="[&>*]:border-b [&>*]:border-border">
                 <td className="px-3 py-3.5">
                   <span className="font-semibold text-fg">{item.symbol}</span>
-                  <span className="ml-1.5 text-[11px] text-fg-subtle">{item.label}</span>
+                  <span className="ml-1.5 text-[12px] text-fg-subtle">{item.label}</span>
                 </td>
                 <td className="px-3 py-3.5 text-fg-subtle">{item.unit || '—'}</td>
                 <td className="num px-3 py-3.5 text-fg-subtle">{limitText(code, item.decimals, limits)}</td>
-                <td className="num px-3 py-3.5 text-right text-fg-muted">
+                <td className="num px-3 py-3.5 text-center text-fg-muted">
                   {formatValue(code, stats.min)}
                 </td>
-                <td className="num px-3 py-3.5 text-right text-fg">{formatValue(code, stats.avg)}</td>
-                <td className="num px-3 py-3.5 text-right text-fg-muted">
+                <td className="num px-3 py-3.5 text-center text-fg">{formatValue(code, stats.avg)}</td>
+                <td className="num px-3 py-3.5 text-center text-fg-muted">
                   {formatValue(code, stats.max)}
                 </td>
-                <td className="num px-3 py-3.5 text-right text-fg">
+                <td className="num px-3 py-3.5 text-center text-fg">
                   {formatValue(code, stats.latest)}
                 </td>
-                <td className="num px-3 py-3.5 text-right text-fg-subtle">
+                <td className="num px-3 py-3.5 text-center text-fg-subtle">
                   {stats.missingCount > 0 ? `${stats.missingCount}/${stats.totalCount}` : '없음'}
                 </td>
               </tr>

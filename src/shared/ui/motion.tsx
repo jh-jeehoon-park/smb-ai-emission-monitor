@@ -77,7 +77,7 @@ interface CountUpProps {
  * 계측값이 자리에 '앉는' 느낌을 준다. 자릿수는 CSS의 tabular-nums가 고정하므로
  * 숫자가 올라가는 동안에도 폭이 흔들리지 않는다.
  */
-export function CountUp({ value, decimals = 0, className, durationMs = 700 }: CountUpProps) {
+export function CountUp({ value, decimals = 0, className, durationMs = 1200 }: CountUpProps) {
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {

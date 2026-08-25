@@ -5,6 +5,8 @@ import { Panel } from '@/shared/ui/panel';
 import { SegmentedControl } from '@/shared/ui/segmented-control';
 import { useRole } from '@/entities/user';
 import {
+  DISCHARGE_LIMIT_NOTE,
+  SITE_CLASSIFICATION_NOTE,
   DischargeLimitEditor,
   SiteClassificationForm,
   useDischargeLimits,
@@ -17,6 +19,7 @@ import {
   SETTINGS_TAB_OPTIONS,
   SETTINGS_TAB_ROLES,
 } from '../config/constants';
+import { InfoTip } from '@/shared/ui/tooltip';
 
 /**
  * 사업장 설정 (SCR-OP-010).
@@ -49,6 +52,12 @@ export function SettingsView() {
     <div className="space-y-6">
       <Panel
         title="사업장 설정"
+        titleAside={
+          <InfoTip
+            label="지금 판정 상태"
+            content={unresolvedReason ?? '네 항목의 기준치가 모두 설정되어 초과를 판정합니다.'}
+          />
+        }
         action={
           <SegmentedControl
             ariaLabel="설정 항목"
@@ -76,15 +85,12 @@ export function SettingsView() {
           />
         </dl>
 
-        <p className="mt-3 max-w-[76ch] border-t border-border pt-2.5 text-[11px] leading-relaxed text-fg-subtle">
-          {unresolvedReason ?? '네 항목의 기준치가 모두 설정되어 초과를 판정합니다.'}
-        </p>
       </Panel>
 
       {tab === 'classification' && (
         <Panel
           title="사업장 분류"
-          action={<span className="text-[12px] text-fg-subtle">허가증에서 확인한 값을 넣는다</span>}
+          titleAside={<InfoTip label="입력 안내" content={SITE_CLASSIFICATION_NOTE} />}
         >
           <SiteClassificationForm siteId={siteId} />
         </Panel>
@@ -93,7 +99,7 @@ export function SettingsView() {
       {tab === 'limits' && (
         <Panel
           title="방류 기준치"
-          action={<span className="text-[12px] text-fg-subtle">빈 칸은 미설정이며 0이 아니다</span>}
+          titleAside={<InfoTip label="빈 칸의 뜻" content={DISCHARGE_LIMIT_NOTE} />}
         >
           <DischargeLimitEditor siteId={siteId} />
         </Panel>
@@ -118,7 +124,7 @@ export function SettingsView() {
 function Fact({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="text-[11px] text-fg-subtle">{label}</dt>
+      <dt className="text-[12px] text-fg-subtle">{label}</dt>
       <dd className="mt-0.5 text-fg">{value}</dd>
     </div>
   );

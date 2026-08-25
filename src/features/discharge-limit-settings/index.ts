@@ -3,6 +3,6 @@ export { LimitSettingsProvider, useLimitSettingsStore } from './model/limit-sett
 export { useDischargeLimits, type DischargeLimitsView } from './model/use-discharge-limits';
 export { UNRESOLVED_REASONS } from './config/constants';
 export { validEntry } from './lib/storage';
-export { DischargeLimitEditor } from './ui/discharge-limit-editor';
-export { SiteClassificationForm } from './ui/site-classification-form';
+export { DischargeLimitEditor, DISCHARGE_LIMIT_NOTE } from './ui/discharge-limit-editor';
+export { SiteClassificationForm, SITE_CLASSIFICATION_NOTE } from './ui/site-classification-form';
 export type { LimitEntry, LimitSheets, SiteClassification } from './lib/storage';

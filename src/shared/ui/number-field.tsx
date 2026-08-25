@@ -51,7 +51,7 @@ export function NumberField({
 
   return (
     <div className={cn('min-w-0', className)}>
-      <label htmlFor={id} className="block text-[11px] text-fg-subtle">
+      <label htmlFor={id} className="block text-[12px] text-fg-subtle">
         {label}
         {unit ? <span className="ml-1 text-fg-subtle">({unit})</span> : null}
       </label>
@@ -91,7 +91,7 @@ export function NumberField({
       {note ? (
         <p
           id={noteId}
-          className={cn('mt-1 text-[11px] leading-snug', error ? 'text-critical-ink' : 'text-fg-subtle')}
+          className={cn('mt-1 text-[12px] leading-snug', error ? 'text-critical-ink' : 'text-fg-subtle')}
         >
           {note}
         </p>

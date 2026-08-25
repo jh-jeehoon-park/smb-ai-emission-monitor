@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { ROLES, canRoleSee } from '@/entities/user';
-import { NAV_ITEMS, homeHrefFor } from './config/navigation';
+import {
+  NAV_GROUPS,
+  NAV_ITEMS,
+  groupMenuRoles,
+  homeHrefFor,
+  menuRolesOf,
+} from './config/navigation';
 
 /**
  * 로고 클릭과 역할 전환이 **같은 목적지**를 써야 한다. 정의가 갈리면 같은 앱이 '메인'을
@@ -65,5 +71,36 @@ describe('수분석 검증 — 화면을 제거했다', () => {
   it('메뉴에도 권한 매트릭스에도 없다', () => {
     expect(NAV_ITEMS.some((nav) => nav.screenId === 'SCR-OP-009')).toBe(false);
     for (const role of ROLES) expect(canRoleSee('SCR-OP-009', role)).toBe(false);
+  });
+});
+
+/**
+ * 사이드바를 **주제로 묶었다** `[사용자 지시 2026-08-25]`. 깊이를 만든 것이 아니라
+ * 머리글만 얹었으므로 두 가지가 깨지기 쉽다 — 편 순서(첫 화면이 여기서 나온다)와
+ * 빈 이름표(그 역할에서 항목이 전부 숨은 묶음).
+ */
+describe('사이드바 묶음', () => {
+  it('묶음을 펴면 항목 전부이고 중복이 없다', () => {
+    const flat = NAV_GROUPS.flatMap((group) => group.items);
+    expect(flat).toEqual(NAV_ITEMS);
+    expect(new Set(NAV_ITEMS.map((item) => item.href)).size).toBe(NAV_ITEMS.length);
+  });
+
+  /** 머리글만 남으면 누를 것이 없는 이름표가 된다 */
+  it('보이는 묶음에는 그 역할에 보이는 항목이 하나 이상 있다', () => {
+    for (const group of NAV_GROUPS) {
+      for (const role of groupMenuRoles(group)) {
+        const shown = group.items.filter((item) => menuRolesOf(item).includes(role));
+        expect(shown.length, `${role}: ${group.label} 묶음이 비었다`).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  /** 수처리 공정은 사업장만, 사업장 설정은 관리자·사업장 — 지자체에게는 남는 것이 없다 */
+  it('지자체에게는 관리 묶음이 통째로 감춰진다', () => {
+    const manage = NAV_GROUPS.find((group) => group.label === '관리');
+    expect(manage).toBeDefined();
+    expect(groupMenuRoles(manage!)).not.toContain('gov');
+    expect(groupMenuRoles(manage!)).toContain('system');
   });
 });

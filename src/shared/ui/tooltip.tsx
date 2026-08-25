@@ -63,7 +63,7 @@ export function InfoTip({
       <button
         type="button"
         aria-label={label}
-        className="shrink-0 cursor-help text-fg-subtle transition-colors duration-200 hover:text-fg-muted"
+        className="shrink-0 cursor-help text-fg-subtle transition-colors duration-200 hover:text-accent"
       >
         <Info aria-hidden size={16} strokeWidth={1.9} />
       </button>

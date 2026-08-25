@@ -15,6 +15,7 @@ import { NumberField } from '@/shared/ui/number-field';
 import { SegmentedControl } from '@/shared/ui/segmented-control';
 import { classificationOf, useLimitSettingsStore } from '../model/limit-settings-context';
 import { validEntry, type LimitEntry, type LimitSheets } from '../lib/storage';
+import { TABLE_HEAD_ROW } from '@/shared/ui/table';
 
 const EMPTY: LimitEntry = { min: null, max: null };
 
@@ -28,6 +29,16 @@ const EMPTY: LimitEntry = { min: null, max: null };
  * 법정 점검 5항목과 갈린다. `SS`는 `code: null`이라 입력할 수 없다: 우리 계측에도 AI 추정에도
  * 없어서(`[공정자료 p.5·19]`) 기준을 넣어도 비교할 값이 없다.
  */
+/** 이 편집기를 담는 패널의 제목 옆 툴팁에 쓴다 — 값과 같은 파일에 있어야 함께 고쳐진다 */
+export const DISCHARGE_LIMIT_NOTE = (
+  <>
+    <strong className="text-fg">빈 칸은 미설정이며 0이 아닙니다.</strong> 지우면 그 항목은 초과를
+    판정하지 않고 화면에 `{UNRESOLVED_LIMIT_TEXT}`로 남습니다. 값의 옳고 그름은 검사하지 않습니다 —
+    <strong className="text-fg"> 법령이 원천</strong>이며 우리는 범위가 뒤집혔는지와 센서 측정 범위
+    안인지만 봅니다.
+  </>
+);
+
 export function DischargeLimitEditor({ siteId }: { siteId: string }) {
   const store = useLimitSettingsStore();
   const own = classificationOf(store, siteId);
@@ -62,23 +73,23 @@ export function DischargeLimitEditor({ siteId }: { siteId: string }) {
           options={DISCHARGE_SCALES.map((option) => ({ value: option, label: option }))}
         />
         {own.dischargeScale === scale && own.regionGrade ? (
-          <span className="text-[11px] text-fg-subtle">
+          <span className="text-[12px] text-fg-subtle">
             이 사업장에 적용되는 시트 · {own.regionGrade}
           </span>
         ) : null}
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[720px] border-separate border-spacing-0 text-[12px]">
+        <table className="w-full min-w-[720px] border-separate border-spacing-0 text-[12px] text-center">
           <caption className="sr-only">
             지역구분별 방류 기준치. 행은 지역구분, 열은 법정 점검 항목이다. 값을 지우면 미설정으로
             돌아간다.
           </caption>
           <thead>
-            <tr className="text-[12px] font-semibold text-fg-muted [&>th]:bg-surface-2 [&>th:first-child]:rounded-l-nested [&>th:last-child]:rounded-r-nested">
-              <th className="px-3 py-3 text-left">지역구분</th>
+            <tr className={TABLE_HEAD_ROW}>
+              <th className="px-3 py-3 text-center">지역구분</th>
               {LEGAL_CHECK_ITEMS.map((item) => (
-                <th key={item.label} className="px-3 py-3 text-left">
+                <th key={item.label} className="px-3 py-3 text-center">
                   {item.label}
                 </th>
               ))}
@@ -89,11 +100,11 @@ export function DischargeLimitEditor({ siteId }: { siteId: string }) {
               <tr key={region} className="[&>*]:border-b [&>*]:border-border">
                 <th
                   scope="row"
-                  className="whitespace-nowrap px-3 py-3.5 text-left font-normal text-fg"
+                  className="whitespace-nowrap px-3 py-3.5 text-center font-normal text-fg"
                 >
                   {region}
                   {own.regionGrade === region ? (
-                    <span className="ml-1.5 text-[11px] text-fg-subtle">우리 사업장</span>
+                    <span className="ml-1.5 text-[12px] text-fg-subtle">우리 사업장</span>
                   ) : null}
                 </th>
                 {LEGAL_CHECK_ITEMS.map((item) => (
@@ -111,13 +122,6 @@ export function DischargeLimitEditor({ siteId }: { siteId: string }) {
           </tbody>
         </table>
       </div>
-
-      <p className="max-w-[76ch] border-t border-border pt-2.5 text-[11px] leading-relaxed text-fg-subtle">
-        <strong className="text-fg-muted">빈 칸은 미설정이며 0이 아닙니다.</strong> 지우면 그
-        항목은 초과를 판정하지 않고 화면에 `{UNRESOLVED_LIMIT_TEXT}`로 남습니다. 값의 옳고 그름은
-        검사하지 않습니다 — <strong className="text-fg-muted">법령이 원천</strong>이며 우리는
-        범위가 뒤집혔는지와 센서 측정 범위 안인지만 봅니다.
-      </p>
     </div>
   );
 }
@@ -138,7 +142,7 @@ function ItemCell({
 }) {
   /* SS는 계측·추정 대상이 아니라 기준을 넣어도 비교할 값이 없다 */
   if (!code) {
-    return <p className="pt-1 text-[11px] leading-snug text-fg-subtle">계측 없음</p>;
+    return <p className="pt-1 text-[12px] leading-snug text-fg-subtle">계측 없음</p>;
   }
 
   const item = MEASUREMENT_ITEMS[code];

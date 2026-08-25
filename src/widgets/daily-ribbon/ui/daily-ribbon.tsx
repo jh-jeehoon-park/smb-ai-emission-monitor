@@ -22,6 +22,7 @@ import { CHART_SURFACE } from '@/shared/ui/chart-figure';
 import { ChartTooltipRow, ChartTooltipShell } from '@/shared/ui/chart-tooltip';
 import {
   RIBBON_FILL,
+  RIBBON_STRIP_FILL,
   RIBBON_GRID_ROWS,
   RIBBON_LABEL_WIDTH,
   RIBBON_OVERLAY_ROW,
@@ -149,7 +150,7 @@ export function DailyRibbon({ data, dateIso }: { data: RibbonData; dateIso: stri
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-border pt-2">
         <ul className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1">
           {RIBBON_LEGEND.map((item) => (
-            <li key={item.state} className="flex items-center gap-1 text-[11px] text-fg-subtle">
+            <li key={item.state} className="flex items-center gap-1 text-[12px] text-fg-subtle">
               <span
                 aria-hidden
                 className="inline-block h-2 w-3 rounded-[2px]"
@@ -178,7 +179,7 @@ function Fragment({ children }: { children: React.ReactNode }) {
 function Label({ text, row }: { text: string; row: number }) {
   return (
     <span
-      className="flex items-center justify-end pr-0.5 text-[11px] text-fg-muted"
+      className="flex items-center justify-end pr-0.5 text-[12px] text-fg-muted"
       style={{ gridRow: row, gridColumn: 1 }}
     >
       {text}
@@ -293,26 +294,39 @@ function ScoreTrack({
   );
 }
 
+/**
+ * 상태 띠 한 줄 — **화면의 다른 막대와 같은 어휘로 그린다** `[사용자 지시 2026-08-25]`.
+ *
+ * 각진 단색 사각형을 잇던 판본은 이 카드만 다른 부품으로 보였다. 지금은 셋을 맞춘다:
+ *   ① **홈**(`--surface-2` + `shadow-track` 안쪽 그림자) — 게이지·XAI 막대와 같은 트랙
+ *   ② **모서리**(`--radius-chip`) — 트랙이 잘라 주므로 조각마다 둥글릴 필요가 없다
+ *   ③ **그라데이션 채움**(`OPERATING_GRADIENT`) — 설비 상태 격자가 **같은 운전 상태 축**에
+ *      쓰는 바로 그 값이다. 두 화면이 같은 사실을 다른 농도로 칠하면 같은 것으로 보이지 않는다.
+ *
+ * `unknown`에 따로 투명도를 주지 않는다 — 그라데이션이 이미 46%→26%로 눌러 놓았고,
+ * 그 위에 또 곱하면 결측 구간이 홈과 구분되지 않는다.
+ *
+ * SVG를 걷은 이유: 조각이 `%` 좌표의 상자라 트랙의 `overflow-hidden`이 양 끝을 둥글게
+ * 잘라 준다. SVG `<rect>`로는 같은 것을 하려면 조각마다 모서리를 따로 계산해야 한다.
+ */
 function StatusStrip({ runs }: { runs: RibbonRun[] }) {
   return (
-    <svg
-      viewBox={`0 0 ${TIMELINE_POINT_COUNT} 10`}
-      preserveAspectRatio="none"
-      className="block w-full"
+    <div
+      className="relative w-full overflow-hidden rounded-chip bg-surface-2 shadow-track"
       style={{ height: RIBBON_STRIP_HEIGHT }}
     >
       {runs.map((run) => (
-        <rect
+        <span
           key={run.from}
-          x={run.from}
-          y={0}
-          width={run.length}
-          height={10}
-          fill={RIBBON_FILL[run.state]}
-          opacity={run.state === 'unknown' ? 0.45 : 1}
+          className="absolute inset-y-0"
+          style={{
+            left: `${(run.from / TIMELINE_POINT_COUNT) * 100}%`,
+            width: `${(run.length / TIMELINE_POINT_COUNT) * 100}%`,
+            backgroundImage: RIBBON_STRIP_FILL[run.state],
+          }}
         />
       ))}
-    </svg>
+    </div>
   );
 }
 
@@ -364,7 +378,7 @@ function TickLabels({ ticks }: { ticks: ReturnType<typeof buildTicks> }) {
  */
 function Caption({ data, dateIso }: { data: RibbonData; dateIso: string }) {
   return (
-    <p className="text-[11px] text-fg-subtle">
+    <p className="text-[12px] text-fg-subtle">
       {dateIso.slice(0, 10)} 기준 {HISTORY_WINDOW_HOURS}시간 · {COLLECTION_INTERVAL_MINUTES}분 주기 ·{' '}
       {DISPLAY_TIMEZONE} — 방류 <span className="num text-fg-muted">{dischargeHoursText(data)}</span>{' '}
       · 알람 <span className="num text-fg-muted">{data.alarms.length}</span>건

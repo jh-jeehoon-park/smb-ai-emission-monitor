@@ -6,6 +6,7 @@ import { downloadCsv } from '@/shared/lib/csv';
 import { formatClock, formatValue } from '@/shared/lib/format';
 import { Panel } from '@/shared/ui/panel';
 import { SegmentedControl } from '@/shared/ui/segmented-control';
+import { TABLE_HEAD_ROW } from '@/shared/ui/table';
 import {
   BUCKET_OPTIONS,
   STAT_LABELS,
@@ -20,6 +21,7 @@ import {
   type MeasurementPoint,
   type SeriesCode,
 } from '@/entities/measurement';
+import { ACTION_BUTTON_QUIET } from '@/shared/ui/action-button';
 
 /**
  * 구간이 행인 센서 리포트.
@@ -87,7 +89,7 @@ export function BucketReportPanel({
                 bucketReportToCsv(rows, codes, stat),
               )
             }
-            className="flex cursor-pointer items-center gap-1.5 rounded-[4px] border border-border bg-surface px-2.5 py-1.5 text-[11px] text-fg-muted transition-colors duration-200 hover:border-border-strong hover:bg-surface-2 hover:text-fg"
+            className={ACTION_BUTTON_QUIET}
           >
             <Download size={12} strokeWidth={2} />
             CSV 내보내기
@@ -126,24 +128,24 @@ function BucketTable({
 
   return (
     <div className="max-h-[560px] overflow-auto">
-      <table className="w-full border-separate border-spacing-0 text-[12px]">
+      <table className="w-full border-separate border-spacing-0 text-[12px] text-center">
         <caption className="sr-only">
           구간별 {STAT_LABELS[stat]}. 행은 구간 시작 시각, 열은 계측 항목이다.
         </caption>
         <thead className="sticky top-0 z-10">
-          <tr className="text-[12px] font-semibold text-fg-muted [&>th]:bg-surface-2 [&>th:first-child]:rounded-l-nested [&>th:last-child]:rounded-r-nested">
-            <th scope="col" className="sticky left-0 bg-surface-2 px-3 py-3 text-left">
+          <tr className={TABLE_HEAD_ROW}>
+            <th scope="col" className="sticky left-0 bg-surface-2 px-3 py-3 text-center">
               구간
             </th>
             {codes.map((code) => (
-              <th key={code} scope="col" className="px-3 py-3 text-right">
+              <th key={code} scope="col" className="px-3 py-3 text-center">
                 {MEASUREMENT_ITEMS[code].symbol}
                 {MEASUREMENT_ITEMS[code].unit && (
                   <span className="ml-1 text-fg-subtle">{MEASUREMENT_ITEMS[code].unit}</span>
                 )}
               </th>
             ))}
-            <th scope="col" className="px-3 py-3 text-right">
+            <th scope="col" className="px-3 py-3 text-center">
               결측
             </th>
           </tr>
@@ -153,17 +155,17 @@ function BucketTable({
             <tr key={row.startIso} className="[&>*]:border-b [&>*]:border-border">
               <th
                 scope="row"
-                className="num sticky left-0 bg-surface py-3.5 text-left font-normal text-fg-muted"
+                className="num sticky left-0 bg-surface py-3.5 text-center font-normal text-fg-muted"
               >
                 {formatClock(row.startIso)}
               </th>
               {codes.map((code) => (
-                <td key={code} className="num px-3 py-3.5 text-right text-fg">
+                <td key={code} className="num px-3 py-3.5 text-center text-fg">
                   {/* 구간 전체가 결측이면 값이 아니라 사실을 적는다(E4) */}
                   {formatValue(code, row.values[code] ?? null)}
                 </td>
               ))}
-              <td className="num px-3 py-3.5 text-right text-fg-subtle">
+              <td className="num px-3 py-3.5 text-center text-fg-subtle">
                 {row.missingCount}/{row.totalCount}
               </td>
             </tr>

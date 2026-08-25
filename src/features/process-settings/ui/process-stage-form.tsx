@@ -2,6 +2,7 @@
 
 import { MEASUREMENT_ITEMS, WATER_QUALITY_CODES } from '@/shared/config/measurement';
 import { EQUIPMENT_CODES, type MeasurementItemCode } from '@/shared/config/measurement';
+import { Checkbox } from '@/shared/ui/checkbox';
 import { ALL_PROCESS_STAGES } from '@/entities/process';
 import { useProcessSettingsStore } from '../model/process-settings-context';
 import { useProcess } from '../model/use-process';
@@ -36,8 +37,8 @@ export function ProcessStageForm({ siteId }: { siteId: string }) {
             <li key={stage.id} className="rounded-nested border border-border px-3 py-2.5">
               <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
                 <label className="flex cursor-pointer items-center gap-2 text-[12px] text-fg">
-                  <input
-                    type="checkbox"
+                  <Checkbox
+                    size="sm"
                     checked={on}
                     onChange={(event) =>
                       setStage(siteId, stage.id, {
@@ -45,12 +46,11 @@ export function ProcessStageForm({ siteId }: { siteId: string }) {
                         codes: codes ?? [],
                       })
                     }
-                    className="size-3.5 cursor-pointer accent-[var(--actual)]"
                   />
                   <span className="num text-fg-subtle">{stage.order}</span>
                   {stage.name}
                 </label>
-                <span className="text-[11px] text-fg-subtle">
+                <span className="text-[12px] text-fg-subtle">
                   {stage.optional ? '플러스 알파' : '표준 공정'} · {stage.units.join(' · ')}
                 </span>
               </div>
@@ -75,8 +75,8 @@ export function ProcessStageForm({ siteId }: { siteId: string }) {
                         }
                         className={
                           picked
-                            ? 'cursor-pointer rounded-[3px] border border-border-strong bg-surface-2 px-1.5 py-0.5 text-[11px] text-fg'
-                            : 'cursor-pointer rounded-[3px] border border-border px-1.5 py-0.5 text-[11px] text-fg-subtle transition-colors duration-200 hover:border-border-strong hover:text-fg'
+                            ? 'cursor-pointer rounded-chip border border-accent/40 bg-accent-weak px-1.5 py-0.5 text-[12px] font-semibold text-accent'
+                            : 'cursor-pointer rounded-chip border border-border px-1.5 py-0.5 text-[12px] text-fg-subtle transition-colors duration-200 hover:border-accent/40 hover:text-accent'
                         }
                       >
                         {MEASUREMENT_ITEMS[code].symbol}
@@ -84,7 +84,7 @@ export function ProcessStageForm({ siteId }: { siteId: string }) {
                     );
                   })}
                   {codes.length === 0 && (
-                    <span className="text-[11px] text-fg-subtle">
+                    <span className="text-[12px] text-fg-subtle">
                       항목을 고르지 않으면 계측 지점이 아닙니다
                     </span>
                   )}
@@ -96,7 +96,7 @@ export function ProcessStageForm({ siteId }: { siteId: string }) {
       </ul>
 
       <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-2.5">
-        <p className="max-w-[68ch] text-[11px] leading-relaxed text-fg-subtle">
+        <p className="max-w-[68ch] text-[12px] leading-relaxed text-fg-subtle">
           단계별 계측 항목은 원문에 없습니다 [TBD-53]. 프로브를 각 공정에 부착한다는 것까지가
           회의 결과이고 [회의 2026-08-20], 어느 단계에서 무엇을 재는지는 여기서 정합니다.
         </p>
@@ -105,7 +105,7 @@ export function ProcessStageForm({ siteId }: { siteId: string }) {
           <button
             type="button"
             onClick={() => reset(siteId)}
-            className="shrink-0 cursor-pointer rounded-[3px] border border-border px-2 py-1 text-[11px] text-fg-subtle transition-colors duration-200 hover:border-border-strong hover:text-fg"
+            className="shrink-0 cursor-pointer rounded-[3px] border border-border px-2 py-1 text-[12px] text-fg-subtle transition-colors duration-200 hover:border-border-strong hover:text-fg"
           >
             표준 공정으로 되돌리기
           </button>

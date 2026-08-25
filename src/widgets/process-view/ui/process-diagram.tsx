@@ -175,7 +175,12 @@ function BasinNode({
       tabIndex={0}
       aria-pressed={selected}
       aria-label={`${stage.order}. ${stage.name} — ${PROVISIONAL_MEASUREMENT_GRADE_LABELS[stage.grade]}`}
-      className="cursor-pointer outline-none"
+      /*
+       * `group`은 아래 초점 테두리가 이 `<g>`의 `:focus-visible`을 보기 위한 것이다.
+       * `outline`을 쓰지 않는 이유는 SVG 요소의 outline 렌더가 브라우저마다 갈리기 때문이다 —
+       * 직접 그린 테두리는 어디서나 같은 자리에 같은 굵기로 나온다.
+       */
+      className="group cursor-pointer outline-none"
       onClick={() => onSelect(stage.id)}
       onKeyDown={(e) => {
         if (e.key !== 'Enter' && e.key !== ' ') return;
@@ -183,6 +188,23 @@ function BasinNode({
         onSelect(stage.id);
       }}
     >
+      {/*
+       * **키보드 초점 테두리.** 이 노드는 `role="button" tabIndex={0}`이라 Tab으로 닿는데,
+       * `outline-none`만 걸려 있어 **어디에 있는지 보이지 않았다** — 여섯 단계를 눈 감고 지나는 셈이다.
+       * 마우스로 눌렀을 때는 나오지 않는다(`focus-visible`).
+       */}
+      <rect
+        className="hidden group-focus-visible:block"
+        x={x - 3}
+        y={NODE_TOP - 3}
+        width={NODE_WIDTH + 6}
+        height={NODE_HEIGHT + 6}
+        rx={11}
+        fill="none"
+        stroke="var(--accent)"
+        strokeWidth={2}
+      />
+
       {/* 수조 몸통 */}
       <rect
         x={x}
@@ -190,7 +212,8 @@ function BasinNode({
         width={NODE_WIDTH}
         height={NODE_HEIGHT}
         rx={8}
-        fill={selected ? 'var(--surface-2)' : 'var(--surface)'}
+        /* 고른 단계는 포인트색 면 — 테두리는 계측 등급이 쓰므로 면으로 표시한다 */
+        fill={selected ? 'var(--accent-weak)' : 'var(--surface)'}
         stroke={hex}
         strokeWidth={selected ? 2 : 1.2}
         strokeDasharray={PROVISIONAL_MEASUREMENT_GRADE_DASH[stage.grade]}

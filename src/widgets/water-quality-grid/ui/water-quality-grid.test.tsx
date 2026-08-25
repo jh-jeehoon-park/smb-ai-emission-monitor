@@ -19,7 +19,7 @@ const points = getMeasurementSeries('S-02');
  * 정적 표를 넘기므로 아래 기대값은 설정 도입 전과 같다.
  */
 const draw = (codes: Parameters<typeof WaterQualityGrid>[0]['codes'], limits = DISCHARGE_LIMITS) =>
-  render(<WaterQualityGrid data={points} codes={codes} limits={limits} />);
+  render(<WaterQualityGrid data={points} codes={codes} limits={limits} windowHours={24} />);
 
 /**
  * **기준은 이제 글로만 말한다.**

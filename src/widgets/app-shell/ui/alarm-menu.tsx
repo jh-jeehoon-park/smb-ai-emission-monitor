@@ -33,6 +33,7 @@ import { HEADER_ALARM_LIMIT } from '../config/constants';
 export function AlarmMenu() {
   const [open, setOpen] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const { alarms, setState } = useAlarmStates(ALL_ALARMS);
 
   useEffect(() => {
@@ -41,8 +42,16 @@ export function AlarmMenu() {
     const onDown = (e: MouseEvent) => {
       if (!boxRef.current?.contains(e.target as Node)) setOpen(false);
     };
+    /*
+     * **Esc로 닫으면 초점을 열던 버튼으로 되돌린다.** 닫기만 하면 초점이 사라진 요소에
+     * 남아 `body`로 튀고, 키보드 사용자는 헤더 맨 앞부터 다시 Tab 해야 한다
+     * (모달에서 같은 것을 이미 고쳤다 — `shared/ui/modal.tsx`).
+     * 바깥을 눌러 닫을 때는 되돌리지 않는다 — 그 누름이 이미 초점을 옮겼다.
+     */
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false);
+      if (e.key !== 'Escape') return;
+      setOpen(false);
+      triggerRef.current?.focus();
     };
 
     document.addEventListener('mousedown', onDown);
@@ -58,14 +67,15 @@ export function AlarmMenu() {
   return (
     <div ref={boxRef} className="relative">
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label="알림"
-        className="relative flex cursor-pointer items-center rounded-[4px] border border-border bg-surface px-2 py-1.5 text-fg-muted transition-colors duration-200 hover:border-border-strong hover:text-fg"
+        className="relative inline-flex size-7 cursor-pointer items-center justify-center rounded-chip text-fg-muted transition-colors duration-200 hover:bg-surface-2 hover:text-fg"
       >
-        <Bell aria-hidden size={13} strokeWidth={1.9} />
+        <Bell aria-hidden size={16} strokeWidth={1.9} />
         {/* 역할마다 숫자가 다르다. 세 벌을 그리고 CSS가 고른다 */}
         <CountBadge alarms={alarms} className="role-hide-site" />
         {ADMIN_ACCOUNTS.map((account, index) => (
@@ -81,7 +91,7 @@ export function AlarmMenu() {
       {open && (
         <div
           role="menu"
-          className="absolute right-0 z-20 mt-1.5 w-[320px] rounded-[6px] border border-border bg-surface shadow-lg"
+          className="absolute right-0 z-20 mt-1.5 w-[min(320px,calc(100vw-2rem))] overflow-hidden rounded-nested border border-border-strong bg-surface shadow-lg"
         >
           <AlarmPanel alarms={alarms} onAcknowledge={acknowledge} className="role-hide-site" />
           {ADMIN_ACCOUNTS.map((account, index) => (
@@ -115,7 +125,7 @@ function CountBadge({
   return (
     <span
       className={cn(
-        'num absolute -right-1 -top-1 min-w-[15px] rounded-full px-1 text-center text-[10px] leading-[15px] text-bg',
+        'num absolute -right-1 -top-1 min-w-[15px] rounded-full px-1 text-center text-[12px] leading-[15px] text-bg',
         className,
       )}
       style={{ backgroundColor: STATUS_VISUAL.critical.hex }}
@@ -141,7 +151,7 @@ function AlarmPanel({
 
   return (
     <div className={className}>
-      <p className="border-b border-border px-3 py-2 text-[11px] text-fg-subtle">
+      <p className="border-b border-border px-3 py-2 text-[12px] text-fg-subtle">
         미확인 알람 <span className="num text-fg-muted">{list.length}</span>건
       </p>
 
@@ -151,7 +161,7 @@ function AlarmPanel({
         <ul>
           {list.slice(0, HEADER_ALARM_LIMIT).map((alarm) => (
             <li key={alarm.id} className="border-b border-border px-3 py-2.5 last:border-0">
-              <div className="flex items-center justify-between gap-2 text-[11px]">
+              <div className="flex items-center justify-between gap-2 text-[12px]">
                 <span
                   className={BADGE_BASE}
                   style={{
@@ -174,7 +184,7 @@ function AlarmPanel({
                   type="button"
                   onClick={() => onAcknowledge(alarm.id)}
                   aria-label={`${alarm.title} 확인 처리`}
-                  className="shrink-0 cursor-pointer rounded-[3px] border border-border px-1.5 py-0.5 text-[11px] text-fg-muted transition-colors duration-200 hover:border-border-strong hover:bg-surface-2 hover:text-fg"
+                  className="shrink-0 cursor-pointer rounded-[3px] border border-border px-1.5 py-0.5 text-[12px] text-fg-muted transition-colors duration-200 hover:border-border-strong hover:bg-surface-2 hover:text-fg"
                 >
                   확인
                 </button>
@@ -186,7 +196,7 @@ function AlarmPanel({
 
       <Link
         href={withSite(ALARM_NAV_HREF)}
-        className="block border-t border-border px-3 py-2 text-right text-[11px] text-fg-muted transition-colors duration-200 hover:text-fg"
+        className="block border-t border-border px-3 py-2 text-right text-[12px] text-fg-muted transition-colors duration-200 hover:text-fg"
       >
         전체 알람 이력 →
       </Link>

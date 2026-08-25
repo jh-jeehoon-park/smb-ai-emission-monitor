@@ -21,6 +21,8 @@ import { AlarmList } from '@/widgets/alarm-list';
 import { AnomalyPanel } from '@/widgets/anomaly-panel';
 import { DailyRibbon, buildRibbon } from '@/widgets/daily-ribbon';
 import { EquipmentPanel } from '@/widgets/equipment-panel';
+import { InfoTip } from '@/shared/ui/tooltip';
+import { ACTION_BUTTON_QUIET } from '@/shared/ui/action-button';
 
 /**
  * 사업장 사용자가 여기서 답을 얻어야 하는 세 질문 — 괜찮은가 / 얼마나 줄었나 / 뭘 해야 하나.
@@ -154,7 +156,7 @@ export function AdminOverviewView() {
 
       <Panel
         title="설비 상태"
-        action={<span className="text-[12px] text-fg-subtle">상태 나쁜 순</span>}
+        titleAside={<InfoTip label="정렬 기준" content="상태가 나쁜 설비부터 정렬합니다." />}
       >
         <EquipmentPanel items={detail.equipment} online={site.online} />
       </Panel>
@@ -164,7 +166,7 @@ export function AdminOverviewView() {
           <Link
             key={shortcut.href}
             href={withSite(shortcut.href)}
-            className="rounded-[4px] border border-border bg-surface px-2.5 py-1.5 text-[12px] text-fg-muted transition-colors duration-200 hover:border-border-strong hover:bg-surface-2 hover:text-fg"
+            className={ACTION_BUTTON_QUIET}
           >
             {shortcut.label}
           </Link>

@@ -48,6 +48,8 @@ import {
   ForecastLimitNote,
 } from '@/widgets/forecast-chart';
 import { ALL_TARGETS, TARGET_QUERY_KEY, TARGET_VIEWS, type TargetView } from '../config/constants';
+import { TABLE_HEAD_ROW } from '@/shared/ui/table';
+import { ACTION_BUTTON_QUIET } from '@/shared/ui/action-button';
 
 const TARGET_OPTIONS: { value: TargetView; label: string }[] = [
   { value: ALL_TARGETS, label: '전체' },
@@ -107,14 +109,14 @@ export function PredictionView() {
          * 유량은 **성능 목표 자체가 없다**. 같은 `원문 미규정`으로 보이므로 이유를 적는다(E3).
          */}
         {showFlow && (
-          <p className="mt-2 px-1 text-[11px] text-fg-subtle">
+          <p className="mt-2 px-1 text-[12px] text-fg-subtle">
             유량 예측은 원문에 정확도 목표가 없다 — AI 성능 목표는 수질 예측에만 있다 [원문 발표
             p.26] · 예측 대상 포함은 [INC-95] 판정
           </p>
         )}
 
         {/* AI 산출값은 언제·무엇을 근거로 나왔는지 값과 함께 보여야 한다(E3) */}
-        <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-1.5 border-t border-border pt-3 text-[11px] sm:grid-cols-4">
+        <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-1.5 border-t border-border pt-3 text-[12px] sm:grid-cols-4">
           <Meta label="산출 모델" value={forecast.modelLabel} />
           <Meta label="입력 대상 기간" value={forecast.inputWindowLabel} />
           <Meta
@@ -238,7 +240,7 @@ function ForecastStack({
               <div key={summary.targetLabel} className={i === 0 ? 'pb-2' : 'py-2 last:pb-0'}>
                 <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
                   <p className="text-[12px] font-medium text-fg">{summary.targetLabel}</p>
-                  <p className="text-[11px] text-fg-subtle">
+                  <p className="text-[12px] text-fg-subtle">
                     현재{' '}
                     <span className="num text-fg-muted">
                       {latest === null ? '—' : latest.toFixed(summary.decimals)}
@@ -321,13 +323,13 @@ function LimitMonitor({
       }
     >
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[520px] border-separate border-spacing-0 text-[12px]">
+        <table className="w-full min-w-[520px] border-separate border-spacing-0 text-[12px] text-center">
           <thead>
-            <tr className="text-[12px] font-semibold text-fg-muted [&>th]:bg-surface-2 [&>th:first-child]:rounded-l-nested [&>th:last-child]:rounded-r-nested">
-              <th className="px-3 py-3 text-left">항목</th>
-              <th className="px-3 py-3 text-right">기준치</th>
-              <th className="px-3 py-3 text-left">판정</th>
-              <th className="px-3 py-3 text-left">출처</th>
+            <tr className={TABLE_HEAD_ROW}>
+              <th className="px-3 py-3 text-center">항목</th>
+              <th className="px-3 py-3 text-center">기준치</th>
+              <th className="px-3 py-3 text-center">판정</th>
+              <th className="px-3 py-3 text-center">출처</th>
             </tr>
           </thead>
           <tbody>
@@ -341,9 +343,9 @@ function LimitMonitor({
                 <tr key={trend.code} className="[&>*]:border-b [&>*]:border-border">
                   <td className="px-3 py-3.5">
                     <span className="font-semibold text-fg">{trend.code}</span>
-                    <span className="ml-1.5 text-[11px] text-fg-subtle">{trend.label}</span>
+                    <span className="ml-1.5 text-[12px] text-fg-subtle">{trend.label}</span>
                   </td>
-                  <td className="num px-3 py-3.5 text-right">
+                  <td className="num px-3 py-3.5 text-center">
                     {range === null ? (
                       <span className="text-fg-subtle">—</span>
                     ) : (
@@ -356,7 +358,7 @@ function LimitMonitor({
                     {verdict.text}
                   </td>
                   {/* 우리가 넣은 값이 아니라 사용자가 넣은 값임을 심사자가 바로 알아야 한다 */}
-                  <td className="px-3 py-3.5 text-[11px] text-fg-subtle">
+                  <td className="px-3 py-3.5 text-[12px] text-fg-subtle">
                     {limit && limit.unavailableReason === null
                       ? limit.source
                       : UNRESOLVED_LIMIT_TEXT}
@@ -367,7 +369,7 @@ function LimitMonitor({
           </tbody>
         </table>
       </div>
-      <p className="max-w-[86ch] border-t border-border py-2 text-[11px] leading-relaxed text-fg-subtle">
+      <p className="max-w-[86ch] border-t border-border py-2 text-[12px] leading-relaxed text-fg-subtle">
         기준치는 <strong className="text-fg-muted">지역구분 · 1일 폐수배출량 규모 · 항목</strong>으로
         갈립니다 [공정자료 p.11].{' '}
         <strong className="text-fg-muted">법령이 원천이므로 우리가 값을 채우지 않습니다</strong> —
@@ -404,13 +406,18 @@ function TrendCard({
   return (
     <Panel
       title={trend.code}
-      className={selected ? 'border-border-strong' : undefined}
+      className={selected ? 'border-accent/40' : undefined}
       action={
         <button
           type="button"
           onClick={onSelect}
           aria-pressed={selected}
-          className="cursor-pointer rounded-[3px] border border-border px-2 py-1 text-[11px] text-fg-subtle transition-colors duration-200 hover:border-border-strong hover:text-fg"
+          /* 켜진 쪽은 **지금 보고 있다는 표시**라 눌리는 버튼처럼 띄우지 않는다 */
+          className={
+            selected
+              ? `${ACTION_BUTTON_QUIET} border-accent/40 bg-accent-weak font-semibold text-accent`
+              : ACTION_BUTTON_QUIET
+          }
         >
           {selected ? '보는 중' : '차트 보기'}
         </button>
@@ -452,7 +459,7 @@ function TrendCard({
         )}
         {classificationLabel && <span className="ml-1 text-fg-subtle">· {classificationLabel}</span>}
       </p>
-      <p className="mt-1.5 text-[11px] leading-relaxed text-fg-subtle">
+      <p className="mt-1.5 text-[12px] leading-relaxed text-fg-subtle">
         {SERIES_ORIGIN_LABELS[trend.origin]} · R² <span className="num">{formatR2(trend.r2)}</span>
         {/* 어느 근거로 판정했는지 적는다 — 기준 미설정이면 무엇을 해야 하는지가 온다 */}
         <span className="ml-1">· {headline.basis}</span>

@@ -11,15 +11,35 @@
  * 두 조합 모두 dataviz validate_palette.js를 통과한 값이다. 눈대중으로 바꾸지 말 것.
  */
 :root {
-  --bg: #f3f4f5;
+  /**
+   * 중립색에 **미세한 블루**를 넣는다 `[사용자 지시 2026-08-24]`.
+   *
+   * 공공기관 화면의 무드다. 색상은 210~215도 한 계열로 묶고 채도는 4~8%만 준다 —
+   * 더 넣으면 상태색(정보 #0091ea)과 같은 축으로 읽혀 "이 면이 무슨 상태인가"로 오독된다.
+   * 카드 면은 흰색으로 남긴다: 면까지 물들이면 계측값·차트가 놓일 중립 바탕이 없어진다.
+   *
+   * 글자 대비는 다시 재서 넣었다 — 흰 면에서 muted 7.46 · subtle 5.76,
+   * 가장 어두운 면(표 머리 #dfe7f0)에서도 5.98 · 4.62로 본문 기준 4.5:1을 지킨다.
+   */
+  --bg: #f1f4f8;
   --surface: #ffffff;
-  --surface-2: #f0f3f6;
-  --surface-3: #e4e9ee;
-  --border: #e5e7ea;
-  --border-strong: #c9cdd2;
-  --fg: #10161c;
-  --fg-muted: #4a5761;
-  --fg-subtle: #5b6771;
+  --surface-2: #eef2f7;
+  --surface-3: #e1e8f0;
+  --border: #e3e8ef;
+  --border-strong: #c4cdd9;
+  --fg: #0f1620;
+  --fg-muted: #48566a;
+  --fg-subtle: #59677a;
+  /**
+   * `--fg-subtle`보다 한 단 더 가라앉은 글자 `[사용자 지시 2026-08-25]`.
+   *
+   * 쓰는 자리는 **읽을 값이 아니라 이름표**다(사이드바 묶음 머리글). 훑을 때 걸리지 않고
+   * 찾을 때만 눈에 들어와야 한다.
+   *
+   * 더 내리지 않는다 — 흰 면 4.57:1 · 어두운 면 4.92:1로 **본문 기준(4.5:1)을 겨우 넘는다.**
+   * 11px 글자는 큰 글자 예외를 받지 못하므로 여기가 바닥이다.
+   */
+  --fg-faint: #697788;
 
   /**
    * 사용자가 준 팔레트를 그대로 쓴다 `[사용자 지시 2026-08-24]` — Material 계열
@@ -69,11 +89,38 @@
   --chip-critical: color-mix(in srgb, var(--critical) 10%, var(--surface));
   --chip-info: color-mix(in srgb, var(--info) 10%, var(--surface));
 
-  --ai: #6d28d9;
-  --actual: #475569;
-  --missing: #94a3b8;
-  --grid: #e2e8f0;
-  --axis-text: #5b6771;
+  /**
+   * **포인트색** `[사용자 지시 2026-08-24: 진한 파란색, 상태값 제외]`.
+   *
+   * Material Blue 900이다 — 사용자가 준 팔레트와 같은 계열에서 가장 진한 단을 골랐다.
+   * 흰 면에서 8.63:1이라 글자로도 쓸 수 있고, 상태색 `정보`(#0091ea)와 명도가 3.4배
+   * 벌어져 "정보 알람"으로 오독되지 않는다. **상태를 뜻하는 자리에는 쓰지 않는다** —
+   * 이 색이 뜻하는 것은 "누를 수 있다 · 지금 고른 것"이지 등급이 아니다.
+   */
+  --accent: #0d47a1;
+  /** 고른 항목의 면. 8%면 흰 면과 1.06:1로 "칠해져 있다"만 전하고 글자를 가리지 않는다 */
+  --accent-weak: color-mix(in srgb, var(--accent) 8%, var(--surface));
+
+  /**
+   * 그래프 계열도 **블루 한 계열**이다 `[사용자 지시 2026-08-24]`.
+   *
+   * 실측은 **선명한 로열 블루**, AI 산출은 하늘색 쪽이다 `[사용자 지시 2026-08-25: 첨부 이미지]`.
+   * 진한 파랑(#0f4c94)은 선이 무거워 그래프가 도표처럼 보였다 — 래퍼런스의 선은 채도가 높고
+   * 밝아 데이터가 앞에 나온다. 흰 면에서 5.67:1이라 글자로 써도 되는 값이다.
+   *
+   * AI 계열도 **한 단 진하게** 올렸다 `[사용자 지시 2026-08-25: 타임라인만 적용이 덜 됐다]` —
+   * 하늘색(#4a90e2)은 이상 점수 타임라인의 **4구간 밴드 위에서 2.93:1**이라 선이 배경에 잠겼다.
+   * 지금 값은 밴드 위 3.74:1 · 흰 면 4.20:1로 다른 차트의 선과 같은 무게를 갖는다.
+   *
+   * 두 계열은 명도가 아니라 **색상**으로 갈린다(로열 블루 ↔ 시안 블루). 한 그림에 겹치는 곳은
+   * 공정도의 실측·추정 노드뿐이고 거기에는 **글자 라벨과 등급별 파선**이 함께 있다. 나머지
+   * 차트는 계열이 하나이며 어느 쪽인지는 출처 뱃지·범례·툴팁 이름이 말한다(E3).
+   */
+  --ai: #1c7ed6;
+  --actual: #3b5bdb;
+  --missing: #93a3b8;
+  --grid: #dfe6f0;
+  --axis-text: #59677a;
 
   /* 차트 배경 밴드. 같은 투명도를 두 테마에 쓰면 밝은 배경에서 밴드가 사라진다.
      Recharts는 fillOpacity에 CSS 변수를 못 받으므로 색 자체에 투명도를 넣는다. */
@@ -82,7 +129,6 @@
   --band-warning: color-mix(in srgb, var(--warning) 15%, transparent);
   --band-critical: color-mix(in srgb, var(--critical) 13%, transparent);
   --band-outage: color-mix(in srgb, var(--missing) 42%, transparent);
-  --band-ai: color-mix(in srgb, var(--ai) 12%, transparent);
 
   /*
    * 격자 칸의 `정상` 채움.
@@ -98,23 +144,48 @@
    * `[사용자 지시 2026-08-24: 첨부 이미지의 테두리색에 맞춘다]`.
    *
    * 선을 뺐던 판본이 있었다 — 그때 `--border`가 진해서 카드 20개가 격자처럼 읽혔다.
-   * 색을 옅은 중립 회색으로 내리면서 그 이유가 없어졌고, 흰 면과 `#f3f4f5` 배경의
-   * 차이가 1.12:1뿐이라 선이 있는 쪽이 경계를 훨씬 분명하게 만든다.
+   * 색을 옅게 내리면서 그 이유가 없어졌고, 흰 면과 `#f1f4f8` 배경의
+   * 차이가 1.10:1뿐이라 선이 있는 쪽이 경계를 훨씬 분명하게 만든다.
+   * 중립색에 블루가 들어간 뒤에는 선도 같은 계열이다 — 배경과 다른 계열이면 선만 차갑게 뜬다.
    */
   --card-border: var(--border);
   --card-shadow: 0 1px 2px rgb(16 22 28 / 3%), 0 3px 10px rgb(16 22 28 / 3%);
+
+  /*
+   * 구역(제목·탭·상세 격자)을 묶는 면 `[사용자 지시 2026-08-24]`.
+   * 본문 배경(`#f1f4f8`)보다 한 단 어둡다 — 1.057:1이라 "면이 깔려 있다"는 것만 전하고
+   * 안의 흰 카드와는 1.17:1로 벌어져 카드가 그 위에 떠 보인다.
+   * `--surface-2`(#f0f3f6)로는 본문과 1.01:1이라 아무것도 보이지 않았다.
+   */
+  --section-bg: #e9eef4;
+
+  /**
+   * 표 머리 띠 `[사용자 지시 2026-08-24]`.
+   *
+   * **면과 같은 색을 쓰지 않는 것이 이 토큰의 존재 이유다.** 예전에는 머리 줄에
+   * `--surface-2`를 썼는데, 옅은 면(`--surface-2`) 위에 놓인 표에서는 머리와 바탕이 같은 색이라
+   * 스크롤할 때 본문 줄이 머리 글자 위로 그냥 지나가는 것처럼 보였다.
+   *
+   * 그래서 흰 카드(1.25:1)와 옅은 면(1.11:1) **양쪽 모두와 구분되는 한 단**을 따로 둔다.
+   * 표가 어디에 놓이든 같은 색을 쓰므로 화면마다 정책이 갈리지 않는다.
+   */
+  --table-head: #dfe7f0;
+  /* 막대·게이지 트랙의 안쪽 그림자. 채움이 면 위에 얹힌 것으로 읽힌다 */
+  --track-inset: inset 0 1px 2px rgb(16 22 28 / 10%);
 }
 
 :root[data-theme='dark'] {
-  --bg: #080b0f;
-  --surface: #0f141a;
-  --surface-2: #161d25;
-  --surface-3: #1d262f;
-  --border: #1f2a35;
-  --border-strong: #2c3a47;
+  --bg: #070b11;
+  --surface: #0e141c;
+  --surface-2: #151d27;
+  --surface-3: #1c2632;
+  --border: #1e2937;
+  --border-strong: #2a3a4a;
   --fg: #e8eef4;
   --fg-muted: #a3b4c2;
   --fg-subtle: #8497a6;
+  /* 어두운 면(#0e141c)에서 4.92:1 — 라이트의 4.57:1과 같은 자리 */
+  --fg-faint: #738697;
 
   /* 라이트와 같은 색상을 밝은 단으로 올린 값(Material 300~400단). 어두운 면 위에서 5.3~12.1:1 */
   --normal: #66bb6a;
@@ -137,10 +208,15 @@
   --chip-critical: color-mix(in srgb, var(--critical) 16%, var(--surface));
   --chip-info: color-mix(in srgb, var(--info) 16%, var(--surface));
 
-  --ai: #9d8dff;
-  --actual: #c9d6e2;
+  /* 어두운 면에서는 진한 파랑이 묻는다 — 같은 계열의 밝은 단(Blue 300)을 쓴다 */
+  --accent: #64b5f6;
+  --accent-weak: color-mix(in srgb, var(--accent) 16%, var(--surface));
+
+  /* 어두운 면에서는 같은 로열 블루가 묻는다 — 밝은 쪽으로 올린 값을 쓴다 */
+  --ai: #4dabf7;
+  --actual: #93b0ff;
   --missing: #7d8b98;
-  --grid: #1f2a35;
+  --grid: #1e2937;
   --axis-text: #8497a6;
 
   --band-normal: color-mix(in srgb, var(--normal) 9%, transparent);
@@ -148,13 +224,18 @@
   --band-warning: color-mix(in srgb, var(--warning) 10%, transparent);
   --band-critical: color-mix(in srgb, var(--critical) 14%, transparent);
   --band-outage: color-mix(in srgb, var(--missing) 30%, transparent);
-  --band-ai: color-mix(in srgb, var(--ai) 16%, transparent);
 
   --cell-normal: color-mix(in srgb, var(--normal) 34%, var(--surface));
 
   /* 어두운 배경에서는 그림자가 보이지 않는다 — 다크에서만 카드에 테두리를 남긴다 */
   --card-border: var(--border);
   --card-shadow: 0 1px 2px rgb(0 0 0 / 30%);
+
+  /* 다크는 본문이 이미 가장 어두워 구역 면은 한 단 밝게 올린다 */
+  --section-bg: #111820;
+  /* 어두운 쪽도 두 면 사이가 아니라 한 단 위다 — 라이트와 같은 이유 */
+  --table-head: #1b2430;
+  --track-inset: inset 0 1px 2px rgb(0 0 0 / 45%);
 }
 
 @theme inline {
@@ -167,6 +248,7 @@
   --color-fg: var(--fg);
   --color-fg-muted: var(--fg-muted);
   --color-fg-subtle: var(--fg-subtle);
+  --color-fg-faint: var(--fg-faint);
 
   --color-normal: var(--normal);
   --color-caution: var(--caution);
@@ -181,6 +263,10 @@
   --color-info-ink: var(--info-ink);
 
   --color-card-border: var(--card-border);
+  --color-section-bg: var(--section-bg);
+  --color-table-head: var(--table-head);
+  --color-accent: var(--accent);
+  --color-accent-weak: var(--accent-weak);
   --color-cell-normal: var(--cell-normal);
   --color-chip-normal: var(--chip-normal);
   --color-chip-caution: var(--chip-caution);
@@ -213,13 +299,15 @@
    * 상단 고정 헤더의 높이. 본문 안에서 `sticky`로 붙는 요소(통합 관제의 지도 레일)가
    * 이 값 + 본문 위 여백만큼 내려가야 헤더 아래에 정확히 걸린다.
    *
-   * **헤더 높이가 바뀌면 이 값도 바꾼다.** 지금 값은 `py-4`(32) + 사업장 선택기 높이(28)
-   * + 아래 테두리(1)이다. 박아 둔 숫자를 쓰지 않는 방법(ResizeObserver)도 있으나
-   * 헤더는 `xl` 이상에서 줄바꿈하지 않아 값이 흔들리지 않는다.
+   * **여기 적힌 61px은 초기값일 뿐이다.** 실제 값은 셸이 헤더를 재서 넣는다
+   * (`app-shell.tsx`의 ResizeObserver) — 좁은 화면에서는 오른쪽 상태 묶음이 접혀 헤더가
+   * 두 줄이 되므로 박아 둔 숫자로는 맞출 수 없다. 이 값은 **서버가 보내는 첫 화면**에서만 쓰인다
+   * (`py-4` 32 + 한 줄 높이 28 + 테두리 1).
    */
   --header-h: 61px;
 
   --shadow-panel: var(--card-shadow);
+  --shadow-track: var(--track-inset);
 }
 
 @layer base {
@@ -257,7 +345,7 @@
   }
 
   :focus-visible {
-    outline: 2px solid var(--normal);
+    outline: 2px solid var(--accent);
     outline-offset: 2px;
   }
 
@@ -283,6 +371,26 @@
    * 테마에 따라 보일 요소를 CSS로 고른다. 마크업은 한 벌만 두고 선택은 CSS가 하므로
    * 서버가 그린 HTML이 테마와 무관해진다 — 이 요소들에서는 hydration이 깨질 수 없다.
    */
+  /**
+   * 로그인의 흰 유리 기둥 `[사용자 지시 2026-08-25]`.
+   *
+   * 면이 **흰색 그라데이션으로 못박혀 있어** 다크 테마에서도 밝다 — 그 위에 다크 팔레트의
+   * 밝은 글자를 두면 흰 바탕에 흰 글자가 된다. 그래서 이 기둥 안에서만 밝은 쪽 값을 다시 세운다.
+   *
+   * 토큰만 바꾸므로 안쪽 컴포넌트(입력·버튼·뱃지)는 고칠 것이 없다.
+   */
+  .login-glass {
+    --fg: #0f1620;
+    --fg-muted: #48566a;
+    --fg-subtle: #59677a;
+    --fg-faint: #697788;
+    --surface: #ffffff;
+    --surface-2: #eef2f7;
+    --surface-3: #e1e8f0;
+    --border: #e3e8ef;
+    --border-strong: #c4cdd9;
+  }
+
   .theme-when-dark {
     display: none;
   }
@@ -336,21 +444,51 @@
     display: block;
   }
 
-  /* 선택된 계정 버튼 */
+  /*
+   * 고른 칸 — **탭 알약과 같은 모양**이다 `[사용자 지시 2026-08-25]`.
+   * 흰 면 + hairline + 얕은 그림자 + 포인트색 굵은 글자. 다른 탭은 `SegPill`이 그리지만
+   * 여기서는 그릴 수 없다: 지금 역할을 아는 것이 **CSS뿐**이라(서버는 localStorage를 모른다)
+   * 마크업으로 알약을 넣으면 hydration이 깨진다. 그래서 같은 결과를 CSS로 만든다.
+   */
   :root[data-admin='admin-1'] .admin-pick-1,
-  :root[data-admin='admin-2'] .admin-pick-2 {
-    background: var(--surface);
-    color: var(--fg);
-    box-shadow: 0 1px 2px rgb(0 0 0 / 6%);
-  }
-
-  /* 선택된 역할 버튼 — aria-checked를 서버가 정하면 하이드레이션이 깨지므로 CSS가 칠한다 */
+  :root[data-admin='admin-2'] .admin-pick-2,
   :root[data-role='site'] .role-pick-site,
   :root[data-role='system'] .role-pick-system,
   :root[data-role='gov'] .role-pick-gov {
     background: var(--surface);
+    color: var(--accent);
+    font-weight: 600;
+    box-shadow:
+      0 0 0 1px var(--card-border),
+      var(--card-shadow);
+  }
+
+  /**
+   * 글자를 그라데이션으로 칠한다 `[사용자 지시 2026-08-24]`. 색은 쓰는 쪽이
+   * `background-image`로 준다 — 등급마다 다르기 때문이다.
+   *
+   * **`color`를 먼저 세우고 지원되는 곳에서만 투명으로 바꾼다.** 곧바로
+   * `color: transparent`를 쓰면 `background-clip: text`를 모르는 환경에서 숫자가
+   * 사라진다. 강제 색상 모드에서도 같은 이유로 되돌린다 — 그쪽은 배경을 시스템 색으로
+   * 덮어써 그라데이션이 남지 않는다.
+   */
+  .text-gradient {
     color: var(--fg);
-    box-shadow: 0 1px 2px rgb(0 0 0 / 6%);
+  }
+
+  @supports (background-clip: text) or (-webkit-background-clip: text) {
+    .text-gradient {
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+  }
+
+  @media (forced-colors: active) {
+    .text-gradient {
+      background-image: none !important;
+      color: CanvasText;
+    }
   }
 
   /* 물이 흐르는 방향만 전한다. 감속 설정에서는 아래 전역 규칙이 멈춘다 */

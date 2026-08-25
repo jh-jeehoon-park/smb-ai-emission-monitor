@@ -23,9 +23,13 @@ interface ModalProps {
  * 이 파일이 정하는 것은 **생김새와 여백**뿐이며, 그 값은 `Panel`과 같은 계열을 쓴다
  * (모달만 다른 모서리·테두리를 쓰면 같은 시스템으로 보이지 않는다).
  *
- * 배경은 **불투명 면 위의 반투명 막**이다 — 막이 없으면 뒤 화면의 숫자가 비쳐 읽히고,
- * 계측값이 겹쳐 보이면 어느 쪽이 이 사업장 값인지 알 수 없다(R12는 콘텐츠 면에 대한 규칙이라
- * 오버레이 자체에는 적용되지 않는다).
+ * **뒤는 어두운 막으로만 덮는다 — 흐리지 않는다** `[사용자 지시 2026-08-25]`.
+ * 흐림을 쓰던 판본이 있었다. 뒤 화면이 형태로 남아 한 겹이 떠 있는 것처럼 보이는 대신,
+ * 시선이 그쪽으로 새고 계측 화면에서는 **흐린 숫자가 읽히는 값처럼** 보였다.
+ *
+ * 그래서 모달 자신은 **불투명**하다(R12). 반투명 + 흐림이던 판본에서 흐림만 걷으면 뒤 값이
+ * 그대로 비쳐 어느 쪽이 이 모달의 값인지 알 수 없다 — 둘은 함께 가거나 함께 빠진다.
+ * 겉면은 화면의 다른 카드와 같은 값을 쓰고 그림자만 한 단 깊다(떠 있는 것이므로).
  */
 export function Modal({
   open,
@@ -62,7 +66,12 @@ export function Modal({
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-40 bg-black/55" />
+        {/*
+         * **막은 어둡게만 덮는다 — 흐리지 않는다** `[사용자 지시 2026-08-25]`.
+         * 뒤 화면이 흐릿하게 살아 있으면 시선이 그쪽으로 새고, 계측 화면에서는 흐린 숫자가
+         * 읽히는 값처럼 보인다. 어둡게만 덮으면 뒤는 배경이고 앞이 읽을 것이다.
+         */}
+        <Dialog.Overlay className="fixed inset-0 z-40 bg-black/40" />
         <Dialog.Content
           onCloseAutoFocus={(event) => {
             const target = opener.current;
@@ -72,9 +81,19 @@ export function Modal({
           }}
           className={cn(
             'fixed left-1/2 top-1/2 z-50 w-[min(560px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2',
-            // 내용이 길면 모달 안에서 스크롤한다. 화면 밖으로 밀리면 닫기 버튼을 못 누른다
-            'max-h-[calc(100vh-3rem)] overflow-y-auto',
-            'rounded-panel border border-border-strong bg-surface shadow-xl',
+            /*
+             * 내용이 길면 모달 안에서 스크롤한다. 화면 밖으로 밀리면 닫기 버튼을 못 누른다.
+             * `dvh`인 이유: 모바일 브라우저의 주소창이 접혔다 펴지는 만큼 `vh`가 실제 보이는
+             * 높이보다 커서, 바닥의 조치 버튼이 화면 밖에 남는다.
+             */
+            'max-h-[calc(100dvh-3rem)] overflow-y-auto',
+            /*
+             * **불투명한 카드다** `[사용자 지시 2026-08-25]`. 반투명 + 뒤 흐림(유리)으로
+             * 두었던 판본은 blur를 걷는 순간 뒤 화면이 그대로 비쳐, 어느 숫자가 이 모달의
+             * 것인지 알 수 없었다 — 배경 불투명은 화면 전반의 규칙이기도 하다(R12).
+             * 겉면은 화면의 다른 카드와 같은 값을 쓰고 그림자만 한 단 깊다(떠 있는 것이므로).
+             */
+            'rounded-panel border border-card-border bg-surface shadow-2xl',
             className,
           )}
         >
@@ -86,7 +105,7 @@ export function Modal({
             </div>
             <Dialog.Close
               aria-label="닫기"
-              className="shrink-0 cursor-pointer rounded-[4px] border border-border p-1 text-fg-subtle transition-colors duration-200 hover:border-border-strong hover:text-fg"
+              className="shrink-0 cursor-pointer rounded-chip border border-border bg-surface p-1.5 text-fg-subtle transition-colors duration-200 hover:border-accent/40 hover:bg-accent-weak hover:text-accent"
             >
               <X aria-hidden size={13} strokeWidth={1.9} />
             </Dialog.Close>

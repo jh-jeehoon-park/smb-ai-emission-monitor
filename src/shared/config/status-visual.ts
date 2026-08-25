@@ -81,9 +81,7 @@ export const CELL_NORMAL = 'var(--cell-normal)';
 
 /** AI 산출값 전용 색. 상태 색과 섞지 않는다 — 실측과 추정을 구분해야 한다(E3) */
 export const AI_HEX = 'var(--ai)';
-/** AI 계열 면 채움. 보라 그래디언트는 AI 상투 패턴으로 검출되므로 평면으로 쓴다 */
-export const AI_BAND = 'var(--band-ai)';
-/** 실측 계열용 중립 잉크. 색을 쓰지 않아 상태 색과 경쟁하지 않는다 */
+/** 실측 계열 색. 짙은 남색이라 상태 색과 색상이 겹치지 않는다 */
 export const ACTUAL_HEX = 'var(--actual)';
 export const MISSING_HEX = 'var(--missing)';
 export const GRID_HEX = 'var(--grid)';

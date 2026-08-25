@@ -7,7 +7,7 @@ export function AnomalyBandLegend({ className }: { className?: string }) {
   return (
     <div className={cn('flex items-center gap-2.5', className)}>
       {PROVISIONAL_STATUS_LEVELS.map((level) => (
-        <span key={level} className="flex items-center gap-1 text-[11px] text-fg-subtle">
+        <span key={level} className="flex items-center gap-1 text-[12px] text-fg-subtle">
           <span
             aria-hidden
             className="inline-block size-1.5 rounded-[2px]"

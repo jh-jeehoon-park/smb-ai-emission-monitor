@@ -63,14 +63,13 @@ export function ThemeToggle({ className }: { className?: string }) {
       type="button"
       onClick={toggle}
       className={cn(
-        'inline-flex size-7 cursor-pointer items-center justify-center rounded-[4px]',
-        'border border-border text-fg-muted',
-        'transition-colors duration-200 hover:border-border-strong hover:bg-surface-2 hover:text-fg',
+        'inline-flex size-7 cursor-pointer items-center justify-center rounded-chip',
+        'text-fg-muted transition-colors duration-200 hover:bg-surface-2 hover:text-fg',
         className,
       )}
     >
-      <Sun aria-hidden size={14} strokeWidth={1.9} className="theme-when-dark" />
-      <Moon aria-hidden size={14} strokeWidth={1.9} className="theme-when-light" />
+      <Sun aria-hidden size={16} strokeWidth={1.9} className="theme-when-dark" />
+      <Moon aria-hidden size={16} strokeWidth={1.9} className="theme-when-light" />
 
       {/* display:none인 쪽은 스크린리더도 읽지 않으므로 현재 상태에 맞는 문구만 전달된다 */}
       <span className="sr-only theme-when-dark">라이트 테마로 전환</span>

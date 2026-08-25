@@ -1,9 +1,10 @@
 'use client';
 
+import { useId } from 'react';
 import {
+  Area,
   CartesianGrid,
   ComposedChart,
-  Line,
   ReferenceLine,
   ResponsiveContainer,
   Tooltip,
@@ -27,6 +28,7 @@ import {
   type SeriesOrigin,
 } from '@/entities/prediction';
 import { COMPACT_HEIGHT, FULL_HEIGHT } from '../config/constants';
+import { useChartHover } from '@/shared/lib/use-chart-hover';
 
 interface ForecastChartProps {
   summary: ForecastSummary;
@@ -74,6 +76,9 @@ export function ForecastChart({
   showNowLabel = true,
   limits,
 }: ForecastChartProps) {
+  const { hoverProps, tooltipActive } = useChartHover();
+  /* 그라데이션 id는 문서 전역이다 — 같은 화면에 계열 차트가 여럿이라 고유값을 받는다 */
+  const areaId = `forecast-area-${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
   const data = summary.points;
   const show = (v: number) => v.toFixed(summary.decimals);
   const height = compact ? COMPACT_HEIGHT : FULL_HEIGHT;
@@ -93,9 +98,17 @@ export function ForecastChart({
   }
 
   const chart = (
-    <ResponsiveContainer width="100%" height={height}>
+    <div className="w-full" style={{ height }} {...hoverProps}>
+      <ResponsiveContainer width="100%" height="100%">
       {/* 포커스로 툴팁이 고정되는 것을 막는다 — 근거는 `water-quality-grid.tsx` */}
       <ComposedChart data={data} margin={{ top: 6, right: 10, bottom: 0, left: 0 }} accessibilityLayer={false}>
+        {/* 선 아래를 같은 색 그라데이션으로 채운다 — 근거는 `anomaly-timeline`과 같다 */}
+        <defs>
+          <linearGradient id={areaId} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={stroke} stopOpacity={0.24} />
+            <stop offset="100%" stopColor={stroke} stopOpacity={0} />
+          </linearGradient>
+        </defs>
         <CartesianGrid stroke={GRID_HEX} strokeDasharray="2 4" vertical={false} />
         <XAxis
           dataKey="t"
@@ -136,20 +149,23 @@ export function ForecastChart({
          * 계열 하나뿐이다. `connectNulls={false}`로 결측 구간을 **끊는다** — 이어 그리면
          * 수신하지 못한 시간에도 값이 있었던 것처럼 보인다(E4).
          */}
-        <Line
+        <Area
           type="monotone"
           strokeLinecap="round"
           strokeLinejoin="round"
           dataKey="value"
           stroke={stroke}
-          strokeWidth={2}
+          strokeWidth={2.5}
+          fill={`url(#${areaId})`}
           dot={false}
           connectNulls={false}
           isAnimationActive={false}
-          activeDot={{ r: 3, strokeWidth: 0, fill: stroke }}
+          activeDot={{ r: 4, strokeWidth: 2, stroke: 'var(--surface)', fill: stroke }}
         />
 
         <Tooltip
+          /* 포인터가 밖이면 끈다 — 근거는 `shared/lib/use-chart-hover.ts` */
+          active={tooltipActive}
           cursor={{ stroke: 'var(--border-strong)', strokeWidth: 1 }}
           content={({ active, payload, label }) => {
             if (!active || !payload?.length) return null;
@@ -167,7 +183,8 @@ export function ForecastChart({
           }}
         />
       </ComposedChart>
-    </ResponsiveContainer>
+      </ResponsiveContainer>
+    </div>
   );
 
   if (compact) return chart;
@@ -220,7 +237,7 @@ export function ForecastLimitNote({
   if (limit.unavailableReason === null) return null;
 
   return (
-    <p className="mt-1.5 px-1 text-[11px] text-fg-subtle">
+    <p className="mt-1.5 px-1 text-[12px] text-fg-subtle">
       {UNRESOLVED_LIMIT_TEXT} — 초과 가능성은 판정하지 않는다
     </p>
   );
@@ -250,7 +267,7 @@ export function ForecastEmpty({ height }: { height: number }) {
  */
 export function ForecastHorizonNote() {
   return (
-    <p className="mt-1.5 px-1 text-[11px] leading-relaxed text-fg-subtle">
+    <p className="mt-1.5 px-1 text-[12px] leading-relaxed text-fg-subtle">
       향후 6시간 예측은 그리지 않습니다 — 예측 대상 항목과 입력 데이터가 정해지지 않았습니다
       [TBD-52]. TN·TP는 6시간 예측 대상이 아니라 소프트 센싱으로 **지금 값을 추정**하는
       항목입니다 [회의 2026-08-20].
@@ -282,7 +299,7 @@ function LegendItem({
   swatch?: boolean;
 }) {
   return (
-    <li className="flex items-center gap-1.5 text-[11px] text-fg-muted">
+    <li className="flex items-center gap-1.5 text-[12px] text-fg-muted">
       {swatch ? (
         <span
           className="inline-block h-2.5 w-3.5 rounded-[2px]"

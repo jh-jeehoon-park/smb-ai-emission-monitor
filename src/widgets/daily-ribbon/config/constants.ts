@@ -1,4 +1,4 @@
-import { OPERATING_FILL } from '@/shared/config/operating-visual';
+import { OPERATING_FILL, OPERATING_GRADIENT } from '@/shared/config/operating-visual';
 import type { RibbonState } from '../lib/build-ribbon';
 
 /**
@@ -9,6 +9,17 @@ import type { RibbonState } from '../lib/build-ribbon';
  * 같은 사실이 화면마다 달라 보인다.
  */
 export const RIBBON_FILL: Record<RibbonState, string> = OPERATING_FILL;
+
+/**
+ * 상태 띠의 채움 `[사용자 지시 2026-08-25: 다른 그래프와 톤앤매너를 맞춰라]`.
+ *
+ * 단색이던 것을 **설비 상태 격자와 같은 그라데이션**으로 바꿨다 — 두 화면이 같은 운전 상태
+ * 축을 쓰는데 한쪽만 진한 단색이면 같은 사실로 보이지 않는다.
+ *
+ * `RIBBON_FILL`(단색)은 **범례 점과 커서 판독줄이 계속 쓴다** — 2px 점에 그라데이션을 주면
+ * 그냥 흐린 점이 된다.
+ */
+export const RIBBON_STRIP_FILL: Record<RibbonState, string> = OPERATING_GRADIENT;
 
 /** 상태 띠 세 줄이 공유하는 범례. 행마다 다른 말(정지·중단·결측)은 hover 판독줄이 맡는다 */
 export const RIBBON_LEGEND = [

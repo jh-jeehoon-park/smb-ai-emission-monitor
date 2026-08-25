@@ -23,6 +23,7 @@ import {
 } from '@/entities/alarm';
 import { getSite } from '@/entities/site';
 import { ALL_ALARMS, AlarmStateActions, useAlarmStates } from '@/features/alarm-ack';
+import { groupAlarmsByDay } from '../lib/group-by-day';
 import { AlarmDetailModal } from './alarm-detail-modal';
 import { useSelectedSiteId } from '@/features/site-selection';
 import {
@@ -105,6 +106,9 @@ export function AlarmsView() {
     [inScope],
   );
 
+  /* 목록 순서는 그대로 두고 날짜 경계에서만 끊는다 */
+  const groups = useMemo(() => groupAlarmsByDay(visible, DEMO_NOW_ISO), [visible]);
+
   return (
     <div className="space-y-6">
       <div className="grid gap-6 sm:grid-cols-3">
@@ -152,17 +156,40 @@ export function AlarmsView() {
         }
       >
         {visible.length === 0 ? (
-          <p className=" py-10 text-center text-[12px] text-fg-subtle">
+          <p className="py-10 text-center text-[12px] text-fg-subtle">
             조건에 맞는 알람이 없습니다.
           </p>
         ) : (
-          <ul className="divide-y divide-border">
-            {visible.map((alarm) => (
-              <li key={alarm.id}>
-                <AlarmRow alarm={alarm} onChange={setAlarmState} onOpen={() => setOpenId(alarm.id)} />
-              </li>
+          /*
+           * **하루가 한 묶음이다** `[사용자 지시 2026-08-25]`. 16건이 한 덩어리로 이어지면
+           * "언제 일어난 일인가"를 줄마다 다시 읽어야 한다 — 이력의 첫 질문은 시점이므로
+           * 날짜가 목록의 위계를 만든다.
+           *
+           * 그룹 머리는 스크롤 중에도 붙어 있다(`sticky`) — 긴 하루를 내려가는 동안 지금 보는
+           * 날이 화면 밖으로 나가면 묶은 의미가 없다. 카드 여백을 음수로 되돌려 띠가 카드 폭을
+           * 채우고, 그 위로 지나가는 줄이 비치지 않게 불투명 면을 깐다.
+           */
+          <div className="space-y-4">
+            {groups.map((group) => (
+              <section key={group.date}>
+                <div className="sticky top-[calc(var(--header-h)_+_0.5rem)] z-10 -mx-5 flex items-center justify-between gap-2 border-b border-border bg-surface px-5 pb-1.5 pt-1">
+                  <h3 className="text-[12px] font-bold text-fg">{group.label}</h3>
+                  <span className="num text-[12px] text-fg-subtle">{group.alarms.length}건</span>
+                </div>
+                <ul className="divide-y divide-border">
+                  {group.alarms.map((alarm) => (
+                    <li key={alarm.id}>
+                      <AlarmRow
+                        alarm={alarm}
+                        onChange={setAlarmState}
+                        onOpen={() => setOpenId(alarm.id)}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              </section>
             ))}
-          </ul>
+          </div>
         )}
       </Panel>
 
@@ -184,7 +211,7 @@ export function AlarmsView() {
             <button
               type="button"
               onClick={reset}
-              className="cursor-pointer whitespace-nowrap rounded-[3px] border border-border px-2.5 py-1.5 text-[11px] text-fg-muted transition-colors duration-200 hover:border-border-strong hover:text-fg"
+              className="cursor-pointer whitespace-nowrap rounded-[3px] border border-border px-2.5 py-1.5 text-[12px] text-fg-muted transition-colors duration-200 hover:border-border-strong hover:text-fg"
             >
               변경 {changedCount}건 되돌리기
             </button>
@@ -205,66 +232,81 @@ function AlarmRow({
   onOpen: () => void;
 }) {
   return (
-    <div className="flex flex-wrap items-start gap-x-3 gap-y-1.5 py-2.5">
-      {/*
-       * 제목을 버튼으로 둔다 — 행 전체를 누르게 하면 안쪽 확인·조치 버튼과 조작이 겹친다.
-       * 키보드로도 순서대로 닿는다.
-       */}
-      {/*
-       * **등급이 앞, 우선순위가 뒤다.** `[원문 발표 p.20 그림]`의 알람 표가 `등급 · 구분 ·
-       * 발생 시간 · 우선순위` 순서로 둘을 양 끝에 둔다 — 두 축이 다르다는 것이 배치로 드러난다.
-       *
-       * 나란히 붙여 봤더니 위험(빨강)과 긴급(빨강)이 같은 색 칩 두 개로 보여 중복으로 읽혔다.
-       * 대응 규칙은 원문에 없어 추정이다 `[INC-02]` — 근거는 `docs/specs/assumptions.md` §3.1.
-       */}
-      <StatusBadge level={alarm.level} />
-
-      <div className="min-w-0 flex-1 basis-[220px]">
+    /*
+     * **알람 목록 카드와 같은 위계를 쓴다** `[사용자 지시 2026-08-25]` — 제목 → 상세 → 메타.
+     * 이력 화면만 뱃지 넷을 앞뒤로 늘어놓던 판본은 같은 알람이 화면마다 다른 부품으로 보였다.
+     *
+     * 이 화면에만 있는 것은 오른쪽의 **처리 조작**(확인·조치)이다. 그것만 따로 세우고 나머지
+     * 분류(등급·조건·우선순위·사업장·시각)는 제목 아래 메타 줄로 내린다.
+     */
+    <div className="flex flex-wrap items-start gap-x-3 gap-y-2 py-3">
+      <div className="min-w-0 flex-1 basis-[280px]">
+        {/*
+         * 제목을 버튼으로 둔다 — 행 전체를 누르게 하면 안쪽 확인·조치 버튼과 조작이 겹친다.
+         * 키보드로도 순서대로 닿는다.
+         */}
         <button
           type="button"
           onClick={onOpen}
-          className="cursor-pointer text-left text-[12px] text-fg underline decoration-transparent underline-offset-2 transition-colors duration-200 hover:decoration-border-strong"
+          className="cursor-pointer text-left text-[14px] font-bold leading-snug text-fg underline decoration-transparent underline-offset-2 transition-colors duration-200 hover:text-accent hover:decoration-accent"
         >
           {alarm.title}
         </button>
-        <p className="mt-0.5 text-[11px] leading-relaxed text-fg-subtle">{alarm.detail}</p>
-      </div>
-
-      <div className="w-[124px] shrink-0 text-[11px] text-fg-subtle">
-        <p className="truncate text-fg-muted">{alarm.siteName}</p>
-        <p className="truncate">{ALARM_CONDITION_LABELS[alarm.condition]}</p>
-        {/* 방류하지 않는 동안의 수질값은 배출 수질이 아니다. 배출기준 초과로 읽히면 안 된다 */}
-        {raisedWhileNotDischarging(alarm) && (
-          <p className="truncate" style={{ color: statusInk(STATUS_VISUAL.caution) }}>
-            비방류 중 발생
-          </p>
-        )}
-      </div>
-
-      <div className="w-[120px] shrink-0 text-right text-[11px] text-fg-subtle">
-        <p className="num">{formatDateTime(alarm.raisedAtIso)}</p>
-        <p>
-          {formatRelative(alarm.raisedAtIso, DEMO_NOW_ISO)} · {DISPLAY_TIMEZONE}
+        <p className="mt-1.5 line-clamp-2 max-w-[60ch] text-[13px] leading-relaxed text-fg-muted">
+          {alarm.detail}
         </p>
+
+        {/*
+         * **메타는 두 갈래다** `[사용자 지시 2026-08-25]`. 뱃지 셋과 글자 넷이 한 줄에 섞여
+         * 있던 판본은 일곱 조각이 모두 같은 무게로 늘어서 무엇부터 읽어야 할지 알 수 없었다.
+         *
+         *  · **분류**(등급·조건·우선순위) — 뱃지. 색이 뜻을 가지므로 앞에 선다
+         *  · **정황**(사업장·시각) — 맨 글자. 읽을 때만 필요한 값이라 뒤로 물린다
+         *
+         * 둘 사이는 세로선으로 가른다 — 간격만으로는 줄바꿈됐을 때 어디까지가 분류인지 사라진다.
+         */}
+        <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1.5">
+          {/*
+           * **등급과 우선순위는 다른 축이다** `[원문 발표 p.20 그림]` — 그 표가
+           * `등급 · 구분 · 발생 시간 · 우선순위` 순서로 둘을 양 끝에 둔다. 대응 규칙은 원문에
+           * 없어 추정이다 `[INC-02]`(근거는 `assumptions.md` §3.1). 한 줄에 두되 **사이에
+           * 조건 칩을 끼워** 위험(빨강)과 긴급(빨강)이 붙어 한 덩어리로 보이지 않게 한다.
+           */}
+          <StatusBadge level={alarm.level} />
+          <span className={cn(BADGE_BASE, 'bg-surface-3 text-fg-muted')}>
+            {ALARM_CONDITION_LABELS[alarm.condition]}
+          </span>
+          <span className={cn(BADGE_BASE, 'font-medium', PRIORITY_CHIP[alarm.priority])}>
+            {ALARM_PRIORITY_LABELS[alarm.priority]}
+          </span>
+
+          <span aria-hidden className="h-3 w-px shrink-0 bg-border" />
+
+          <span className="flex flex-wrap items-center gap-x-1.5 text-[12px] text-fg-subtle">
+            <span className="truncate">{alarm.siteName}</span>
+            <span aria-hidden>·</span>
+            <span className="num">
+              {formatDateTime(alarm.raisedAtIso)} {DISPLAY_TIMEZONE}
+            </span>
+            <span aria-hidden>·</span>
+            <span className="num">{formatRelative(alarm.raisedAtIso, DEMO_NOW_ISO)}</span>
+          </span>
+
+          {/* 방류하지 않는 동안의 수질값은 배출 수질이 아니다. 배출기준 초과로 읽히면 안 된다 */}
+          {raisedWhileNotDischarging(alarm) && (
+            <span
+              className={cn(BADGE_BASE, 'bg-chip-caution')}
+              style={{ color: statusInk(STATUS_VISUAL.caution) }}
+            >
+              비방류 중 발생
+            </span>
+          )}
+        </div>
       </div>
 
-      <div className="flex w-[248px] shrink-0 items-center justify-end gap-2">
-        <span
-          className={cn(
-            BADGE_BASE,
-            'whitespace-nowrap',
-            PRIORITY_CHIP[alarm.priority],
-          )}
-        >
-          {ALARM_PRIORITY_LABELS[alarm.priority]}
-        </span>
-        <span
-          className={cn(
-            BADGE_BASE,
-            'whitespace-nowrap',
-            STATE_CHIP[alarm.state],
-          )}
-        >
+      {/* 이 화면의 본업 — 처리 상태와 그 조작. 오른쪽 끝에 고정해 세로로 훑힌다 */}
+      <div className="flex shrink-0 items-center gap-2">
+        <span className={cn(BADGE_BASE, 'whitespace-nowrap', STATE_CHIP[alarm.state])}>
           {ALARM_STATE_LABELS[alarm.state]}
         </span>
         <AlarmStateActions alarm={alarm} onChange={onChange} />

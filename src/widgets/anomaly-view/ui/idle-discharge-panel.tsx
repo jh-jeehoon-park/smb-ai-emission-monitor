@@ -22,6 +22,16 @@ const MINUTES_PER_HOUR = 60;
  * 이 판정은 이상 점수와 **다른 축**이다. 점수가 낮아도 여기서 잡힐 수 있다 —
  * 그것이 이 패널을 이상 탐지 화면에 둔 이유다.
  */
+/** 이 패널을 담는 카드의 제목 옆 툴팁에 쓴다 — 판정 방법은 값과 같은 파일에 있어야 한다 */
+export const IDLE_DISCHARGE_NOTE = (
+  <>
+    방류(유량) 발생 시각과 방지시설 가동(유입펌프 전류) 시각을 비교한다 [원문 발표 p.13]. 연속{' '}
+    {durationLabel(PROVISIONAL_IDLE_DISCHARGE_MIN_SAMPLES)} 미만은 세지 않는다 [PROVISIONAL].{' '}
+    <strong className="text-fg-muted">체류시간 보정은 적용하지 않았다</strong> — 원문이 값을 주지
+    않았다 [TBD-46]. 무단 여부는 신고 정보 없이 판정하지 않는다.
+  </>
+);
+
 export function IdleDischargePanel({ siteId, points }: IdleDischargePanelProps) {
   const canJudge = canJudgeIdleDischarge(siteId);
   const runs = findIdleDischargeRuns(siteId);
@@ -29,8 +39,8 @@ export function IdleDischargePanel({ siteId, points }: IdleDischargePanelProps) 
   if (!canJudge) {
     return (
       <p className="text-[12px] leading-relaxed text-fg-subtle">
-        통신 두절로 <strong className="text-fg-muted">판정할 수 없습니다</strong> — 방류 여부도
-        가동 여부도 수신되지 않았습니다. 의심 0건이 아닙니다.
+        통신 두절로 <strong className="text-fg-muted">판정할 수 없습니다</strong> — 방류 여부도 가동
+        여부도 수신되지 않았습니다. 의심 0건이 아닙니다.
       </p>
     );
   }
@@ -39,9 +49,12 @@ export function IdleDischargePanel({ siteId, points }: IdleDischargePanelProps) 
     <div className="space-y-3">
       {runs.length === 0 ? (
         <p className="text-[12px] leading-relaxed text-fg-subtle">
-          최근 24시간에 <strong className="text-fg-muted">연속{' '}
-          {durationLabel(PROVISIONAL_IDLE_DISCHARGE_MIN_SAMPLES)} 이상</strong> 이어진 구간이
-          없습니다. 그보다 짧거나 수신이 끊겨 확인되지 않은 시간은 여기에 세지 않습니다.
+          최근 24시간에{' '}
+          <strong className="text-fg-muted">
+            연속 {durationLabel(PROVISIONAL_IDLE_DISCHARGE_MIN_SAMPLES)} 이상
+          </strong>{' '}
+          이어진 구간이 없습니다. 그보다 짧거나 수신이 끊겨 확인되지 않은 시간은 여기에 세지
+          않습니다.
         </p>
       ) : (
         <ul className="space-y-2">
@@ -54,17 +67,23 @@ export function IdleDischargePanel({ siteId, points }: IdleDischargePanelProps) 
                 <p className="num text-[12px] text-fg">
                   {formatDateTime(run.fromIso)} – {formatDateTime(run.toIso)}
                 </p>
-                <p
-                  className="text-[11px]"
-                  style={{ color: statusInk(STATUS_VISUAL.warning) }}
-                >
+                <p className="text-[12px]" style={{ color: statusInk(STATUS_VISUAL.warning) }}>
                   {durationLabel(run.samples)} 연속
                 </p>
               </div>
-              <dl className="mt-1.5 flex flex-wrap gap-x-5 gap-y-1 text-[11px] text-fg-subtle">
-                <Fact label="유량" value={`${formatValue('flow', points[run.from]?.flow ?? null)} m³/day`} />
-                <Fact label="전류" value={`${formatValue('current', points[run.from]?.current ?? null)} A`} />
-                <Fact label="전력" value={`${formatValue('power', points[run.from]?.power ?? null)} kW`} />
+              <dl className="mt-1.5 flex flex-wrap gap-x-5 gap-y-1 text-[12px] text-fg-subtle">
+                <Fact
+                  label="유량"
+                  value={`${formatValue('flow', points[run.from]?.flow ?? null)} m³/day`}
+                />
+                <Fact
+                  label="전류"
+                  value={`${formatValue('current', points[run.from]?.current ?? null)} A`}
+                />
+                <Fact
+                  label="전력"
+                  value={`${formatValue('power', points[run.from]?.power ?? null)} kW`}
+                />
               </dl>
             </li>
           ))}
@@ -75,13 +94,6 @@ export function IdleDischargePanel({ siteId, points }: IdleDischargePanelProps) 
        * 판정 근거와 한계를 값과 함께 남긴다(E3). 이 문장이 없으면 화면이 법적 판정을
        * 내린 것처럼 읽힌다 — 원문이 준 것은 방법이지 기준이 아니다.
        */}
-      <p className="max-w-[70ch] border-t border-border pt-2.5 text-[11px] leading-relaxed text-fg-subtle">
-        방류(유량) 발생 시각과 방지시설 가동(유입펌프 전류) 시각을 비교한다 [원문 발표 p.13].
-        연속 {durationLabel(PROVISIONAL_IDLE_DISCHARGE_MIN_SAMPLES)} 미만은 세지 않는다
-        [PROVISIONAL].{' '}
-        <strong className="text-fg-muted">체류시간 보정은 적용하지 않았다</strong> — 원문이 값을
-        주지 않았다 [TBD-46]. 무단 여부는 신고 정보 없이 판정하지 않는다.
-      </p>
     </div>
   );
 }

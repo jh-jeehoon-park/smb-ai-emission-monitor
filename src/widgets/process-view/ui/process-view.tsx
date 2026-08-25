@@ -26,6 +26,7 @@ import { MEASUREMENT_ITEMS } from '@/shared/config/measurement';
 import { formatValue } from '@/shared/lib/format';
 import { stageReadings } from '../lib/stage-readings';
 import { ProcessDiagram } from './process-diagram';
+import { InfoTip } from '@/shared/ui/tooltip';
 
 const GRADE_HEX: Record<MeasurementGrade, string> = {
   actual: ACTUAL_HEX,
@@ -82,6 +83,14 @@ export function ProcessView() {
       <RiseItem>
         <Panel
           title="폐수처리 공정"
+          titleAside={
+            <InfoTip
+              label="이 공정도를 읽는 법"
+              content={`표준 공정은 5단계입니다 [회의 2026-08-20]. 사업장마다 공정이 달라 최대 공정을 두고 필요한 단계만 켭니다 — 사업장 설정 > 공정 구성에서 바꿉니다.${
+                disabled.length > 0 ? ` 지금 ${disabled.length}단계를 껐습니다.` : ''
+              } 단계별 계측 항목은 원문에 없어 설정으로 받습니다 [TBD-53].`}
+            />
+          }
           action={<GradeLegend />}
           bodyClassName="overflow-x-auto"
         >
@@ -91,12 +100,6 @@ export function ProcessView() {
             selectedId={selected.stage.id}
             onSelect={setStageId}
           />
-          <p className="mt-3 max-w-[92ch] border-t border-border pt-2.5 text-[12px] leading-relaxed text-fg-subtle">
-            표준 공정은 5단계입니다 [회의 2026-08-20]. 사업장마다 공정이 달라 **최대 공정**을
-            두고 필요한 단계만 켭니다 — 사업장 설정 &gt; 공정 구성에서 바꿉니다.
-            {disabled.length > 0 && ` 지금 ${disabled.length}단계를 껐습니다.`} 단계별 계측
-            항목은 원문에 없어 설정으로 받습니다 [TBD-53].
-          </p>
         </Panel>
       </RiseItem>
 
@@ -158,7 +161,7 @@ function OperatingBar({
 
       {!operating.discharging && operating.running && operating.idleHours !== null && (
         /* 간헐방류라 이 구분이 필요하다. 방류하지 않는 시간의 수질은 배출 수질이 아니다 */
-        <span className="text-[11px] text-fg-subtle">
+        <span className="text-[12px] text-fg-subtle">
           방류 중이 아닐 때의 수질값은 배출 수질이 아닙니다
         </span>
       )}
@@ -168,7 +171,7 @@ function OperatingBar({
 
 function GradeLegend() {
   return (
-    <div className="flex flex-wrap items-center gap-3 text-[11px]">
+    <div className="flex flex-wrap items-center gap-3 text-[12px]">
       {(['actual', 'estimated', 'none'] as MeasurementGrade[]).map((grade) => (
         <span key={grade} className="flex items-center gap-1.5 text-fg-subtle">
           <span
@@ -208,19 +211,19 @@ function StageDetail({
        */}
       <div className="mt-3 border-t border-border pt-2.5">
         {readings.length === 0 ? (
-          <p className="text-[11px] leading-relaxed text-fg-subtle">{NO_STAGE_CODES_REASON}</p>
+          <p className="text-[12px] leading-relaxed text-fg-subtle">{NO_STAGE_CODES_REASON}</p>
         ) : (
           <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[12px] sm:grid-cols-3">
             {readings.map((reading) => (
               <div key={reading.code}>
-                <dt className="text-[11px] text-fg-subtle">
+                <dt className="text-[12px] text-fg-subtle">
                   {MEASUREMENT_ITEMS[reading.code].symbol}
                 </dt>
                 <dd className="num mt-0.5 text-fg">
                   {/* 결측을 0으로 채우지 않는다 — 그 지점이 0을 잰 것이 아니다(E4) */}
                   {reading.latest === null ? '수신 없음' : formatValue(reading.code, reading.latest)}
                   {reading.latest !== null && (
-                    <span className="ml-1 text-[10px] font-normal text-fg-subtle">
+                    <span className="ml-1 text-[12px] font-normal text-fg-subtle">
                       {MEASUREMENT_ITEMS[reading.code].unit}
                     </span>
                   )}
@@ -257,7 +260,7 @@ function StageDetail({
       )}
 
       {stage.grade === 'none' && (
-        <p className="mt-3 rounded-nested bg-surface-2 px-2.5 py-2 text-[11px] leading-relaxed text-fg-subtle">
+        <p className="mt-3 rounded-nested bg-surface-2 px-2.5 py-2 text-[12px] leading-relaxed text-fg-subtle">
           이 단계는 계측하지 않습니다. 전처리·침전 구간에 계측기가 적은 것은 이 시스템의 한계가
           아니라 업계 표준입니다 — 계측은 제어가 필요한 곳과 법이 요구하는 곳에 몰립니다.
         </p>
@@ -272,27 +275,27 @@ function DischargePoint() {
     <Panel title="계측 지점">
       <div className="space-y-3 text-[12px]">
         <div>
-          <p className="text-[11px] text-fg-subtle">다항목 프로브 (단일 프로브 통합)</p>
+          <p className="text-[12px] text-fg-subtle">다항목 프로브 (단일 프로브 통합)</p>
           <p className="mt-1 text-fg">{PROBE_ITEMS.join(' · ')}</p>
         </div>
         <div>
-          <p className="text-[11px] text-fg-subtle">광학 센서 (별도 모듈)</p>
+          <p className="text-[12px] text-fg-subtle">광학 센서 (별도 모듈)</p>
           <p className="mt-1 text-fg">{OPTICAL_ITEMS.join(' · ')}</p>
         </div>
         <div className="border-t border-border pt-2.5">
-          <p className="text-[11px]" style={{ color: AI_HEX }}>
+          <p className="text-[12px]" style={{ color: AI_HEX }}>
             AI 추정 — 직접 재지 않는다
           </p>
           <p className="mt-1" style={{ color: AI_HEX }}>
             {ESTIMATED_ITEMS.join(' · ')}
           </p>
-          <p className="mt-1 text-[11px] leading-relaxed text-fg-subtle">
+          <p className="mt-1 text-[12px] leading-relaxed text-fg-subtle">
             T-N은 NO3-N·NH4-N·EC, T-P는 탁도·SS와의 상관에서 추정합니다. 정확도 T-N 88.6% · T-P
             78.2%.
           </p>
         </div>
         <div className="rounded-nested bg-surface-2 px-2.5 py-2">
-          <p className="text-[11px] text-fg-subtle">법정 방류 기준 점검 대상</p>
+          <p className="text-[12px] text-fg-subtle">법정 방류 기준 점검 대상</p>
           <p className="num mt-0.5 text-[12px] font-semibold text-fg">
             {REGULATED_ITEMS.join(' · ')}
           </p>
@@ -308,14 +311,14 @@ function NotMeasured() {
     <Panel title="이 화면이 재지 않는 것">
       <dl className="grid gap-2 sm:grid-cols-2">
         <div className="rounded-nested bg-surface-2 px-2.5 py-2">
-          <dt className="text-[11px] text-fg-subtle">송풍기 (폭기장치) · TBD-42</dt>
+          <dt className="text-[12px] text-fg-subtle">송풍기 (폭기장치) · TBD-42</dt>
           <dd className="mt-0.5 text-[12px] leading-relaxed text-fg-muted">
             예지보전 대상으로 원문이 다섯 번 언급하지만 무엇으로 재는지 규정이 없습니다. 개별
             신호가 규정된 설비는 약품주입펌프뿐입니다.
           </dd>
         </div>
         <div className="rounded-nested bg-surface-2 px-2.5 py-2">
-          <dt className="text-[11px] text-fg-subtle">프로브 설치 지점 · TBD-43</dt>
+          <dt className="text-[12px] text-fg-subtle">프로브 설치 지점 · TBD-43</dt>
           <dd className="mt-0.5 text-[12px] leading-relaxed text-fg-muted">
             원문에 설치 위치 서술이 없습니다. 실증 데이터가 방류구 기준이라 6단계에 그렸습니다.
           </dd>

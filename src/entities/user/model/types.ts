@@ -22,6 +22,13 @@ export interface RoleProfile {
   label: string;
   /** 그 역할이 실제로 누구인가 — 화면에 보이는 설명 */
   who: string;
+  /**
+   * 헤더 인사말에 쓰는 **시연용 이름** `[사용자 지시 2026-08-24]`.
+   *
+   * 원문에 사용자 이름이 없다. 계정 체계가 서면 서버가 주는 값으로 바뀐다 —
+   * `ADMIN_ACCOUNTS`의 `label`(`사업장1`)과 같은 종류의 시연 문구다.
+   */
+  demoName: string;
   scope: RoleScope;
   scopeLabel: string;
 }

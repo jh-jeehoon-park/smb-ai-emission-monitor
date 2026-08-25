@@ -29,6 +29,7 @@ import {
   type CostSavings,
 } from '@/entities/optimization';
 import { useSelectedSiteId } from '@/features/site-selection';
+import { InfoTip } from '@/shared/ui/tooltip';
 
 const NUMBER = new Intl.NumberFormat('ko-KR');
 const RATE_DECIMALS = PROVISIONAL_DISPLAY_DECIMALS.savingRate;
@@ -56,7 +57,15 @@ export function CostSavingsView() {
 
   if (!summary.online) {
     return (
-      <Panel title="비용 절감 현황">
+      <Panel
+        title="비용 절감 현황"
+        titleAside={
+          <InfoTip
+            label="총 절감률 계산"
+            content="총 운영비 절감률은 두 비율의 평균이 아니라 금액으로 가중한 값입니다. 약품비가 전력비의 2배라 평균을 쓰면 전력 절감이 실제보다 크게 반영됩니다."
+          />
+        }
+      >
         <div className="flex flex-col items-center justify-center gap-1.5 py-12 text-center">
           <p className={`num ${VALUE_LG} text-fg-subtle`}>—</p>
           <p className="text-[12px] text-fg-muted">산출 불가</p>
@@ -102,7 +111,7 @@ export function CostSavingsView() {
 
       <Panel
         title="절감 실적 — 목표 대비"
-        action={<span className="text-[12px] text-fg-subtle">목표는 전부 원문 수치</span>}
+        titleAside={<InfoTip label="이 값의 출처" content="목표치는 전부 원문(사업계획서)에 적힌 수치입니다. 우리가 정한 값이 아닙니다." />}
       >
         <TargetBars savings={savings} />
         {/* 절감률은 XMARL-PPO가 낸 값이다. AI 산출값에는 산출 시각·대상 기간을 함께 낸다(E3) */}
@@ -116,14 +125,14 @@ export function CostSavingsView() {
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <Panel
           title="막은 사고"
-          action={<span className="text-[12px] text-fg-subtle">건수와 금액을 나눠 적는다</span>}
+          titleAside={<InfoTip label="이 표를 읽는 법" content="건수와 금액을 나눠 봅니다 — 금액만 보면 큰 건 하나가 전체 추세를 가립니다." />}
         >
           <AvoidedIncidents detections={detections} />
         </Panel>
 
         <Panel
           title="설비 이상 현황"
-          action={<span className="text-[12px] text-fg-subtle">상태 나쁜 순</span>}
+          titleAside={<InfoTip label="정렬 기준" content="상태가 나쁜 쪽부터 정렬합니다." />}
         >
           <ReplacementList equipment={equipment} />
         </Panel>
@@ -154,7 +163,7 @@ function AiProvenance({
   windowLabel: string;
 }) {
   return (
-    <dl className="mt-2.5 grid grid-cols-1 gap-y-1.5 border-t border-border pt-2.5 text-[11px] sm:grid-cols-3 sm:gap-x-6">
+    <dl className="mt-2.5 grid grid-cols-1 gap-y-1.5 border-t border-border pt-2.5 text-[12px] sm:grid-cols-3 sm:gap-x-6">
       <div>
         <dt className="text-fg-subtle">산출 모델</dt>
         <dd className="mt-0.5 text-fg-muted">{model}</dd>
@@ -233,17 +242,12 @@ function TargetBars({ savings }: { savings: CostSavings }) {
             />
           </div>
           <span className="num text-right text-[12px] text-fg">{rate(row.value)}</span>
-          <span className="col-start-2 col-end-4 -mt-1.5 text-[11px] text-fg-subtle">
+          <span className="col-start-2 col-end-4 -mt-1.5 text-[12px] text-fg-subtle">
             {row.targetLabel}
             {row.met ? ' · 충족' : ' · 미달'}
           </span>
         </div>
       ))}
-
-      <p className="border-t border-border pt-2.5 text-[11px] leading-relaxed text-fg-subtle">
-        총 운영비 절감률은 두 비율의 평균이 아니라 <span className="num">금액</span>으로 가중한
-        값입니다. 약품비가 전력비의 2배라 평균을 쓰면 전력 절감이 실제보다 크게 반영됩니다.
-      </p>
     </div>
   );
 }
@@ -253,7 +257,7 @@ function AvoidedIncidents({ detections }: { detections: number }) {
     return (
       <div className="py-6 text-center">
         <p className="text-[12px] text-fg-muted">탐지된 이상 없음</p>
-        <p className="mt-1 text-[11px] text-fg-subtle">
+        <p className="mt-1 text-[12px] text-fg-subtle">
           회피 비용을 <span className="num">0원</span>으로 적지 않습니다 — 탐지가 없었다는 뜻이지
           가치가 0이라는 뜻이 아닙니다.
         </p>
@@ -266,25 +270,25 @@ function AvoidedIncidents({ detections }: { detections: number }) {
   return (
     <div className="space-y-3">
       <div>
-        <p className="text-[11px] text-fg-subtle">조기 탐지</p>
+        <p className="text-[12px] text-fg-subtle">조기 탐지</p>
         <p className={`num mt-1 ${VALUE_LG} text-fg`}>
           {detections}건
         </p>
       </div>
 
       <div className="border-t border-border pt-3">
-        <p className="text-[11px] text-fg-subtle">회피 가능 비용 (가정)</p>
+        <p className="text-[12px] text-fg-subtle">회피 가능 비용 (가정)</p>
         <p className={`num mt-1 ${VALUE_MD} text-fg-muted`}>
           {manwon(detections * low)} ~ {manwon(detections * high)}
         </p>
-        <p className="mt-2 text-[11px] leading-relaxed text-fg-subtle">
+        <p className="mt-2 text-[12px] leading-relaxed text-fg-subtle">
           건당 {manwon(low)} 또는 {manwon(high)} 기준. 원문이 같은 항목에 두 값을 주어
           <strong className="font-medium text-fg-muted"> 하나를 고르지 않았습니다</strong>. 사고 시
           평균 대응 비용은 {manwon(COST_EXAMPLE_KRW.incidentResponse)}입니다.
         </p>
       </div>
 
-      <p className="rounded-nested bg-surface-2 px-2.5 py-2 text-[11px] leading-relaxed text-fg-subtle">
+      <p className="rounded-nested bg-surface-2 px-2.5 py-2 text-[12px] leading-relaxed text-fg-subtle">
         <strong className="font-medium text-fg-muted">실제 사고 발생 여부와 무관한 상한값입니다.</strong>{' '}
         탐지했어도 사고로 이어지지 않았을 수 있어 위 절감률과 합산하지 않습니다.
       </p>
@@ -309,7 +313,7 @@ function ReplacementList({ equipment }: { equipment: Equipment[] }) {
         >
           <div className="min-w-0">
             <p className="truncate text-[12px] text-fg">{item.name}</p>
-            <p className="text-[11px] text-fg-subtle">
+            <p className="text-[12px] text-fg-subtle">
               누적 가동 <span className="num">{NUMBER.format(item.runtimeHours)}</span>시간
             </p>
           </div>
@@ -323,7 +327,7 @@ function ReplacementList({ equipment }: { equipment: Equipment[] }) {
           </p>
         </div>
       ))}
-      <p className="pt-1 text-[11px] leading-relaxed text-fg-subtle">
+      <p className="pt-1 text-[12px] leading-relaxed text-fg-subtle">
         <strong className="font-medium text-fg-muted">교체 시점은 내지 않습니다.</strong> 잔여
         수명을 산출하는 예지보전이 어렵다는 판단이라 [회의 2026-08-20] 이상 신호만 적습니다.
         교체 계획은 이상 여부로 대신할 수 없습니다.
@@ -340,7 +344,7 @@ function TmsAvoidance() {
       <p className={`num ${VALUE_LG} text-fg`}>
         {manwon(low)} ~ {manwon(high)}
       </p>
-      <p className="text-[11px] leading-relaxed text-fg-subtle">
+      <p className="text-[12px] leading-relaxed text-fg-subtle">
         기존 TMS는 구축비가 2~3억 원이라 소규모 사업장이 도입할 수 없었고, 본 시스템은 5,000만
         원입니다. <strong className="font-medium text-fg-muted">초년도에만 발생하는 1회성 차액</strong>
         이라 위의 연간 절감액과 합치지 않습니다 — 합치면 매년 반복되는 절감처럼 읽힙니다. 기존
@@ -401,7 +405,7 @@ function Basis({ savings, detections }: { savings: CostSavings; detections: numb
     <dl className="grid gap-2 sm:grid-cols-2">
       {items.map((item) => (
         <div key={item.term} className="rounded-nested bg-surface-2 px-2.5 py-2">
-          <dt className="text-[11px] text-fg-subtle">{item.term}</dt>
+          <dt className="text-[12px] text-fg-subtle">{item.term}</dt>
           <dd className="mt-0.5 text-[12px] leading-relaxed text-fg-muted">{item.desc}</dd>
         </div>
       ))}

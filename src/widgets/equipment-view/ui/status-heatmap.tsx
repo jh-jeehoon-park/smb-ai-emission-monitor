@@ -1,7 +1,13 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { OPERATING_FILL, OPERATING_UNKNOWN_OPACITY } from '@/shared/config/operating-visual';
+import {
+  OPERATING_ANOMALY_GRADIENT,
+  OPERATING_CELL_HIGHLIGHT,
+  OPERATING_FILL,
+  OPERATING_GRADIENT,
+  OPERATING_UNKNOWN_OPACITY,
+} from '@/shared/config/operating-visual';
 import { MISSING_HEX, STATUS_VISUAL } from '@/shared/config/status-visual';
 import { DISPLAY_TIMEZONE, formatClock } from '@/shared/lib/format';
 import { ChartTooltipRow, ChartTooltipShell } from '@/shared/ui/chart-tooltip';
@@ -29,7 +35,6 @@ const MISSING_FILL = `repeating-linear-gradient(45deg, ${MISSING_HEX} 0 2px, tra
 const TREATMENT_ROW_KEY = 'treatment';
 
 /** 이상이 걸린 칸에 얹는 형태 부호. 색만으로 가르지 않는다 */
-const ANOMALY_GLYPH = '▲';
 
 const RUN_LABEL = { on: '가동', off: '정지', unknown: '모름' } as const;
 const TREATMENT_LABEL = { on: '가동', off: '미가동', unknown: '모름' } as const;
@@ -112,9 +117,14 @@ export function StatusHeatmap({ siteId, items }: { siteId: string; items: Equipm
   return (
     <div className="space-y-2">
       <div className="relative" ref={frame} onMouseLeave={() => setHover(null)}>
-        <div className="overflow-x-auto">
+        {/*
+         * 격자를 **홈 안에 앉힌다** `[사용자 지시 2026-08-24]` — 옅은 면 + 안쪽 그림자
+         * (`--track-inset`, 막대·게이지 트랙과 같은 값)라 칸들이 파인 자리에 놓인 것으로 읽힌다.
+         * 홈이 없던 판본은 120칸이 카드 면 위에 떠 있어 어디까지가 격자인지 경계가 없었다.
+         */}
+        <div className="overflow-x-auto rounded-nested bg-surface-2 p-2.5 shadow-track">
           <table
-            className="w-full table-fixed border-separate border-spacing-[1px]"
+            className="w-full table-fixed border-separate border-spacing-[1px] text-center"
             style={{ minWidth: STATUS_TIMELINE_HOURS * HEATMAP_CELL_MIN_PX + HEATMAP_LABEL_PX }}
           >
             <caption className="sr-only">
@@ -126,7 +136,7 @@ export function StatusHeatmap({ siteId, items }: { siteId: string; items: Equipm
               <tr>
                 <th
                   scope="col"
-                  className="pb-1 text-left text-[11px] font-normal text-fg-subtle"
+                  className="pb-1 text-left text-[12px] font-normal text-fg-subtle"
                   style={{ width: HEATMAP_LABEL_PX }}
                 >
                   설비
@@ -135,7 +145,7 @@ export function StatusHeatmap({ siteId, items }: { siteId: string; items: Equipm
                   <th
                     key={cell.hourOffset}
                     scope="col"
-                    className="num pb-1 text-[10px] font-normal text-fg-subtle"
+                    className="num pb-1 text-[12px] font-normal text-fg-subtle"
                   >
                     {/* 24칸에 눈금을 다 달면 겹친다. 눈으로는 3시간마다, 스크린리더에는 전부 */}
                     <span aria-hidden>
@@ -152,7 +162,7 @@ export function StatusHeatmap({ siteId, items }: { siteId: string; items: Equipm
                 <tr key={equipment.id}>
                   <th
                     scope="row"
-                    className="truncate pr-2 text-left text-[11px] font-normal text-fg-muted"
+                    className="truncate pr-2 text-left text-[12px] font-normal text-fg-muted"
                   >
                     {equipment.name}
                   </th>
@@ -160,7 +170,6 @@ export function StatusHeatmap({ siteId, items }: { siteId: string; items: Equipm
                     <RunCell
                       key={cell.hourOffset}
                       cell={cell}
-                      level={equipment.status}
                       active={hover?.rowKey === equipment.id && hover.column === cell.hourOffset}
                       onMove={(e) => track(e, (x, y) => runHover(equipment, cell, x, y))}
                     />
@@ -180,7 +189,7 @@ export function StatusHeatmap({ siteId, items }: { siteId: string; items: Equipm
               <tr>
                 <th
                   scope="row"
-                  className="truncate pr-2 pt-2 text-left text-[11px] font-normal text-fg-subtle"
+                  className="truncate pr-2 pt-2 text-left text-[12px] font-normal text-fg-subtle"
                 >
                   방지시설 가동
                 </th>
@@ -214,13 +223,10 @@ export function StatusHeatmap({ siteId, items }: { siteId: string; items: Equipm
  */
 function RunCell({
   cell,
-  level,
   active,
   onMove,
 }: {
   cell: EquipmentRunCell;
-  /** 이상 글리프에 쓸 등급 색. 채움에는 쓰지 않는다 */
-  level: Equipment['status'];
   active: boolean;
   onMove: (event: React.MouseEvent) => void;
 }) {
@@ -246,19 +252,16 @@ function RunCell({
       onMouseMove={onMove}
       className="h-5 rounded-[3px] text-center align-middle"
       style={{
-        backgroundColor: OPERATING_FILL[state],
+        /*
+         * 같은 색의 위아래 농도 차 + 윗면 하이라이트 — 칸이 면에 얹힌 조각으로 읽힌다.
+         * **이상 신호가 걸린 칸은 위험색으로 칠한다** `[사용자 지시 2026-08-24: 세모는 지워라]` —
+         * 8px 도형은 20px 칸에서 거의 보이지 않았다. 무엇이 걸렸는지는 툴팁과 아래 숨은 문구가 말한다.
+         */
+        backgroundImage: anomaly ? OPERATING_ANOMALY_GRADIENT : OPERATING_GRADIENT[state],
+        boxShadow: OPERATING_CELL_HIGHLIGHT,
         outline: active ? OUTLINE : undefined,
       }}
     >
-      {anomaly && (
-        <span
-          aria-hidden
-          className="text-[8px] leading-none"
-          style={{ color: STATUS_VISUAL[level].hex }}
-        >
-          {ANOMALY_GLYPH}
-        </span>
-      )}
       <span className="sr-only">
         {hour} {RUN_LABEL[state]}
         {anomaly && ` · ${cell.signals.map((s) => EQUIPMENT_SIGNAL_LABELS[s]).join(' · ')}`}
@@ -272,7 +275,7 @@ function RunCell({
  *
  * **등급 색을 쓰지 않는다** — 이 축은 등급이 아니라 켜짐/꺼짐이고, 초록으로 칠한 `가동`은
  * 화면에서 `정상 등급`으로 읽힌다(`design-system §2`: 색은 상태를 뜻할 때만 쓴다).
- * 일간 운전 리본과 같은 `OPERATING_FILL`을 쓴다.
+ * 일간 운전 리본과 같은 색이며, 위 격자와 같은 그라데이션·하이라이트를 쓴다.
  *
  * 띠를 `td`가 아니라 안쪽 `span`에 그린다. `td`는 같은 행의 글자 높이만큼 늘어나 설비 행과
  * 구분되지 않는다 — 다섯 번째 설비처럼 읽힌다.
@@ -310,7 +313,7 @@ function TreatmentCellView({
            */
           state === 'unknown'
             ? { backgroundImage: MISSING_FILL, opacity: OPERATING_UNKNOWN_OPACITY }
-            : { backgroundColor: OPERATING_FILL[state] }
+            : { backgroundImage: OPERATING_GRADIENT[state], boxShadow: OPERATING_CELL_HIGHLIGHT }
         }
       />
       <span className="sr-only">
@@ -343,7 +346,7 @@ function HeatmapTooltip({ hover }: { hover: HoverTarget }) {
       }}
     >
       <ChartTooltipShell label={`${formatClock(hover.iso)} ${DISPLAY_TIMEZONE}`}>
-        {hover.equipmentName && <p className="text-[11px] text-fg-muted">{hover.equipmentName}</p>}
+        {hover.equipmentName && <p className="text-[12px] text-fg-muted">{hover.equipmentName}</p>}
         {hover.body}
       </ChartTooltipShell>
     </div>
@@ -416,7 +419,7 @@ function HeatmapLegend({
   hasAnomaly: boolean;
 }) {
   return (
-    <ul className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-border pt-2 text-[11px] text-fg-subtle">
+    <ul className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-border pt-2 text-[12px] text-fg-subtle">
       <li className="flex items-center gap-1">
         <span
           aria-hidden
@@ -437,13 +440,12 @@ function HeatmapLegend({
       {/* 일어나지 않은 상태의 범례는 잡음이다. 격자에 있을 때만 설명한다 */}
       {hasAnomaly && (
         <li className="flex items-center gap-1">
+          {/* 칸과 같은 채움을 축소해 보인다 — 범례와 격자가 다른 표기를 쓰면 범례가 거짓이 된다 */}
           <span
             aria-hidden
-            className="flex h-2.5 w-3.5 items-center justify-center text-[7px] leading-none"
-            style={{ color: STATUS_VISUAL.warning.hex }}
-          >
-            {ANOMALY_GLYPH}
-          </span>
+            className="h-2.5 w-3.5 rounded-[2px]"
+            style={{ backgroundImage: OPERATING_ANOMALY_GRADIENT }}
+          />
           이상 신호
         </li>
       )}

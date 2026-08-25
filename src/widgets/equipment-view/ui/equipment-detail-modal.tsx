@@ -77,7 +77,7 @@ export function EquipmentDetailModal({
        * 값을 보여 주면서 그 값이 무엇으로 만들어졌는지 말하지 않으면 검증된 지표처럼 읽힌다(E3).
        * 여기서 밝혀야 하는 것은 **무엇을 내리기로 했는지**다 — 없어진 값을 찾는 사람이 있다.
        */}
-      <p className="mt-3 max-w-[62ch] border-t border-border pt-3 text-[11px] leading-relaxed text-fg-subtle">
+      <p className="mt-3 max-w-[62ch] border-t border-border pt-3 text-[12px] leading-relaxed text-fg-subtle">
         <strong className="text-fg-muted">고장 확률·잔여 수명(RUL)·MPI는 표시하지 않는다</strong> —
         예지보전으로 그 값을 내기는 어렵다는 판단이다 [회의 2026-08-20]. 현실적으로 가능한 것은
         진동 센서 기반 이상 탐지와 가동 상태 확인이며, 진동 센서의 단위·측정 범위는 아직
@@ -87,7 +87,7 @@ export function EquipmentDetailModal({
       </p>
 
       <div className="mt-4 border-t border-border pt-3">
-        <p className="mb-1 text-[11px] text-fg-subtle">이상 발생 시각</p>
+        <p className="mb-1 text-[12px] text-fg-subtle">이상 발생 시각</p>
         <p className="text-[12px] text-fg">
           {equipment.anomalySinceIso === null ? (
             equipment.signals.length === 0 ? (
@@ -105,13 +105,13 @@ export function EquipmentDetailModal({
             </>
           )}
         </p>
-        <p className="mt-1.5 max-w-[62ch] text-[11px] leading-relaxed text-fg-subtle">
+        <p className="mt-1.5 max-w-[62ch] text-[12px] leading-relaxed text-fg-subtle">
           이상 이력은 저장소가 없어 시연용으로 만든 값이다 [REQ-AD-019 미구현].
         </p>
       </div>
 
       <div className="mt-4 border-t border-border pt-3">
-        <p className="mb-2 text-[11px] text-fg-subtle">이 설비의 알람 {related.length}건</p>
+        <p className="mb-2 text-[12px] text-fg-subtle">이 설비의 알람 {related.length}건</p>
         {related.length === 0 ? (
           <p className="text-[12px] text-fg-subtle">최근 24시간에 이 설비로 발생한 알람이 없습니다.</p>
         ) : (
@@ -120,12 +120,12 @@ export function EquipmentDetailModal({
               <li key={alarm.id} className="text-[12px]">
                 <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
                   <span className="text-fg">{alarm.title}</span>
-                  <span className="text-[11px] text-fg-subtle">
+                  <span className="text-[12px] text-fg-subtle">
                     {ALARM_PRIORITY_LABELS[alarm.priority]} ·{' '}
                     {formatRelative(alarm.raisedAtIso, DEMO_NOW_ISO)}
                   </span>
                 </div>
-                <p className="mt-0.5 text-[11px] leading-relaxed text-fg-subtle">{alarm.detail}</p>
+                <p className="mt-0.5 text-[12px] leading-relaxed text-fg-subtle">{alarm.detail}</p>
               </li>
             ))}
           </ul>

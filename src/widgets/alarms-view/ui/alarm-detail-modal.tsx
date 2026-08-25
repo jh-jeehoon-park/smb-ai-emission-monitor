@@ -58,7 +58,7 @@ export function AlarmDetailModal({ alarm, onClose, onChange }: AlarmDetailModalP
       title={alarm.title}
       footer={
         <>
-          <span className="mr-auto text-[11px] text-fg-subtle">
+          <span className="mr-auto text-[12px] text-fg-subtle">
             상태 {ALARM_STATE_LABELS[alarm.state]}
           </span>
           <AlarmStateActions alarm={alarm} onChange={onChange} />
@@ -90,7 +90,7 @@ export function AlarmDetailModal({ alarm, onClose, onChange }: AlarmDetailModalP
        * "이 값 때문에 알람이 났다"로 읽힌다(E3).
        */}
       <div className="mt-4 border-t border-border pt-3">
-        <p className="mb-2 text-[11px] text-fg-subtle">
+        <p className="mb-2 text-[12px] text-fg-subtle">
           발생 시각 계측값 · {COLLECTION_INTERVAL_MINUTES}분 주기 표본
         </p>
         {snapshot.missing ? (
@@ -104,7 +104,7 @@ export function AlarmDetailModal({ alarm, onClose, onChange }: AlarmDetailModalP
                 <span className="text-fg-subtle">{MEASUREMENT_ITEMS[code].symbol}</span>
                 <span className="num text-fg">
                   {formatValue(code, value)}
-                  <span className="ml-1 text-[11px] text-fg-subtle">
+                  <span className="ml-1 text-[12px] text-fg-subtle">
                     {MEASUREMENT_ITEMS[code].unit}
                   </span>
                 </span>

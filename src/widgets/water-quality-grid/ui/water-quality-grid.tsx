@@ -16,6 +16,7 @@ import { ChartTooltipRow, ChartTooltipShell } from '@/shared/ui/chart-tooltip';
 import { RiseItem, StaggerGroup } from '@/shared/ui/motion';
 import { countOverLimit, type MeasurementPoint, type SeriesCode } from '@/entities/measurement';
 import { limitZone, type LimitZone } from '../lib/limit-zone';
+import { useChartHover } from '@/shared/lib/use-chart-hover';
 
 interface WaterQualityGridProps {
   data: MeasurementPoint[];
@@ -30,13 +31,21 @@ interface WaterQualityGridProps {
    * 1차 침전 TOC에 그으면 없는 초과 판정을 만든다.
    */
   limits?: DischargeLimitTable;
+  /**
+   * 이 격자가 받은 데이터가 **몇 시간치인가**. 대체 텍스트에 적는다(**E5**).
+   *
+   * 굳은 값(24)을 적어 두던 판본은 기간 필터를 6시간으로 바꿔도 화면을 못 보는 사람에게는
+   * 계속 24시간이라고 말했다 — 눈으로는 보이지 않는 거짓말이라 오래 남았다.
+   * `data`에서 셀 수도 있지만 표본 간격을 알아야 해서, 자른 쪽이 알려 준다.
+   */
+  windowHours: number;
 }
 
 /**
  * 단위가 다른 항목을 한 축에 겹치지 않는다 — pH 0~14와 EC 0~20,000을 같은 y축에 두면
  * 둘 다 읽을 수 없게 된다. 항목마다 자기 축을 가진 작은 차트로 나눈다(small multiples).
  */
-export function WaterQualityGrid({ data, codes, limits }: WaterQualityGridProps) {
+export function WaterQualityGrid({ data, codes, limits, windowHours }: WaterQualityGridProps) {
   /**
    * 열 수는 뷰포트가 아니라 **이 그리드가 실제로 받은 폭**을 따라야 한다.
    * 같은 위젯이 통합 관제(지도 옆 좁은 열)와 시계열 화면(전폭)에 함께 쓰인다 —
@@ -55,7 +64,7 @@ export function WaterQualityGrid({ data, codes, limits }: WaterQualityGridProps)
       <StaggerGroup className="grid grid-cols-2 gap-2 @[560px]:grid-cols-4">
         {codes.map((code) => (
           <RiseItem key={code}>
-            <MiniSeries code={code} data={data} table={limits} />
+            <MiniSeries code={code} data={data} table={limits} windowHours={windowHours} />
           </RiseItem>
         ))}
       </StaggerGroup>
@@ -67,12 +76,15 @@ function MiniSeries({
   code,
   data,
   table,
+  windowHours,
 }: {
   code: SeriesCode;
   data: MeasurementPoint[];
   /** `undefined`면 기준을 그리지 않는다 — 방류 지점이 아닌 계열이다 */
   table?: DischargeLimitTable;
+  windowHours: number;
 }) {
+  const { hoverProps, tooltipActive } = useChartHover();
   const item = MEASUREMENT_ITEMS[code];
   const values = data.map((p) => p[code]);
   const latest = [...values].reverse().find((v) => v !== null) ?? null;
@@ -84,7 +96,7 @@ function MiniSeries({
   return (
     <div className="h-full rounded-nested bg-surface-2 p-3">
       <div className="flex items-baseline justify-between gap-2">
-        <span className="text-[11px] font-medium tracking-[0.08em] text-fg-subtle">
+        <span className="text-[12px] font-medium tracking-[0.08em] text-fg-subtle">
           {item.symbol}
         </span>
         {isMissingNow && (
@@ -98,10 +110,10 @@ function MiniSeries({
         <span className={`num ${VALUE_MD} text-fg`}>
           {formatValue(code, latest)}
         </span>
-        {item.unit && <span className="text-[11px] text-fg-subtle">{item.unit}</span>}
+        {item.unit && <span className="text-[12px] text-fg-subtle">{item.unit}</span>}
       </div>
 
-      <p className="mt-0.5 truncate text-[11px] text-fg-muted">{item.label}</p>
+      <p className="mt-0.5 truncate text-[12px] text-fg-muted">{item.label}</p>
 
       {/* 기준을 아는 항목인지, 안다면 넘었는지 — 두 사실을 구분해 적는다 */}
       <LimitNote
@@ -115,11 +127,11 @@ function MiniSeries({
       {/* 작은 차트는 현재값이 이미 위에 텍스트로 있다. 항목마다 표를 또 두면 소음이다 */}
       <ChartFigure
         bare
-        label={`${item.label}(${item.symbol}) 최근 24시간 추이${
+        label={`${item.label}(${item.symbol}) 최근 ${windowHours}시간 추이${
           item.unit ? `, 단위 ${item.unit}` : ''
         }, KST 기준. 현재값 ${formatValue(code, latest)}`}
       >
-        <div className="-mx-1 mt-2 h-10">
+        <div className="-mx-1 mt-2 h-10" {...hoverProps}>
           <ResponsiveContainer width="100%" height="100%">
             {/*
              * `accessibilityLayer={false}` — **툴팁이 화면에 얼어붙는 것을 막는다.**
@@ -139,7 +151,7 @@ function MiniSeries({
             >
               <defs>
                 <linearGradient id={`fill-${code}`} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={ACTUAL_HEX} stopOpacity={0.22} />
+                  <stop offset="0%" stopColor={ACTUAL_HEX} stopOpacity={0.26} />
                   <stop offset="100%" stopColor={ACTUAL_HEX} stopOpacity={0} />
                 </linearGradient>
               </defs>
@@ -153,6 +165,8 @@ function MiniSeries({
                */}
               <YAxis hide domain={zone ? zone.domain : ['dataMin', 'dataMax']} />
               <Tooltip
+                /* 포인터가 밖이면 끈다 — 근거는 `shared/lib/use-chart-hover.ts` */
+                active={tooltipActive}
                 cursor={{ stroke: GRID_HEX, strokeWidth: 1 }}
                 content={({ active, payload }) => {
                   if (!active || !payload?.length) return null;
@@ -179,11 +193,11 @@ function MiniSeries({
                 strokeLinejoin="round"
                 dataKey={code}
                 stroke={ACTUAL_HEX}
-                strokeWidth={1.4}
+                strokeWidth={1.8}
                 fill={`url(#fill-${code})`}
                 connectNulls={false}
                 dot={false}
-                activeDot={{ r: 2.5, strokeWidth: 0, fill: ACTUAL_HEX }}
+                activeDot={{ r: 3, strokeWidth: 1.5, stroke: 'var(--surface)', fill: ACTUAL_HEX }}
                 isAnimationActive={false}
               />
             </AreaChart>
@@ -220,11 +234,11 @@ function LimitNote({
 
   const range = formatLimitRange(limit, decimals);
   if (!zone || overCount === null || range === null) {
-    return <p className="mt-1 truncate text-[11px] text-fg-subtle">{UNRESOLVED_LIMIT_TEXT}</p>;
+    return <p className="mt-1 truncate text-[12px] text-fg-subtle">{UNRESOLVED_LIMIT_TEXT}</p>;
   }
 
   return (
-    <p className="mt-1 truncate text-[11px] text-fg-subtle" title={limit.source}>
+    <p className="mt-1 truncate text-[12px] text-fg-subtle" title={limit.source}>
       <span className="num">기준 {range}</span>{' '}
       · {overCount === 0 ? '초과 없음' : `초과 ${overCount}건`}
     </p>

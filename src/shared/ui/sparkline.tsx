@@ -1,3 +1,6 @@
+'use client';
+
+import { useId } from 'react';
 import { cn } from '@/shared/lib/cn';
 import { smoothPath } from '@/shared/lib/smooth-path';
 
@@ -11,6 +14,14 @@ interface SparklineProps {
   fluid?: boolean;
   /** 선 굵기. `fluid`로 늘려 놓으면 얇은 선이 배경에 묻힌다 */
   strokeWidth?: number;
+  /**
+   * 선 아래를 색 그라데이션으로 채운다 `[사용자 지시 2026-08-24]`.
+   *
+   * 채움은 **선 아래에만** 있다 — 위로 번지면 카드의 다른 값과 겹쳐 읽힌다.
+   * 위 22%에서 아래 0%로 흐르므로 선이 높은 구간일수록 채운 면이 두껍고,
+   * 등급색과 함께 쓰면 "위험한 구간이 두껍다"가 색과 면적 두 축으로 읽힌다.
+   */
+  fill?: boolean;
 }
 
 /**
@@ -28,7 +39,14 @@ export function Sparkline({
   className,
   fluid = false,
   strokeWidth = 1.25,
+  fill = false,
 }: SparklineProps) {
+  /*
+   * 그라데이션 id는 문서 전역이라 카드 10장이 서로를 덮지 않게 고유값을 받는다.
+   * `useId`가 주는 `:r1:`에서 기호를 걷어낸다 — SVG 조각 참조로는 동작하지만
+   * 나중에 CSS 선택자로 집으려 하면 콜론이 조합자로 파싱된다.
+   */
+  const gradientId = `spark-${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
   const filled = values.filter((v): v is number => v !== null);
   if (filled.length < 2) {
     return <div className={cn('h-6', fluid ? 'w-full' : 'w-24', className)} aria-hidden />;
@@ -66,6 +84,26 @@ export function Sparkline({
       fill="none"
       aria-hidden
     >
+      {fill && (
+        <defs>
+          <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity={0.22} />
+            <stop offset="100%" stopColor={color} stopOpacity={0} />
+          </linearGradient>
+        </defs>
+      )}
+
+      {/* 채움은 선과 같은 곡선을 쓰고 바닥까지 내려 닫는다 — 조각마다 따로 닫아 결측을 잇지 않는다 */}
+      {fill &&
+        segments.map((points, i) => (
+          <path
+            key={`area-${i}`}
+            d={`${smoothPath(points)} L ${points[points.length - 1].x} ${height} L ${points[0].x} ${height} Z`}
+            fill={`url(#${gradientId})`}
+            stroke="none"
+          />
+        ))}
+
       {segments.map((points, i) => (
         <path
           key={i}

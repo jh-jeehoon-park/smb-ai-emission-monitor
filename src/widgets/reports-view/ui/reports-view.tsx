@@ -26,6 +26,7 @@ import {
   type BucketStat,
   type BucketUnit,
 } from '@/entities/measurement';
+import { TABLE_HEAD_ROW } from '@/shared/ui/table';
 import { SERIES_ORIGIN_LABELS, TrendChip } from '@/entities/prediction';
 import { buildSiteReport, toCsv, type SiteReportRow } from '../lib/build-report';
 import {
@@ -36,6 +37,8 @@ import {
   type EstimateReportRow,
   type SensorReportRow,
 } from '../lib/build-sensor-report';
+import { InfoTip } from '@/shared/ui/tooltip';
+import { ACTION_BUTTON_QUIET } from '@/shared/ui/action-button';
 
 export function ReportsView() {
   const [period, setPeriod] = useQueryState(PERIOD_QUERY_KEY, PERIOD_HOURS, '24');
@@ -122,7 +125,7 @@ export function ReportsView() {
             <button
               type="button"
               onClick={download}
-              className="flex cursor-pointer items-center gap-1.5 rounded-[4px] border border-border bg-surface px-2.5 py-1.5 text-[11px] text-fg-muted transition-colors duration-200 hover:border-border-strong hover:bg-surface-2 hover:text-fg"
+              className={ACTION_BUTTON_QUIET}
             >
               <Download size={12} strokeWidth={2} />
               CSV 내보내기
@@ -133,7 +136,7 @@ export function ReportsView() {
         <ReportTable rows={rows} />
 
         {/* 무엇을 기준으로 센 값인지 적지 않으면 방류 열이 이상 점수까지 걸렀다고 읽힌다 */}
-        <p className="border-t border-border py-2 text-[11px] leading-relaxed text-fg-subtle">
+        <p className="border-t border-border py-2 text-[12px] leading-relaxed text-fg-subtle">
           이상 점수 통계는 <strong className="text-fg-muted">전 구간 기준</strong>입니다 — 방류
           여부로 거르지 않습니다. 이상 점수는 배출 수질이 아니라 공정 이상도이고, 방류하지 않는
           동안에도 설비는 돌기 때문입니다. 방류 시간은 <strong className="text-fg-muted">수신된
@@ -195,7 +198,7 @@ export function ReportsView() {
           <button
             type="button"
             onClick={downloadSensors}
-            className="flex cursor-pointer items-center gap-1.5 rounded-[4px] border border-border bg-surface px-2.5 py-1.5 text-[11px] text-fg-muted transition-colors duration-200 hover:border-border-strong hover:bg-surface-2 hover:text-fg"
+            className={ACTION_BUTTON_QUIET}
           >
             <Download size={12} strokeWidth={2} />
             CSV 내보내기
@@ -203,7 +206,7 @@ export function ReportsView() {
         }
       >
         <SensorTable rows={sensors} />
-        <p className="border-t border-border py-2 text-[11px] leading-relaxed text-fg-subtle">
+        <p className="border-t border-border py-2 text-[12px] leading-relaxed text-fg-subtle">
           결측은 평균에서 빼고 건수로만 셉니다 — 0으로 채우면 값 자체가 거짓이 됩니다. 기준
           판정은 <strong className="text-fg-muted">최신값</strong> 기준입니다(평균으로 하면
           한때의 초과가 묻힙니다). {limits.unresolvedReason ?? '기준치가 설정되어 초과를 판정합니다.'}
@@ -217,7 +220,7 @@ export function ReportsView() {
        */}
       <Panel
         title="오염도 판정"
-        action={<span className="text-[12px] text-fg-subtle">농도는 적지 않는다</span>}
+        titleAside={<InfoTip label="농도를 적지 않는 이유" content="소프트 센싱으로는 절대값의 정확도를 맞추기 어려워 높낮이만 냅니다 [회의 2026-08-20]. 숫자를 그대로 찍으면 계측된 농도로 읽힙니다." />}
       >
         <EstimateTable rows={estimates} />
       </Panel>
@@ -242,11 +245,11 @@ export function ReportsView() {
  * 두절은 애초에 받지 못한 것이다. 두절을 0으로 적으면 배출이 없었다고 주장하게 된다(E4).
  */
 function DischargeCell({ hours, windowHours }: { hours: number | null; windowHours: number }) {
-  if (hours === null) return <span className="text-[11px] text-fg-subtle">—</span>;
+  if (hours === null) return <span className="text-[12px] text-fg-subtle">—</span>;
 
   if (hours === 0) {
     return (
-      <span className="text-[11px]" style={{ color: statusInk(STATUS_VISUAL.caution) }}>
+      <span className="text-[12px]" style={{ color: statusInk(STATUS_VISUAL.caution) }}>
         배출 없음
       </span>
     );
@@ -264,19 +267,19 @@ function DischargeCell({ hours, windowHours }: { hours: number | null; windowHou
 function ReportTable({ rows }: { rows: SiteReportRow[] }) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[860px] border-separate border-spacing-0 text-[12px]">
+      <table className="w-full min-w-[860px] border-separate border-spacing-0 text-[12px] text-center">
         <thead>
-          <tr className="text-[12px] font-semibold text-fg-muted [&>th]:bg-surface-2 [&>th:first-child]:rounded-l-nested [&>th:last-child]:rounded-r-nested">
-            <th className="px-3 py-3 text-left">사업장</th>
-            <th className="px-3 py-3 text-left">상태</th>
-            <th className="px-3 py-3 text-right">방류</th>
-            <th className="px-3 py-3 text-right">최신</th>
-            <th className="px-3 py-3 text-right">최대</th>
-            <th className="px-3 py-3 text-right">평균</th>
-            <th className="px-3 py-3 text-right">결측</th>
-            <th className="px-3 py-3 text-right">알람 (긴급·주의·정보)</th>
-            <th className="px-3 py-3 text-right">처리율</th>
-            <th className="px-3 py-3 text-right">가동률</th>
+          <tr className={TABLE_HEAD_ROW}>
+            <th className="px-3 py-3 text-center">사업장</th>
+            <th className="px-3 py-3 text-center">상태</th>
+            <th className="px-3 py-3 text-center">방류</th>
+            <th className="px-3 py-3 text-center">최신</th>
+            <th className="px-3 py-3 text-center">최대</th>
+            <th className="px-3 py-3 text-center">평균</th>
+            <th className="px-3 py-3 text-center">결측</th>
+            <th className="px-3 py-3 text-center">알람 (긴급·주의·정보)</th>
+            <th className="px-3 py-3 text-center">처리율</th>
+            <th className="px-3 py-3 text-center">가동률</th>
           </tr>
         </thead>
         <tbody>
@@ -286,7 +289,7 @@ function ReportTable({ rows }: { rows: SiteReportRow[] }) {
               <tr key={row.siteId} className="[&>*]:border-b [&>*]:border-border">
                 <td className="px-3 py-3.5">
                   <span className="block text-fg">{row.siteName}</span>
-                  <span className="block text-[11px] text-fg-subtle">
+                  <span className="block text-[12px] text-fg-subtle">
                     {row.region} · {row.industry}
                   </span>
                 </td>
@@ -294,32 +297,32 @@ function ReportTable({ rows }: { rows: SiteReportRow[] }) {
                   {row.status ? (
                     <StatusBadge level={row.status} />
                   ) : (
-                    <span className="text-[11px] text-fg-subtle">수신 없음</span>
+                    <span className="text-[12px] text-fg-subtle">수신 없음</span>
                   )}
                 </td>
-                <td className="px-3 py-3.5 text-right">
+                <td className="px-3 py-3.5 text-center">
                   <DischargeCell hours={row.dischargeHours} windowHours={row.windowHours} />
                 </td>
-                <td className="num px-3 py-3.5 text-right" style={{ color: ink }}>
+                <td className="num px-3 py-3.5 text-center" style={{ color: ink }}>
                   {row.latestScore ?? '—'}
                 </td>
-                <td className="num px-3 py-3.5 text-right text-fg-muted">{row.maxScore ?? '—'}</td>
-                <td className="num px-3 py-3.5 text-right text-fg-muted">
+                <td className="num px-3 py-3.5 text-center text-fg-muted">{row.maxScore ?? '—'}</td>
+                <td className="num px-3 py-3.5 text-center text-fg-muted">
                   {row.avgScore === null
                     ? '—'
                     : row.avgScore.toFixed(PROVISIONAL_DISPLAY_DECIMALS.anomalyScoreAverage)}
                 </td>
-                <td className="num px-3 py-3.5 text-right text-fg-subtle">
+                <td className="num px-3 py-3.5 text-center text-fg-subtle">
                   {row.missingCount > 0 ? `${row.missingCount}/${row.totalCount}` : '없음'}
                 </td>
-                <td className="num px-3 py-3.5 text-right text-fg-muted">
+                <td className="num px-3 py-3.5 text-center text-fg-muted">
                   {row.alarmsByPriority.urgent} · {row.alarmsByPriority.caution} ·{' '}
                   {row.alarmsByPriority.info}
                 </td>
-                <td className="num px-3 py-3.5 text-right text-fg-muted">
+                <td className="num px-3 py-3.5 text-center text-fg-muted">
                   {row.dataThroughput.toFixed(PROVISIONAL_DISPLAY_DECIMALS.dataThroughput)}%
                 </td>
-                <td className="num px-3 py-3.5 text-right text-fg-muted">
+                <td className="num px-3 py-3.5 text-center text-fg-muted">
                   {row.uptime.toFixed(PROVISIONAL_DISPLAY_DECIMALS.uptime)}%
                 </td>
               </tr>
@@ -339,17 +342,17 @@ function ReportTable({ rows }: { rows: SiteReportRow[] }) {
 function SensorTable({ rows }: { rows: SensorReportRow[] }) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[680px] border-separate border-spacing-0 text-[12px]">
+      <table className="w-full min-w-[680px] border-separate border-spacing-0 text-[12px] text-center">
         <thead>
-          <tr className="text-[12px] font-semibold text-fg-muted [&>th]:bg-surface-2 [&>th:first-child]:rounded-l-nested [&>th:last-child]:rounded-r-nested">
-            <th className="px-3 py-3 text-left">항목</th>
-            <th className="px-3 py-3 text-left">단위</th>
-            <th className="px-3 py-3 text-right">최소</th>
-            <th className="px-3 py-3 text-right">평균</th>
-            <th className="px-3 py-3 text-right">최대</th>
-            <th className="px-3 py-3 text-right">최신</th>
-            <th className="px-3 py-3 text-right">결측</th>
-            <th className="px-3 py-3 text-left">기준</th>
+          <tr className={TABLE_HEAD_ROW}>
+            <th className="px-3 py-3 text-center">항목</th>
+            <th className="px-3 py-3 text-center">단위</th>
+            <th className="px-3 py-3 text-center">최소</th>
+            <th className="px-3 py-3 text-center">평균</th>
+            <th className="px-3 py-3 text-center">최대</th>
+            <th className="px-3 py-3 text-center">최신</th>
+            <th className="px-3 py-3 text-center">결측</th>
+            <th className="px-3 py-3 text-center">기준</th>
           </tr>
         </thead>
         <tbody>
@@ -357,22 +360,22 @@ function SensorTable({ rows }: { rows: SensorReportRow[] }) {
             <tr key={row.code} className="[&>*]:border-b [&>*]:border-border">
               <td className="px-3 py-3.5">
                 <span className="font-semibold text-fg">{row.symbol}</span>
-                <span className="ml-1.5 text-[11px] text-fg-subtle">{row.label}</span>
+                <span className="ml-1.5 text-[12px] text-fg-subtle">{row.label}</span>
               </td>
               <td className="px-3 py-3.5 text-fg-subtle">{row.unit || '—'}</td>
-              <td className="num px-3 py-3.5 text-right text-fg-muted">
+              <td className="num px-3 py-3.5 text-center text-fg-muted">
                 {formatValue(row.code, row.stats.min)}
               </td>
-              <td className="num px-3 py-3.5 text-right text-fg">
+              <td className="num px-3 py-3.5 text-center text-fg">
                 {formatValue(row.code, row.stats.avg)}
               </td>
-              <td className="num px-3 py-3.5 text-right text-fg-muted">
+              <td className="num px-3 py-3.5 text-center text-fg-muted">
                 {formatValue(row.code, row.stats.max)}
               </td>
-              <td className="num px-3 py-3.5 text-right text-fg">
+              <td className="num px-3 py-3.5 text-center text-fg">
                 {formatValue(row.code, row.stats.latest)}
               </td>
-              <td className="num px-3 py-3.5 text-right text-fg-subtle">
+              <td className="num px-3 py-3.5 text-center text-fg-subtle">
                 {row.stats.missingCount}/{row.stats.totalCount}
               </td>
               <td className="px-3 py-3.5">
@@ -398,13 +401,13 @@ function SensorTable({ rows }: { rows: SensorReportRow[] }) {
 function EstimateTable({ rows }: { rows: EstimateReportRow[] }) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[420px] border-separate border-spacing-0 text-[12px]">
+      <table className="w-full min-w-[420px] border-separate border-spacing-0 text-[12px] text-center">
         <thead>
-          <tr className="text-[12px] font-semibold text-fg-muted [&>th]:bg-surface-2 [&>th:first-child]:rounded-l-nested [&>th:last-child]:rounded-r-nested">
-            <th className="px-3 py-3 text-left">항목</th>
-            <th className="px-3 py-3 text-left">값의 출처</th>
-            <th className="px-3 py-3 text-left">판정</th>
-            <th className="px-3 py-3 text-left">경향</th>
+          <tr className={TABLE_HEAD_ROW}>
+            <th className="px-3 py-3 text-center">항목</th>
+            <th className="px-3 py-3 text-center">값의 출처</th>
+            <th className="px-3 py-3 text-center">판정</th>
+            <th className="px-3 py-3 text-center">경향</th>
           </tr>
         </thead>
         <tbody>
@@ -412,7 +415,7 @@ function EstimateTable({ rows }: { rows: EstimateReportRow[] }) {
             <tr key={row.code} className="[&>*]:border-b [&>*]:border-border">
               <td className="px-3 py-3.5">
                 <span className="font-semibold text-fg">{row.code}</span>
-                <span className="ml-1.5 text-[11px] text-fg-subtle">{row.label}</span>
+                <span className="ml-1.5 text-[12px] text-fg-subtle">{row.label}</span>
               </td>
               <td className="px-3 py-3.5 text-fg-subtle">{SERIES_ORIGIN_LABELS[row.origin]}</td>
               <td className="px-3 py-3.5">
@@ -420,7 +423,7 @@ function EstimateTable({ rows }: { rows: EstimateReportRow[] }) {
                   {row.verdict.text}
                 </span>
                 {/* 무엇을 근거로 한 판정인지 적는다 — 기준 판정과 관측 판정이 한 열에 섞인다 */}
-                <span className="ml-1.5 text-[11px] text-fg-subtle">{row.verdict.basis}</span>
+                <span className="ml-1.5 text-[12px] text-fg-subtle">{row.verdict.basis}</span>
               </td>
               <td className="px-3 py-3.5">
                 {/* 표에서는 배경 없는 변형을 쓴다 — 행마다 칩이 들어가면 표가 시끄러워진다 */}

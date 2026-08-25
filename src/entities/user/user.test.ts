@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { NAV_ITEMS } from '@/widgets/app-shell/config/navigation';
 import {
+  DEMO_PERSON_NAME,
   ROLES,
   ROLE_PROFILES,
   ROLE_SWITCH_BLOCKED_REASON,
@@ -20,10 +21,7 @@ import { DEFAULT_ROLE, SESSION_INIT_SCRIPT, normalizeRole } from './config/sessi
 import type { Role } from './model/types';
 import { SITES } from '@/entities/site';
 
-const MATRIX = readFileSync(
-  join(process.cwd(), 'docs/specs/screens.md'),
-  'utf8',
-);
+const MATRIX = readFileSync(join(process.cwd(), 'docs/specs/screens.md'), 'utf8');
 
 /**
  * §5 권한 매트릭스에서 그 화면의 역할별 접근 가능 여부를 뽑는다.
@@ -136,7 +134,10 @@ describe('사업장 계정 — 범위 축', () => {
     const ids = ADMIN_ACCOUNTS.map((a) => a.siteId);
     expect(new Set(ids).size).toBe(ADMIN_ACCOUNTS.length);
     for (const id of ids) {
-      expect(SITES.some((s) => s.id === id), `${id}가 사업장 목록에 없다`).toBe(true);
+      expect(
+        SITES.some((s) => s.id === id),
+        `${id}가 사업장 목록에 없다`,
+      ).toBe(true);
     }
   });
 
@@ -212,5 +213,17 @@ describe('역할 전환 — 지자체는 아직 고를 수 없다', () => {
   /** 못 누르는 이유가 화면에 적혀야 한다 — 흐릿하기만 하면 고장으로 읽힌다 */
   it('막힌 이유 문구가 있다', () => {
     expect(ROLE_SWITCH_BLOCKED_REASON).toContain('지자체');
+  });
+});
+
+/**
+ * **시연 이름은 하나다** `[사용자 지시 2026-08-25]`. 역할마다 다른 이름을 두면
+ * 권한을 갈아 끼우는 시연이 세 사람의 계정으로 읽힌다 — 계정은 원래 하나뿐이다.
+ */
+describe('시연 이름', () => {
+  it('세 역할이 같은 이름을 쓴다', () => {
+    for (const role of ROLES) {
+      expect(ROLE_PROFILES[role].demoName).toBe(DEMO_PERSON_NAME);
+    }
   });
 });

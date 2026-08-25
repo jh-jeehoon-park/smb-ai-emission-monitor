@@ -1,44 +1,68 @@
-import Image from 'next/image';
-import { BRAND_MARK_VARIANTS, BRAND_NAME } from '@/shared/config/constants';
+import { useId } from 'react';
+import { BRAND_NAME } from '@/shared/config/constants';
 import { cn } from '@/shared/lib/cn';
 
 /**
- * 브랜드 마크.
+ * 브랜드 마크 — **물방울 듀오톤** `[사용자 지시 2026-08-24]`.
  *
- * **테마마다 파일이 다르다.** 로고 초록이 한 벌뿐이면 한쪽 테마에서 묻힌다 —
- * 진한 초록(`#0b813f`)은 어두운 배경에서 대비 3.9, 밝은 초록(`#57b67e`)은 흰 배경에서
- * 2.5까지 떨어진다. 각 테마에 맞는 쪽을 쓰면 4.97 / 7.69가 된다.
+ * 이 시스템이 다루는 것이 폐수 수질이라 마크도 물이어야 한다. 예전에는 초록 로고 PNG를
+ * 테마마다 한 장씩 두 벌 그렸는데, PNG라 색을 코드로 바꿀 수 없어 포인트색이 파랑으로 바뀐
+ * 뒤에도 초록으로 남았고 대비를 맞추려고 `filter`로 밀어야 했다.
  *
- * **두 벌을 모두 렌더하고 CSS가 고른다.** 서버는 테마를 모르므로(첫 페인트 전 `data-theme`로만
- * 들어온다) 렌더 중에 테마로 분기하면 hydration이 깨진다 — 테마 토글이 아이콘 두 개를
- * 모두 그리는 것과 같은 이유다(`globals.css`의 `.theme-when-*`).
+ * **듀오톤은 한 색의 두 단이다.** 뒤 물방울은 포인트색을 옅게 깐 면(28%→10% 그라데이션),
+ * 앞의 물결과 방울 윤곽은 포인트색 그대로다 — 색이 하나라 테마가 바뀌어도 토큰만 따라가고
+ * `theme-when-*`으로 두 벌을 그릴 필요가 없다.
+ *
+ * `useId` — 그라데이션 id는 문서 전역이라 셸과 로그인 화면에 동시에 놓이면 서로를 덮는다.
+ * SVG 조각 참조에 콜론이 들어가도 동작하지만, 나중에 CSS로 집을 때를 위해 기호는 걷는다.
  */
 export function BrandMark({ size, className }: { size: number; className?: string }) {
+  const gradientId = `brand-${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
+
   return (
-    <span
-      className={cn('relative inline-block shrink-0', className)}
-      style={{ width: size, height: size }}
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 32 32"
+      className={cn('shrink-0', className)}
+      role="img"
+      aria-label={BRAND_NAME}
     >
-      {/**
-       * **한 벌만 보인다.** 숨은 쪽은 `display:none`이라 접근성 트리에서도 빠지므로
-       * 같은 대체 텍스트를 둘 다 줘도 중복해 읽히지 않는다. 한쪽만 적으면 그 테마에서만
-       * 읽혀 다크에서 로고가 이름 없는 그림이 된다.
-       *
-       * `loading="eager"` — 기본값 `lazy`는 뷰포트 교차로 로드를 판단하는데 숨은 쪽은
-       * 영영 교차하지 않는다. 테마를 바꾸는 순간에야 내려받기 시작해 **로고 자리가 잠깐
-       * 빈다.** 둘 다 미리 받아 둔다 — 32px WebP로 각 1KB다.
+      <defs>
+        <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.28} />
+          <stop offset="100%" stopColor="var(--accent)" stopOpacity={0.1} />
+        </linearGradient>
+      </defs>
+
+      {/* 물방울 — 위 꼭지에서 내려와 아래가 둥근 형태. 면은 옅은 단, 윤곽은 진한 단 */}
+      <path
+        d="M16 2.5c5.4 6.1 9.2 10.7 9.2 15.2A9.2 9.2 0 0 1 16 27a9.2 9.2 0 0 1-9.2-9.3C6.8 13.2 10.6 8.6 16 2.5Z"
+        fill={`url(#${gradientId})`}
+        stroke="var(--accent)"
+        strokeWidth={2}
+        strokeLinejoin="round"
+      />
+
+      {/*
+       * 물결 두 줄. 방울 안에 담긴 수면이라 아래 줄이 더 짧다 — 방울이 좁아지는 폭을 따른다.
+       * `strokeLinecap="round"`로 끝을 둥글게 둬 로고 획과 톤이 맞는다.
        */}
-      {BRAND_MARK_VARIANTS.map((variant) => (
-        <Image
-          key={variant.theme}
-          src={variant.src}
-          alt={BRAND_NAME}
-          width={size}
-          height={size}
-          className={variant.themeClass}
-          loading="eager"
-        />
-      ))}
-    </span>
+      <path
+        d="M10.6 18.4c1.4-1.5 2.7-1.5 4.1 0 1.4 1.5 2.7 1.5 4.1 0 1-1.1 2-1.4 2.9-.9"
+        fill="none"
+        stroke="var(--accent)"
+        strokeWidth={2}
+        strokeLinecap="round"
+      />
+      <path
+        d="M12.3 22.6c1.2-1.2 2.3-1.2 3.5 0 1.2 1.2 2.3 1.2 3.5 0"
+        fill="none"
+        stroke="var(--accent)"
+        strokeWidth={2}
+        strokeLinecap="round"
+        opacity={0.55}
+      />
+    </svg>
   );
 }

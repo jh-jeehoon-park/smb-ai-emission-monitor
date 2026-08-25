@@ -24,7 +24,7 @@ export function AnomalyGauge({ score, className, showScale = true }: AnomalyGaug
   return (
     <div className={cn('w-full', className)}>
       <div
-        className="relative h-2.5 w-full overflow-hidden rounded-full bg-surface-3"
+        className="relative h-2.5 w-full overflow-hidden rounded-full bg-surface-3 shadow-track"
         role="meter"
         aria-valuenow={score}
         aria-valuemin={0}
@@ -58,7 +58,7 @@ export function AnomalyGauge({ score, className, showScale = true }: AnomalyGaug
       </div>
 
       {showScale && (
-        <div className="mt-1.5 flex justify-between text-[11px] tabular-nums text-fg-subtle">
+        <div className="mt-1.5 flex justify-between text-[12px] tabular-nums text-fg-subtle">
           {PROVISIONAL_ANOMALY_TICKS.map((tick) => (
             <span key={tick}>{tick}</span>
           ))}

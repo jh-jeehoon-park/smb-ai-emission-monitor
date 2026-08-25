@@ -13,7 +13,7 @@ export function Eyebrow({ children, className }: { children: string; className?:
   return (
     <p
       className={cn(
-        'text-[11px] text-fg-subtle',
+        'text-[12px] text-fg-subtle',
         latinOnly && 'uppercase tracking-[0.14em]',
         className,
       )}

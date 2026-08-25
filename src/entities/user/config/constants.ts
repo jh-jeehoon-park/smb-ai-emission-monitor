@@ -1,6 +1,15 @@
 import type { Role, RoleProfile, RoleScope } from '../model/types';
 
 /**
+ * 헤더 인사말·계정 메뉴에 적는 **시연용 이름** `[사용자 지시 2026-08-25: 가명은 다 이 이름으로]`.
+ *
+ * 역할마다 다른 이름(홍길동·박민재·김서준)을 두던 판본은 역할을 바꿀 때마다 사람이 바뀌어,
+ * **한 사람이 권한을 갈아 끼우는 시연**이 세 사람의 계정으로 읽혔다. 계정은 원래 하나다
+ * (`DEMO_ACCOUNT`). 계정 체계가 서면 서버 값으로 바뀐다.
+ */
+export const DEMO_PERSON_NAME = '허창무';
+
+/**
  * **순서가 사양이다.** `homeHrefFor(role)`이 `NAV_ITEMS`를 앞에서부터 훑어 그 역할의
  * 첫 화면을 정하는데, 이 배열의 순서는 그 결과를 바꾸지 않는다 — 다만 `hiddenForClass`가
  * 내는 클래스 문자열의 순서와 `BrandHome`이 렌더하는 링크 순서를 정한다.
@@ -16,6 +25,7 @@ export const ROLE_PROFILES: Record<Role, RoleProfile> = {
     role: 'system',
     label: '시스템 관리자',
     who: '전체 총괄',
+    demoName: DEMO_PERSON_NAME,
     scope: 'all-sites',
     scopeLabel: '전 사업장',
   },
@@ -23,6 +33,7 @@ export const ROLE_PROFILES: Record<Role, RoleProfile> = {
     role: 'site',
     label: '사업장',
     who: '사업주 · 현장 담당자',
+    demoName: DEMO_PERSON_NAME,
     scope: 'own-site',
     scopeLabel: '자사 1개소',
   },
@@ -30,6 +41,7 @@ export const ROLE_PROFILES: Record<Role, RoleProfile> = {
     role: 'gov',
     label: '지자체',
     who: '지자체 공무원',
+    demoName: DEMO_PERSON_NAME,
     scope: 'own-province',
     scopeLabel: '관할 지역',
   },
