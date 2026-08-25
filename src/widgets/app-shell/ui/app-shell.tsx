@@ -391,15 +391,19 @@ function BrandHome() {
   );
 }
 
+/** 사이드바가 나타나는 폭. Tailwind의 `lg`와 같은 값이라 한쪽만 바뀌면 어긋난다 */
+const SIDEBAR_QUERY = '(min-width: 64rem)';
+
 /**
  * 묶음 머리글. **깊이가 아니라 이름표다** — 접히지 않고 항목은 늘 펼쳐져 있다.
  * 항목(14px)보다 작고 가라앉혀, 훑을 때 걸리지 않고 찾을 때만 눈에 들어오게 한다.
  * 한글이라 자간을 벌리지 않는다(`Eyebrow`와 같은 이유 — 낱글자로 흩어져 읽힌다).
+ *
+ * **12px이다.** 한때 11px이었는데 §8 `글자 최소`가 *"예외는 그래프 안의 글자뿐"* 이라
+ * 못박고 있어 예외 대상이 아니었다 — 규칙과 코드가 갈린 채였다. 항목(14px)과는
+ * `font-semibold` + `--fg-faint`로 갈리므로 한 단 올려도 이름표로 남는다.
  */
-/** 사이드바가 나타나는 폭. Tailwind의 `lg`와 같은 값이라 한쪽만 바뀌면 어긋난다 */
-const SIDEBAR_QUERY = '(min-width: 64rem)';
-
-const NAV_GROUP_LABEL = 'px-2.5 pb-1 text-[11px] font-semibold text-fg-faint';
+const NAV_GROUP_LABEL = 'px-2.5 pb-1 text-[12px] font-semibold text-fg-faint';
 
 function SiteNav({ pathname, onNavigate }: { pathname: string; onNavigate?: () => void }) {
   const withSite = useSiteHref();

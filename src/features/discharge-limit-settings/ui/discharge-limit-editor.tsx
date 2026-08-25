@@ -15,7 +15,7 @@ import { NumberField } from '@/shared/ui/number-field';
 import { SegmentedControl } from '@/shared/ui/segmented-control';
 import { classificationOf, useLimitSettingsStore } from '../model/limit-settings-context';
 import { validEntry, type LimitEntry, type LimitSheets } from '../lib/storage';
-import { TABLE_HEAD_ROW } from '@/shared/ui/table';
+import { TABLE_HEAD_CELL, TABLE_HEAD_ROW, TABLE_ROOT, TABLE_ROW } from '@/shared/ui/table';
 
 const EMPTY: LimitEntry = { min: null, max: null };
 
@@ -80,16 +80,16 @@ export function DischargeLimitEditor({ siteId }: { siteId: string }) {
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[720px] border-separate border-spacing-0 text-[12px] text-center">
+        <table className={`${TABLE_ROOT} min-w-[720px] text-[12px] text-center`}>
           <caption className="sr-only">
             지역구분별 방류 기준치. 행은 지역구분, 열은 법정 점검 항목이다. 값을 지우면 미설정으로
             돌아간다.
           </caption>
           <thead>
             <tr className={TABLE_HEAD_ROW}>
-              <th className="px-3 py-3 text-center">지역구분</th>
+              <th className={TABLE_HEAD_CELL}>지역구분</th>
               {LEGAL_CHECK_ITEMS.map((item) => (
-                <th key={item.label} className="px-3 py-3 text-center">
+                <th key={item.label} className={TABLE_HEAD_CELL}>
                   {item.label}
                 </th>
               ))}
@@ -97,7 +97,7 @@ export function DischargeLimitEditor({ siteId }: { siteId: string }) {
           </thead>
           <tbody>
             {REGION_GRADES.map((region) => (
-              <tr key={region} className="[&>*]:border-b [&>*]:border-border">
+              <tr key={region} className={TABLE_ROW}>
                 <th
                   scope="row"
                   className="whitespace-nowrap px-3 py-3.5 text-center font-normal text-fg"

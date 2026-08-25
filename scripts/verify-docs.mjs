@@ -404,9 +404,14 @@ check('차트 포커스', () => {
   return fails;
 });
 
-// 14. 표 모양 — 행의 칸 수가 헤더와 같은가
+// 14. 표 모양 — 행의 칸 수가 헤더와 같은가 · 행이 파이프로 닫히는가
 //     xlsx로 옮길 때 칸이 모자라면 열이 밀린다. 사람 눈으로는 보이지 않는다 —
 //     실제로 SCR-OP-002·SCR-AD-001에서 어긋난 행 11개를 이 검사가 찾았다.
+//
+//     **칸 수만으로는 부족하다.** `cellCount`가 파이프 개수를 세므로 정상 행 `| a | b |`와
+//     끝이 열린 행 `| a | b | c`가 **같은 3개**로 나온다 — 뒤엣것은 마지막 칸이 렌더에서
+//     통째로 사라지는데 검사는 통과했다(screens.md `상세 이동` 행이 그랬다. 규칙 한 문단이
+//     화면에서 없어진 채 남아 있었다). 그래서 닫는 파이프를 따로 본다.
 check('표 모양', () => {
   const fails = [];
   for (const file of specDocs) {
@@ -416,7 +421,9 @@ check('표 모양', () => {
       if (!lines[i].startsWith('|') || !SEPARATOR.test(lines[i + 1] ?? '')) continue;
       const want = cellCount(lines[i]);
       for (let j = i + 2; j < lines.length && lines[j].startsWith('|'); j += 1) {
-        if (cellCount(lines[j]) !== want)
+        if (!lines[j].trimEnd().endsWith('|'))
+          fails.push(`${relative(ROOT, file)}:${j + 1} — 행이 \`|\`로 닫히지 않는다(마지막 칸이 렌더에서 사라진다)`);
+        else if (cellCount(lines[j]) !== want)
           fails.push(`${relative(ROOT, file)}:${j + 1} — 칸 ${cellCount(lines[j])} ≠ 헤더 ${want}`);
       }
     }
@@ -545,6 +552,129 @@ check('잔재 ID', () => {
       fails.push(`${relative(ROOT, file)} — 잔재 접두사 ${m[1]}`);
     }
   }
+  return fails;
+});
+
+// 19. 풀지 않은 단위 기호 — `단위(한글)` 열을 §3에만 둔 전제가 유지되는가
+//
+//     `items.md` §2.1이 "다른 표의 단위는 이미 한글이거나 §3이 푼 기호와 같다"고 적었다.
+//     새 항목이 §5·§9에 `S/m`처럼 §3에 없는 기호를 들고 들어오면 그 문장이 거짓이 되고,
+//     회의 피드백("단위들도 다 한글까지 병기")이 그 행에서만 지켜지지 않는다.
+//
+//     한글로만 된 단위(`일`·`시간`·`상대 지수`)와 `%`는 풀 것이 없다. `%`만 예외로 적는
+//     이유는 기호이면서 한국어에서 그대로 읽히는 유일한 값이기 때문이다.
+check('풀지 않은 단위 기호', () => {
+  const lines = read('docs/specs/items.md').split(LF);
+
+  /*
+   * `단위` 칸을 **이름으로 찾는다.** 처음에는 §3의 것만 `splitRow(line)[3]`으로 집었는데,
+   * 같은 검사가 한쪽은 이름으로 한쪽은 자리로 찾는 꼴이었다 — §3에 열이 하나 끼면 기호 칸을
+   * 단위로 읽어 엉뚱한 목록을 만든다. `deliverable-xlsx.rule.md` §7.2가 "헤더는 문자열로
+   * 찾고 행 번호를 가정하지 않는다"고 못박은 것과 같은 이유다.
+   */
+  const unitTables = [];
+  for (let i = 0; i < lines.length; i += 1) {
+    if (!lines[i].startsWith('|') || !SEPARATOR.test(lines[i + 1] ?? '')) continue;
+    const at = splitRow(lines[i]).indexOf('단위');
+    if (at < 0) continue;
+    const rows = [];
+    for (let j = i + 2; j < lines.length && lines[j].startsWith('|'); j += 1) {
+      rows.push({ line: j + 1, cells: splitRow(lines[j]) });
+    }
+    unitTables.push({ at, rows });
+  }
+  if (unitTables.length === 0) return ['items.md — `단위` 열을 가진 표가 없다'];
+
+  /* `%`는 기호이면서 우리말로 그대로 읽히는 유일한 값이라 예외로 적는다 */
+  const glossed = new Set(['—', '%']);
+  /* §3 계측 항목 표의 `단위` 칸 = 이미 풀어 둔 기호 목록 */
+  const meas = unitTables.find(({ rows }) => rows.some((r) => r.cells[0].startsWith('`MEAS-')));
+  if (!meas) return ['items.md — §3 계측 항목 표를 못 찾았다(`단위` 열이 사라졌는가)'];
+  for (const { cells } of meas.rows) glossed.add(cells[meas.at] ?? '');
+
+  const fails = [];
+  for (const { at, rows } of unitTables) {
+    for (const { line, cells } of rows) {
+      const unit = cells[at] ?? '';
+      /* 한글이 한 자라도 있으면 이미 우리말이다 — 풀 것이 없다 */
+      if (unit === '' || /[가-힣]/.test(unit) || glossed.has(unit)) continue;
+      fails.push(`items.md:${line} — ${cells[0]}의 단위 \`${unit}\`이 §3에 없어 풀리지 않는다`);
+    }
+  }
+  return fails;
+});
+
+// 20. 머리글에 모델과 사업장을 함께 담지 않는다
+//
+//     `Eyebrow`는 한글이 한 자라도 섞이면 계기판 서식(대문자·넓은 자간)을 버린다 —
+//     한글에 자간을 주면 `구 미 염 색`처럼 낱글자로 흩어지기 때문이다. 그래서 모델 이름에
+//     사업장 이름을 붙이면 **같은 모델이 화면마다 다르게 보인다.**
+//
+//     실제로 세 화면(`/anomaly`·`/prediction`·`/optimization`)이 그랬고, 통합 관제의
+//     `LSTM + ATTENTION`과 예측 화면의 `LSTM + Attention · 구미 염색 2공장`이 갈려 있었다
+//     `[회의 피드백 2026-08-24]`. 한 곳을 고쳐도 나머지가 남으므로 검사로 막는다.
+//
+//     사업장 이름만 담은 머리글(`eyebrow={site.name}`)은 옳다 — 갈라 두라는 것이 요지다.
+//
+//     **규칙은 "모델 라벨은 머리글을 혼자 쓴다"다.** 처음에는 `modelLabel`과 `site.name`이
+//     함께 있는지를 봤는데, 파괴 시험을 `getSite(siteId).name`으로 써 보니 통과했다 —
+//     같은 결함을 쓰는 방법이 여러 가지라 짝을 열거하는 방식으로는 막을 수 없다.
+//     그래서 **템플릿 문자열 안에 `modelLabel`이 있으면 잡는다.** 모델 라벨만 쓸 때는
+//     `eyebrow={summary.modelLabel}`로 쓰면 되므로 백틱을 쓸 이유가 없다.
+//     **`eyebrow` prop이 사라진 뒤 이 검사는 한동안 공허했다.** `a211cc9`가 `Panel`에서
+//     머리글을 걷어 호출처가 0곳이 되었고, 검사는 아무것도 못 잡은 채 통과했다 — 있는 줄
+//     알고 넘어가는 것이 없는 것보다 나쁘다. 그래서 모델 라벨이 실제로 놓이는 자리
+//     (`title`)까지 본다. 지금 규칙은 **모델 라벨이 머리글을 혼자 쓴다**이며, 보간이 둘
+//     이상이면 무엇과 섞였든 걸린다(사업장명만 겨누면 다른 값으로 우회된다).
+check('머리글 모델·사업장 혼용', () => {
+  const fails = [];
+  /* `walk`의 기본 확장자는 `.md`다 — 넘기지 않으면 소스를 한 건도 읽지 않고 통과한다 */
+  for (const file of walk(join(ROOT, 'src'), '.tsx')) {
+    const text = readText(file);
+    for (const m of text.matchAll(/(title|eyebrow)=\{`([^`]*)`\}/g)) {
+      const body = m[2];
+      if (!/modelLabel/.test(body)) continue;
+      /* 보간이 둘 이상이면 모델 라벨이 다른 값과 한 줄을 나눠 쓰고 있다는 뜻이다 */
+      if ((body.match(/\$\{/g) ?? []).length > 1) {
+        fails.push(`${relative(ROOT, file)} — 모델 라벨을 다른 값과 함께 ${m[1]}에 담았다: \`${body}\``);
+      }
+    }
+  }
+  return fails;
+});
+
+// 21. FR 집계 — §3.1이 선언한 건수가 §3 추적표를 세어 낸 값인가
+//
+//     네 칸이 `구현 24 · 부분 1 · 미구현 9 · 대상아님 8`로 적혀 있었는데 실제는
+//     `21 · 4 · 7 · 10`이었다. **합계만 42로 맞아** 오래 눈에 띄지 않았다 — 합계가 맞는
+//     것은 어느 칸이 옳다는 뜻이 아니다. `items.md` §2.2를 세는 검사 17과 같은 꼴이다.
+//
+//     상태 칸에 `**부분**`처럼 강조가 섞여 있어 별표를 지우고 센다.
+check('FR 집계', () => {
+  const text = read('docs/specs/requirements.md');
+  const actual = new Map();
+  let rows = 0;
+  for (const line of text.split(LF)) {
+    if (!/^\| FR-\d+ \|/.test(line)) continue;
+    const status = (splitRow(line)[4] ?? '').replaceAll('*', '').trim();
+    actual.set(status, (actual.get(status) ?? 0) + 1);
+    rows += 1;
+  }
+  if (rows === 0) return ['requirements.md §3 추적표에서 FR 행을 못 찾았다'];
+
+  const fails = [];
+  const declared = new Map();
+  for (const m of text.matchAll(/^\| (구현|부분|미구현|대상아님) \| (\d+) \|/gm)) {
+    declared.set(m[1], Number.parseInt(m[2], 10));
+  }
+  for (const status of ['구현', '부분', '미구현', '대상아님']) {
+    const want = declared.get(status);
+    const got = actual.get(status) ?? 0;
+    if (want === undefined) fails.push(`requirements.md §3.1에 ${status} 행이 없다`);
+    else if (want !== got) fails.push(`requirements.md — ${status} 선언 ${want} ≠ 추적표 ${got}`);
+  }
+  const total = Number.parseInt(text.match(/\*\*합계\*\* \| \*\*(\d+)\*\*/)?.[1] ?? '-1', 10);
+  if (total !== rows) fails.push(`requirements.md — 합계 ${total} ≠ FR 행 ${rows}`);
   return fails;
 });
 

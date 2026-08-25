@@ -5,7 +5,7 @@
 | 항목 | 내용 |
 |------|------|
 | 문서명 | 프론트엔드 코딩 규칙 (Core + Project Profile) |
-| 버전 | v2.2.0 |
+| 버전 | v2.3.0 |
 | 작성일 | 2026-08-06 |
 | 기반 문서 | /docs/applications/AIoT_Emission_Control_System.pdf, /docs/applications/HSKorea_AI_Application_Proposal.pdf |
 
@@ -17,6 +17,7 @@
 | v2.0.0 | 2026-08-06 | Claude | §8 프로젝트 프로필을 타 프로젝트 값에서 본 프로젝트(소규모 사업장 오염물질 배출 관리 시스템, 단일 Next.js 웹 대시보드) 값으로 전면 교체. 공유 패키지 alias 제거(`@/*`만 사용), 디자인 토큰·Figma 관련 슬롯 [TBD] 표기, 차트(P9)를 대시보드 필수 영역으로 상향. Core(§2~§6) 미수정 |
 | v2.2.0 | 2026-08-13 | Claude | P13 데이터 문서 경로를 `docs/page-data-spec/<page>.md` → `docs/specs/`로 교체(흡수 후 삭제됨). 근거 표기 규약 6종을 P13에 명시. Core(§2~§6) 미수정 |
 | v2.1.0 | 2026-08-11 | Claude | §8에 "백엔드 없는 프론트 전용 프로토타입" 전제 추가. P1 스타일링(Tailwind+shadcn/ui)·P9 차트(Recharts) 확정, P7 토큰 원천을 `design-system/<slug>/MASTER.md`로 지정, P11을 MSW→`entities/<slice>/api/fixtures/`로 교체, P3 실시간 방식을 fixture 시뮬레이션으로 한정, P12 미적용·P13 as-is 미적용 표기, P14에 A1 보류·A3 미적용·A4 자동충족·A2 범위 분리 기재, P15에 디자인 스킬 라우팅 포인터 추가. §8.1 E2에 잠정 4단계 등급과 이상 점수 구간(0–49/50–69/70–79/80–100) 명시, E6에 서버 부재 시 mock 역할 전환 예외 추가. Core(§2~§6) 미수정 |
+| v2.3.0 | 2026-08-25 | Claude | **P7 디자인 토큰의 원천 교체** `[사용자 지시 2026-08-25]` — `design-system/<slug>/MASTER.md` → **`src/app/globals.css`(값) + `docs/specs/screens.md` §8(규칙)**. 디자이너 작업(`49593cf`)이 병합되어 그것이 유일한 기준선이 됐는데 이 슬롯이 착수 전 산출물을 계속 가리키고 있었다 — **팔레트가 실제로 다르다**(그쪽 Accent `#0891B2` 시안 vs 지금 `--accent #0d47a1`). 그대로 따르면 화면이 옛 색으로 되돌아간다. `MASTER.md`는 지우지 않고 착수 전 근거로 강등했다 |
 
 ---
 
@@ -155,7 +156,7 @@
 | P4 | 경로 별칭 | `@/*` (내부 전용) — 공유 패키지 없음(단일 웹 앱) |
 | P5 | 프레임워크 관용구 | 클라이언트 경계 `'use client'` · `next/dynamic`+`<Suspense>`(차트 등 무거운 클라이언트 위젯) · `react-hooks/exhaustive-deps` · 함수형 컴포넌트만 |
 | P6 | 상태 관리 | 전역 스토어 + URL 쿼리 파라미터(사업장·기간·항목 필터는 URL로) · props drilling 3단계 초과 시 분리 |
-| P7 | 디자인 토큰 | **원천 = `design-system/<slug>/MASTER.md`**(`ui-ux-pro-max` 스킬 생성) → `shared/config` + Tailwind theme에 토큰으로 등록해 사용. 색·타이포·spacing 하드코딩은 여전히 금지(R9). Figma 미보유 상태의 대체 원천이며, Figma가 확정되면 `figma-implementation.rule.md` D3로 되돌린다. 상태 등급 색은 아래 E2의 잠정 4단계에 맞춰 의미별 고정 토큰으로 정의해 전 화면 동일 적용 |
+| P7 | 디자인 토큰 | **값 = `src/app/globals.css` · 규칙 = `docs/specs/screens.md` §8**(전 화면 공통 사항). 루트 `CLAUDE.md`의 `디자인 기준선` 절이 단일 기준이며 **`49593cf` 이후가 유일한 기준선**이다 `[사용자 지시 2026-08-25]`. 색·타이포·spacing 하드코딩은 여전히 금지(R9) — 테마를 따라가면 안 되는 색만 §8 `토큰 밖 색`에 등재해 예외로 쓴다. **`design-system/<slug>/MASTER.md`(`ui-ux-pro-max` 산출물)는 착수 전 기준 수립에 쓴 것이고 지금의 원천이 아니다** — 팔레트가 실제로 다르다(그쪽 Accent `#0891B2` 시안 vs 지금 `--accent #0d47a1`). 어긋나면 §8이 이긴다. Figma가 확정되면 `figma-implementation.rule.md` D3로 되돌린다. 상태 등급 색은 아래 E2의 잠정 4단계에 맞춰 의미별 고정 토큰으로 정의해 전 화면 동일 적용 |
 | P8 | 공용 컴포넌트 | `shared/ui` (Button/Input/Badge/Modal/Table/Tabs/EmptyState/StatusTag 등) — **shadcn/ui 기반**, 인라인 재구현 금지 |
 | P9 | 차트 | **필수 영역**(실시간 시계열·예측·이상점수·설비 상태). **Recharts 단일 사용** — 다른 차트 라이브러리 혼용 금지 · 계열 색은 P7 토큰 · 의미별 색 고정(정상/주의/경고/위험) · 커스텀 tooltip 패턴 통일 · 차트 작성 전 `dataviz` 스킬 로드 |
 | P10 | 투명도 정책 | 배경 불투명 원칙(투명도는 사용자 명시 지시 시) |

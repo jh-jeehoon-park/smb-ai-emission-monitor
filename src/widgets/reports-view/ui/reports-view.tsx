@@ -2,6 +2,7 @@
 
 import { Download } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { MEASUREMENT_ITEMS } from '@/shared/config/measurement';
 import { PROVISIONAL_DISPLAY_DECIMALS, PROVISIONAL_STATUS_LABELS } from '@/shared/config/provisional';
 import { STATUS_VISUAL, statusInk } from '@/shared/config/status-visual';
 import { csvFileName, downloadCsv } from '@/shared/lib/csv';
@@ -26,7 +27,7 @@ import {
   type BucketStat,
   type BucketUnit,
 } from '@/entities/measurement';
-import { TABLE_HEAD_ROW } from '@/shared/ui/table';
+import { TABLE_HEAD_CELL, TABLE_HEAD_ROW, TABLE_ROOT, TABLE_ROW } from '@/shared/ui/table';
 import { SERIES_ORIGIN_LABELS, TrendChip } from '@/entities/prediction';
 import { buildSiteReport, toCsv, type SiteReportRow } from '../lib/build-report';
 import {
@@ -267,26 +268,26 @@ function DischargeCell({ hours, windowHours }: { hours: number | null; windowHou
 function ReportTable({ rows }: { rows: SiteReportRow[] }) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[860px] border-separate border-spacing-0 text-[12px] text-center">
+      <table className={`${TABLE_ROOT} min-w-[860px] text-[12px] text-center`}>
         <thead>
           <tr className={TABLE_HEAD_ROW}>
-            <th className="px-3 py-3 text-center">사업장</th>
-            <th className="px-3 py-3 text-center">상태</th>
-            <th className="px-3 py-3 text-center">방류</th>
-            <th className="px-3 py-3 text-center">최신</th>
-            <th className="px-3 py-3 text-center">최대</th>
-            <th className="px-3 py-3 text-center">평균</th>
-            <th className="px-3 py-3 text-center">결측</th>
-            <th className="px-3 py-3 text-center">알람 (긴급·주의·정보)</th>
-            <th className="px-3 py-3 text-center">처리율</th>
-            <th className="px-3 py-3 text-center">가동률</th>
+            <th className={TABLE_HEAD_CELL}>사업장</th>
+            <th className={TABLE_HEAD_CELL}>상태</th>
+            <th className={TABLE_HEAD_CELL}>방류</th>
+            <th className={TABLE_HEAD_CELL}>최신</th>
+            <th className={TABLE_HEAD_CELL}>최대</th>
+            <th className={TABLE_HEAD_CELL}>평균</th>
+            <th className={TABLE_HEAD_CELL}>결측</th>
+            <th className={TABLE_HEAD_CELL}>알람 (긴급·주의·정보)</th>
+            <th className={TABLE_HEAD_CELL}>처리율</th>
+            <th className={TABLE_HEAD_CELL}>가동률</th>
           </tr>
         </thead>
         <tbody>
           {rows.map((row) => {
             const ink = row.status ? statusInk(STATUS_VISUAL[row.status]) : 'var(--fg-subtle)';
             return (
-              <tr key={row.siteId} className="[&>*]:border-b [&>*]:border-border">
+              <tr key={row.siteId} className={TABLE_ROW}>
                 <td className="px-3 py-3.5">
                   <span className="block text-fg">{row.siteName}</span>
                   <span className="block text-[12px] text-fg-subtle">
@@ -342,27 +343,37 @@ function ReportTable({ rows }: { rows: SiteReportRow[] }) {
 function SensorTable({ rows }: { rows: SensorReportRow[] }) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[680px] border-separate border-spacing-0 text-[12px] text-center">
+      <table className={`${TABLE_ROOT} min-w-[680px] text-[12px] text-center`}>
         <thead>
           <tr className={TABLE_HEAD_ROW}>
-            <th className="px-3 py-3 text-center">항목</th>
-            <th className="px-3 py-3 text-center">단위</th>
-            <th className="px-3 py-3 text-center">최소</th>
-            <th className="px-3 py-3 text-center">평균</th>
-            <th className="px-3 py-3 text-center">최대</th>
-            <th className="px-3 py-3 text-center">최신</th>
-            <th className="px-3 py-3 text-center">결측</th>
-            <th className="px-3 py-3 text-center">기준</th>
+            <th className={TABLE_HEAD_CELL}>항목</th>
+            <th className={TABLE_HEAD_CELL}>단위</th>
+            <th className={TABLE_HEAD_CELL}>최소</th>
+            <th className={TABLE_HEAD_CELL}>평균</th>
+            <th className={TABLE_HEAD_CELL}>최대</th>
+            <th className={TABLE_HEAD_CELL}>최신</th>
+            <th className={TABLE_HEAD_CELL}>결측</th>
+            <th className={TABLE_HEAD_CELL}>기준</th>
           </tr>
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={row.code} className="[&>*]:border-b [&>*]:border-border">
+            <tr key={row.code} className={TABLE_ROW}>
               <td className="px-3 py-3.5">
                 <span className="font-semibold text-fg">{row.symbol}</span>
                 <span className="ml-1.5 text-[12px] text-fg-subtle">{row.label}</span>
               </td>
-              <td className="px-3 py-3.5 text-fg-subtle">{row.unit || '—'}</td>
+                {/*
+               * **단위를 기호와 한글로 함께 낸다** `[회의 피드백 2026-08-24]`. `NTU`·`Pt-Co`처럼
+               * 기호만으로는 무엇의 단위인지 알 수 없다. 기호는 계측 사양의 표기라 그대로 두고
+               * `[원문 p.55]` 한글을 아래 줄에 덧붙인다.
+               */}
+              <td className="px-3 py-3.5">
+                <span className="text-fg-muted">{row.unit || '—'}</span>
+                <span className="mt-0.5 block text-[12px] leading-tight text-fg-subtle">
+                  {MEASUREMENT_ITEMS[row.code].unitKo}
+                </span>
+              </td>
               <td className="num px-3 py-3.5 text-center text-fg-muted">
                 {formatValue(row.code, row.stats.min)}
               </td>
@@ -401,18 +412,18 @@ function SensorTable({ rows }: { rows: SensorReportRow[] }) {
 function EstimateTable({ rows }: { rows: EstimateReportRow[] }) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[420px] border-separate border-spacing-0 text-[12px] text-center">
+      <table className={`${TABLE_ROOT} min-w-[420px] text-[12px] text-center`}>
         <thead>
           <tr className={TABLE_HEAD_ROW}>
-            <th className="px-3 py-3 text-center">항목</th>
-            <th className="px-3 py-3 text-center">값의 출처</th>
-            <th className="px-3 py-3 text-center">판정</th>
-            <th className="px-3 py-3 text-center">경향</th>
+            <th className={TABLE_HEAD_CELL}>항목</th>
+            <th className={TABLE_HEAD_CELL}>값의 출처</th>
+            <th className={TABLE_HEAD_CELL}>판정</th>
+            <th className={TABLE_HEAD_CELL}>경향</th>
           </tr>
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={row.code} className="[&>*]:border-b [&>*]:border-border">
+            <tr key={row.code} className={TABLE_ROW}>
               <td className="px-3 py-3.5">
                 <span className="font-semibold text-fg">{row.code}</span>
                 <span className="ml-1.5 text-[12px] text-fg-subtle">{row.label}</span>

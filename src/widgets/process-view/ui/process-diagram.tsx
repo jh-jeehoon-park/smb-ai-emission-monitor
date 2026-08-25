@@ -79,27 +79,11 @@ export function ProcessDiagram({ stages, siteId, selectedId, onSelect }: Props) 
       role="group"
       aria-label="폐수처리 공정 흐름"
     >
-      <defs>
-        {/* 계측 화면의 눈금 질감. 값을 뜻하지 않는 배경이다 */}
-        <pattern id="process-grid" width="22" height="22" patternUnits="userSpaceOnUse">
-          <path d="M22 0 L0 0 0 22" fill="none" stroke="var(--border)" strokeWidth="0.6" />
-        </pattern>
-        <linearGradient id="process-grid-fade" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#fff" stopOpacity="0.9" />
-          <stop offset="100%" stopColor="#fff" stopOpacity="0" />
-        </linearGradient>
-        <mask id="process-grid-mask">
-          <rect width={width} height={DIAGRAM_HEIGHT} fill="url(#process-grid-fade)" />
-        </mask>
-      </defs>
-
-      <rect
-        width={width}
-        height={DIAGRAM_HEIGHT}
-        fill="url(#process-grid)"
-        mask="url(#process-grid-mask)"
-      />
-
+      {/*
+       * **배경 눈금을 두지 않는다** `[회의 피드백 2026-08-24]`. 값을 뜻하지 않는 질감인데
+       * 차트의 격자선(`--grid`)과 같은 어휘라 도해가 그래프로 읽혔다 — 이 화면의 선은
+       * 공정의 흐름이지 눈금이 아니다. 도해가 놓이는 옅은 면이 경계를 이미 말한다.
+       */}
       {stages.slice(0, -1).map((resolved, index) => (
         <Pipe key={resolved.stage.id} index={index} />
       ))}

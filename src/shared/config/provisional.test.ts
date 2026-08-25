@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest';
 import {
   PROVISIONAL_ANOMALY_BANDS,
   PROVISIONAL_ANOMALY_TICKS,
+  PROVISIONAL_STATUS_LABELS,
   PROVISIONAL_STATUS_LEVELS,
   anomalyBandLabel,
+  anomalyBandRange,
   toStatusLevel,
 } from './provisional';
 
@@ -42,9 +44,21 @@ describe('toStatusLevel — 이상 점수 구간 경계', () => {
 });
 
 describe('구간 라벨·눈금은 경계값에서 파생된다', () => {
-  it('라벨이 경계값과 일치한다', () => {
+  it('경계값 표기가 경계와 일치한다', () => {
     PROVISIONAL_ANOMALY_BANDS.forEach((band) => {
-      expect(anomalyBandLabel(band.level)).toBe(`${band.min}–${band.max}`);
+      expect(anomalyBandRange(band.level)).toBe(`${band.min}–${band.max}`);
+    });
+  });
+
+  /**
+   * **범례는 숫자만으로 부족하다** `[회의 피드백 2026-08-24]`. `50–69`가 무슨 등급인지
+   * 말하지 않으면 색을 못 가리는 사람에게는 읽을 방법이 없다.
+   */
+  it('라벨이 경계값과 등급 이름을 함께 낸다', () => {
+    PROVISIONAL_ANOMALY_BANDS.forEach((band) => {
+      const label = anomalyBandLabel(band.level);
+      expect(label).toContain(`${band.min}–${band.max}`);
+      expect(label).toContain(PROVISIONAL_STATUS_LABELS[band.level]);
     });
   });
 

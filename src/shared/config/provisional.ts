@@ -39,10 +39,22 @@ export function toStatusLevel(anomalyScore: number): StatusLevel {
 }
 
 /**
- * 구간 라벨("50–69")과 게이지 눈금은 경계값에서 파생시킨다.
+ * 구간 라벨과 게이지 눈금은 경계값에서 파생시킨다.
  * 화면에 직접 적어 두면 경계를 바꿀 때 한쪽만 바뀌어 조용히 어긋난다.
+ *
+ * **숫자와 등급 이름을 함께 낸다** `[회의 피드백 2026-08-24: 범례를 숫자와 설명으로]`.
+ * 예전에는 `50–69`만 내서 그 구간이 무슨 등급인지 범례가 말하지 않았다 — 색을 못 가리는
+ * 사람에게는 알 방법이 아예 없었고, **색만으로 등급을 전달하지 않는다**는 규칙과도 어긋났다.
+ *
+ * 숫자만 필요한 자리(게이지 눈금)는 `PROVISIONAL_ANOMALY_TICKS`를 쓴다.
  */
 export function anomalyBandLabel(level: StatusLevel): string {
+  const band = PROVISIONAL_ANOMALY_BANDS.find((b) => b.level === level);
+  return band ? `${band.min}–${band.max} ${PROVISIONAL_STATUS_LABELS[level]}` : '—';
+}
+
+/** 경계값만. 게이지 축처럼 이름이 들어갈 자리가 없는 곳이 쓴다 */
+export function anomalyBandRange(level: StatusLevel): string {
   const band = PROVISIONAL_ANOMALY_BANDS.find((b) => b.level === level);
   return band ? `${band.min}–${band.max}` : '—';
 }
@@ -67,7 +79,7 @@ export const PROVISIONAL_ANOMALY_TICKS: number[] = [
  * 화면은 서버가 준 조정폭을 그리기만 한다.
  *
  * **상한을 둔다.** 계측이 튀는 순간 `+180%` 같은 제안이 나오면 그것이 곧 안전 문제다 —
- * 우리는 제어하지 않지만(REQ-CO-002 미구현) 운영자가 손으로 따라 할 수 있다.
+ * 우리는 제어하지 않지만(REQ-CO-002 미구현) 사업장이 손으로 따라 할 수 있다.
  */
 export const PROVISIONAL_OPERATING_GAIN = {
   /** 관측 변화율을 조정폭으로 옮길 때의 배율 */

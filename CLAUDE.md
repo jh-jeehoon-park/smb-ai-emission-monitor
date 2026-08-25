@@ -27,9 +27,9 @@
 | **A4** — 화면 완성 전 백엔드 내용 배제 | **자동 충족.** 엔드포인트·스키마·매핑을 설계하지 않는다 |
 | **E6** — 권한 노출은 서버 응답 근거 | **불가.** 서버가 없다. mock 사용자 컨텍스트로 역할을 전환하되, 클라이언트 분기는 **인가가 아니라 시연용 표시**임을 해당 코드에 WHY 주석으로 남긴다 |
 | **P3** — 실시간 수신 방식 `[TBD]` | fixture 기반 시뮬레이션(고정 간격 갱신)으로 표현한다. 폴링/SSE/WebSocket 선택은 백엔드 확정 시로 미룬다 |
-| `figma-implementation.rule.md` | **휴면.** Figma fileKey가 없다. 디자인 근거는 Figma node가 아니라 아래 `MASTER.md`다 |
-| **A2** — UI·UX 임의 변경 금지 | **유지하되 범위를 나눈다.** *무엇을 보여주는가*(항목·라벨·단위·수치)는 `docs/` 근거를 그대로 따른다. *어떻게 보이는가*(레이아웃·색·타이포·모션)는 아래 스킬이 결정한다 |
-| **R9** — 정의된 토큰만 사용, 하드코딩 금지 | **유지.** 토큰의 출처만 Figma → `MASTER.md` → `shared/config`로 바뀐다 |
+| `figma-implementation.rule.md` | **휴면.** Figma fileKey가 없다. 디자인 근거는 Figma node가 아니라 아래 **디자인 기준선**이다 |
+| **A2** — UI·UX 임의 변경 금지 | **유지하되 범위를 나눈다.** *무엇을 보여주는가*(항목·라벨·단위·수치)는 `docs/` 근거를 그대로 따른다. *어떻게 보이는가*(레이아웃·색·타이포·모션)는 **디자인 기준선**이 정한다 |
+| **R9** — 정의된 토큰만 사용, 하드코딩 금지 | **유지.** 토큰의 출처는 `src/app/globals.css`이고 규칙은 `docs/specs/screens.md` §8이다 |
 
 ### 확정 스택 (2026-08-11 사용자 확정 — `frontend.rule.md` P1·P7·P9·P11의 `[TBD]`를 대체한다)
 
@@ -41,7 +41,27 @@
 | 차트 | **Recharts 단일** — 다른 차트 라이브러리를 섞지 않는다 |
 | 서버 상태 | TanStack Query (fixture를 비동기로 반환해 로딩·에러 상태를 실제처럼 다룬다) |
 | Mock 위치 | `entities/<slice>/api/fixtures/` — **MSW는 쓰지 않는다.** 백엔드가 없어 가로챌 네트워크 요청 자체가 없다(`test-guide.rule.md` §3의 MSW 항목은 현 단계 비적용) |
-| 디자인 토큰 원천 | `ui-ux-pro-max`가 생성한 `design-system/<slug>/MASTER.md` → `shared/config`에 토큰으로 등록 |
+| 디자인 토큰 원천 | **`src/app/globals.css`**(값) + **`docs/specs/screens.md` §8**(규칙). 아래 `디자인 기준선` 절이 단일 기준이다 |
+
+### 디자인 기준선 — **`49593cf` 이후가 유일한 기준이다**
+
+> **앞으로의 UI 작업은 이전 디자인을 따라가지 않는다** `[사용자 지시 2026-08-25]`. 디자이너 작업이 `develop`에 병합됐고, 그 결과물이 기준선이다.
+
+| 무엇 | 어디 |
+|---|---|
+| **시각 규칙 60여 행** | [`docs/specs/screens.md`](docs/specs/screens.md) **§8 전 화면 공통 사항** — 색·표·탭·모달·지도·그래프·모션·겹침 순서까지. **화면을 만들기 전에 읽는다** |
+| 토큰 값 | `src/app/globals.css` — `--accent`(포인트색) · `--actual`·`--ai`(그래프 계열) · `--section-bg` · `--table-head` · `--track-inset` |
+| 공용 부품 | `src/shared/ui/` — `MeterBar` · `StickyBar` · `TopButton`(셸에 이미 있다) · `table.ts` · `action-button.ts` · `Checkbox` · `SegmentedControl`의 `SEG_*`·`SegPill` |
+| 차트 훅 | `src/shared/lib/use-chart-hover.ts` — **새 Recharts 차트에 반드시 붙인다** |
+
+**자주 어기게 되는 것 넷**
+
+1. **그래프 계열은 블루 한 계열이다** — 실측 `--actual` · AI `--ai`. 항목을 색으로 가르지 않는다
+2. **포인트색은 조작·선택에만.** 상태를 뜻하는 자리에 쓰지 않는다
+3. **화면 글자 최소는 12px다**(그래프 안만 예외). `text-[11px]`을 새로 쓰지 않는다
+4. **`Panel`에 `eyebrow`가 없다.** 머리글은 걷혔고 설명은 `titleAside` 툴팁이 맡는다
+
+> **`design-system/<slug>/MASTER.md`(`ui-ux-pro-max` 산출물)는 착수 전 기준 수립에 쓴 것이고 지금의 기준이 아니다.** 둘이 어긋나면 §8이 이긴다 — 실제 화면이 §8을 따라 만들어져 있다.
 
 ### 임시값 규약 (`PROVISIONAL_`)
 
@@ -100,10 +120,12 @@ python .claude/skills/ui-ux-pro-max/scripts/search.py "dashboard" --stack shadcn
 
 ### 작업 순서
 
-1. `ui-ux-pro-max --design-system --persist` → `MASTER.md` 생성 (1회)
-2. `MASTER.md` 토큰을 `shared/config` + Tailwind theme에 등록 (이후 R9 적용 대상)
-3. 화면별: `MASTER.md`(+ `pages/<page>.md` 오버라이드) 확인 → `impeccable shape`로 계획 → 구현
-4. 차트: `dataviz` 로드 → Recharts로 구현 (E3·E4 준수)
+> **1·2단계는 끝났고 되돌아가지 않는다.** 디자인시스템 생성은 착수 전 1회로 마쳤고, 그 뒤 디자이너 작업(`49593cf`)이 화면 전체를 다시 잡았다. **지금의 기준은 `MASTER.md`가 아니라 위 `디자인 기준선` 절이다** `[사용자 지시 2026-08-25]`.
+
+1. ~~`ui-ux-pro-max --design-system --persist`~~ — 완료(2026-08). **다시 돌리지 않는다**
+2. ~~`MASTER.md` 토큰 등록~~ — `globals.css`가 이미 갖고 있고 그 뒤로 값이 바뀌었다
+3. 화면별: **`screens.md` §8**(+ 화면 문서) 확인 → `impeccable shape`로 계획 → 구현
+4. 차트: `dataviz` 로드 → Recharts로 구현. **`useChartHover()`를 붙이고 계열 색은 `--actual`·`--ai`만 쓴다**(E3·E4 준수)
 5. 마감: `impeccable critique` → `audit` → `polish` 각 1회. **끝없이 돌리지 않는다**(스킬 자체 지침)
 
 ## 원문 분석 문서 — 도메인 값이 필요할 때 여기서 찾는다

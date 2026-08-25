@@ -72,7 +72,7 @@ describe('buildRibbon — 방류 세 상태', () => {
     expect(states(runs)).toEqual(['on', 'unknown', 'on']);
   });
 
-  it('중단이 마지막에 걸린 사업장은 구간이 끝에서 끊긴다 — 관리자2 S-09', () => {
+  it('중단이 마지막에 걸린 사업장은 구간이 끝에서 끊긴다 — 사업장2 S-09', () => {
     const runs = ribbonFor('S-09').discharging;
     expect(states(runs)).toEqual(['on', 'off']);
     expect(runs[1]!.from + runs[1]!.length).toBe(TIMELINE_POINT_COUNT);
@@ -80,7 +80,7 @@ describe('buildRibbon — 방류 세 상태', () => {
 });
 
 describe('buildRibbon — 알람 마커', () => {
-  it('관리자1(S-02) 알람 2건이 시간축 끝쪽에 놓인다', () => {
+  it('사업장1(S-02) 알람 2건이 시간축 끝쪽에 놓인다', () => {
     const alarms = ribbonFor('S-02').alarms;
     expect(alarms.map((a) => a.index)).toEqual([285, 284]);
   });

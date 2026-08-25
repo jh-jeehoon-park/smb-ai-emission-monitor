@@ -17,9 +17,27 @@ describe('역할별 첫 화면', () => {
     expect(homeHrefFor('site')).toBe('/overview');
   });
 
-  it('시스템 관리자·지자체는 통합 관제로 간다', () => {
+  it('시스템 관리자는 통합 관제로 간다', () => {
     expect(homeHrefFor('system')).toBe('/');
-    expect(homeHrefFor('gov')).toBe('/');
+  });
+
+  /**
+   * **기초지자체의 첫 화면은 아직 대체물이다** `[설계 2026-08-24]`.
+   *
+   * 통합 관제를 기초지자체에 닫았다 — 전국 10개소가 `관할 시·군·구`라는 범위 정의와
+   * 모순이다. 그 자리를 받을 `SCR-GU-001 관내 감독 현황`은 설계서만 있고 라우트가 없어
+   * (`[사용자 결정 2026-08-24]`) 지금은 `NAV_ITEMS`의 다음 열린 항목으로 떨어진다.
+   *
+   * **그 항목은 묶음 순서가 정한다.** `관제`가 `자사 현황(사업장만) · 통합 관제(닫힘) ·
+   * 시계열 변화`라 지금 답은 `/timeseries`다 — 묶음을 재배열하면 이 값이 바뀐다.
+   *
+   * **라우트가 생기면 이 기대값이 바뀐다** — 그때 `SCR-GU-001`을 `NAV_ITEMS` 앞쪽에
+   * 넣어야 관내가 첫 화면이 된다.
+   */
+  it('기초지자체는 통합 관제가 닫혀 시계열 변화로 간다 — 관내 화면이 미구현이다', () => {
+    expect(canRoleSee('SCR-OP-001', 'gov')).toBe(false);
+    expect(homeHrefFor('gov')).toBe('/timeseries');
+    expect(NAV_ITEMS.some((nav) => nav.screenId === 'SCR-GU-001')).toBe(false);
   });
 
   /** 목적지가 그 역할에 닫혀 있으면 라우트 가드가 곧바로 되돌려 무한히 튕긴다 */
@@ -96,11 +114,17 @@ describe('사이드바 묶음', () => {
     }
   });
 
-  /** 수처리 공정은 사업장만, 사업장 설정은 관리자·사업장 — 지자체에게는 남는 것이 없다 */
-  it('지자체에게는 관리 묶음이 통째로 감춰진다', () => {
+  /**
+   * **기초지자체에게도 `관리`가 보인다** `[사용자 결정 2026-08-25]`. 예전에는 남는 것이
+   * 없어 묶음째 감췄는데, 기준치 입력 주체가 기초지자체로 정해져 `사업장 설정`이 열렸다
+   * — 지역별 방류 기준을 아는 주체가 지자체다. 들어갈 길이 없으면 그 결정이 화면에서
+   * 성립하지 않는다.
+   *
+   * 수처리 공정은 여전히 사업장만이다.
+   */
+  it('관리 묶음은 사업장 설정 때문에 세 역할 모두에게 보인다', () => {
     const manage = NAV_GROUPS.find((group) => group.label === '관리');
     expect(manage).toBeDefined();
-    expect(groupMenuRoles(manage!)).not.toContain('gov');
-    expect(groupMenuRoles(manage!)).toContain('system');
+    expect(groupMenuRoles(manage!)).toEqual(expect.arrayContaining(['system', 'site', 'gov']));
   });
 });

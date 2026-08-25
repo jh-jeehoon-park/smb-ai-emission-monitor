@@ -7,7 +7,7 @@ import { BADGE_BASE } from '@/shared/ui/badge';
 import { CountUp } from '@/shared/ui/motion';
 import { Sparkline } from '@/shared/ui/sparkline';
 import { StatusBadge } from '@/shared/ui/status-badge';
-import { TABLE_HEAD_ROW } from '@/shared/ui/table';
+import { TABLE_HEAD_CELL, TABLE_HEAD_ROW, TABLE_ROOT } from '@/shared/ui/table';
 import type { Site } from '@/entities/site';
 
 interface SiteScoreTableProps {
@@ -50,33 +50,33 @@ export function SiteScoreTable({ sites, selectedId, onSelect, spark }: SiteScore
      * 이름 최소 124px.
      */
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[880px] table-fixed border-separate border-spacing-0 text-center text-[12px]">
+      <table className={`${TABLE_ROOT} min-w-[880px] table-fixed text-center text-[12px]`}>
         <caption className="sr-only">
           사업장별 이상 점수 — 점수 높은 순, 최근 24시간 추세 포함
         </caption>
         <thead>
           <tr className={TABLE_HEAD_ROW}>
-            <th scope="col" className="w-[52px] px-3 py-3 text-center">
+            <th scope="col" className={`w-[52px] ${TABLE_HEAD_CELL}`}>
               순위
             </th>
-            <th scope="col" className="px-3 py-3 text-center">
+            <th scope="col" className={TABLE_HEAD_CELL}>
               사업장
             </th>
             {/* 업종·지역을 이름 아래 붙이지 않고 **한 열로 낸다** `[사용자 지시 2026-08-24]` */}
-            <th scope="col" className="w-[156px] px-3 py-3 text-center">
+            <th scope="col" className={`w-[156px] ${TABLE_HEAD_CELL}`}>
               업종 · 지역
             </th>
-            <th scope="col" className="w-[92px] px-3 py-3 text-center">
+            <th scope="col" className={`w-[92px] ${TABLE_HEAD_CELL}`}>
               등급
             </th>
-            <th scope="col" className="w-[76px] px-3 py-3 text-center">
+            <th scope="col" className={`w-[76px] ${TABLE_HEAD_CELL}`}>
               점수
             </th>
-            <th scope="col" className="w-[280px] px-3 py-3 text-center">
+            <th scope="col" className={`w-[280px] ${TABLE_HEAD_CELL}`}>
               최근 24시간 추세
             </th>
             {/* 열 이름이 있어야 그 칸의 버튼들이 무엇을 하는 묶음인지 읽힌다 */}
-            <th scope="col" className="w-[96px] px-3 py-3 text-center">
+            <th scope="col" className={`w-[96px] ${TABLE_HEAD_CELL}`}>
               상세
             </th>
           </tr>
@@ -112,7 +112,7 @@ export function SiteScoreTable({ sites, selectedId, onSelect, spark }: SiteScore
                 <td className="num px-3 py-3 text-center text-fg-subtle">{index + 1}</td>
 
                 {/* 이 열이 표의 주어다 — 다른 칸(12px)보다 한 단 크고 굵다 */}
-                <th scope="row" className="px-3 py-3 text-center">
+                <th scope="row" className={TABLE_HEAD_CELL}>
                   <span
                     className={cn(
                       'block max-w-full truncate text-[13px]',
@@ -162,7 +162,7 @@ export function SiteScoreTable({ sites, selectedId, onSelect, spark }: SiteScore
                  * 사업장명도 같은 일을 하지만(두 입구, 한 동작) 이름은 글자라 누를 수 있다는 것이
                  * 약하다 — 화살표가 붙은 버튼이 그 줄에서 무엇을 할 수 있는지 말한다.
                  */}
-                <td className="px-3 py-3 text-center">
+                <td className={TABLE_HEAD_CELL}>
                   <button
                     type="button"
                     /* 줄에도 클릭이 걸려 있다 — 막지 않으면 같은 선택이 두 번 돈다 */

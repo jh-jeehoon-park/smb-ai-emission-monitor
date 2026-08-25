@@ -83,10 +83,17 @@ describe('역할 — 문서와 코드가 갈리지 않는다', () => {
     expect(NAV_ITEMS.find((item) => canRoleSee(item.screenId, 'site'))?.href).toBe('/overview');
   });
 
-  it('시스템 관리자·지자체의 대체 화면은 통합 관제다', () => {
-    for (const role of ['system', 'gov'] as const) {
-      expect(NAV_ITEMS.find((item) => canRoleSee(item.screenId, role))?.href).toBe('/');
-    }
+  it('시스템 관리자의 대체 화면은 통합 관제다', () => {
+    expect(NAV_ITEMS.find((item) => canRoleSee(item.screenId, 'system'))?.href).toBe('/');
+  });
+
+  /**
+   * **기초지자체의 대체 화면은 아직 임시다** `[설계 2026-08-24]`. 통합 관제를 닫았고
+   * 그 자리를 받을 `SCR-GU-001`은 라우트가 없어(`[사용자 결정 2026-08-24]`) `NAV_ITEMS`의
+   * 다음 열린 항목으로 떨어진다. 관내 화면을 만들 때 이 기대값이 바뀐다.
+   */
+  it('기초지자체의 대체 화면은 시계열 변화다 — 관내 화면이 미구현이다', () => {
+    expect(NAV_ITEMS.find((item) => canRoleSee(item.screenId, 'gov'))?.href).toBe('/timeseries');
   });
 });
 
@@ -177,12 +184,12 @@ describe('사업장 계정 — 범위 축', () => {
 });
 
 /**
- * 지자체는 **전환만** 막는다. 역할 자체를 없애는 것이 아니다 —
- * 권한 매트릭스는 지자체가 볼 수 있는 화면을 그대로 규정하고 있고,
- * 관할 지역 범위를 구현하면 전환을 연다 `[사용자 지시 2026-08-20]`.
+ * 기초지자체는 **전환만** 막는다. 역할 자체를 없애는 것이 아니다 —
+ * 권한 매트릭스는 기초지자체가 볼 수 있는 화면을 그대로 규정하고 있고,
+ * 관할 시·군·구 범위를 구현하면 전환을 연다 `[사용자 지시 2026-08-20]`.
  */
-describe('역할 전환 — 지자체는 아직 고를 수 없다', () => {
-  it('전환 목록에 지자체가 없다', () => {
+describe('역할 전환 — 기초지자체는 아직 고를 수 없다', () => {
+  it('전환 목록에 기초지자체가 없다', () => {
     expect(SWITCHABLE_ROLES).not.toContain('gov');
   });
 
@@ -195,14 +202,27 @@ describe('역할 전환 — 지자체는 아직 고를 수 없다', () => {
     for (const role of SWITCHABLE_ROLES) expect(ROLES).toContain(role);
   });
 
-  it('지자체는 유효한 역할이다 — 권한 매트릭스가 이미 규정한다', () => {
+  it('기초지자체는 유효한 역할이다 — 권한 매트릭스가 이미 규정한다', () => {
     expect(normalizeRole('gov')).toBe('gov');
     expect(ROLES).toContain('gov');
   });
 
-  it('지자체의 화면 접근 권한은 정의돼 있다', () => {
-    expect(canRoleSee('SCR-OP-001', 'gov')).toBe(true);
+  /**
+   * **통합 관제는 기초지자체에도 닫혀 있다** `[설계 2026-08-24]`. 전국 10개소를 보여 주는
+   * 것이 `관할 시·군·구`라는 범위 정의와 모순이라, 사업장에 닫은 것과 같은 논리로 닫았다.
+   * 그 자리는 `SCR-GU-001 관내 감독 현황`이 받는다 — **설계서만 있고 라우트는 없다**
+   * `[사용자 결정 2026-08-24]`. 권한 매트릭스에는 미리 넣어 두었다(`screens.md` §5와 대조).
+   */
+  it('기초지자체의 화면 접근 권한은 정의돼 있다', () => {
+    expect(canRoleSee('SCR-OP-001', 'gov')).toBe(false);
+    expect(canRoleSee('SCR-GU-001', 'gov')).toBe(true);
     expect(canRoleSee('SCR-AD-003', 'gov')).toBe(false);
+  });
+
+  /** 관내 화면은 기초지자체만 본다 — 관할 밖 사업장이 들어가므로 전 사업장 역할에도 닫는다 */
+  it('관내 감독 현황은 기초지자체 전용이다', () => {
+    expect(canRoleSee('SCR-GU-001', 'system')).toBe(false);
+    expect(canRoleSee('SCR-GU-001', 'site')).toBe(false);
   });
 
   /** 범위 축이 역할마다 하나로 정해진다 — 회의가 사용자 유형과 범위를 함께 못박았다 */
@@ -212,7 +232,7 @@ describe('역할 전환 — 지자체는 아직 고를 수 없다', () => {
 
   /** 못 누르는 이유가 화면에 적혀야 한다 — 흐릿하기만 하면 고장으로 읽힌다 */
   it('막힌 이유 문구가 있다', () => {
-    expect(ROLE_SWITCH_BLOCKED_REASON).toContain('지자체');
+    expect(ROLE_SWITCH_BLOCKED_REASON).toContain('기초지자체');
   });
 });
 

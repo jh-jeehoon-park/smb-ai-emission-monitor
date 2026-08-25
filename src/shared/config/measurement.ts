@@ -25,6 +25,17 @@ export interface MeasurementItem {
   /** 원문 기호 표기 (없으면 라벨과 동일) */
   symbol: string;
   unit: string;
+  /**
+   * 단위를 한글로 풀어 쓴 것 `[회의 피드백 2026-08-24]`.
+   *
+   * `NTU`·`Pt-Co`·`μS/cm`처럼 기호만으로는 무엇의 단위인지 알 수 없는 것이 있다. 단위가
+   * 없는 항목(pH·진동)은 **빈 문자열이 아니라 그 사실을 적는다** — 빈 칸으로 두면 값을
+   * 못 받은 것으로 읽힌다.
+   *
+   * **기호를 대체하지 않고 병기한다.** 계측 사양의 표기는 원문 값이므로(`[원문 p.55]`)
+   * 화면에서 바꾸지 않고, 한글을 옆에 덧붙인다.
+   */
+  unitKo: string;
   /** 센서 사양 측정 범위 */
   range: [number, number];
   /** 센서 정확도 (원문 표기 그대로) */
@@ -43,6 +54,7 @@ export const MEASUREMENT_ITEMS: Record<MeasurementItemCode, MeasurementItem> = {
     label: '수소이온농도',
     symbol: 'pH',
     unit: '',
+    unitKo: '무차원 (0~14)',
     range: [0, 14],
     accuracy: '±0.1',
     category: 'water',
@@ -54,6 +66,7 @@ export const MEASUREMENT_ITEMS: Record<MeasurementItemCode, MeasurementItem> = {
     symbol: 'EC',
     // 계측 사양(p.55)은 μS/cm, H/W 성능지표(p.35)는 mS/cm로 어긋난다. 계측 사양을 따랐다.
     unit: 'μS/cm',
+    unitKo: '마이크로지멘스/센티미터',
     range: [0, 20000],
     accuracy: '±2%',
     category: 'water',
@@ -64,6 +77,7 @@ export const MEASUREMENT_ITEMS: Record<MeasurementItemCode, MeasurementItem> = {
     label: '탁도',
     symbol: 'Turb',
     unit: 'NTU',
+    unitKo: '탁도 단위',
     range: [0, 4000],
     accuracy: '±5%',
     category: 'water',
@@ -74,6 +88,7 @@ export const MEASUREMENT_ITEMS: Record<MeasurementItemCode, MeasurementItem> = {
     label: '용존산소',
     symbol: 'DO',
     unit: 'mg/L',
+    unitKo: '밀리그램/리터',
     range: [0, 20],
     accuracy: '±0.2 mg/L',
     category: 'water',
@@ -84,6 +99,7 @@ export const MEASUREMENT_ITEMS: Record<MeasurementItemCode, MeasurementItem> = {
     label: '수온',
     symbol: 'Temp',
     unit: '℃',
+    unitKo: '섭씨온도',
     range: [0, 50],
     accuracy: '±0.5℃',
     category: 'water',
@@ -94,6 +110,7 @@ export const MEASUREMENT_ITEMS: Record<MeasurementItemCode, MeasurementItem> = {
     label: '색도',
     symbol: 'Color',
     unit: 'Pt-Co',
+    unitKo: '백금-코발트 색도 단위',
     range: [0, 500],
     accuracy: '±10 Pt-Co',
     category: 'water',
@@ -104,6 +121,7 @@ export const MEASUREMENT_ITEMS: Record<MeasurementItemCode, MeasurementItem> = {
     label: '질산성질소',
     symbol: 'NO₃-N',
     unit: 'mg/L',
+    unitKo: '밀리그램/리터',
     range: [0, 100],
     accuracy: '±5%',
     category: 'water',
@@ -114,6 +132,7 @@ export const MEASUREMENT_ITEMS: Record<MeasurementItemCode, MeasurementItem> = {
     label: '총유기탄소',
     symbol: 'TOC',
     unit: 'mg/L',
+    unitKo: '밀리그램/리터',
     range: [0, 500],
     accuracy: '±10%',
     category: 'water',
@@ -124,6 +143,7 @@ export const MEASUREMENT_ITEMS: Record<MeasurementItemCode, MeasurementItem> = {
     label: '전류',
     symbol: 'I',
     unit: 'A',
+    unitKo: '암페어',
     range: [0, 500],
     accuracy: '±1%',
     category: 'equipment',
@@ -134,6 +154,7 @@ export const MEASUREMENT_ITEMS: Record<MeasurementItemCode, MeasurementItem> = {
     label: '전력',
     symbol: 'P',
     unit: 'kW',
+    unitKo: '킬로와트',
     range: [0, 100],
     accuracy: '±1%',
     category: 'equipment',
@@ -144,6 +165,7 @@ export const MEASUREMENT_ITEMS: Record<MeasurementItemCode, MeasurementItem> = {
     label: '유량',
     symbol: 'Q',
     unit: 'm³/day',
+    unitKo: '세제곱미터/일',
     range: [0, 1000],
     accuracy: '±2%',
     category: 'equipment',
@@ -164,6 +186,7 @@ export const MEASUREMENT_ITEMS: Record<MeasurementItemCode, MeasurementItem> = {
     label: '진동',
     symbol: 'Vib',
     unit: '',
+    unitKo: '무차원 (신호 여부만)',
     range: [0, 0],
     accuracy: '원문 미규정',
     category: 'equipment',
@@ -175,6 +198,7 @@ export const MEASUREMENT_ITEMS: Record<MeasurementItemCode, MeasurementItem> = {
     label: '총질소',
     symbol: 'TN',
     unit: 'mg/L',
+    unitKo: '밀리그램/리터',
     range: [0, 100],
     accuracy: 'AI 추정',
     category: 'estimated',
@@ -185,6 +209,7 @@ export const MEASUREMENT_ITEMS: Record<MeasurementItemCode, MeasurementItem> = {
     label: '총인',
     symbol: 'TP',
     unit: 'mg/L',
+    unitKo: '밀리그램/리터',
     range: [0, 20],
     accuracy: 'AI 추정',
     category: 'estimated',

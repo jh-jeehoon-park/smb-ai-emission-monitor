@@ -96,7 +96,18 @@ function MiniSeries({
   return (
     <div className="h-full rounded-nested bg-surface-2 p-3">
       <div className="flex items-baseline justify-between gap-2">
-        <span className="text-[12px] font-medium tracking-[0.08em] text-fg-subtle">
+        {/*
+         * 단위 한글 병기를 **기호에** 붙인다 `[회의 피드백 2026-08-24]`. 아래 단위 span에만
+         * 달면 pH·진동처럼 `unit`이 빈 항목은 그 span이 아예 안 그려져 병기가 사라진다 —
+         * 기호는 늘 그려지므로 여기가 안전한 자리다.
+         *
+         * 카드가 여덟 장 붙어 있어 한글을 인라인으로 넣으면 칸이 뭉개진다. 그래서 툴팁이
+         * 맡고, 표 형태(리포트·항목별 요약)는 열이 있어 거기서 두 줄로 낸다.
+         */}
+        <span
+          className="text-[12px] font-medium tracking-[0.08em] text-fg-subtle"
+          title={`${item.label} · 단위 ${item.unit || '없음'} ${item.unitKo}`}
+        >
           {item.symbol}
         </span>
         {isMissingNow && (
@@ -128,7 +139,7 @@ function MiniSeries({
       <ChartFigure
         bare
         label={`${item.label}(${item.symbol}) 최근 ${windowHours}시간 추이${
-          item.unit ? `, 단위 ${item.unit}` : ''
+          item.unit ? `, 단위 ${item.unit} ${item.unitKo}` : ''
         }, KST 기준. 현재값 ${formatValue(code, latest)}`}
       >
         <div className="-mx-1 mt-2 h-10" {...hoverProps}>

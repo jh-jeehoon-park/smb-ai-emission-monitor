@@ -6,7 +6,7 @@ import { downloadCsv } from '@/shared/lib/csv';
 import { formatClock, formatValue } from '@/shared/lib/format';
 import { Panel } from '@/shared/ui/panel';
 import { SegmentedControl } from '@/shared/ui/segmented-control';
-import { TABLE_HEAD_ROW } from '@/shared/ui/table';
+import { TABLE_HEAD_CELL, TABLE_HEAD_ROW, TABLE_ROOT, TABLE_ROW } from '@/shared/ui/table';
 import {
   BUCKET_OPTIONS,
   STAT_LABELS,
@@ -128,31 +128,31 @@ function BucketTable({
 
   return (
     <div className="max-h-[560px] overflow-auto">
-      <table className="w-full border-separate border-spacing-0 text-[12px] text-center">
+      <table className={`${TABLE_ROOT} text-[12px] text-center`}>
         <caption className="sr-only">
           구간별 {STAT_LABELS[stat]}. 행은 구간 시작 시각, 열은 계측 항목이다.
         </caption>
         <thead className="sticky top-0 z-10">
           <tr className={TABLE_HEAD_ROW}>
-            <th scope="col" className="sticky left-0 bg-surface-2 px-3 py-3 text-center">
+            <th scope="col" className={`sticky left-0 bg-surface-2 ${TABLE_HEAD_CELL}`}>
               구간
             </th>
             {codes.map((code) => (
-              <th key={code} scope="col" className="px-3 py-3 text-center">
+              <th key={code} scope="col" className={TABLE_HEAD_CELL}>
                 {MEASUREMENT_ITEMS[code].symbol}
                 {MEASUREMENT_ITEMS[code].unit && (
                   <span className="ml-1 text-fg-subtle">{MEASUREMENT_ITEMS[code].unit}</span>
                 )}
               </th>
             ))}
-            <th scope="col" className="px-3 py-3 text-center">
+            <th scope="col" className={TABLE_HEAD_CELL}>
               결측
             </th>
           </tr>
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={row.startIso} className="[&>*]:border-b [&>*]:border-border">
+            <tr key={row.startIso} className={TABLE_ROW}>
               <th
                 scope="row"
                 className="num sticky left-0 bg-surface py-3.5 text-center font-normal text-fg-muted"

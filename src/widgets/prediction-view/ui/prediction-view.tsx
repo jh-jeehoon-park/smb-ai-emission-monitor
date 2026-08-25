@@ -48,7 +48,7 @@ import {
   ForecastLimitNote,
 } from '@/widgets/forecast-chart';
 import { ALL_TARGETS, TARGET_QUERY_KEY, TARGET_VIEWS, type TargetView } from '../config/constants';
-import { TABLE_HEAD_ROW } from '@/shared/ui/table';
+import { TABLE_HEAD_CELL, TABLE_HEAD_ROW, TABLE_ROOT, TABLE_ROW } from '@/shared/ui/table';
 import { ACTION_BUTTON_QUIET } from '@/shared/ui/action-button';
 
 const TARGET_OPTIONS: { value: TargetView; label: string }[] = [
@@ -323,13 +323,13 @@ function LimitMonitor({
       }
     >
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[520px] border-separate border-spacing-0 text-[12px] text-center">
+        <table className={`${TABLE_ROOT} min-w-[520px] text-[12px] text-center`}>
           <thead>
             <tr className={TABLE_HEAD_ROW}>
-              <th className="px-3 py-3 text-center">항목</th>
-              <th className="px-3 py-3 text-center">기준치</th>
-              <th className="px-3 py-3 text-center">판정</th>
-              <th className="px-3 py-3 text-center">출처</th>
+              <th className={TABLE_HEAD_CELL}>항목</th>
+              <th className={TABLE_HEAD_CELL}>기준치</th>
+              <th className={TABLE_HEAD_CELL}>판정</th>
+              <th className={TABLE_HEAD_CELL}>출처</th>
             </tr>
           </thead>
           <tbody>
@@ -340,7 +340,7 @@ function LimitMonitor({
               const verdict = trendVerdict(trend, over, limits.unresolvedReason);
 
               return (
-                <tr key={trend.code} className="[&>*]:border-b [&>*]:border-border">
+                <tr key={trend.code} className={TABLE_ROW}>
                   <td className="px-3 py-3.5">
                     <span className="font-semibold text-fg">{trend.code}</span>
                     <span className="ml-1.5 text-[12px] text-fg-subtle">{trend.label}</span>

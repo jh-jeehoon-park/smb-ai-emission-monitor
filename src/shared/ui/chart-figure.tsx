@@ -1,5 +1,6 @@
 'use client';
 
+import { TABLE_ROOT, TABLE_ROW } from '@/shared/ui/table';
 import { useId, useState, type ReactNode } from 'react';
 import { cn } from '@/shared/lib/cn';
 import {
@@ -159,7 +160,7 @@ export function ChartFigure<T>({
           )}
         >
           <div className="h-full overflow-auto rounded-nested bg-surface-2 p-3">
-            <table className="w-full border-separate border-spacing-0 text-[12px] text-center">
+            <table className={`${TABLE_ROOT} text-[12px] text-center`}>
               <caption className="sr-only">{label}</caption>
               <thead className="sticky top-0">
                 <tr className={TABLE_HEAD_ROW}>
@@ -176,7 +177,7 @@ export function ChartFigure<T>({
               </thead>
               <tbody>
                 {sampled.map((row, i) => (
-                  <tr key={i} className="[&>*]:border-b [&>*]:border-border">
+                  <tr key={i} className={TABLE_ROW}>
                     {columns.map((c) => (
                       <td key={c.header} className="num whitespace-nowrap px-3 py-2.5 text-fg">
                         {c.cell(row)}

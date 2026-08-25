@@ -42,9 +42,15 @@ describe('기준 표기', () => {
     expect(screen.queryByText(/초과/)).toBeNull();
   });
 
+  /**
+   * **`[title]` 첫 요소를 집지 않는다.** 예전에는 `container.querySelector('[title]')`로
+   * 찾았는데, 단위 한글 병기 툴팁이 기호에 붙으면서(`[회의 피드백 2026-08-24]`) 그쪽이
+   * 먼저 걸려 이 테스트가 깨졌다 — 카드에 툴팁이 하나 더 생기는 것만으로 무너지는 찾기였다.
+   * 기준 문구를 글자로 찾아 그 문단을 집는다.
+   */
   it('허가증 확인 문구를 출처로 달고 있다 — 확정 기준처럼 읽히면 안 된다', () => {
-    const { container } = draw(['pH']);
-    const note = container.querySelector('[title]');
+    draw(['pH']);
+    const note = screen.getByText(/기준 5\.80–8\.60/).closest('p');
     expect(note?.getAttribute('title')).toContain('허가증');
   });
 });

@@ -27,7 +27,7 @@ import { StatusHeatmap } from './status-heatmap';
 import { cn } from '@/shared/lib/cn';
 import { CROSS_SITE_RANK_LIMIT, SORT_QUERY_KEY } from '../config/constants';
 import { rankAcrossSites } from '../lib/rank-across-sites';
-import { TABLE_HEAD_ROW } from '@/shared/ui/table';
+import { TABLE_HEAD_CELL, TABLE_HEAD_ROW, TABLE_ROOT, TABLE_ROW } from '@/shared/ui/table';
 import { InfoTip } from '@/shared/ui/tooltip';
 
 const DEFAULT_SORT: EquipmentSortKey = 'status';
@@ -186,22 +186,22 @@ function CrossSiteRanking({ selectedSiteId }: { selectedSiteId: string }) {
 function EquipmentTable({ items }: { items: Equipment[] }) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[620px] border-separate border-spacing-0 text-[12px] text-center">
+      <table className={`${TABLE_ROOT} min-w-[620px] text-[12px] text-center`}>
         <thead>
           <tr className={TABLE_HEAD_ROW}>
-            <th className="px-3 py-3 text-center">설비</th>
-            <th className="px-3 py-3 text-center">상태</th>
-            <th className="px-3 py-3 text-center">가동</th>
-            <th className="px-3 py-3 text-center">이상 신호</th>
-            <th className="px-3 py-3 text-center">이상 지속</th>
-            <th className="px-3 py-3 text-center">누적 가동</th>
+            <th className={TABLE_HEAD_CELL}>설비</th>
+            <th className={TABLE_HEAD_CELL}>상태</th>
+            <th className={TABLE_HEAD_CELL}>가동</th>
+            <th className={TABLE_HEAD_CELL}>이상 신호</th>
+            <th className={TABLE_HEAD_CELL}>이상 지속</th>
+            <th className={TABLE_HEAD_CELL}>누적 가동</th>
           </tr>
         </thead>
         <tbody>
           {items.map((eq) => {
             const state = eq.running === null ? 'unknown' : eq.running ? 'on' : 'off';
             return (
-              <tr key={eq.id} className="[&>*]:border-b [&>*]:border-border">
+              <tr key={eq.id} className={TABLE_ROW}>
                 <td className="px-3 py-3.5 text-fg">{eq.name}</td>
                 <td className="px-3 py-3.5">
                   <StatusBadge level={eq.status} />

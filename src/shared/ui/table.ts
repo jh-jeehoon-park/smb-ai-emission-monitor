@@ -19,6 +19,15 @@ export const TABLE_ROOT = 'w-full border-separate border-spacing-0';
 export const TABLE_HEAD_ROW =
   'text-[12px] font-semibold text-fg-muted [&>th]:bg-table-head [&>th:first-child]:rounded-l-nested [&>th:last-child]:rounded-r-nested';
 
-export const TABLE_HEAD_CELL = 'whitespace-nowrap px-3 py-2.5 text-center';
+/**
+ * 머리 칸. **값이 한때 실제와 갈려 있었다** — 선언은 `whitespace-nowrap px-3 py-2.5`인데
+ * 표 53곳이 전부 `px-3 py-3`을 쓰고 있었다. 아무 데서도 안 쓰이니 갈린 것을 알 방법이
+ * 없었다 — 이 파일이 존재하는 이유(*"한 곳이 빠져도 알 수 없다"*)를 스스로 어긴 셈이라
+ * 실제 값에 맞추고 전 표가 이것을 쓰게 했다 `[사용자 요청 2026-08-25]`.
+ *
+ * `whitespace-nowrap`은 넣지 않는다 — 지금 어느 표도 쓰지 않고, 넣으면 좁은 화면에서
+ * 긴 머리글(`알람 (긴급·주의·정보)`)이 표를 밀어낸다.
+ */
+export const TABLE_HEAD_CELL = 'px-3 py-3 text-center';
 
 export const TABLE_ROW = '[&>*]:border-b [&>*]:border-border';
