@@ -25,5 +25,11 @@ export const UNRESOLVED_REASONS = {
  * 그대로 보여 주므로(`water-quality-grid`의 `title={limit.source}`) 심사자가 이 기준이 어디서
  * 왔는지 바로 안다 — 우리가 정한 값이 아니라 사용자가 넣은 값이다.
  */
+/**
+ * 시연 기본값의 출처 표기. **`법정 기준 아님`을 문구 안에 넣는다** — 화면이 이 문자열을
+ * 그대로 보여 주므로(`출처` 열·툴팁) 심사자가 값과 함께 그 사실을 읽는다.
+ */
+export const DEMO_LIMIT_SOURCE = '[시연 기본값] 법정 기준 아님 — 허가증 값을 넣으면 덮인다';
+
 export const userLimitSource = (updatedIso: string | null) =>
   updatedIso ? `[사용자 설정 ${updatedIso.slice(0, 10)}] 사업장 허가증 입력값` : '[사용자 설정] 사업장 허가증 입력값';

@@ -7,11 +7,9 @@ import {
   formatClassification,
   formatLimitRange,
   isOverLimit,
-  type DischargeLimitTable,
 } from '@/shared/config/discharge-limits';
-import { DISPLAY_TIMEZONE, formatClock, formatDateTime } from '@/shared/lib/format';
+import { DISPLAY_TIMEZONE, formatDateTime } from '@/shared/lib/format';
 import { useQueryState } from '@/shared/lib/use-query-state';
-import { ChartFigure } from '@/shared/ui/chart-figure';
 import { Panel } from '@/shared/ui/panel';
 import { VALUE_MD } from '@/shared/ui/type-scale';
 import {
@@ -26,10 +24,7 @@ import {
   formatR2,
   getFlowForecast,
   getForecast,
-  hasPlottableValues,
   peakValue,
-  type ForecastPoint,
-  type ForecastSummary,
   type ForecastTargetCode,
   type TrendEstimate,
 } from '@/entities/prediction';
@@ -40,12 +35,10 @@ import {
 import { useSelectedSiteId } from '@/features/site-selection';
 import { SegmentedControl } from '@/shared/ui/segmented-control';
 import {
-  COMPACT_HEIGHT,
   ForecastChart,
-  ForecastEmpty,
   ForecastHorizonNote,
   ForecastLegend,
-  ForecastLimitNote,
+  ForecastOverlay,
 } from '@/widgets/forecast-chart';
 import { ALL_TARGETS, TARGET_QUERY_KEY, TARGET_VIEWS, type TargetView } from '../config/constants';
 import { TABLE_HEAD_CELL, TABLE_HEAD_ROW, TABLE_ROOT, TABLE_ROW } from '@/shared/ui/table';
@@ -79,6 +72,14 @@ export function PredictionView() {
   );
   const allForecasts = useMemo(
     () => (showAll ? FORECAST_TARGET_CODES.map((code) => getForecast(siteId, code)) : []),
+    [siteId, showAll],
+  );
+  /* 수량은 축이 달라 따로 겹친다 — 농도와 부피/시간을 한 눈금에 두면 둘 다 못 읽는다 */
+  const flowForecasts = useMemo(
+    () =>
+      showAll
+        ? [getFlowForecast(siteId, 'inflow'), getFlowForecast(siteId, FLOW_FORECAST_CODE)]
+        : [],
     [siteId, showAll],
   );
   /* 결정계수는 보고 있는 계열의 것이다 — 유량은 성능 목표 자체가 없다 `[원문 발표 p.26]` */
@@ -120,7 +121,37 @@ export function PredictionView() {
         }
       >
         {showAll ? (
-          <ForecastStack limits={limits.table} summaries={allForecasts} />
+          <div className="space-y-5">
+            {/*
+              * **수질은 기준 대비 한 축에 겹친다.** 3단으로 쌓던 판본은 축이 각자라 같은
+              * 시각의 세 항목이 비교되지 않았고, 6종으로 늘리면 768px 스택이 됐다.
+              * 기준으로 나누면 셋 다 100 언저리로 모여 **어느 항목이 기준에 가장 가까운가**
+              * 가 한눈에 보인다 — 이 화면이 묻는 것이 그것이다.
+              */}
+            <div>
+              <p className="mb-1.5 text-[12px] font-medium text-fg-subtle">수질 — 기준 대비</p>
+              <ForecastOverlay
+                summaries={allForecasts}
+                nowIso={DEMO_NOW_ISO}
+                limits={limits.table}
+                unit="%"
+                label="수질 3종 기준 대비"
+              />
+            </div>
+            <div>
+              <p className="mb-1.5 text-[12px] font-medium text-fg-subtle">
+                수량 — 유입·유출 (m³/day)
+              </p>
+              <ForecastOverlay
+                summaries={flowForecasts}
+                nowIso={DEMO_NOW_ISO}
+                unit="m³/day"
+                label="수량 2종"
+              />
+            </div>
+            <ForecastLegend origin="measured" />
+            <ForecastHorizonNote />
+          </div>
         ) : (
           <ForecastChart summary={forecast} nowIso={DEMO_NOW_ISO} limits={limits.table} />
         )}
@@ -197,101 +228,6 @@ export function PredictionView() {
       </Panel>
     </div>
   );
-}
-
-/**
- * 세 항목을 3단으로 쌓는다.
- *
- * **한 축에 겹치지 않는 이유가 데이터에 있다** — TOC 25.5 · TN 16 · TP 1.5 mg/L로
- * 17배 차이라 같은 눈금에 올리면 TP가 바닥에 눕는다. 시간축만 공유하고 세로 눈금은
- * 각자 쓴다. 세로로 훑으면 같은 시각의 세 항목을 비교할 수 있다.
- */
-function ForecastStack({
-  summaries,
-  limits,
-}: {
-  summaries: ForecastSummary[];
-  /* 기준표를 위에서 받는다 — 이 컴포넌트가 직접 읽으면 화면 안에서 두 표가 생긴다 */
-  limits: DischargeLimitTable;
-}) {
-  const lastIndex = summaries.length - 1;
-
-  /*
-   * 세 항목이 모두 비면 한 번만 말한다. 단마다 같은 문장을 적으면 세 가지 다른 사정이
-   * 있는 것처럼 읽히고, 그릴 계열이 없는데 범례가 계열을 설명하고 표는 전부 `—`가 된다.
-   */
-  if (summaries.every((summary) => !hasPlottableValues(summary))) {
-    return <ForecastEmpty height={COMPACT_HEIGHT * summaries.length} />;
-  }
-
-  return (
-    <>
-      {/*
-       * 표와 범례는 스택 전체가 하나만 갖는다. 단마다 붙이면 `표로 보기`가 세 번,
-       * 범례가 세 번 나와 무엇이 다른 표인지 알 수 없다 — 세 항목이 같은 시각 축을
-       * 쓰므로 한 표에 나란히 담는 편이 비교에도 맞다.
-       */}
-      <ChartFigure
-        label={`TOC · TN · TP 최근 ${SERIES_WINDOW_HOURS}시간 계열, 시각 축 공유, KST 기준`}
-        rows={summaries[0]?.points ?? []}
-        sampleEvery={6}
-        columns={[
-          { header: '시각(KST)', cell: (r) => formatClock(r.t) },
-          ...summaries.map((summary, i) => ({
-            header: `${code(i)}(${summary.unit})`,
-            cell: (r: ForecastPoint) => valueAt(summaries[i]!, r.t),
-          })),
-        ]}
-      >
-        <div className="divide-y divide-border">
-          {summaries.map((summary, i) => {
-            const latest =
-              [...summary.points].reverse().find((p) => p.value !== null)?.value ?? null;
-
-            return (
-              <div key={summary.targetLabel} className={i === 0 ? 'pb-2' : 'py-2 last:pb-0'}>
-                <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
-                  <p className="text-[12px] font-medium text-fg">{summary.targetLabel}</p>
-                  <p className="text-[12px] text-fg-subtle">
-                    현재{' '}
-                    <span className="num text-fg-muted">
-                      {latest === null ? '—' : latest.toFixed(summary.decimals)}
-                    </span>{' '}
-                    {summary.unit} · {SERIES_ORIGIN_LABELS[summary.origin]}
-                  </p>
-                </div>
-                {/* 시각 라벨은 맨 아래 단에만, `현재` 라벨은 첫 단에만 — 세 단이 같은 축을 쓴다 */}
-                <ForecastChart
-                  summary={summary}
-                  nowIso={DEMO_NOW_ISO}
-                  limits={limits}
-                  compact
-                  showTimeAxis={i === lastIndex}
-                  showNowLabel={i === 0}
-                />
-              </div>
-            );
-          })}
-        </div>
-      </ChartFigure>
-
-      {/* 세 단이 같은 규약을 쓰므로 범례·문구는 스택 전체에 하나만 둔다 */}
-      <ForecastLegend origin={summaries[0]!.origin} />
-      <ForecastHorizonNote />
-      <ForecastLimitNote code={code(0)} limits={limits} />
-    </>
-  );
-}
-
-const code = (index: number): ForecastTargetCode => FORECAST_TARGET_CODES[index]!;
-
-/**
- * 세 항목이 같은 시각 축을 쓰지만 표는 시각으로 맞춰 읽는다 — 배열 순서에 기대지 않는다.
- * 값이 없으면 `수신 없음`이다. 0으로 채우면 없는 계측을 만든다(E4).
- */
-function valueAt(summary: ForecastSummary, iso: string): string {
-  const value = summary.points.find((p) => p.t === iso)?.value ?? null;
-  return value === null ? '수신 없음' : value.toFixed(summary.decimals);
 }
 
 function Meta({ label, value, mono }: { label: string; value: string; mono?: boolean }) {

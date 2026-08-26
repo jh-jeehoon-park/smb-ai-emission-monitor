@@ -3,6 +3,12 @@ export { getForecast, getFlowForecast } from './api/fixtures';
 export { formatR2 } from './lib/format-r2';
 export { trendVerdict, type TrendVerdict } from './lib/verdict';
 export { hasPlottableValues, peakValue } from './lib/has-values';
+export {
+  LIMIT_BASE_PERCENT,
+  buildOverlayRows,
+  toLimitPercent,
+  type OverlayRow,
+} from './lib/limit-ratio';
 export { SERIES_ORIGIN_LABELS, TREND_LABELS } from './model/types';
 export { TREND_VISUAL } from './config/trend-visual';
 export { TrendChip } from './ui/trend-chip';

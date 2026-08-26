@@ -176,6 +176,11 @@ export const PROVISIONAL_DECIMALS: Record<string, number> = {
  * 화면마다 따로 반올림하면 같은 값이 화면마다 다르게 보인다(E1).
  */
 export const PROVISIONAL_DISPLAY_DECIMALS = {
+  /**
+   * 기준 대비 비율. **정수다** — 소수를 붙이면 `98.3%`처럼 정밀해 보이는데 원값이 소프트
+   * 센싱 추정이라 그만한 정밀도가 없다. 겹침 차트의 눈금·툴팁·표가 이 값을 함께 쓴다.
+   */
+  limitPercent: 0,
   /** 이상 점수는 정수로 산출되므로 최신·최대는 자릿수가 없다. 평균에만 소수가 필요하다 */
   anomalyScoreAverage: 1,
   dataThroughput: 1,
@@ -258,3 +263,22 @@ export const PROVISIONAL_IDLE_DISCHARGE_MIN_SAMPLES = 12;
  * 차 칸에서 부호가 바뀌는 것이 눈에 띄기 때문이다.
  */
 export const PROVISIONAL_IDLE_INFLOW_RATIO = 0.92;
+
+/**
+ * **시연 기준치** `[사용자 결정 2026-08-25]` `[PROVISIONAL]`.
+ *
+ * `DISCHARGE_LIMITS`(법정 표)를 채우지 않는다 — 배출허용기준은 법령이 원천이고 우리가
+ * 정하면 그냥 틀린 값이 된다(`README` §3.1의 *지어내지 않는 둘*). 대신 **사용자가 이미
+ * 입력해 둔 상태**를 시연 데이터로 만든다 — 계측값·알람이 전부 시연값인 것과 같은 지위다.
+ *
+ * **화면이 스스로 밝힌다.** `출처` 열이 `시연 기본값 · 법정 기준 아님`이라 적어 심사자가
+ * 이 값을 법정 판정으로 읽지 않는다. 사용자가 허가증 값을 넣으면 그 순간 덮인다.
+ *
+ * 값을 고른 기준: 계측 기저값 위에 두되 **이상 구간에서 넘도록** 잡았다(TOC 기저 26.5에
+ * 이상 상승 +16이면 42.5 > 40). 넘지 않으면 초과 판정이 시연에서 한 번도 안 보인다.
+ */
+export const PROVISIONAL_DEMO_LIMITS: Record<string, { min: number | null; max: number }> = {
+  TOC: { min: null, max: 40 },
+  TN: { min: null, max: 20 },
+  TP: { min: null, max: 2 },
+};

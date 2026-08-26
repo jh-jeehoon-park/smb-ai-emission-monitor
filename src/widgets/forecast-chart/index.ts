@@ -6,4 +6,5 @@ export {
   ForecastLegend,
   ForecastLimitNote,
 } from './ui/forecast-chart';
+export { ForecastOverlay } from './ui/forecast-overlay';
 export { COMPACT_HEIGHT, FULL_HEIGHT } from './config/constants';

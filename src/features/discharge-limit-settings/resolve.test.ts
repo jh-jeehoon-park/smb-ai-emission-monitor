@@ -11,12 +11,37 @@ const ISO = '2026-08-20T09:00:00.000Z';
 const sheetWith = (entries: Record<string, { min: number | null; max: number | null }>) =>
   ({ 가지역: { '200㎥ 미만': entries } }) as LimitSheets;
 
-describe('사업장 분류가 없으면 오늘과 같다', () => {
-  it('정적 표를 그대로 쓰고 무엇을 해야 하는지 적는다', () => {
+describe('사업장 분류가 없으면', () => {
+  /**
+   * **시연 기본값이 얹힌다** `[사용자 결정 2026-08-25]` `[PROVISIONAL]`. 법정 표
+   * (`DISCHARGE_LIMITS`)는 그대로 두고 *"사용자가 이미 넣어 둔 상태"* 를 만든다 —
+   * 그래야 기준 대비 판정이 시연에서 동작한다.
+   */
+  it('시연 기본값을 얹되 무엇을 해야 하는지 적는다', () => {
     const { table, unresolvedReason, isUserSet } = resolveLimitTable(null, NOTHING, null);
-    expect(table).toBe(DISCHARGE_LIMITS);
+    expect(table).not.toBe(DISCHARGE_LIMITS);
+    expect(hasLimit('TOC', table)).toBe(true);
     expect(unresolvedReason).toBe(UNRESOLVED_REASONS.noClassification);
     expect(isUserSet).toBe(false);
+  });
+
+  /**
+   * **이것이 이 기능의 안전장치다.** 시연값을 법정 판정으로 읽으면 안 된다 — 화면이
+   * `출처` 열에 이 문자열을 그대로 보여 주므로 값과 함께 읽힌다.
+   */
+  it('시연 기본값은 출처에 법정 기준이 아님을 적는다', () => {
+    const { table } = resolveLimitTable(null, NOTHING, null);
+    ['TOC', 'TN', 'TP'].forEach((code) => {
+      const source = table[code as 'TOC']!.source;
+      expect(source, code).toContain('시연 기본값');
+      expect(source, code).toContain('법정 기준 아님');
+    });
+  });
+
+  /** pH는 손대지 않는다 — 통상 범위가 `[공정자료 p.11]`에 실제로 있다 */
+  it('pH는 공정자료 값 그대로다', () => {
+    const { table } = resolveLimitTable(null, NOTHING, null);
+    expect(table.pH).toEqual(DISCHARGE_LIMITS.pH);
   });
 
   /** 두 축 중 하나만 있어도 시트를 고를 수 없다 */
@@ -61,15 +86,20 @@ describe('사용자 값이 정적 표를 덮는다', () => {
   /**
    * **항목 단위로 떨어진다.** 통째로 갈아치우면 TOC만 넣은 순간 pH의 통상 범위가 사라진다.
    */
-  it('입력하지 않은 항목은 정적 값을 유지한다', () => {
+  it('입력하지 않은 항목은 시연 기본값이 남는다', () => {
     const { table } = resolveLimitTable(sheets, CLASSIFIED, ISO);
     expect(table.pH).toEqual(DISCHARGE_LIMITS.pH);
-    expect(hasLimit('TN', table)).toBe(false);
+    expect(table.TN!.source).toContain('시연 기본값');
   });
 
-  it('남은 항목이 있으면 전부 됐다고 적지 않는다', () => {
-    const { unresolvedReason } = resolveLimitTable(sheets, CLASSIFIED, ISO);
-    expect(unresolvedReason).toBe(UNRESOLVED_REASONS.noItem);
+  /**
+   * **사용자 값과 시연값이 섞이는 것이 정상이다.** 항목 단위로 떨어지므로 사용자가 TOC만
+   * 넣으면 TN·TP는 시연값이 남는다 — 출처가 둘을 갈라 준다.
+   */
+  it('사용자가 넣은 항목만 출처가 사용자 설정이다', () => {
+    const { table } = resolveLimitTable(sheets, CLASSIFIED, ISO);
+    expect(table.TOC!.source).toContain('사용자 설정');
+    expect(table.TN!.source).not.toContain('사용자 설정');
   });
 
   it('네 항목을 다 넣으면 미확정 사유가 사라진다', () => {
