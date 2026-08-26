@@ -48,6 +48,7 @@ export interface OverlayRow {
 export function buildOverlayRows(
   summaries: ForecastSummary[],
   percentOf?: DischargeLimitTable,
+  futureHours = 0,
 ): OverlayRow[] {
   const byTime = new Map<string, OverlayRow>();
 
@@ -61,5 +62,34 @@ export function buildOverlayRows(
     }
   }
 
-  return [...byTime.values()].sort((a, b) => a.t.localeCompare(b.t));
+  const rows = [...byTime.values()].sort((a, b) => a.t.localeCompare(b.t));
+  return futureHours > 0 ? [...rows, ...futureRows(rows, futureHours)] : rows;
+}
+
+/**
+ * 미래 구간의 **빈 줄**을 덧붙인다.
+ *
+ * 계열은 관측 창을 넘지 않는다 — 마지막 점이 곧 `현재`다. 그래서 축에 오른쪽 여백이
+ * 없고, 음영을 `현재`부터 그으면 **폭이 0이라 아무것도 보이지 않는다.** 실제로 그랬다.
+ *
+ * 값이 없는 줄을 채워 축을 늘린다 — 계열은 `connectNulls={false}`라 그 구간에서 끊기고,
+ * 음영만 남는다. **없는 예측을 그리지 않으면서 자리를 만드는 유일한 방법이다**(E3).
+ */
+function futureRows(rows: OverlayRow[], hours: number): OverlayRow[] {
+  const last = rows[rows.length - 1];
+  if (!last) return [];
+
+  const step = rows.length > 1 ? Date.parse(last.t) - Date.parse(rows[rows.length - 2]!.t) : 0;
+  if (step <= 0) return [];
+
+  const count = Math.round((hours * 3_600_000) / step);
+  const base = Date.parse(last.t);
+  /*
+   * **시각 형식을 계열과 맞춘다.** `timelineIsoAt`가 `…T14:20:00Z`(밀리초 없음)를 쓰는데
+   * `toISOString()`은 `.000Z`를 붙인다 — 축이 문자열 카테고리라 형식이 섞이면 같은 축에
+   * 두 표기가 나오고, 표에도 그대로 실린다.
+   */
+  return Array.from({ length: count }, (_, i) => ({
+    t: `${new Date(base + step * (i + 1)).toISOString().slice(0, 19)}Z`,
+  }));
 }

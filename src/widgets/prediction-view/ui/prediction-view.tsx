@@ -37,7 +37,6 @@ import { SegmentedControl } from '@/shared/ui/segmented-control';
 import {
   ForecastChart,
   ForecastHorizonNote,
-  ForecastLegend,
   ForecastOverlay,
 } from '@/widgets/forecast-chart';
 import { ALL_TARGETS, TARGET_QUERY_KEY, TARGET_VIEWS, type TargetView } from '../config/constants';
@@ -149,7 +148,6 @@ export function PredictionView() {
                 label="수량 2종"
               />
             </div>
-            <ForecastLegend origin="measured" />
             <ForecastHorizonNote />
           </div>
         ) : (
@@ -325,12 +323,21 @@ function LimitMonitor({
         유입 · 유량 · 유출은 <strong className="text-fg-muted">기준 대상이 아닙니다</strong> —
         배출허용기준은 농도 기준입니다.
       </p>
+      {/*
+       * **문구가 표와 어긋나면 안 된다.** 한때 여기가 *"우리가 값을 채우지 않습니다"* 라고
+       * 적는데 바로 위 `출처` 열은 `[시연 기본값]`이라 적고 있었다 — 한 카드가 두 말을 했다.
+       *
+       * 법정 표(`DISCHARGE_LIMITS`)를 채우지 않는 것은 여전히 사실이다. 다만 시연에서는
+       * *"사용자가 이미 넣어 둔 상태"* 를 만들어 두었고(`[PROVISIONAL]`), 그 사실을 여기서
+       * 밝힌다 — 값 옆의 `출처`와 같은 말을 해야 한다.
+       */}
       <p className="max-w-[86ch] py-2 text-[12px] leading-relaxed text-fg-subtle">
         기준치는 <strong className="text-fg-muted">지역구분 · 1일 폐수배출량 규모 · 항목</strong>으로
         갈립니다 [공정자료 p.11].{' '}
-        <strong className="text-fg-muted">법령이 원천이므로 우리가 값을 채우지 않습니다</strong> —
-        사업장 허가증(폐수배출시설 설치허가·신고증)의 값을 시스템 설정에 넣으면 이 표와 위 카드가
-        곧바로 기준 판정으로 바뀝니다.
+        <strong className="text-fg-muted">법령이 원천이라 우리가 법정 표를 채우지 않습니다</strong> —
+        지금 표의 TOC · TN · TP는 <strong className="text-fg-muted">시연 기본값이며 법정 기준이
+        아닙니다</strong>. 사업장 허가증(폐수배출시설 설치허가·신고증)의 값을 시스템 설정에 넣으면
+        그 값이 덮어씁니다.
         {limits.unresolvedReason && <span className="ml-1">{limits.unresolvedReason}</span>}
       </p>
     </Panel>

@@ -287,7 +287,8 @@ export function ForecastLegend({ origin }: { origin: SeriesOrigin }) {
   );
 }
 
-function LegendItem({
+/** 겹침 차트도 같은 조각을 쓴다 — 두 차트의 범례가 다른 모양이면 같은 뜻으로 안 읽힌다 */
+export function LegendItem({
   color,
   label,
   dashed,

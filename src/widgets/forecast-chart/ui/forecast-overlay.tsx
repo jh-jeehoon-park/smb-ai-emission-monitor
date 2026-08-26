@@ -17,16 +17,16 @@ import { formatClock } from '@/shared/lib/format';
 import { useChartHover } from '@/shared/lib/use-chart-hover';
 import { ChartFigure } from '@/shared/ui/chart-figure';
 import { ChartTooltipRow, ChartTooltipShell } from '@/shared/ui/chart-tooltip';
+import { LegendItem } from './forecast-chart';
 import {
   LIMIT_BASE_PERCENT,
   SERIES_ORIGIN_LABELS,
   buildOverlayRows,
-  hasPlottableValues,
   type ForecastSummary,
   type OverlayRow,
 } from '@/entities/prediction';
 import { PROVISIONAL_DISPLAY_DECIMALS } from '@/shared/config/provisional';
-import { FULL_HEIGHT } from '../config/constants';
+import { FULL_HEIGHT, FUTURE_HOURS } from '../config/constants';
 
 /**
  * **항목은 선 질감이 가른다.** 색은 유래(계측/추정)를 맡고 있어 항목에 쓸 수 없다 —
@@ -72,8 +72,21 @@ export function ForecastOverlay({
   label,
 }: ForecastOverlayProps) {
   const { hoverProps, tooltipActive } = useChartHover();
-  const rows = buildOverlayRows(summaries, limits);
-  const drawable = summaries.filter((s) => hasPlottableValues(s));
+  const rows = buildOverlayRows(summaries, limits, FUTURE_HOURS);
+  /*
+   * **변환한 뒤로 판단한다.** `hasPlottableValues`는 원값을 보므로, 기준이 없어 비율이
+   * 전부 `null`이 된 계열도 참을 돌려준다 — 그러면 선은 안 보이는데 범례와 표에는
+   * 남아 `수신 없음`이라 적힌다. 실제 사유는 `기준 미설정`이라 화면이 거짓을 말한다.
+   */
+  const drawable = summaries.filter((s) =>
+    rows.some((row) => row[s.code] !== null && row[s.code] !== undefined),
+  );
+  /*
+   * **표는 관측 구간만 싣는다.** 차트는 축을 늘리려고 빈 줄을 쓰지만, 표에 그것이 들어가면
+   * 열두 줄이 `수신 없음`으로 나온다 — 그 말은 통신 두절을 뜻해서 거짓이 된다(E4).
+   * 미래 구간이 있다는 사실은 `ForecastHorizonNote`가 글로 적는다.
+   */
+  const observed = rows.filter((row) => row.t <= nowIso);
 
   /*
    * 그릴 계열이 하나도 없으면 차트를 그리지 않는다. 눈금도 선도 없는 빈 격자는
@@ -87,7 +100,7 @@ export function ForecastOverlay({
     <ChartFigure
       label={`${label} 겹침 차트 — ${drawable.map((s) => s.code).join(' · ')}, 시각 축 공유, KST 기준`}
       sampleEvery={6}
-      rows={rows}
+      rows={observed}
       columns={[
         { header: '시각(KST)', cell: (row: OverlayRow) => formatClock(row.t) },
         ...drawable.map((s) => ({
@@ -143,6 +156,7 @@ export function ForecastOverlay({
             <ReferenceArea
               x1={nowIso}
               x2={lastIso}
+              /* 빈 줄로 늘린 구간이다 — 값이 없어 계열은 여기서 끊긴다 */
               fill={AXIS_TEXT_HEX}
               fillOpacity={0.06}
               ifOverflow="extendDomain"
@@ -213,6 +227,33 @@ export function ForecastOverlay({
           </ComposedChart>
         </ResponsiveContainer>
       </div>
+
+      <OverlayLegend drawable={drawable} />
     </ChartFigure>
+  );
+}
+
+/**
+ * 겹침 차트의 범례. **세 채널을 다 설명한다** — 색(유래) · 선 질감(항목) · 음영(예측 미정).
+ *
+ * `ForecastLegend`를 쓰지 않는 이유는 그쪽이 **유래 하나**만 받기 때문이다. 겹침에서는
+ * 계측과 추정이 한 차트에 있어서 한 줄만 그리면 나머지 색이 화면 어디에도 설명되지 않는다.
+ *
+ * 항목 이름을 질감 옆에 적는다 — 질감만으로는 어느 선이 TN인지 알 수 없고, 계열 끝에
+ * 라벨을 붙이면 선이 겹치는 구간에서 글자끼리 포개진다.
+ */
+function OverlayLegend({ drawable }: { drawable: ForecastSummary[] }) {
+  return (
+    <ul className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 px-1">
+      {drawable.map((s) => (
+        <LegendItem
+          key={s.code}
+          color={s.origin === 'measured' ? ACTUAL_HEX : AI_HEX}
+          dashed={DASH[s.code] !== undefined}
+          label={`${s.code} · ${SERIES_ORIGIN_LABELS[s.origin]}`}
+        />
+      ))}
+      <LegendItem swatch color={AXIS_TEXT_HEX} label="예측 미정 [TBD-52]" />
+    </ul>
   );
 }
