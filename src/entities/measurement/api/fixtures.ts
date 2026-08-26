@@ -1,3 +1,4 @@
+import { PROVISIONAL_IDLE_INFLOW_RATIO } from '@/shared/config/provisional';
 import { getScenario, siteSeed } from '@/shared/config/demo-scenario';
 import { MEASUREMENT_ITEMS } from '@/shared/config/measurement';
 import { clamp, createRng, roundTo } from '@/shared/lib/prng';
@@ -21,6 +22,8 @@ const BASELINE: Record<SeriesCode, { mid: number; swing: number; period: number 
   TOC: { mid: 26.5, swing: 5.2, period: 53 },
   current: { mid: 118, swing: 16, period: 43 },
   power: { mid: 41, swing: 6.5, period: 43 },
+  /* 유입은 유출보다 조금 많다 — 증발·슬러지 반출로 빠지는 만큼이다 */
+  inflow: { mid: 430, swing: 58, period: 91 },
   flow: { mid: 412, swing: 58, period: 91 },
 };
 
@@ -35,6 +38,7 @@ const SERIES_CODES: SeriesCode[] = [
   'TOC',
   'current',
   'power',
+  'inflow',
   'flow',
 ];
 
@@ -86,6 +90,24 @@ export function getMeasurementSeries(siteId: string): MeasurementPoint[] {
        */
       if (treatmentIdle && (code === 'current' || code === 'power')) {
         point[code] = 0;
+        continue;
+      }
+
+      /*
+       * **방류 의심 구간에서만 유입·유출이 뒤집힌다** `[사용자 결정 2026-08-25]`.
+       *
+       * 평상시 유출은 유입보다 조금 적다 — 증발·슬러지 반출로 빠지는 만큼이다(기준선이
+       * 430 대 412로 약 4% 차이). 그런데 **방지시설이 멈춘 채 방류가 이어지는 구간**에서는
+       * 처리 없이 내보내므로 나간 양이 들어온 양을 넘는다.
+       *
+       * 그 구간이 `isTreatmentIdleAt`이 정하는 바로 그 구간이라 **이상 탐지 화면의 방류 의심
+       * 판정과 같은 곳을 가리킨다** — 두 화면이 서로 다른 말을 하지 않는다(E3). 값을 여기서
+       * 만들지 않고 화면마다 따로 계산하면 그 정합이 깨진다.
+       */
+      if (treatmentIdle && code === 'inflow') {
+        const b = BASELINE.flow;
+        const wave = Math.sin((i / b.period) * Math.PI * 2) * b.swing;
+        point[code] = Math.round((b.mid * offsets.flow + wave) * PROVISIONAL_IDLE_INFLOW_RATIO);
         continue;
       }
 

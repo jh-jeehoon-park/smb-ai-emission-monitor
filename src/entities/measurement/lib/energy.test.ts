@@ -17,6 +17,7 @@ function point(power: number | null, flow: number | null): MeasurementPoint {
     TOC: null,
     current: null,
     power,
+    inflow: null,
     flow,
   };
 }

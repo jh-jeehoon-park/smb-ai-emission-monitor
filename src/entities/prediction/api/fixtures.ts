@@ -8,6 +8,8 @@ import {
   FLOW_FORECAST_CODE,
   FORECAST_TARGETS,
   FORECAST_TARGET_CODES,
+  INFLOW_FORECAST,
+  INFLOW_FORECAST_CODE,
   SERIES_WINDOW_HOURS,
   type ForecastSeriesCode,
   type ForecastTargetCode,
@@ -46,6 +48,7 @@ const SERIES_ORIGIN: Record<ForecastSeriesCode, SeriesOrigin> = {
   TN: 'softSensed',
   TP: 'softSensed',
   flow: 'measured',
+  inflow: 'measured',
 };
 
 /** 항목마다 rng 계열을 벌려 세 항목이 똑같은 모양으로 겹치지 않게 한다 */
@@ -54,6 +57,7 @@ const SEED_OFFSET: Record<ForecastSeriesCode, number> = {
   TN: 90211,
   TP: 90212,
   flow: 90213,
+  inflow: 90217,
 };
 
 /**
@@ -200,17 +204,22 @@ export function getForecast(siteId: string, target: ForecastTargetCode = 'TOC'):
  * 오염도와 **같은 규약**을 쓴다 — 같은 창, 같은 결측 처리. 다른 것은 항목 프로파일
  * 하나뿐이다. 경향 카드는 오염도 3항목의 것이므로 그대로 싣는다(FR-12).
  */
-export function getFlowForecast(siteId: string): ForecastSummary {
+export function getFlowForecast(
+  siteId: string,
+  code: ForecastSeriesCode = FLOW_FORECAST_CODE,
+): ForecastSummary {
   const scenario = getScenario(siteId);
   const intensity = scenario.eventRise / 74;
-  const points = buildPoints(siteId, FLOW_FORECAST, intensity);
+  /* 유입·유출은 같은 규약이고 기저값만 다르다 */
+  const profile = code === INFLOW_FORECAST_CODE ? INFLOW_FORECAST : FLOW_FORECAST;
+  const points = buildPoints(siteId, profile, intensity);
 
   return {
-    code: FLOW_FORECAST_CODE,
-    targetLabel: `${FLOW_FORECAST.label}(수량)`,
-    unit: FLOW_FORECAST.unit,
-    decimals: FLOW_FORECAST.decimals,
-    origin: SERIES_ORIGIN[FLOW_FORECAST_CODE],
+    code: profile.code,
+    targetLabel: `${profile.label}(수량)`,
+    unit: profile.unit,
+    decimals: profile.decimals,
+    origin: SERIES_ORIGIN[profile.code],
     online: scenario.online,
     computedAtIso: scenario.online ? DEMO_NOW_ISO : '2026-08-21T13:35:00Z',
     inputWindowLabel: '과거 24시간 다변량 시계열',

@@ -156,6 +156,8 @@ export const PROVISIONAL_DECIMALS: Record<string, number> = {
   current: 1,
   power: 1,
   flow: 0,
+  /** 유입은 유출과 나란히 놓고 빼는 값이라 같은 자릿수를 쓴다 — 갈리면 차가 어긋나 보인다 */
+  inflow: 0,
   /**
    * 진동은 **값을 표시하지 않는다.** 단위·범위가 원문에 없어(`[TBD-49]`) 화면은 이상 여부만
    * 낸다. 그래도 여기 적어 두는 이유는 `PROVISIONAL_DECIMALS`가 `Record<string, number>`라
@@ -243,3 +245,16 @@ export const PROVISIONAL_DOSING_UNIT = 'L/h';
  * 원본 데이터로 검증할 수 없다(`docs/datasets/…/04_…`). 확정되면 이 값만 바꾼다.
  */
 export const PROVISIONAL_IDLE_DISCHARGE_MIN_SAMPLES = 12;
+
+/**
+ * 방류 의심 구간에서 **유입이 유출의 몇 배인가** — 1보다 작으면 나간 양이 들어온 양을 넘는다.
+ *
+ * 평상시에는 유입이 유출보다 약 4% 많다(기준선 430 대 412) — 증발·슬러지 반출로 빠지는
+ * 만큼이다. 방지시설이 멈춘 채 방류가 이어지는 구간에서는 처리 없이 내보내므로 그 관계가
+ * 뒤집힌다 `[PM 의견 2026-08-25]` `[사용자 결정 2026-08-25]`.
+ *
+ * **0.92는 시연값이다** `[TBD-46]`. 실제 손실률과 뒤집히는 폭은 현업 기준이 정한다 —
+ * 확정되면 이 값 하나만 바꾼다. 값을 8% 차이로 잡은 이유는 평상시 4% 차이의 두 배라
+ * 차 칸에서 부호가 바뀌는 것이 눈에 띄기 때문이다.
+ */
+export const PROVISIONAL_IDLE_INFLOW_RATIO = 0.92;

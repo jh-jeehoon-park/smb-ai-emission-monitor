@@ -25,7 +25,12 @@ import {
 import { ALARM_PRIORITY_LABELS, type AlarmPriority } from '@/entities/alarm';
 import { getAnomalySeries, getAnomalySummary } from '@/entities/anomaly';
 import { getEquipment } from '@/entities/equipment';
-import { WATER_SERIES_CODES, getMeasurementSeries, outageNotice } from '@/entities/measurement';
+import {
+  FLOW_SERIES_CODES,
+  WATER_SERIES_CODES,
+  getMeasurementSeries,
+  outageNotice,
+} from '@/entities/measurement';
 import {
   SERIES_ORIGIN_LABELS,
   SERIES_WINDOW_HOURS,
@@ -269,10 +274,25 @@ export function DashboardView() {
               /* 카드마다 상세로 가는 길을 둔다 — 요약을 읽다 막힌 자리에서 이어진다 */
               action={<DetailLink href={withSite('/timeseries')} label="시계열 변화로 이동" />}
             >
-              {/* 사업장 계열은 방류구 계열이라 기준을 적용한다 */}
+              {/*
+                * 사업장 계열은 방류구 계열이라 기준을 적용한다.
+                *
+                * **유량을 소절로 따로 둔다** `[회의 피드백 2026-08-24: '수질·설비 실시간 계측'
+                * 영역에 유량·유입·유출은 나와야 한다]`. 수질과 한 격자에 섞지 않는 이유는 축이
+                * 다르기 때문이다 — 농도와 부피/시간을 나란히 두면 옆 칸과 비교된다는 잘못된
+                * 신호를 준다. **유입·유출은 서로 비교되어야 뜻이 생긴다**(들어온 양과 나간 양의
+                * 차이가 방류 의심 판정의 단서다) — 나란히 두는 것이 목적이다.
+                */}
               <WaterQualityGrid
                 data={detail.series}
-                codes={WATER_SERIES_CODES}
+                sections={[
+                  { title: '수질 8종', codes: WATER_SERIES_CODES },
+                  {
+                    title: '유량 — 들어온 양과 나간 양',
+                    codes: FLOW_SERIES_CODES,
+                    diff: { of: ['inflow', 'flow'], label: '유입 − 유출' },
+                  },
+                ]}
                 limits={limits.table}
                 windowHours={SERIES_WINDOW_HOURS}
               />

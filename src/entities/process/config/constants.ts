@@ -33,7 +33,16 @@ export const PROCESS_STAGES: readonly ProcessStage[] = [
     // 스크린은 회의가 명시했다. 침사지·집수조·유량조정조는 표준 자료 + 설계값
     units: ['스크린', '침사지', '집수조', '유량조정조'],
     grade: 'actual',
-    measurementNote: '유입 유량과 유입펌프 전류 — 들어오는 양과 펌프 부하를 본다',
+    /*
+     * **`flow`를 `유입 유량`이라 부르지 않는다** `[사용자 결정 2026-08-25]`. 계측 채널은
+     * 한 종뿐인데(`[원문 p.55]`) 이 단계와 방류 단계가 같은 계열을 각각 유입·방류라 부르고
+     * 있었다 — 같은 숫자일 수 없으므로 한쪽은 틀린 주장이었다.
+     *
+     * 측정 지점이 정해지면(`[TBD-43]`) `inflow`로 바꾼다. 지금 바꾸지 않는 이유는 그 코드에
+     * 계열이 없어(`[TBD-52]`) 이 단계의 값이 통째로 사라지고 **계측하지 않는 단계**로
+     * 읽히기 때문이다.
+     */
+    measurementNote: '유량과 유입펌프 전류 — 들어오는 양과 펌프 부하를 본다. 유량계 지점은 미확정이다 [TBD-43]',
     equipmentIds: ['EQ-02'],
     optional: false,
     /* 유량은 회의 예시 `[회의 2026-08-20]`, 전류는 데이터셋 `전류계위치 = 유입펌프` */
@@ -89,7 +98,8 @@ export const PROCESS_STAGES: readonly ProcessStage[] = [
     type: 'monitoring',
     units: ['모래 여과', '염소·UV·오존 소독', '방류수조'],
     grade: 'actual',
-    measurementNote: '방류구 프로브 6종 + 광학 2종 + 방류 유량. TN·TP는 여기서 AI가 추정한다',
+    /* 위 `유입 및 전처리`와 같은 계열이다 — 어느 쪽이 방류 유량인지는 `[TBD-43]`이 정한다 */
+    measurementNote: '방류구 프로브 6종 + 광학 2종 + 유량(지점 미확정 [TBD-43]). TN·TP는 여기서 AI가 추정한다',
     equipmentIds: ['EQ-04'],
     optional: false,
     /*

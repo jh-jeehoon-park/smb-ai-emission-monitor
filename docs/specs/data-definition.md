@@ -82,7 +82,7 @@
 | 슬라이스 | 선언 | 문서에 없는 선언 | 절 |
 |---|---|---|---|
 | site | 16 | 없음 | §3 |
-| measurement | 12 | 없음 (파생 통계 7종은 §4.2에 별도) | §4 |
+| measurement | 13 | 없음 (파생 통계 7종은 §4.2에 별도) | §4 |
 | anomaly | 12 | `contributions` 배열 컨테이너 1 | §5 |
 | prediction | 26 | 라벨맵 2종 5키(경향 3 · 값의 출처 2) · 배열 컨테이너 2(`points`·`trends`) | §6 |
 | water-analysis | 20 | 배열 컨테이너 1(`samples`) · 값 맵 1(`values`) | §6.2 |

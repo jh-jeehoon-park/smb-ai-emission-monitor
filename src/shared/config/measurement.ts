@@ -14,6 +14,7 @@ export type MeasurementItemCode =
   | 'current'
   | 'power'
   | 'flow'
+  | 'inflow'
   | 'vibration'
   | 'TN'
   | 'TP';
@@ -160,16 +161,46 @@ export const MEASUREMENT_ITEMS: Record<MeasurementItemCode, MeasurementItem> = {
     category: 'equipment',
     decimals: PROVISIONAL_DECIMALS.power,
   },
+  /**
+   * **`flow`는 유출(방류) 유량이다** `[사용자 결정 2026-08-25]`.
+   *
+   * 한때 이 계열 하나를 화면 세 곳이 유입으로도 방류로도 불렀다 — 같은 숫자일 수 없으므로
+   * 한쪽은 틀린 주장이었다. 방류로 확정하고 유입은 `inflow`가 따로 갖는다.
+   *
+   * 라벨을 `유량` → `유출 유량`으로 올린 이유가 이것이다. 이름이 중립이면 같은 혼동이
+   * 되풀이된다.
+   */
   flow: {
     code: 'flow',
-    label: '유량',
-    symbol: 'Q',
+    label: '유출 유량',
+    symbol: 'Qout',
     unit: 'm³/day',
     unitKo: '세제곱미터/일',
     range: [0, 1000],
     accuracy: '±2%',
     category: 'equipment',
     decimals: PROVISIONAL_DECIMALS.flow,
+  },
+  /**
+   * 유입 유량 — **PM 요청으로 화면에 낸다** `[PM 의견 2026-08-25]` `[사용자 결정 2026-08-25]`.
+   *
+   * 원문 계측 사양에는 유량이 한 종뿐이라(`[원문 p.55]`) 이 항목은 원문 근거가 없다. 그런데
+   * 들어온 양과 나간 양을 함께 보지 못하면 **그 차이**를 볼 수 없고, 그 차이가 곧 방류 의심의
+   * 단서다(`[TBD-46]`). 도메인 전문가가 필요하다고 짚은 값이라 시연에 싣는다.
+   *
+   * **단위는 `flow`와 같은 `m³/day`로 맞춘다** — 나란히 두고 빼는 값이라 단위가 갈리면
+   * 그 차이가 뜻을 잃는다. 실제 계측 단위는 아직 갈려 있다(적산 · ㎥/h · m³/day, `[TBD-52]`).
+   */
+  inflow: {
+    code: 'inflow',
+    label: '유입 유량',
+    symbol: 'Qin',
+    unit: 'm³/day',
+    unitKo: '세제곱미터/일',
+    range: [0, 1000],
+    accuracy: '원문 미규정 [TBD-52]',
+    category: 'equipment',
+    decimals: PROVISIONAL_DECIMALS.inflow,
   },
   /**
    * 진동 — **설비 이상 탐지의 주 입력** `[회의 2026-08-20]`.

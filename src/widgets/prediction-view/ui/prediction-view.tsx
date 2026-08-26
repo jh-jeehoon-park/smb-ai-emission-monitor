@@ -54,9 +54,13 @@ import { ACTION_BUTTON_QUIET } from '@/shared/ui/action-button';
 const TARGET_OPTIONS: { value: TargetView; label: string }[] = [
   { value: ALL_TARGETS, label: '전체' },
   ...FORECAST_TARGET_CODES.map((code) => ({ value: code as TargetView, label: code })),
-  /* 수량은 오염도와 다른 축이라 맨 뒤에 둔다 `[원문 발표 p.11]` */
-  { value: FLOW_FORECAST_CODE, label: '유량' },
+  /* 수량은 오염도와 다른 축이라 뒤에 모은다 `[원문 발표 p.11]` */
+  { value: 'inflow', label: '유입' },
+  { value: FLOW_FORECAST_CODE, label: '유출' },
 ];
+
+/** 수량 계열 — 오염도와 축이 다르다(부피/시간 vs 농도) */
+const FLOW_VIEWS: TargetView[] = ['inflow', FLOW_FORECAST_CODE];
 const DEFAULT_VIEW: TargetView = ALL_TARGETS;
 
 export function PredictionView() {
@@ -67,11 +71,11 @@ export function PredictionView() {
 
   /* 전체 보기에서는 세 항목을 모두 만든다. 데이터는 이미 세 벌 다 생성돼 있다 */
   const showAll = view === ALL_TARGETS;
-  const showFlow = view === FLOW_FORECAST_CODE;
-  const single: ForecastTargetCode = showAll || showFlow ? 'TOC' : view;
+  const showFlow = FLOW_VIEWS.includes(view);
+  const single: ForecastTargetCode = showAll || showFlow ? 'TOC' : (view as ForecastTargetCode);
   const forecast = useMemo(
-    () => (showFlow ? getFlowForecast(siteId) : getForecast(siteId, single)),
-    [siteId, single, showFlow],
+    () => (showFlow ? getFlowForecast(siteId, view as 'flow' | 'inflow') : getForecast(siteId, single)),
+    [siteId, single, showFlow, view],
   );
   const allForecasts = useMemo(
     () => (showAll ? FORECAST_TARGET_CODES.map((code) => getForecast(siteId, code)) : []),
@@ -83,11 +87,28 @@ export function PredictionView() {
 
   return (
     <div className="space-y-6">
+      {/*
+       * **기준치 모니터링이 맨 위에 온다** `[사용자 결정 2026-08-25]`.
+       *
+       * 회의가 요구한 것이다 — "어느 지역의 TN 기준치는 몇이고 TP 기준치는 몇인 이러한
+       * 사항의 모니터링도 필요" `[회의 2026-08-20]`. 카드가 항목마다 자기 기준치를 적지만
+       * **세 항목을 나란히 놓아야** 어느 항목이 아직 비었는지 한눈에 보인다.
+       *
+       * 자리를 위로 올린 근거가 하나 더 있다 — 아래 계열이 **기준 대비**로 읽히므로
+       * 기준치를 모르면 그 차트를 읽을 수 없다. 판정의 축이 먼저 와야 한다.
+       */}
+      <LimitMonitor trends={forecast.trends} limits={limits} />
+
       <Panel
+        /*
+         * **`추이`라 부르지 않는다** `[사용자 지적 2026-08-25]`. 그 이름은 이 화면이
+         * 시계열 변화 화면과 같은 일을 한다고 말한다 — 이 화면의 질문은 *"지금 기준을
+         * 넘고 있나"* 다.
+         */
         title={
           showAll
-            ? `TOC · TN · TP · 최근 ${SERIES_WINDOW_HOURS}시간 추이`
-            : `${forecast.targetLabel} · 최근 ${SERIES_WINDOW_HOURS}시간 추이`
+            ? `수질·수량 · 최근 ${SERIES_WINDOW_HOURS}시간`
+            : `${forecast.targetLabel} · 최근 ${SERIES_WINDOW_HOURS}시간`
         }
         action={
           <SegmentedControl
@@ -150,15 +171,6 @@ export function PredictionView() {
           )}
         </dl>
       </Panel>
-
-      {/*
-       * **기준치 모니터링.** 회의가 요구한 것이다 — "어느 지역의 TN 기준치는 몇이고 TP
-       * 기준치는 몇인 이러한 사항의 모니터링도 필요" `[회의 2026-08-20]`.
-       *
-       * 카드가 항목마다 자기 기준치를 적지만, **세 항목을 나란히 놓아야** 어느 항목이 아직
-       * 비었는지 한눈에 보인다 — 카드 셋을 훑어 비교하게 만들면 그것이 안 보인다.
-       */}
-      <LimitMonitor trends={forecast.trends} limits={limits} />
 
       <div className="grid gap-6 lg:grid-cols-3">
         {forecast.trends.map((trend) => (
@@ -369,7 +381,15 @@ function LimitMonitor({
           </tbody>
         </table>
       </div>
-      <p className="max-w-[86ch] border-t border-border py-2 text-[12px] leading-relaxed text-fg-subtle">
+      {/*
+       * **수량이 왜 이 표에 없는지 적는다** `[사용자 결정 2026-08-25]`. 배출허용기준은 농도
+       * 기준이라 유량에는 기준이 없다 — 그런데 조용히 빠져 있으면 "빠뜨렸나"로 읽힌다.
+       */}
+      <p className="max-w-[86ch] border-t border-border pt-2 text-[12px] leading-relaxed text-fg-subtle">
+        유입 · 유량 · 유출은 <strong className="text-fg-muted">기준 대상이 아닙니다</strong> —
+        배출허용기준은 농도 기준입니다.
+      </p>
+      <p className="max-w-[86ch] py-2 text-[12px] leading-relaxed text-fg-subtle">
         기준치는 <strong className="text-fg-muted">지역구분 · 1일 폐수배출량 규모 · 항목</strong>으로
         갈립니다 [공정자료 p.11].{' '}
         <strong className="text-fg-muted">법령이 원천이므로 우리가 값을 채우지 않습니다</strong> —

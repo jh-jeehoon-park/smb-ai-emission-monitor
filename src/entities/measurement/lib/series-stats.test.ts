@@ -18,6 +18,7 @@ function point(t: string, pH: number | null): MeasurementPoint {
     TOC: null,
     current: null,
     power: null,
+    inflow: null,
     flow: null,
   };
 }

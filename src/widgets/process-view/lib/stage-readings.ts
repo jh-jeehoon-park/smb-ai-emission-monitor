@@ -1,5 +1,4 @@
-import type { MeasurementItemCode } from '@/shared/config/measurement';
-import { getMeasurementSeries, summarizeSeries, type SeriesCode } from '@/entities/measurement';
+import { getMeasurementSeries, isSeriesCode, summarizeSeries, type SeriesCode } from '@/entities/measurement';
 import type { ResolvedStage } from '@/features/process-settings';
 
 export interface StageReading {
@@ -25,15 +24,16 @@ export function stageReadings(siteId: string, stage: ResolvedStage): StageReadin
   if (stage.codes.length === 0) return [];
 
   const points = getMeasurementSeries(siteId);
-  return stage.codes.map((code) => ({
-    code: code as SeriesCode,
-    latest: summarizeSeries(points, code as SeriesCode).latest,
+  /*
+   * **계열이 있는 항목만 남긴다.** 예전에는 거르지 않고 `code as SeriesCode`로 캐스팅했는데,
+   * 계열 없는 항목(진동·유입·유출)이 설정에 들어오면 `MeasurementPoint`를 없는 키로 인덱싱해
+   * `undefined`가 흘렀다 — 화면에는 빈 값으로 보여 원인을 찾기 어렵다.
+   */
+  return stage.codes.filter(isSeriesCode).map((code) => ({
+    code,
+    latest: summarizeSeries(points, code).latest,
   }));
 }
 
 /** 설정된 항목이 하나도 없는 단계인가. 화면이 이유를 적을지 정하는 데 쓴다 */
 export const hasNoCodes = (stage: ResolvedStage): boolean => stage.codes.length === 0;
-
-/** 계측 항목 코드가 계열로 그릴 수 있는 것인가 — 설정 저장값이 옛 판일 때를 막는다 */
-export const isSeriesCode = (code: MeasurementItemCode): code is SeriesCode & MeasurementItemCode =>
-  code !== 'vibration' && code !== 'TN' && code !== 'TP';

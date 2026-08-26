@@ -21,7 +21,11 @@ export type ForecastTargetCode = (typeof FORECAST_TARGET_CODES)[number];
  * 자릿수도 다르고, 원문도 "수질·**수량**"으로 나눠 부른다 `[원문 발표 p.11]`.
  */
 export const FLOW_FORECAST_CODE = 'flow';
-export type ForecastSeriesCode = ForecastTargetCode | typeof FLOW_FORECAST_CODE;
+export const INFLOW_FORECAST_CODE = 'inflow';
+export type ForecastSeriesCode =
+  | ForecastTargetCode
+  | typeof FLOW_FORECAST_CODE
+  | typeof INFLOW_FORECAST_CODE;
 
 export interface ForecastTargetProfile {
   code: ForecastSeriesCode;
@@ -125,7 +129,7 @@ export const FORECAST_TARGETS: Record<ForecastTargetCode, ForecastTargetProfile>
  */
 export const FLOW_FORECAST: ForecastTargetProfile = {
   code: FLOW_FORECAST_CODE,
-  label: '유량',
+  label: '유출 유량',
   unit: 'm³/day',
   decimals: PROVISIONAL_DECIMALS.flow,
   r2: null,
@@ -137,4 +141,16 @@ export const FLOW_FORECAST: ForecastTargetProfile = {
   forecastGain: 24,
   spreadBase: 18,
   spreadStep: 7.5,
+};
+
+/**
+ * 유입 유량 예측. **유출과 같은 규약**이고 기저값만 다르다 — 계측 fixture의 기저(430)와
+ * 맞춘다. 같은 사업장의 같은 항목이 화면마다 다른 크기로 보이면 예측선과 실측선이 서로
+ * 다른 것을 그리는 셈이 된다.
+ */
+export const INFLOW_FORECAST: ForecastTargetProfile = {
+  ...FLOW_FORECAST,
+  code: INFLOW_FORECAST_CODE,
+  label: '유입 유량',
+  base: 430,
 };

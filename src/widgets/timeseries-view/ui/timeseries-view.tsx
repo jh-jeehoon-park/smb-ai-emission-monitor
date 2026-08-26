@@ -82,9 +82,10 @@ export function TimeseriesView() {
           </span>
         }
       >
+        {/* 여기는 필터가 고른 항목 하나뿐이라 소절 제목을 두지 않는다 */}
         <WaterQualityGrid
           data={view.points}
-          codes={filter.codes}
+          sections={[{ codes: filter.codes }]}
           limits={limits.table}
           windowHours={filter.hours}
         />

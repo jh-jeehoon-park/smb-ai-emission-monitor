@@ -2,6 +2,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 import { DISCHARGE_LIMITS, UNRESOLVED_LIMIT_TEXT } from '@/shared/config/discharge-limits';
+import type { MeasurementItemCode } from '@/shared/config/measurement';
 import { getMeasurementSeries } from '@/entities/measurement';
 import { WaterQualityGrid } from './water-quality-grid';
 
@@ -18,8 +19,10 @@ const points = getMeasurementSeries('S-02');
  *
  * 정적 표를 넘기므로 아래 기대값은 설정 도입 전과 같다.
  */
-const draw = (codes: Parameters<typeof WaterQualityGrid>[0]['codes'], limits = DISCHARGE_LIMITS) =>
-  render(<WaterQualityGrid data={points} codes={codes} limits={limits} windowHours={24} />);
+const draw = (codes: MeasurementItemCode[], limits = DISCHARGE_LIMITS) =>
+  render(
+    <WaterQualityGrid data={points} sections={[{ codes }]} limits={limits} windowHours={24} />,
+  );
 
 /**
  * **기준은 이제 글로만 말한다.**

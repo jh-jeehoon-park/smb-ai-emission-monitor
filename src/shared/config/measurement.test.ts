@@ -41,6 +41,17 @@ describe('단위 한글 병기 — 항목마다 있다', () => {
     });
   });
 
+  /**
+   * **유입과 유출은 같은 단위를 쓴다** `[사용자 결정 2026-08-25]`. 나란히 놓고 빼는 값이라
+   * 단위가 갈리면 그 차이가 뜻을 잃는다 — 화면이 `차` 칸을 그 둘에서 낸다.
+   */
+  it('유입과 유출은 단위와 자릿수가 같다', () => {
+    const inflow = MEASUREMENT_ITEMS.inflow;
+    const outflow = MEASUREMENT_ITEMS.flow;
+    expect(inflow.unit).toBe(outflow.unit);
+    expect(inflow.decimals).toBe(outflow.decimals);
+  });
+
   /** 같은 단위 기호는 같은 한글로 풀린다 — 화면마다 다르게 풀리면 병기가 소음이 된다 */
   it('같은 단위 기호는 한 가지로만 풀린다', () => {
     const byUnit = new Map<string, Set<string>>();

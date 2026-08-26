@@ -15,5 +15,11 @@ export const ALL_TARGETS = 'ALL';
  * **`flow`(유량)는 `전체`에 들어가지 않는다.** 단위가 ㎥/day라 mg/L 3단에 섞으면 눈금이
  * 무의미해지고, 원문도 "수질·**수량**"으로 나눠 부른다 `[원문 발표 p.11]` `[INC-95 판정]`.
  */
-export const TARGET_VIEWS = [ALL_TARGETS, 'TOC', 'TN', 'TP', 'flow'] as const;
+/**
+ * **수량 둘이 함께 온다** `[사용자 요청 2026-08-25: TOC·TN·TP·유입·유량·유출이 표시됐으면]`.
+ *
+ * `flow`가 **유출(방류)**이고 `inflow`가 유입이다 — 한때 이 계열 하나를 화면 세 곳이 유입으로도
+ * 방류로도 불러 한쪽은 틀린 주장이었다. 둘을 갈라 각자 제 이름을 갖게 했다.
+ */
+export const TARGET_VIEWS = [ALL_TARGETS, 'TOC', 'TN', 'TP', 'inflow', 'flow'] as const;
 export type TargetView = (typeof TARGET_VIEWS)[number];

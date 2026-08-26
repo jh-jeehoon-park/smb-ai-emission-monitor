@@ -90,7 +90,13 @@ function buildOperating(signals: OperatingSignals, dosing: DosingAdvice): Operat
     });
   }
 
-  /* 유입 유량이 줄면 펌프 속도도 줄인다 */
+  /*
+   * 유량이 줄면 펌프 속도도 줄인다.
+   *
+   * **유입이라 단정하지 않는다** `[사용자 결정 2026-08-25]` — 계측 지점이 미확정이라
+   * (`[TBD-43]`) 이 신호가 유입에서 온 것인지 방류에서 온 것인지 확인되지 않았다.
+   * 근거 문구도 `유입 부하`가 아니라 `유량`으로 적는다.
+   */
   const pump = toOperatingDelta(flow.ratio, 1);
   if (pump !== null) {
     advices.push({
@@ -101,8 +107,8 @@ function buildOperating(signals: OperatingSignals, dosing: DosingAdvice): Operat
       observed: `${show(flow, 'flow')} (같은 창)`,
       reason:
         pump > 0
-          ? '유입 부하가 늘었다 — 정격을 넘기지 않는 범위에서 올린다 [설계]'
-          : '유입 부하가 낮은데 정격으로 돌고 있다 [설계]',
+          ? '유량이 늘었다 — 정격을 넘기지 않는 범위에서 올린다 [설계] · 계측 지점 미확정 [TBD-43]'
+          : '유량이 낮은데 정격으로 돌고 있다 [설계] · 계측 지점 미확정 [TBD-43]',
     });
   }
 

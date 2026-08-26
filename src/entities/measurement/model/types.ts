@@ -13,6 +13,7 @@ export interface MeasurementPoint {
   TOC: Reading;
   current: Reading;
   power: Reading;
+  inflow: Reading;
   flow: Reading;
 }
 

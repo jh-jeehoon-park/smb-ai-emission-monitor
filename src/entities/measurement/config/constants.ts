@@ -16,7 +16,25 @@ export const WATER_SERIES_CODES: SeriesCode[] = [
   'chromaticity',
 ];
 
-export const EQUIPMENT_SERIES_CODES: SeriesCode[] = ['current', 'power', 'flow'];
+export const EQUIPMENT_SERIES_CODES: SeriesCode[] = ['current', 'power', 'inflow', 'flow'];
+
+/**
+ * 계열이 실제로 있는 항목 전부. **긍정 목록이다.**
+ *
+ * 한때 `code !== 'vibration' && code !== 'TN' && code !== 'TP'`처럼 부정 목록이었는데,
+ * 계열 없는 항목을 새로 등재하면(`inflow`·`outflow`) 그 술어가 **참을 돌려주어**
+ * `MeasurementPoint`를 없는 키로 인덱싱하고 `undefined`가 조용히 흐른다. 긍정 목록은
+ * 새 항목이 기본적으로 제외되므로 같은 실수가 되풀이되지 않는다.
+ */
+export const SERIES_CODES: SeriesCode[] = [...WATER_SERIES_CODES, ...EQUIPMENT_SERIES_CODES];
+
+/**
+ * 유량 2종 — **들어온 양과 나간 양**. 화면은 여기에 **차**(유입−유출) 칸을 하나 더 붙인다.
+ *
+ * 나란히 두는 것이 목적이다 — 그 차이가 방류 의심의 단서다(`[TBD-46]`). 증발·슬러지로
+ * 설명되는 범위를 벗어나면(유출 > 유입) 처리 없이 내보낸 정황이 된다.
+ */
+export const FLOW_SERIES_CODES: SeriesCode[] = ['inflow', 'flow'];
 
 /**
  * 집계 단위.
