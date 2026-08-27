@@ -13,6 +13,13 @@ export interface Site {
   address: string;
   /** 소속 시도. 지도에서 어느 시도를 강조할지 정한다 */
   province: string;
+  /**
+   * 소속 시·군·구. 기초지자체의 관할 범위가 이 값으로 갈린다.
+   *
+   * **`region`을 잘라 쓰지 않는 이유**는 `demo-scenario.ts`의 같은 필드 주석에 있다 —
+   * 지금 데이터에 실제로 걸리는 함정이 둘이다.
+   */
+  municipality: string;
   /** 위 주소에 대응하는 좌표. 지도 핀 위치의 근거다 */
   coordinates: [lat: number, lng: number];
   /**
