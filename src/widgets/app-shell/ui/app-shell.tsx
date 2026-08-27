@@ -19,7 +19,7 @@ import { openAlarms } from '@/entities/alarm';
 import { ADMIN_ACCOUNTS, GOV_SCOPE, ProfileMenu, ROLES, ROLE_PROFILES } from '@/entities/user';
 import { getSite, siteIdsInScope, withinScope } from '@/entities/site';
 import { ALL_ALARMS, useAlarmStates } from '@/features/alarm-ack';
-import { useSelectedSiteId, useSiteHref } from '@/features/site-selection';
+import { SiteSelector, useSelectedSiteId, useSiteHref } from '@/features/site-selection';
 import {
   ALARM_NAV_HREF,
   NAV_GROUPS,
@@ -101,6 +101,18 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Greeting />
 
             <div className="ml-auto flex flex-wrap items-center justify-end gap-x-3 gap-y-2 text-[12px] font-medium text-fg-subtle">
+              {/*
+               * **헤더에서 사업장을 바꾼다** `[사용자 요청 2026-08-27]`. 걷어냈던 것을 되돌린
+               * 자리다 `[사용자 지시 2026-08-24]` — 상세 화면(시계열·오염도 추정·리포트)에서
+               * 사업장을 바꾸려면 통합 관제로 돌아갔다 와야 했고, 그 왕복이 되돌린 이유다.
+               *
+               * 걷어냈던 근거(헤더에 조작이 몰려 붐빈다)는 사라지지 않았으므로 자리는 하나만
+               * 쓰고 폭을 묶는다.
+               *
+               * **범위는 부품이 스스로 정한다** — 목록이 `useScopedSites()`라 URL의 `scope`를
+               * 따르고, 역할로 분기하지 않는다(서버는 역할을 모른다).
+               */}
+              <SiteSelector className="w-[210px] shrink-0" />
               <ReceiveIndicator />
               <LiveClock />
               <DemoNotice />
