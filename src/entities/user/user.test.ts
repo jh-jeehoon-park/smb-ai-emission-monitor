@@ -194,6 +194,17 @@ describe('역할 전환', () => {
     expect(SWITCHABLE_ROLES).toEqual(expect.arrayContaining([...ROLES]));
   });
 
+  /**
+   * 전환 탭은 `ROLES` 순서 그대로 그려진다(`profile-menu.tsx`). **범위가 넓은 쪽에서 좁은
+   * 쪽으로** 간다 `[사용자 요청 2026-08-27]` — 전국 → 관할 시·군·구 → 자사 1개소.
+   *
+   * 이 배열은 클래스 문자열·메뉴 필터에도 쓰여 순서를 무심코 바꾸기 쉬운데, 그러면 **화면의
+   * 탭 순서가 함께 움직인다.** 요구된 순서를 여기서 못박는다.
+   */
+  it('전환 탭이 범위 넓은 순이다 — 시스템 관리자 · 기초지자체 · 사업장', () => {
+    expect([...ROLES]).toEqual(['system', 'gov', 'site']);
+  });
+
   /** 전환 목록은 전체 역할의 부분집합이어야 한다 — 없는 역할을 고를 수 있으면 안 된다 */
   it('전환 목록이 역할 목록 안에 있다', () => {
     for (const role of SWITCHABLE_ROLES) expect(ROLES).toContain(role);

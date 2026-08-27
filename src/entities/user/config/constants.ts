@@ -12,11 +12,17 @@ import type { Role, RoleProfile, RoleScope } from '../model/types';
 export const DEMO_PERSON_NAME = '홍길동';
 
 /**
- * **순서가 사양이다.** `homeHrefFor(role)`이 `NAV_ITEMS`를 앞에서부터 훑어 그 역할의
- * 첫 화면을 정하는데, 이 배열의 순서는 그 결과를 바꾸지 않는다 — 다만 `hiddenForClass`가
- * 내는 클래스 문자열의 순서와 `BrandHome`이 렌더하는 링크 순서를 정한다.
+ * **순서가 사양이다.** 눈에 보이는 것은 프로필 메뉴의 **역할 전환 탭 순서**다
+ * `[사용자 요청 2026-08-27]` — 범위가 넓은 쪽에서 좁은 쪽으로 간다
+ * (전국 → 관할 시·군·구 → 자사 1개소).
+ *
+ * `homeHrefFor(role)`은 `NAV_ITEMS`를 앞에서부터 훑어 그 역할의 첫 화면을 정하므로 이
+ * 배열의 순서에 영향받지 않는다. 그 밖에 정하는 것은 `hiddenForClass`가 내는 클래스 문자열의
+ * 순서와 `BrandHome`이 렌더하는 링크 순서인데, 둘 다 화면에 드러나지 않는다.
+ *
+ * 권한 매트릭스 대조(`user.test.ts`)는 **라벨로 열을 찾으므로** 이 순서와 무관하다.
  */
-export const ROLES: readonly Role[] = ['system', 'site', 'gov'] as const;
+export const ROLES: readonly Role[] = ['system', 'gov', 'site'] as const;
 
 /**
  * 누가 그 역할이고 무엇을 보는지 — **2026-08-20 회의가 셋을 함께 정했다.**
