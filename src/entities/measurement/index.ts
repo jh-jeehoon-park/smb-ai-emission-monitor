@@ -1,6 +1,12 @@
 /** slice Public API — 바깥에서는 이 파일만 import 한다(FSD §6) */
 export { getMeasurementSeries } from './api/fixtures';
 export {
+  pointsBySite,
+  useSiteSeries,
+  useSitesSeries,
+  type SiteSeries,
+} from './api/use-site-series';
+export {
   WATER_SERIES_CODES,
   EQUIPMENT_SERIES_CODES,
   SERIES_CODES,
@@ -14,6 +20,8 @@ export {
   DEFAULT_BUCKET,
   DEFAULT_STAT,
   WINDOW_HOURS,
+  TELEMETRY_STATUS_LABELS,
+  telemetrySourceLabel,
   type BucketUnit,
   type BucketStat,
 } from './config/constants';
@@ -21,8 +29,9 @@ export { bucketByMinutes, sliceRecentHours, summarizeSeries } from './lib/series
 export { energyIntensity } from './lib/energy';
 export { windowChange, type WindowChange } from './lib/window-change';
 export { outageNotice } from './lib/outage-notice';
+export { isReceptionStalled } from './lib/reception';
 export { buildBucketReport, bucketReportToCsv, type BucketRow } from './lib/bucket-report';
 export { countOverLimit } from './lib/limit';
 export { isSeriesCode } from './lib/series-code';
 export type { SeriesBucket, SeriesStats } from './lib/series-stats';
-export type { MeasurementPoint, SeriesCode, Reading } from './model/types';
+export type { MeasurementPoint, SeriesCode, Reading, TelemetryStatus } from './model/types';

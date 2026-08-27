@@ -11,7 +11,7 @@ import { Panel } from '@/shared/ui/panel';
 import { StickyBar } from '@/shared/ui/sticky-bar';
 import { getAlarmsForView } from '@/entities/alarm';
 import { getAnomalySeries, getAnomalySummary, findIdleDischargeRuns } from '@/entities/anomaly';
-import { getMeasurementSeries } from '@/entities/measurement';
+import { useSiteSeries } from '@/entities/measurement';
 import { getSite } from '@/entities/site';
 import { SiteTabs, useScopedSites, useSelectedSiteId, useSiteHref } from '@/features/site-selection';
 import { AlarmList } from '@/widgets/alarm-list';
@@ -69,16 +69,18 @@ export function AnomalyView() {
     document.getElementById(DETAIL_SECTION_ID)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
+  const { points } = useSiteSeries(siteId);
+
   const detail = useMemo(
     () => ({
       series: getAnomalySeries(siteId),
       summary: getAnomalySummary(siteId),
       outage: getOutageWindow(siteId),
-      points: getMeasurementSeries(siteId),
+      points,
       idleRuns: findIdleDischargeRuns(siteId),
       alarms: getAlarmsForView(siteId).filter((a) => a.condition === 'anomaly'),
     }),
-    [siteId],
+    [siteId, points],
   );
 
   return (

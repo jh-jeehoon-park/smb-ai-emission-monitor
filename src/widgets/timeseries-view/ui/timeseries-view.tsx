@@ -17,7 +17,7 @@ import { getOutageWindow } from '@/shared/lib/timeline';
 import { Panel } from '@/shared/ui/panel';
 import { InfoTip } from '@/shared/ui/tooltip';
 import {
-  getMeasurementSeries,
+  useSiteSeries,
   sliceRecentHours,
   summarizeSeries,
   type SeriesCode,
@@ -46,14 +46,16 @@ export function TimeseriesView() {
   /* 사용자가 설정한 기준치와 사업장 분류. `site`의 두 축을 직접 읽으면 설정 후에도 `미확인`이 남는다 */
   const limits = useDischargeLimits();
 
+  const { points: series } = useSiteSeries(siteId);
+
   const view = useMemo(() => {
-    const points = sliceRecentHours(getMeasurementSeries(siteId), filter.hours);
+    const points = sliceRecentHours(series, filter.hours);
     return {
       points,
       outage: getOutageWindow(siteId),
       stats: filter.codes.map((code) => ({ code, stats: summarizeSeries(points, code) })),
     };
-  }, [siteId, filter.hours, filter.codes]);
+  }, [siteId, series, filter.hours, filter.codes]);
 
   const download = () =>
     downloadCsv(

@@ -10,6 +10,7 @@ import { useQueryState } from '@/shared/lib/use-query-state';
 import { Panel } from '@/shared/ui/panel';
 import { RiseItem, StaggerGroup } from '@/shared/ui/motion';
 import { EQUIPMENT_SIGNAL_LABELS, getEquipment } from '@/entities/equipment';
+import { useSiteSeries } from '@/entities/measurement';
 import {
   ESTIMATED_ITEMS,
   OPTICAL_ITEMS,
@@ -50,6 +51,9 @@ export function ProcessView() {
   const [stageId, setStageId] = useQueryState(STAGE_QUERY_KEY, STAGE_IDS, STAGE_IDS[0]!);
   /* 끈 단계가 URL에 남아 있을 수 있다 — 없는 단계를 고르면 첫 단계로 떨어진다 */
   const selected = stages.find((s) => s.stage.id === stageId) ?? stages[0];
+
+  /* 계측을 한 번만 읽어 도해·상세가 같은 계열을 본다 — JSX에서 부르면 단계마다 다시 만든다 */
+  const { points } = useSiteSeries(siteId);
 
   const operating = useMemo(() => getOperatingState(siteId), [siteId]);
   const equipment = useMemo(() => getEquipment(siteId), [siteId]);
@@ -96,7 +100,7 @@ export function ProcessView() {
         >
           <ProcessDiagram
             stages={stages}
-            siteId={siteId}
+            points={points}
             selectedId={selected.stage.id}
             onSelect={setStageId}
           />
@@ -107,7 +111,7 @@ export function ProcessView() {
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,380px)]">
           <StageDetail
             resolved={selected}
-            readings={stageReadings(siteId, selected)}
+            readings={stageReadings(points, selected)}
             equipment={stageEquipment}
             online={site.online}
           />

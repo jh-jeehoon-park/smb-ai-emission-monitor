@@ -7,6 +7,7 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { BRAND_NAME } from '@/shared/config/constants';
 import { DEMO_NOTICE, DEMO_NOW_ISO } from '@/shared/config/demo';
+import { telemetrySourceLabel, useSiteSeries } from '@/entities/measurement';
 import { COLLECTION_INTERVAL_MINUTES } from '@/shared/config/measurement';
 import { cn } from '@/shared/lib/cn';
 import { BADGE_BASE } from '@/shared/ui/badge';
@@ -19,7 +20,7 @@ import { openAlarms } from '@/entities/alarm';
 import { ADMIN_ACCOUNTS, GOV_SCOPE, ProfileMenu, ROLES, ROLE_PROFILES } from '@/entities/user';
 import { getSite, siteIdsInScope, withinScope } from '@/entities/site';
 import { ALL_ALARMS, useAlarmStates } from '@/features/alarm-ack';
-import { useSelectedSiteId, useSiteHref } from '@/features/site-selection';
+import { SiteSelector, useSelectedSiteId, useSiteHref } from '@/features/site-selection';
 import {
   ALARM_NAV_HREF,
   NAV_GROUPS,
@@ -101,6 +102,15 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Greeting />
 
             <div className="ml-auto flex flex-wrap items-center justify-end gap-x-3 gap-y-2 text-[12px] font-medium text-fg-subtle">
+              {/*
+               * **헤더에서 사업장을 바꾼다** `[사용자 요청 2026-08-27]`. 한때 걷어내고 통합
+               * 관제의 사업장 탭에 맡겼는데(`[사용자 지시 2026-08-24]`), 상세 화면에서 사업장을
+               * 바꾸려면 통합 관제로 돌아갔다 와야 했다 — 그 왕복을 없앤다.
+               *
+               * 범위는 부품이 스스로 정한다 — 목록은 `useScopedSites()`라 기초지자체에게는
+               * 관내만 오고, 사업장 역할에는 드롭다운 대신 자사 이름만 뜬다.
+               */}
+              <SiteSelector className="w-[210px] shrink-0" />
               <ReceiveIndicator />
               <LiveClock />
               <DemoNotice />
@@ -194,6 +204,7 @@ function DemoNotice() {
 function ReceiveIndicator() {
   const { siteId } = useSelectedSiteId();
   const online = getSite(siteId).online;
+  const { status, failure } = useSiteSeries(siteId);
 
   if (!online) {
     return (
@@ -204,13 +215,27 @@ function ReceiveIndicator() {
     );
   }
 
+  /**
+   * **원천을 숨기지 않는다.** 생성 데이터를 실측처럼 보이게 두면 시연에서 읽은 값이 관측인지
+   * 아닌지 아무도 가릴 수 없다. `확인 중`을 따로 두는 이유도 같다 — 아직 모르는 것을
+   * `서버 미연결`로 적으면 없는 사실을 주장하게 된다(E4).
+   */
+  if (status !== 'live') {
+    return (
+      <span className="flex items-center gap-1.5 text-fg-subtle">
+        <span className="size-1.5 rounded-full bg-fg-subtle" />
+        {telemetrySourceLabel(status, failure)}
+      </span>
+    );
+  }
+
   return (
     <span className="flex items-center gap-1.5 text-normal-ink">
       <span className="relative flex size-1.5">
         <span className="live-pulse absolute inset-0 rounded-full" />
         <span className="relative size-1.5 rounded-full bg-normal" />
       </span>
-      수신 중 · {COLLECTION_INTERVAL_MINUTES}분 주기
+      실측 수신 중 · {COLLECTION_INTERVAL_MINUTES}분 주기
     </span>
   );
 }

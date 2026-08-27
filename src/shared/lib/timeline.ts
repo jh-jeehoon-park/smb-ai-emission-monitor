@@ -1,7 +1,6 @@
 import { DEMO_NOW_ISO } from '@/shared/config/demo';
 import { COLLECTION_INTERVAL_MINUTES, HISTORY_WINDOW_HOURS } from '@/shared/config/measurement';
 import { getScenario } from '@/shared/config/demo-scenario';
-import { clamp } from '@/shared/lib/prng';
 
 /**
  * 시연 데이터의 공통 시간축. 계측·이상점수 등 여러 slice가 같은 축을 써야 하는데
@@ -9,11 +8,23 @@ import { clamp } from '@/shared/lib/prng';
  */
 export const TIMELINE_POINT_COUNT = (HISTORY_WINDOW_HOURS * 60) / COLLECTION_INTERVAL_MINUTES;
 
-/** 마지막 3시간(36표본)에 심어 둔 이상 상황 구간 */
-export const EVENT_START_INDEX = TIMELINE_POINT_COUNT - 36;
+/**
+ * 구간 길이는 **분으로 적고 표본 수로 옮긴다.**
+ *
+ * 표본 수를 그대로 박아 두면 수집 주기를 바꿀 때 **구간이 조용히 늘거나 줄어든다** — 5분
+ * 주기에서 `36`이던 사건 구간은 1분 주기에서 3시간이 아니라 36분이 된다. 화면은 그대로
+ * 그려지므로 틀린 것을 알아챌 방법이 없다.
+ */
+export function minutesToSamples(minutes: number): number {
+  return Math.round(minutes / COLLECTION_INTERVAL_MINUTES);
+}
 
-/** 통신 두절 구간의 길이(표본 수). 약 55분 */
-const OUTAGE_LENGTH = 11;
+/** 시간축 끝에 심어 둔 이상 상황 구간의 길이 */
+export const EVENT_LENGTH_SAMPLES = minutesToSamples(3 * 60);
+
+export const EVENT_START_INDEX = TIMELINE_POINT_COUNT - EVENT_LENGTH_SAMPLES;
+
+const OUTAGE_LENGTH = minutesToSamples(55);
 
 export function timelineIsoAt(index: number): string {
   const end = new Date(DEMO_NOW_ISO).getTime();
@@ -23,11 +34,18 @@ export function timelineIsoAt(index: number): string {
   );
 }
 
-/** 시각을 표본 인덱스로 되돌린다. 알람처럼 시각만 가진 값을 시간축에 얹을 때 쓴다 */
-export function timelineIndexAt(iso: string): number {
+/**
+ * 시각을 표본 인덱스로 되돌린다. 알람처럼 시각만 가진 값을 시간축에 얹을 때 쓴다.
+ *
+ * **창 밖이면 `null`이다.** 예전에는 양 끝으로 클램프했는데, 그러면 사흘 전 알람이 첫
+ * 표본을 가리키고 화면은 그 값을 **그 알람의 계측값이라 적는다** — 틀렸다는 표시가 어디에도
+ * 남지 않는다. 실 데이터가 들어오면 이 창을 벗어난 시각이 실제로 생긴다.
+ */
+export function timelineIndexAt(iso: string): number | null {
   const stepMs = COLLECTION_INTERVAL_MINUTES * 60_000;
   const back = Math.round((new Date(DEMO_NOW_ISO).getTime() - new Date(iso).getTime()) / stepMs);
-  return clamp(TIMELINE_POINT_COUNT - 1 - back, 0, TIMELINE_POINT_COUNT - 1);
+  const index = TIMELINE_POINT_COUNT - 1 - back;
+  return 0 <= index && index < TIMELINE_POINT_COUNT ? index : null;
 }
 
 export interface OutageWindow {
@@ -43,9 +61,9 @@ export interface OutageWindow {
 export function isMissingAt(siteId: string, index: number): boolean {
   const scenario = getScenario(siteId);
   if (!scenario.online) return true;
-  if (scenario.outageStartOffset === null) return false;
+  if (scenario.outageStartMinutesAgo === null) return false;
 
-  const start = TIMELINE_POINT_COUNT - scenario.outageStartOffset;
+  const start = TIMELINE_POINT_COUNT - minutesToSamples(scenario.outageStartMinutesAgo);
   return index >= start && index < start + OUTAGE_LENGTH;
 }
 
@@ -67,7 +85,7 @@ export function isDischargingAt(siteId: string, index: number): boolean | null {
   const gap = getScenario(siteId).dischargeGap;
   if (!gap) return true;
 
-  const start = TIMELINE_POINT_COUNT - gap.startOffset;
+  const start = TIMELINE_POINT_COUNT - minutesToSamples(gap.startMinutesAgo);
   return !(index >= start && index < start + gap.hours * SAMPLES_PER_HOUR);
 }
 
@@ -86,7 +104,7 @@ export function isTreatmentIdleAt(siteId: string, index: number): boolean | null
   const window = getScenario(siteId).idleDischargeWindow;
   if (!window) return false;
 
-  const start = TIMELINE_POINT_COUNT - window.startOffset;
+  const start = TIMELINE_POINT_COUNT - minutesToSamples(window.startMinutesAgo);
   return index >= start && index < start + window.hours * SAMPLES_PER_HOUR;
 }
 
@@ -112,9 +130,9 @@ export function countDischargeHours(siteId: string, window: number): number | nu
 /** 화면에 "언제 끊겼는지"를 적기 위한 구간. 두절 이력이 없으면 null */
 export function getOutageWindow(siteId: string): OutageWindow | null {
   const scenario = getScenario(siteId);
-  if (!scenario.online || scenario.outageStartOffset === null) return null;
+  if (!scenario.online || scenario.outageStartMinutesAgo === null) return null;
 
-  const start = TIMELINE_POINT_COUNT - scenario.outageStartOffset;
+  const start = TIMELINE_POINT_COUNT - minutesToSamples(scenario.outageStartMinutesAgo);
   return {
     fromIso: timelineIsoAt(start),
     toIso: timelineIsoAt(start + OUTAGE_LENGTH - 1),

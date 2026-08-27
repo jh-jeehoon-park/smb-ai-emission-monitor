@@ -3,28 +3,31 @@ import { getScenario, siteSeed } from '@/shared/config/demo-scenario';
 import { MEASUREMENT_ITEMS } from '@/shared/config/measurement';
 import { clamp, createRng, roundTo } from '@/shared/lib/prng';
 import {
+  EVENT_LENGTH_SAMPLES,
   EVENT_START_INDEX,
   TIMELINE_POINT_COUNT,
   isMissingAt,
   isTreatmentIdleAt,
+  minutesToSamples,
   timelineIsoAt,
 } from '@/shared/lib/timeline';
 import type { MeasurementPoint, SeriesCode } from '../model/types';
 
-const BASELINE: Record<SeriesCode, { mid: number; swing: number; period: number }> = {
-  pH: { mid: 7.15, swing: 0.32, period: 61 },
-  EC: { mid: 1840, swing: 210, period: 83 },
-  turbidity: { mid: 34, swing: 11, period: 47 },
-  DO: { mid: 5.4, swing: 1.1, period: 71 },
-  temperature: { mid: 24.6, swing: 1.4, period: 149 },
-  chromaticity: { mid: 128, swing: 34, period: 59 },
-  NO3N: { mid: 11.8, swing: 2.6, period: 67 },
-  TOC: { mid: 26.5, swing: 5.2, period: 53 },
-  current: { mid: 118, swing: 16, period: 43 },
-  power: { mid: 41, swing: 6.5, period: 43 },
+/** 주기는 **분**이다. 표본 수로 적으면 수집 주기를 좁힐 때 파형이 그만큼 빨라진다 */
+const BASELINE: Record<SeriesCode, { mid: number; swing: number; periodMinutes: number }> = {
+  pH: { mid: 7.15, swing: 0.32, periodMinutes: 305 },
+  EC: { mid: 1840, swing: 210, periodMinutes: 415 },
+  turbidity: { mid: 34, swing: 11, periodMinutes: 235 },
+  DO: { mid: 5.4, swing: 1.1, periodMinutes: 355 },
+  temperature: { mid: 24.6, swing: 1.4, periodMinutes: 745 },
+  chromaticity: { mid: 128, swing: 34, periodMinutes: 295 },
+  NO3N: { mid: 11.8, swing: 2.6, periodMinutes: 335 },
+  TOC: { mid: 26.5, swing: 5.2, periodMinutes: 265 },
+  current: { mid: 118, swing: 16, periodMinutes: 215 },
+  power: { mid: 41, swing: 6.5, periodMinutes: 215 },
   /* 유입은 유출보다 조금 많다 — 증발·슬러지 반출로 빠지는 만큼이다 */
-  inflow: { mid: 430, swing: 58, period: 91 },
-  flow: { mid: 412, swing: 58, period: 91 },
+  inflow: { mid: 430, swing: 58, periodMinutes: 455 },
+  flow: { mid: 412, swing: 58, periodMinutes: 455 },
 };
 
 const SERIES_CODES: SeriesCode[] = [
@@ -49,7 +52,7 @@ const SERIES_CODES: SeriesCode[] = [
  */
 function eventFactor(index: number, code: SeriesCode, intensity: number): number {
   if (index < EVENT_START_INDEX) return 0;
-  const progress = ((index - EVENT_START_INDEX) / 36) * intensity;
+  const progress = ((index - EVENT_START_INDEX) / EVENT_LENGTH_SAMPLES) * intensity;
   if (code === 'TOC') return progress * 16;
   if (code === 'DO') return -progress * 2.1;
   if (code === 'turbidity') return progress * 9;
@@ -59,7 +62,26 @@ function eventFactor(index: number, code: SeriesCode, intensity: number): number
   return 0;
 }
 
+const seriesCache = new Map<string, MeasurementPoint[]>();
+
+/**
+ * 시드가 고정이라 몇 번을 불러도 같은 값이 나온다. 캐시는 그 계산만 아낀다.
+ *
+ * **한 렌더에서 사업장 수만큼 불리는 자리가 있다** — 관내 감독 표와 통합 관제가 사업장마다
+ * 계열을 만든다. 표본 수는 수집 주기에 반비례해 늘어나므로 주기를 좁힐수록 이 비용이 커진다.
+ *
+ * 돌려주는 배열을 **호출부가 고치지 않는다**(모두 `slice`·전개로 복사해 쓴다).
+ */
 export function getMeasurementSeries(siteId: string): MeasurementPoint[] {
+  const cached = seriesCache.get(siteId);
+  if (cached) return cached;
+
+  const built = buildSeries(siteId);
+  seriesCache.set(siteId, built);
+  return built;
+}
+
+function buildSeries(siteId: string): MeasurementPoint[] {
   const scenario = getScenario(siteId);
   const rng = createRng(siteSeed(siteId, 731104));
   const intensity = scenario.eventRise / 74;
@@ -106,14 +128,14 @@ export function getMeasurementSeries(siteId: string): MeasurementPoint[] {
        */
       if (treatmentIdle && code === 'inflow') {
         const b = BASELINE.flow;
-        const wave = Math.sin((i / b.period) * Math.PI * 2) * b.swing;
+        const wave = Math.sin((i / minutesToSamples(b.periodMinutes)) * Math.PI * 2) * b.swing;
         point[code] = Math.round((b.mid * offsets.flow + wave) * PROVISIONAL_IDLE_INFLOW_RATIO);
         continue;
       }
 
       const b = BASELINE[code];
       const mid = b.mid * offsets[code];
-      const wave = Math.sin((i / b.period) * Math.PI * 2) * b.swing;
+      const wave = Math.sin((i / minutesToSamples(b.periodMinutes)) * Math.PI * 2) * b.swing;
       const noise = (rng() - 0.5) * b.swing * 0.45;
       const raw = mid + wave + noise + eventFactor(i, code, intensity);
       const [lo, hi] = MEASUREMENT_ITEMS[code].range;

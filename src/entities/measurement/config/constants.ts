@@ -1,5 +1,32 @@
+import type { TbFailure } from '@/shared/api/thingsboard';
 import { COLLECTION_INTERVAL_MINUTES, HISTORY_WINDOW_HOURS } from '@/shared/config/measurement';
-import type { SeriesCode } from '../model/types';
+import type { SeriesCode, TelemetryStatus } from '../model/types';
+
+/**
+ * 원천을 적는 문구. **한 곳에 모은다** — 화면마다 다르게 적으면 같은 상태가 다른 말로 보인다.
+ *
+ * `수신 확인 중`과 `서버 미연결`을 가르는 것이 요점이다. 기존 어휘(`—`·`수신 없음`)를 여기
+ * 쓰지 않는다 — 그쪽은 **확인된 부재**를 뜻하고, 아직 안 온 것에 같은 말을 쓰면 모름을 사실
+ * 주장으로 둔갑시킨다(E4).
+ */
+export const TELEMETRY_STATUS_LABELS: Record<TelemetryStatus, string> = {
+  pending: '수신 확인 중',
+  live: '실측 수신 중',
+  fallback: '시연 데이터 · 서버 미연결',
+};
+
+/**
+ * **접속 정보를 두지 않은 것은 실패가 아니다.** 계측 서버는 사설망에 있어 배포본과 사외에서는
+ * 애초에 닿지 않는다 — 그 상태를 `서버 미연결`이라 적으면 전 화면에 경고가 상시로 떠 정작
+ * 진짜 두절일 때 눈에 띄지 않는다.
+ */
+export function telemetrySourceLabel(
+  status: TelemetryStatus,
+  failure: TbFailure | null,
+): string {
+  if (status === 'fallback' && failure === 'unconfigured') return '시연 데이터';
+  return TELEMETRY_STATUS_LABELS[status];
+}
 
 /**
  * 시계열이 실제로 존재하는 항목만. TN·TP는 센서가 없어 계측 시계열이 없고
@@ -27,6 +54,49 @@ export const EQUIPMENT_SERIES_CODES: SeriesCode[] = ['current', 'power', 'inflow
  * 새 항목이 기본적으로 제외되므로 같은 실수가 되풀이되지 않는다.
  */
 export const SERIES_CODES: SeriesCode[] = [...WATER_SERIES_CODES, ...EQUIPMENT_SERIES_CODES];
+
+/**
+ * 계측 서버가 실제로 주는 계열. 채널 이름이 `SeriesCode`와 같아 매핑은 항등이다.
+ *
+ * **목록을 명시한다.** 서버에 없는 키를 물으면 에러가 아니라 **유령 표본**이 온다
+ * (`{"NOPE":[{"ts":<지금>,"value":null}]}` — 명세 §7.1) — 오타 하나가 격자에 null 한 점을
+ * 조용히 심는다. 그래서 요청 키는 이 배열에서만 만든다.
+ */
+export const RECEIVED_SERIES_CODES: SeriesCode[] = [
+  ...WATER_SERIES_CODES,
+  'current',
+  'power',
+  'inflow',
+  'flow',
+];
+
+/**
+ * 화면 계열 ↔ 서버 채널. **이름이 다른 둘만 적는다.**
+ *
+ * 유입·유출 유량이 `flowIn`·`flowOut`으로 들어왔다 `[TBD-57 해소 2026-08-27]` — 요청해 둔
+ * 것이 반영됐다. 우리 이름(`inflow`·`flow`)을 서버 이름에 맞춰 바꾸지 않는다: 화면·문서·CSV가
+ * 전부 그 이름을 쓰고 있고, 서버 채널 이름이 화면 계약이 되면 저쪽이 바꿀 때마다 전 화면이
+ * 깨진다(명세 §7.3이 경계한 그것이다). 이름을 잇는 일은 매퍼 한 곳에서 한다.
+ *
+ * **옛 `flow` 채널을 쓰지 않는다** — 아직 살아 있지만 5분 주기이고, 1분 백필과 섞여 5분 배수
+ * 시각에만 옛 값이 남아 있다. `flowOut`이 그 자리를 대신한다.
+ */
+export const TB_CHANNEL_BY_CODE: Partial<Record<SeriesCode, string>> = {
+  inflow: 'flowIn',
+  flow: 'flowOut',
+};
+
+/**
+ * 서버에 채널이 없는 계열. **지금은 없다** — `inflow`가 `flowIn`으로 들어오면서 비었다.
+ *
+ * 목록을 지우지 않는다: 채널이 빠지는 상황은 다시 생기고(`vibration`은 애초에 `SeriesCode`가
+ * 아니다 `[TBD-49]`), 그때 화면이 fixture로 메우지 않고 **전 구간 `null`**로 두게 하는 자리가
+ * 여기다 — 실측과 생성값을 한 행에 섞으면 어느 칸이 관측인지 알 수 없다(E4).
+ */
+export const UNRECEIVED_SERIES_CODES: SeriesCode[] = [];
+
+/** 방류 여부는 계열이 아니라 플래그다. 서버가 실측 채널로 준다 — 파생하지 않는다 */
+export const DISCHARGING_KEY = 'discharging';
 
 /**
  * 유량 2종 — **들어온 양과 나간 양**. 화면은 여기에 **차**(유입−유출) 칸을 하나 더 붙인다.

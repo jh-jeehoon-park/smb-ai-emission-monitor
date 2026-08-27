@@ -17,7 +17,9 @@ import { getEquipment } from '@/entities/equipment';
 import {
   FLOW_SERIES_CODES,
   WATER_SERIES_CODES,
-  getMeasurementSeries,
+  pointsBySite,
+  useSiteSeries,
+  useSitesSeries,
   outageNotice,
 } from '@/entities/measurement';
 import { SERIES_WINDOW_HOURS, getForecast } from '@/entities/prediction';
@@ -61,21 +63,26 @@ export function JurisdictionView() {
     return allAlarms.filter((alarm) => ids.has(alarm.siteId));
   }, [allAlarms, sites]);
 
+  /* 관내 사업장 전부의 계열이 한 번에 필요하다 — 표의 기준 초과 건수가 계열에서 나온다 */
+  const seriesBySite = useSitesSeries(useMemo(() => sites.map((s) => s.id), [sites]));
+
   const rows = useMemo(
-    () => buildSupervisionRows(sites, inMunicipality, limits.table),
-    [sites, inMunicipality, limits.table],
+    () => buildSupervisionRows(sites, inMunicipality, limits.table, pointsBySite(seriesBySite)),
+    [sites, inMunicipality, limits.table, seriesBySite],
   );
+
+  const { points: series } = useSiteSeries(siteId);
 
   const detail = useMemo(
     () => ({
-      series: getMeasurementSeries(siteId),
+      series,
       anomalySeries: getAnomalySeries(siteId),
       anomalySummary: getAnomalySummary(siteId),
       forecast: getForecast(siteId),
       equipment: getEquipment(siteId),
       outage: getOutageWindow(siteId),
     }),
-    [siteId],
+    [siteId, series],
   );
 
   const online = sites.filter((s) => s.online).length;

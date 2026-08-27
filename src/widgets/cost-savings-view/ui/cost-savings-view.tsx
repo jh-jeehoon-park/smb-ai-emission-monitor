@@ -14,7 +14,7 @@ import {
   sortEquipment,
   type Equipment,
 } from '@/entities/equipment';
-import { energyIntensity, getMeasurementSeries } from '@/entities/measurement';
+import { energyIntensity, useSiteSeries } from '@/entities/measurement';
 import {
   ANNUAL_SAVING_KRW_RANGE,
   CHEMICAL_SAVING_RANGE,
@@ -47,10 +47,11 @@ const rate = (value: number) => `${value.toFixed(RATE_DECIMALS)}%`;
 export function CostSavingsView() {
   const { siteId } = useSelectedSiteId();
 
-  const summary = useMemo(() => {
-    const energyNow = energyIntensity(getMeasurementSeries(siteId));
-    return getOptimization(siteId, energyNow);
-  }, [siteId]);
+  const { points: series } = useSiteSeries(siteId);
+  const summary = useMemo(
+    () => getOptimization(siteId, energyIntensity(series)),
+    [siteId, series],
+  );
 
   const detections = countAnomalyAlarms(siteId);
   const equipment = useMemo(() => sortEquipment(getEquipment(siteId), 'status'), [siteId]);

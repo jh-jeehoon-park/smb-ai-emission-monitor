@@ -12,7 +12,7 @@ import { StatusBadge } from '@/shared/ui/status-badge';
 import { countOpen } from '@/entities/alarm';
 import { getAnomalySeries, getAnomalySummary } from '@/entities/anomaly';
 import { EQUIPMENT_SIGNAL_LABELS, getEquipment, sortEquipment } from '@/entities/equipment';
-import { energyIntensity, getMeasurementSeries } from '@/entities/measurement';
+import { energyIntensity, useSiteSeries } from '@/entities/measurement';
 import { CHEMICAL_SAVING_RANGE, getOptimization } from '@/entities/optimization';
 import { getSite } from '@/entities/site';
 import { allAlarmsForSite, useAlarmStates } from '@/features/alarm-ack';
@@ -52,8 +52,9 @@ export function AdminOverviewView() {
   const withSite = useSiteHref();
   const site = getSite(siteId);
 
+  const { points: series } = useSiteSeries(siteId);
+
   const detail = useMemo(() => {
-    const series = getMeasurementSeries(siteId);
     const alarms = allAlarmsForSite(siteId);
 
     return {
@@ -63,7 +64,7 @@ export function AdminOverviewView() {
       equipment: sortEquipment(getEquipment(siteId), 'status'),
       optimization: getOptimization(siteId, energyIntensity(series)),
     };
-  }, [siteId]);
+  }, [siteId, series]);
 
   /* 확인 처리가 헤더·사이드바와 함께 반영되도록 공유 상태를 읽는다 */
   const { alarms } = useAlarmStates(detail.alarms);

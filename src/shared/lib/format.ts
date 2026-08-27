@@ -64,6 +64,20 @@ export function formatKstDateTime(date: Date): string {
   return `${p.year}-${p.month}-${p.day} ${p.hour}:${p.minute}:${p.second}`;
 }
 
+/**
+ * 실 계측의 epoch 밀리초를 이 저장소의 시각 표기로 옮긴다.
+ *
+ * **`Z`가 붙지만 UTC가 아니다.** 위 포맷터들(`formatClock`·`formatDateTime`…)이 UTC 게터로
+ * 읽으므로, 그 자리에 들어갈 문자열은 **KST 벽시계 값**이어야 한다 — 시연 데이터가 처음부터
+ * 그 관례로 쓰여 있다(`shared/config/demo.ts`).
+ *
+ * 실 epoch을 그대로 `toISOString()`하면 화면이 **9시간 어긋난 값에 KST 라벨**을 붙인다.
+ * 관례를 지키는 자리를 여기 하나로 모아 두어, 서버에서 온 시각은 반드시 이 함수를 지난다.
+ */
+export function kstIsoFromEpoch(epochMs: number): string {
+  return `${formatKstDateTime(new Date(epochMs)).replace(' ', 'T')}Z`;
+}
+
 const KST_WALL_CLOCK = new Intl.DateTimeFormat('ko-KR', {
   timeZone: 'Asia/Seoul',
   month: 'numeric',

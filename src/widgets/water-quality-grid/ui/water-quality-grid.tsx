@@ -25,6 +25,7 @@ import {
   isSeriesCode,
   type MeasurementPoint,
   type SeriesCode,
+  isReceptionStalled,
 } from '@/entities/measurement';
 import { limitZone, type LimitZone } from '../lib/limit-zone';
 import { useChartHover } from '@/shared/lib/use-chart-hover';
@@ -211,7 +212,7 @@ function MiniSeries({
   const item = MEASUREMENT_ITEMS[code];
   const values = data.map((p) => p[code]);
   const latest = [...values].reverse().find((v) => v !== null) ?? null;
-  const isMissingNow = values[values.length - 1] === null;
+  const isMissingNow = isReceptionStalled(values);
   const zone = table ? limitZone(code, values, table) : null;
   const overCount = table ? countOverLimit(data, code, table) : null;
 

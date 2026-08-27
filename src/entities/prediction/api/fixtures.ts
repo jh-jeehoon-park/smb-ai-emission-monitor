@@ -2,7 +2,14 @@ import { DEMO_NOW_ISO } from '@/shared/config/demo';
 import { COLLECTION_INTERVAL_MINUTES } from '@/shared/config/measurement';
 import { getScenario, siteSeed } from '@/shared/config/demo-scenario';
 import { createRng, roundTo } from '@/shared/lib/prng';
-import { TIMELINE_POINT_COUNT, isMissingAt, timelineIsoAt } from '@/shared/lib/timeline';
+import {
+  EVENT_LENGTH_SAMPLES,
+  EVENT_START_INDEX,
+  TIMELINE_POINT_COUNT,
+  isMissingAt,
+  minutesToSamples,
+  timelineIsoAt,
+} from '@/shared/lib/timeline';
 import {
   FLOW_FORECAST,
   FLOW_FORECAST_CODE,
@@ -36,6 +43,9 @@ const TREND_SLOPE_RATIO = 0.5;
 
 /** 보여 주는 구간. 예측 구간이 사라졌으므로 이 창이 곧 차트 전체다 */
 const ACTUAL_TAIL_POINTS = (SERIES_WINDOW_HOURS * 60) / COLLECTION_INTERVAL_MINUTES;
+
+/** 계열 파형의 주기. **분**이다 — 표본 수로 적으면 수집 주기를 좁힐 때 파형이 그만큼 빨라진다 */
+const SERIES_WAVE_PERIOD_MINUTES = 85;
 
 /**
  * 계열의 값이 계측인가 추정인가.
@@ -82,10 +92,11 @@ function buildPoints(
       points.push({ t: timelineIsoAt(i), value: null });
       continue;
     }
-    const progress = Math.max(0, (i - (TIMELINE_POINT_COUNT - 36)) / 36) * intensity;
+    const progress = Math.max(0, (i - EVENT_START_INDEX) / EVENT_LENGTH_SAMPLES) * intensity;
     const value =
       profile.base +
-      Math.sin(i / 17 + profile.phase) * profile.amplitude +
+      Math.sin(i / minutesToSamples(SERIES_WAVE_PERIOD_MINUTES) + profile.phase) *
+        profile.amplitude +
       (rng() - 0.5) * profile.noise +
       progress * profile.rise;
     points.push({ t: timelineIsoAt(i), value: roundTo(value, decimals) });

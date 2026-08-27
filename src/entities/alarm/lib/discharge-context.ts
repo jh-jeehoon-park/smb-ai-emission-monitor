@@ -22,5 +22,9 @@ const WATER_QUALITY_CONDITIONS: readonly AlarmCondition[] = ['pollutionSurge', '
 export function raisedWhileNotDischarging(alarm: Alarm): boolean {
   if (!WATER_QUALITY_CONDITIONS.includes(alarm.condition)) return false;
 
-  return isDischargingAt(alarm.siteId, timelineIndexAt(alarm.raisedAtIso)) === false;
+  /* 조회 창 밖에서 올라온 알람도 모름이다 — 두절 구간과 같은 이유로 단정하지 않는다 */
+  const index = timelineIndexAt(alarm.raisedAtIso);
+  if (index === null) return false;
+
+  return isDischargingAt(alarm.siteId, index) === false;
 }
