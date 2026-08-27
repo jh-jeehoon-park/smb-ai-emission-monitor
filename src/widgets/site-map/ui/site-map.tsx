@@ -10,7 +10,12 @@ import {
 import { STATUS_VISUAL } from '@/shared/config/status-visual';
 import { cn } from '@/shared/lib/cn';
 import { projectToMap } from '@/shared/lib/geo';
-import { type MapFocus, provinceFocus } from '@/shared/lib/map-view';
+import {
+  type MapFocus,
+  type Rect,
+  provinceFocus,
+  singleProvinceView,
+} from '@/shared/lib/map-view';
 import type { Site } from '@/entities/site';
 import {
   ALWAYS_LABELED_PROVINCES,
@@ -37,6 +42,29 @@ interface SiteMapProps {
   sites: Site[];
   selectedId: string;
   onSelect: (id: string) => void;
+  /**
+   * 관할 시·군·구 이름을 주면 **그 관할이 속한 시도 한 장**을 그리고 핀은 넘어온 것만 찍는다
+   * `[사용자 결정 2026-08-26]`. 없으면 전국 시도 지도다.
+   *
+   * **시·군·구 경계를 그리지 않는다.** 한때 관할 도형만 그렸는데 낯선 형태가 홀로 떠
+   * 어디인지 읽히지 않았다 — 시도는 눈에 익어 위치가 바로 잡힌다. 범위를 말하는 것은
+   * **핀과 머리글**이고 면은 배경이다.
+   *
+   * 그래서 축척도 시도 지도와 같은 길을 쓴다(`provinceFocus`) — 경북이 1.9배라
+   * 확대 상한(`MAX_MAP_ZOOM` 3) 안에 든다.
+   */
+  municipality?: string;
+}
+
+/**
+ * 지도가 그리는 도형. 시도와 시·군·구가 같은 네 키를 공유해 렌더 경로를 하나로 둔다.
+ * 시·군·구 쪽은 `viewBox`를 더 갖지만 그리는 데는 쓰이지 않는다.
+ */
+interface MapShape {
+  name: string;
+  label: string;
+  labelAt: [lat: number, lng: number];
+  d: string;
 }
 
 /** 3D 층의 두께(뷰박스 단위). 4를 넘으면 남해 섬들이 자기 그림자에 묻힌다 */
@@ -104,9 +132,31 @@ function pinFillId(prefix: string, level: StatusLevel | null): string {
   return `${prefix}-pin-${level ?? 'missing'}`;
 }
 
-export function SiteMap({ sites, selectedId, onSelect }: SiteMapProps) {
+export function SiteMap({ sites, selectedId, onSelect, municipality }: SiteMapProps) {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [hoveredProvince, setHoveredProvince] = useState<string | null>(null);
+  /**
+   * **관할 모드는 그 관할이 속한 시도 한 장만 그린다** `[사용자 결정 2026-08-26]`.
+   *
+   * 시도는 넘어온 사업장에서 읽는다 — 목록이 이미 관내로 좁혀져 있어(`useScopedSites`)
+   * 그 안의 어느 사업장을 봐도 같은 시도다. 별도 매핑 표를 두면 두 곳이 갈릴 수 있다.
+   *
+   * **전국 지도로 떨어뜨리지 않는다** — 관할 밖 사업장이 보이는 것이 이 역할에서는
+   * 그리기 문제가 아니라 범위 문제다.
+   */
+  const govProvince = municipality ? (sites[0]?.province ?? null) : null;
+  const region = municipality && govProvince ? { name: municipality, province: govProvince } : null;
+  /* 관내에 사업장이 없으면 어느 시도를 그릴지 알 수 없다 — 부르는 쪽이 빈 상태를 그린다 */
+  const missingShape = municipality !== undefined && region === null;
+  const shapes: MapShape[] = region
+    ? PROVINCE_SHAPES.filter((p) => p.name === region.province)
+    : PROVINCE_SHAPES;
+  /*
+   * **관할 모드는 뷰박스 세로를 잘라낸다.** 전국 뷰박스는 세로로 긴 상자라 시도 하나를
+   * 넣으면 위아래가 비고 확대가 가로에서 막힌다 — 가로는 그대로 두고 세로만 줄이면
+   * 도형·핀·라벨·툴팁이 같은 비율로 함께 커진다(§`singleProvinceView`).
+   */
+  const view: Rect = region ? singleProvinceView(region.province) : PROVINCE_VIEWBOX;
   /**
    * **처음 보이는 것은 남한 전체다** `[사용자 지시 2026-08-24]`. 화면에 들어온 순간 어느 한
    * 시도로 확대돼 있으면 나머지 9개소가 화면 밖이라 "전 사업장 관제"가 성립하지 않는다.
@@ -172,7 +222,11 @@ export function SiteMap({ sites, selectedId, onSelect }: SiteMapProps) {
    * 것처럼 보였다. 지금은 `{scale, translateX, translateY}` 세 값을 한 번에 보간하고 모든
    * 파생값이 그 결과에서 나온다.
    */
-  const target = useMemo(() => provinceFocus(focusedProvince), [focusedProvince]);
+  const target = useMemo(
+    /* 관할 모드는 그 시도에 고정한다 — 고를 것이 없으므로 사용자 확대를 받지 않는다 */
+    () => provinceFocus(govProvince ?? focusedProvince),
+    [focusedProvince, govProvince],
+  );
   const focus = useAnimatedFocus(target);
   /** 확대해도 글자와 핀은 화면에서 같은 크기로 남아야 읽힌다 */
   const k = focus.scale;
@@ -191,9 +245,7 @@ export function SiteMap({ sites, selectedId, onSelect }: SiteMapProps) {
    * 하나만 그리면 확대해 둔 상태에서 다른 지역을 가리키는 순간 지금 보고 있는 곳의
    * 테두리가 사라져, 어디를 확대했는지 알 수 없게 된다.
    */
-  const outlines = PROVINCE_SHAPES.filter(
-    (p) => p.name === focusedProvince || p.name === activeProvince,
-  );
+  const outlines = shapes.filter((p) => p.name === focusedProvince || p.name === activeProvince);
 
   /**
    * 겹친 핀은 나중에 그린 쪽이 위로 온다. 가리키는 핀과 선택한 핀을 뒤로 보내
@@ -204,14 +256,47 @@ export function SiteMap({ sites, selectedId, onSelect }: SiteMapProps) {
     return [...sites].sort((a, b) => weight(a) - weight(b));
   }, [sites, hoveredId, selectedId]);
 
+  /*
+   * **도형이 없으면 지도를 그리지 않는다**(R19). 시도 지도로 떨어뜨리면 관할 밖 사업장이
+   * 화면에 들어오고, 이 역할에서 그것은 그리기 문제가 아니라 범위 문제다.
+   */
+  if (missingShape) {
+    return (
+      <div className="flex h-full min-h-[320px] items-center justify-center px-6 text-center">
+        <p className="max-w-[36ch] text-[12px] leading-relaxed text-fg-subtle">
+          <strong className="text-fg-muted">{municipality}</strong> 관내에 사업장이 없어 지도를
+          그리지 않습니다 — <strong className="text-fg-muted">0개소는 오류가 아닙니다.</strong>
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-full min-h-0 w-full flex-col gap-2">
-      <ProvinceZoomBar
-        provinces={PROVINCE_SHAPES.filter((p) => provinceState.has(p.name))}
-        focused={focusedProvince}
-        onFocus={setFocusedProvince}
-        readout={activeProvince ? provinceReadout(activeProvince, provinceState) : null}
-      />
+      {/*
+       * **관할 모드에는 확대 줄이 없다.** 고를 지역이 하나뿐이라 누를 것이 없고,
+       * 문구도 `전국`·`시도를 눌러 확대`라 관할 화면에서는 거짓이 된다.
+       * 대신 관내 요약 한 줄을 같은 자리에 둔다 — 자리를 비우면 지도가 위로 붙는다.
+       */}
+      {region ? (
+        /*
+         * **면은 시도인데 관할은 시·군·구다** — 그 어긋남을 글이 메운다. 이 줄이 없으면
+         * 경상북도 전체가 관할로 읽힌다(경북에는 6개소가 있고 관할은 안동 2곳이다).
+         */
+        <p className="shrink-0 px-1 text-[12px] text-fg-subtle">
+          <span className="font-medium text-fg-muted">{region.province}</span>
+          <span className="mx-1">·</span>관할 {region.name} 사업장{' '}
+          <span className="num">{sites.length}</span>개소
+          <span className="ml-1">· 관할 밖 사업장은 표시하지 않습니다</span>
+        </p>
+      ) : (
+        <ProvinceZoomBar
+          provinces={shapes.filter((p) => provinceState.has(p.name))}
+          focused={focusedProvince}
+          onFocus={setFocusedProvince}
+          readout={activeProvince ? provinceReadout(activeProvince, provinceState) : null}
+        />
+      )}
 
       {/**
        * 폭 기준 분기(lg: 등)만 쓰면 화면이 낮은 모니터에서 패널이 통째로 잘린다 —
@@ -244,11 +329,16 @@ export function SiteMap({ sites, selectedId, onSelect }: SiteMapProps) {
        */}
       <div className="min-h-[320px] flex-1 xl:min-h-0">
         <svg
-          viewBox={`${PROVINCE_VIEWBOX.x} ${PROVINCE_VIEWBOX.y} ${PROVINCE_VIEWBOX.width} ${PROVINCE_VIEWBOX.height}`}
+          viewBox={`${view.x} ${view.y} ${view.width} ${view.height}`}
           /* 확대한 그룹과 그림자가 뷰박스 밖으로 나가는 것을 여기서 자른다 */
           className="mx-auto block h-full max-h-[630px] w-full max-w-[510px] overflow-hidden"
           role="img"
-          aria-label={`실증 사업장 ${sites.length}개소 위치. 시도 면의 농도는 그 지역의 사업장 수이고, 핀 색이 상태 등급입니다.`}
+          /* 관할 모드에는 면 농도 축이 없다 — 도형이 하나라 견줄 대상이 없어 그 말이 거짓이 된다 */
+          aria-label={
+            region
+              ? `${region.province} 안의 관할 ${region.name} 사업장 ${sites.length}개소 위치. 관할 밖 사업장은 표시하지 않습니다. 핀 색이 상태 등급입니다.`
+              : `실증 사업장 ${sites.length}개소 위치. 시도 면의 농도는 그 지역의 사업장 수이고, 핀 색이 상태 등급입니다.`
+          }
           onMouseLeave={() => setHoveredProvince(null)}
         >
           <defs>
@@ -337,7 +427,7 @@ export function SiteMap({ sites, selectedId, onSelect }: SiteMapProps) {
              * 실제 3D 투영(기울이기)은 쓰지 않는다. 지도의 목적은 **어디**를 읽는 것이고,
              * 기울이면 위쪽 시도가 눌려 면적과 거리가 왜곡된다.
              */}
-            {PROVINCE_SHAPES.map((province) => (
+            {shapes.map((province) => (
               <path
                 key={`base-${province.name}`}
                 d={province.d}
@@ -348,7 +438,7 @@ export function SiteMap({ sites, selectedId, onSelect }: SiteMapProps) {
               />
             ))}
 
-            {PROVINCE_SHAPES.map((province) => (
+            {shapes.map((province) => (
               <path
                 key={province.name}
                 d={province.d}
@@ -402,8 +492,10 @@ export function SiteMap({ sites, selectedId, onSelect }: SiteMapProps) {
               />
             ))}
 
-            {PROVINCE_SHAPES.map((province) => {
+            {shapes.map((province) => {
               const shown =
+                /* 관할 모드는 도형이 하나라 늘 이름을 적는다 — 라벨이 없으면 어디인지 알 수 없다 */
+                region !== null ||
                 ALWAYS_LABELED_PROVINCES.has(province.name) ||
                 province.name === activeProvince ||
                 province.name === focusedProvince;
@@ -451,7 +543,7 @@ export function SiteMap({ sites, selectedId, onSelect }: SiteMapProps) {
            * 함께 커져 매번 1/k로 되돌려야 하고, 확대 전환 320ms 동안 상자가 늘어난다.
            * 밖에서 변환 결과 좌표만 받아 그리면 화면 크기가 배율과 무관하게 고정된다.
            */}
-          {hoveredSite && <PinTooltip site={hoveredSite} focus={focus} />}
+{hoveredSite && <PinTooltip site={hoveredSite} focus={focus} view={view} />}
         </svg>
       </div>
     </div>
@@ -695,7 +787,7 @@ function SitePin({ site, idPrefix, selected, hovered, scale, onSelect, onHover }
  * 점수에 산출 시각을 덧붙이지 않는다 — 지도 전체가 한 기준 시각의 스냅숏이고 그 시각은
  * 헤더 띠가 이미 적고 있다(E3·E5). 핀마다 되풀이하면 툴팁이 표가 된다.
  */
-function PinTooltip({ site, focus }: { site: Site; focus: MapFocus }) {
+function PinTooltip({ site, focus, view }: { site: Site; focus: MapFocus; view: Rect }) {
   const [lat, lng] = site.coordinates;
   const point = projectToMap(lat, lng);
   const level: StatusLevel | null = site.status;
@@ -715,16 +807,22 @@ function PinTooltip({ site, focus }: { site: Site; focus: MapFocus }) {
     height,
     gap: TOOLTIP_PIN_GAP,
     padding: TOOLTIP_EDGE_PADDING,
-    view: PROVINCE_VIEWBOX,
+    /* 관할 모드는 뷰박스가 다르다 — 고정값을 쓰면 상자가 화면 밖으로 나간다 */
+    view,
   });
 
-  const textX = box.x + TOOLTIP_PADDING_X;
-  const titleY = box.y + TOOLTIP_PADDING_Y + TOOLTIP_TITLE_SIZE * 0.82;
+  const textX = TOOLTIP_PADDING_X;
+  const titleY = TOOLTIP_PADDING_Y + TOOLTIP_TITLE_SIZE * 0.82;
 
   return (
-    /* 커서 아래에 들어와도 핀의 hover를 뺏으면 안 된다 — 툴팁이 깜빡인다.
-       내용은 핀의 aria-label이 이미 전하므로 보조기기에는 숨긴다 */
-    <g className="pointer-events-none" aria-hidden>
+    /*
+     * 커서 아래에 들어와도 핀의 hover를 뺏으면 안 된다 — 툴팁이 깜빡인다.
+     * 내용은 핀의 aria-label이 이미 전하므로 보조기기에는 숨긴다.
+     *
+     * 상자를 원점에 그리고 자리는 이 변환이 잡는다 — 안쪽 좌표에 `box.x`를 더하던 판본은
+     * `foreignObject`와 두 `<text>`가 각자 같은 덧셈을 되풀이했다.
+     */
+    <g className="pointer-events-none" aria-hidden transform={`translate(${box.x} ${box.y})`}>
       {/*
        * **유리면이다** `[사용자 지시 2026-08-24]`. 반투명 흰 면 + 뒤 배경 blur + 옅은 테두리로
        * 지도 도형 위에 얹힌 판이 된다 — 불투명 상자는 그 아래 시도 경계를 통째로 지웠다.
@@ -736,7 +834,7 @@ function PinTooltip({ site, focus }: { site: Site; focus: MapFocus }) {
        * 좌측 색 띠는 걷었다 `[사용자 지시 2026-08-24]` — 등급은 아래 줄의 **라벨 글자와 그
        * 잉크색**이 나른다(E2). 띠까지 두면 같은 사실이 세 번 있었다.
        */}
-      <foreignObject x={box.x} y={box.y} width={width} height={height}>
+      <foreignObject x={0} y={0} width={width} height={height}>
         <div
           className="h-full w-full rounded-[5px] border border-border bg-surface/70 shadow-panel backdrop-blur-md"
           style={{ boxSizing: 'border-box' }}

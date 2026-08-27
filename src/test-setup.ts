@@ -1,4 +1,17 @@
 import '@testing-library/jest-dom/vitest';
+import { cleanup } from '@testing-library/react';
+import { afterEach } from 'vitest';
+
+/**
+ * **렌더한 DOM을 테스트마다 걷는다.**
+ *
+ * RTL의 자동 정리는 `globals: true`일 때만 걸리는데 이 저장소는 그 옵션을 쓰지 않는다.
+ * 정리하지 않으면 `render`가 `document.body`에 계속 쌓여 **`screen` 질의가 앞선 테스트의
+ * 화면까지 본다** — 전국 지도를 그린 뒤 관할 지도를 검사하면 없어야 할 확대 줄이 잡힌다
+ * (실제로 그렇게 두 건이 거짓 실패했다). `container` 범위 질의로 피해 갈 수도 있지만,
+ * 그러면 DOM 테스트를 쓰는 사람마다 이 함정을 다시 밟는다.
+ */
+afterEach(cleanup);
 
 /**
  * jsdom에 **없는 브라우저 API**를 채운다.

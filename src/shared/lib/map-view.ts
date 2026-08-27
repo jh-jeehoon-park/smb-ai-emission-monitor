@@ -19,7 +19,7 @@ export interface Rect {
 export const MAX_MAP_ZOOM = 3;
 
 /** 확대했을 때 경계가 패널 가장자리에 붙지 않도록 남기는 여백(뷰박스 단위) */
-const FOCUS_PADDING = 12;
+const FOCUS_PADDING = 0;
 
 /** 좌표를 소수 셋째 자리에서 끊는 이유는 geo.ts와 같다 */
 const TRANSFORM_DECIMALS = 3;
@@ -74,6 +74,50 @@ export const MAP_FOCUS_NONE: MapFocus = { scale: 1, translateX: 0, translateY: 0
  * viewBox를 바꾸지 않고 그룹에 transform을 거는 이유는 CSS 전환을 쓸 수 있어서다.
  * viewBox 속성은 CSS로 부드럽게 이어지지 않는다. 감속 설정은 전역 CSS가 처리한다.
  */
+/**
+ * 시도 **한 장만** 그리는 지도의 뷰박스(기초지자체 화면).
+ *
+ * 전국 뷰박스는 **세로로 긴 상자**다(307.5×548.4, 화면비 0.56) — 남한이 그런 모양이기
+ * 때문이다. 그런데 시도 하나는 대개 정사각형에 가깝다(경상북도 0.93). 세로 상자에
+ * 정사각형을 넣으면 **위아래가 비고 확대는 가로에서 먼저 막힌다** — 경북은 확대 후
+ * 가로 86%를 쓰는데 세로는 52%만 쓴다. 칸이 가로로 남아도 도형이 커지지 못한다.
+ *
+ * **가로는 그대로 두고 세로만 잘라낸다.** 뷰박스 화면비가 칸에 가까워져 가로 폭을 다 쓰고,
+ * 도형·핀·라벨·툴팁이 **같은 비율로 함께** 커진다(경북에서 1.27배).
+ *
+ * **가로를 건드리지 않는 것이 중요하다.** 화면 상수를 되돌리는 배율(`focus.scale`)은
+ * 가로 기준이라, 폭을 바꾸면 라벨·핀·툴팁을 되돌리는 자리마다 배율을 다시 맞춰야 한다 —
+ * 그렇게 했다가 두 곳을 놓쳐 지도가 사라지고 툴팁이 6배가 됐다.
+ *
+ * `FOCUS_PADDING`(확대 배율)과는 다른 축이다. 그쪽은 **얼마나 확대할지**를 정하고
+ * 이쪽은 **확대한 것을 칸에 어떻게 앉힐지**를 정한다.
+ */
+const SINGLE_VIEW_PADDING = 24;
+
+export function singleProvinceView(name: string | null): Rect {
+  const box = name ? provinceBBox(name) : null;
+  if (!box || box.height === 0) return PROVINCE_VIEWBOX;
+
+  /* 확대한 뒤의 세로 폭에 여백을 더한다. 전국 뷰박스보다 커질 일은 없지만 묶어 둔다 */
+  const height = Math.min(
+    PROVINCE_VIEWBOX.height,
+    box.height * provinceFocus(name).scale + SINGLE_VIEW_PADDING * 2,
+  );
+
+  /*
+   * **중심을 옮기지 않는다.** `provinceFocus`가 도형을 전국 뷰박스의 중심에 놓으므로
+   * 잘라낸 뷰박스도 그 중심을 그대로 둬야 도형이 가운데 온다.
+   */
+  const centerY = PROVINCE_VIEWBOX.y + PROVINCE_VIEWBOX.height / 2;
+
+  return {
+    x: PROVINCE_VIEWBOX.x,
+    y: roundTo(centerY - height / 2, TRANSFORM_DECIMALS),
+    width: PROVINCE_VIEWBOX.width,
+    height: roundTo(height, TRANSFORM_DECIMALS),
+  };
+}
+
 export function provinceFocus(name: string | null): MapFocus {
   if (!name) return MAP_FOCUS_NONE;
 
