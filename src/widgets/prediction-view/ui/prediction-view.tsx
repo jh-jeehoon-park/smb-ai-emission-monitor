@@ -41,7 +41,6 @@ import {
 } from '@/widgets/forecast-chart';
 import { ALL_TARGETS, TARGET_QUERY_KEY, TARGET_VIEWS, type TargetView } from '../config/constants';
 import { TABLE_HEAD_CELL, TABLE_HEAD_ROW, TABLE_ROOT, TABLE_ROW } from '@/shared/ui/table';
-import { ACTION_BUTTON_QUIET } from '@/shared/ui/action-button';
 
 const TARGET_OPTIONS: { value: TargetView; label: string }[] = [
   { value: ALL_TARGETS, label: '전체' },
@@ -88,16 +87,21 @@ export function PredictionView() {
   return (
     <div className="space-y-6">
       {/*
-       * **기준치 모니터링이 맨 위에 온다** `[사용자 결정 2026-08-25]`.
+       * **판정이 맨 위에 온다** `[사용자 요청 2026-08-26]`.
        *
-       * 회의가 요구한 것이다 — "어느 지역의 TN 기준치는 몇이고 TP 기준치는 몇인 이러한
-       * 사항의 모니터링도 필요" `[회의 2026-08-20]`. 카드가 항목마다 자기 기준치를 적지만
-       * **세 항목을 나란히 놓아야** 어느 항목이 아직 비었는지 한눈에 보인다.
+       * 이 화면의 질문은 *"지금 기준을 넘고 있나"* 이고, 그 답이 이 카드 셋이다 —
+       * 항목마다 `기준보다 높음`·`낮음`·`기준 미설정` 하나를 낸다. 답을 맨 위에 두고
+       * 아래에서 근거(계열)와 기준의 출처(`적용 기준치`)를 잇는다.
        *
-       * 자리를 위로 올린 근거가 하나 더 있다 — 아래 계열이 **기준 대비**로 읽히므로
-       * 기준치를 모르면 그 차트를 읽을 수 없다. 판정의 축이 먼저 와야 한다.
+       * **`적용 기준치`가 위에 있던 판본을 뒤집은 것이다** `[사용자 결정 2026-08-25]`.
+       * 그때 근거는 *"계열이 기준 대비로 읽히므로 판정의 축이 먼저 와야 한다"* 였는데,
+       * 그 축은 차트의 세로 눈금(`기준` 선)이 이미 말하고 있어 표가 앞설 이유가 없었다.
        */}
-      <LimitMonitor trends={forecast.trends} limits={limits} />
+      <div className="grid gap-6 lg:grid-cols-3">
+        {forecast.trends.map((trend) => (
+          <TrendCard key={trend.code} trend={trend} limits={limits} />
+        ))}
+      </div>
 
       <Panel
         /*
@@ -201,17 +205,17 @@ export function PredictionView() {
         </dl>
       </Panel>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        {forecast.trends.map((trend) => (
-          <TrendCard
-            key={trend.code}
-            trend={trend}
-            limits={limits}
-            selected={trend.code === view}
-            onSelect={() => setView(trend.code)}
-          />
-        ))}
-      </div>
+      {/*
+       * **기준치는 그래프 아래에 온다** `[사용자 요청 2026-08-26]`.
+       *
+       * 회의가 요구한 것이다 — "어느 지역의 TN 기준치는 몇이고 TP 기준치는 몇인 이러한
+       * 사항의 모니터링도 필요" `[회의 2026-08-20]`. 위 카드가 항목마다 자기 기준치를
+       * 적지만 **세 항목을 나란히 놓아야** 어느 항목이 아직 비었는지 한눈에 보인다.
+       *
+       * 자리가 아래인 이유: 이 표는 **판정의 근거**이지 판정이 아니다. 맨 위 카드가
+       * 답을 내고, 차트가 그 답이 나온 계열을 보이고, 이 표가 무엇에 견줬는지 밝힌다.
+       */}
+      <LimitMonitor trends={forecast.trends} limits={limits} />
 
       <Panel title="추정 대상과 계측 대상">
         <p className="max-w-[86ch] text-[12px] leading-relaxed text-fg-muted">
@@ -344,17 +348,20 @@ function LimitMonitor({
   );
 }
 
+/**
+ * 항목 하나의 판정 카드.
+ *
+ * **차트로 가는 버튼을 두지 않는다** `[사용자 요청 2026-08-26]`. 대상 선택은 위 패널의
+ * 세그먼트가 이미 갖고 있어 같은 조작이 화면에 두 벌이었고, 카드가 고른 것과 세그먼트가
+ * 고른 것이 같은 상태를 서로 다르게 표시했다(`보는 중` 배지 vs 켜진 칸).
+ */
 function TrendCard({
   trend,
   limits,
-  selected,
-  onSelect,
 }: {
   trend: TrendEstimate;
   /** 기준표는 사업장 설정에서 온다 — 카드가 정적 표를 직접 읽으면 설정이 반영되지 않는다 */
   limits: DischargeLimitsView;
-  selected: boolean;
-  onSelect: () => void;
 }) {
   /* `null`은 판정하지 않았다는 뜻이다 — 기준이 없거나 값이 결측이다(E4) */
   const over = isOverLimit(trend.code, trend.value, limits.table);
@@ -367,25 +374,7 @@ function TrendCard({
   );
 
   return (
-    <Panel
-      title={trend.code}
-      className={selected ? 'border-accent/40' : undefined}
-      action={
-        <button
-          type="button"
-          onClick={onSelect}
-          aria-pressed={selected}
-          /* 켜진 쪽은 **지금 보고 있다는 표시**라 눌리는 버튼처럼 띄우지 않는다 */
-          className={
-            selected
-              ? `${ACTION_BUTTON_QUIET} border-accent/40 bg-accent-weak font-semibold text-accent`
-              : ACTION_BUTTON_QUIET
-          }
-        >
-          {selected ? '보는 중' : '차트 보기'}
-        </button>
-      }
-    >
+    <Panel title={trend.code}>
       <div className="flex items-end justify-between gap-3">
         {/*
          * **농도를 적지 않는다** `[회의 2026-08-20]`. 소프트 센싱으로는 절대값의 정확도를
