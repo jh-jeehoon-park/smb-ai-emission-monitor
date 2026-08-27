@@ -2,8 +2,13 @@
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect } from 'react';
-import { MUNICIPALITY_QUERY_KEY, SCOPE_QUERY_KEY, SITE_QUERY_KEY } from '@/shared/config/scope';
-import { replaceQuery } from '@/shared/lib/replace-query';
+import {
+  MUNICIPALITY_QUERY_KEY,
+  SCOPE_QUERY_KEY,
+  SITE_QUERY_KEY,
+  clearMunicipalityLock,
+  hasMunicipalityLock,
+} from '@/shared/config/scope';
 import { firstSiteIn, sitesIn } from '@/entities/site';
 import {
   GOV_MUNICIPALITY,
@@ -12,6 +17,7 @@ import {
   scopeOf,
   useRole,
   type Role,
+  type RoleScope,
 } from '@/entities/user';
 import { NAV_ITEMS, homeHrefFor } from '../config/navigation';
 
@@ -52,33 +58,56 @@ export function useRoleRouteGuard() {
       return;
     }
 
-    const scope = scopeOf(role);
-    if (scope === 'all-sites') return;
-
-    if (scope === 'own-site') {
-      // 주소를 직접 고쳐 남의 사업장을 열어도 자사로 되돌린다
-      const ownSite = adminSiteId(adminAccount);
-      if (params.get(SITE_QUERY_KEY) === ownSite && params.get(SCOPE_QUERY_KEY) === 'site') return;
-    } else {
-      /* 관할 밖 사업장을 주소로 열어도 관내로 되돌린다 — 사업장 축과 같은 처리다 */
-      const site = params.get(SITE_QUERY_KEY);
-      const inside = site !== null && sitesIn(GOV_MUNICIPALITY).some((s) => s.id === site);
-      if (
-        inside &&
-        params.get(SCOPE_QUERY_KEY) === 'municipality' &&
-        params.get(MUNICIPALITY_QUERY_KEY) === GOV_MUNICIPALITY
-      ) {
-        return;
-      }
-    }
+    if (isScopeSettled(scopeOf(role), adminAccount, params)) return;
 
     /*
-     * **경로가 그대로라 서버를 거치지 않는다.** 여기서 하는 일은 쿼리 교정뿐이고,
-     * `router.replace`는 그때도 RSC 요청을 보내 교정이 한 왕복 뒤에 도착한다 —
-     * 그 사이 남의 사업장이 화면에 남는다(이 가드가 막으려는 바로 그것이다).
+     * **`replaceQuery`로는 화면이 따라오지 않는다.** 한때 쿼리만 바뀌니 서버를 거치지 말자고
+     * 그것을 썼는데, 실측해 보니 **주소창만 고쳐지고 본문은 그대로였다** — 사업장 역할로
+     * `?site=S-07`을 직접 열면 URL은 자사로 교정되는데 상세는 남의 사업장을 계속 그렸다
+     * (8초를 기다려도 그대로다). 가드가 막으려던 바로 그것을 가드가 놓치고 있었다.
+     *
+     * `history.replaceState`가 `useSearchParams`와 동기화되는 것은 맞다 — 헤더 선택기처럼
+     * **이벤트 핸들러에서** 부르면 잘 전파된다. 마운트 직후 effect에서 부른 것이 문제였다.
+     *
+     * `router.replace`는 RSC 왕복을 한 번 치르지만 확실히 다시 그린다. 교정은 URL이 틀렸을
+     * 때만 도는 길이라 그 비용을 감수한다 — **틀린 화면을 빨리 보여 주는 것보다 낫다.**
+     * 역할 전환의 '한 프레임'은 `role-context`가 즉시 URL을 옮겨 이미 막고 있다.
      */
-    replaceQuery(scopeParams(role, adminAccount, params));
+    router.replace(withScope(pathname, role, adminAccount, params));
   }, [role, adminAccount, pathname, params, router]);
+}
+
+/**
+ * URL이 이미 그 역할의 범위대로인가. 맞으면 손대지 않는다.
+ *
+ * **`all-sites`가 빠져 있었다.** 그냥 반환해 버려서, 기초지자체를 거쳤다 시스템 관리자로
+ * 돌아오면 URL에 남은 `scope=municipality`를 아무도 걷지 않았다 — 전 사업장 권한인데
+ * 관내 2개소만 보였다(헤더 선택기·이상 탐지 순위표·알람·리포트가 모두 이 쿼리를 읽는다).
+ */
+function isScopeSettled(
+  scope: RoleScope,
+  adminAccount: Parameters<typeof adminSiteId>[0],
+  params: URLSearchParams,
+): boolean {
+  if (scope === 'all-sites') return !hasMunicipalityLock(params);
+
+  if (scope === 'own-site') {
+    // 주소를 직접 고쳐 남의 사업장을 열어도 자사로 되돌린다
+    return (
+      params.get(SITE_QUERY_KEY) === adminSiteId(adminAccount) &&
+      params.get(SCOPE_QUERY_KEY) === 'site' &&
+      params.get(MUNICIPALITY_QUERY_KEY) === null
+    );
+  }
+
+  /* 관할 밖 사업장을 주소로 열어도 관내로 되돌린다 — 사업장 축과 같은 처리다 */
+  const site = params.get(SITE_QUERY_KEY);
+  const inside = site !== null && sitesIn(GOV_MUNICIPALITY).some((s) => s.id === site);
+  return (
+    inside &&
+    params.get(SCOPE_QUERY_KEY) === 'municipality' &&
+    params.get(MUNICIPALITY_QUERY_KEY) === GOV_MUNICIPALITY
+  );
 }
 
 /** 그 역할의 범위를 얹은 쿼리. 경로는 부르는 쪽이 정한다 */
@@ -87,8 +116,12 @@ function scopeParams(
   adminAccount: Parameters<typeof adminSiteId>[0],
   params: URLSearchParams,
 ): URLSearchParams {
-  const next = new URLSearchParams(params.toString());
   const scope = scopeOf(role);
+  /* 관할 잠금은 기초지자체일 때만 뜻이 있다. 남기면 다른 역할의 화면이 관내로 좁혀진다 */
+  const next =
+    scope === 'own-municipality'
+      ? new URLSearchParams(params.toString())
+      : clearMunicipalityLock(params);
 
   if (scope === 'own-site') {
     next.set(SITE_QUERY_KEY, adminSiteId(adminAccount));

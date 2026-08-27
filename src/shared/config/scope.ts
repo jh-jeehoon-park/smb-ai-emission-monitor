@@ -46,3 +46,48 @@ export const SCOPE_OPTIONS: { value: ScopeFilter; label: string }[] = [
  * 실체는 `entities/site`가 갖는다(사업장 목록을 아는 쪽이라야 관할을 풀 수 있다).
  */
 export type ScopeWithin = { siteId: string; municipality: string | null };
+
+/**
+ * 관할 잠금이 URL에 남아 있는가. **이것만 계정 축의 흔적이다.**
+ *
+ * `scope=site`는 세지 않는다 — 알람·리포트의 범위 세그먼트가 같은 키를 쓰고 사용자가 고른
+ * 값일 수 있다. 관할은 그 세그먼트에 없어(`SCOPE_OPTIONS`) 계정이 정하는 값임이 확실하다.
+ */
+export function hasMunicipalityLock(params: URLSearchParams): boolean {
+  return (
+    params.get(SCOPE_QUERY_KEY) === 'municipality' || params.get(MUNICIPALITY_QUERY_KEY) !== null
+  );
+}
+
+/**
+ * 관할 잠금을 걷은 쿼리.
+ *
+ * **좁은 범위로 들어가는 길만 있고 나오는 길이 없었다.** 기초지자체를 거쳐 시스템 관리자로
+ * 돌아오면 `scope=municipality`가 URL에 남아, 전 사업장 권한인데 관내 2개소만 보였다 —
+ * 헤더 사업장 선택기·이상 탐지 순위표·알람·리포트가 전부 이 쿼리 하나를 읽기 때문이다.
+ *
+ * 역할 전환(`role-context`)과 라우트 가드가 같은 규칙을 써야 해서 여기 둔다. 두 곳이 각자
+ * 적으면 한쪽만 고쳐져 같은 증상이 되돌아온다.
+ */
+export function clearMunicipalityLock(params: URLSearchParams): URLSearchParams {
+  const next = new URLSearchParams(params.toString());
+  if (next.get(SCOPE_QUERY_KEY) === 'municipality') next.delete(SCOPE_QUERY_KEY);
+  next.delete(MUNICIPALITY_QUERY_KEY);
+  return next;
+}
+
+/**
+ * 범위를 **전 사업장으로 되돌린다.** 역할 전환에서만 쓴다.
+ *
+ * `clearMunicipalityLock`과 달리 `scope=site`까지 걷는다. 한 키가 두 뜻을 겸하는 탓에
+ * 가드는 그것을 구분할 수 없지만(사용자가 알람 필터에서 고른 값일 수 있다) **역할 전환은
+ * 한 번의 분명한 동작**이라 새 역할의 기본 범위로 리셋하는 것이 맞다.
+ *
+ * 이것이 없으면 사업장을 거쳐 시스템 관리자로 돌아왔을 때 `scope=site`가 남아 전 사업장
+ * 권한인데 1개소만 보인다 — 관할 축에서 난 것과 같은 증상이다.
+ */
+export function resetScopeToAllSites(params: URLSearchParams): URLSearchParams {
+  const next = clearMunicipalityLock(params);
+  next.delete(SCOPE_QUERY_KEY);
+  return next;
+}

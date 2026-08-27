@@ -6,6 +6,7 @@ import {
   MUNICIPALITY_QUERY_KEY,
   SCOPE_QUERY_KEY,
   SITE_QUERY_KEY,
+  resetScopeToAllSites,
 } from '@/shared/config/scope';
 import { replaceQuery } from '@/shared/lib/replace-query';
 import {
@@ -96,16 +97,29 @@ export function RoleProvider({ children }: { children: ReactNode }) {
     replaceQuery(next);
   }, []);
 
+  /**
+   * 전 사업장으로 되돌린다. **좁은 범위로 가는 길만 있고 나오는 길이 없었다** — 기초지자체나
+   * 사업장을 거쳐 시스템 관리자로 돌아오면 `scope=municipality`·`scope=site`가 URL에 남아,
+   * 전 사업장 권한인데 관내 2개소(또는 자사 1개소)만 보였다. 헤더 선택기·이상 탐지 순위표·
+   * 알람·리포트가 전부 이 쿼리 하나를 읽는다.
+   */
+  const goToAllSites = useCallback(() => {
+    replaceQuery(resetScopeToAllSites(new URLSearchParams(window.location.search)));
+  }, []);
+
   const setRole = useCallback(
     (next: Role) => {
       document.documentElement.setAttribute('data-role', next);
       write(ROLE_STORAGE_KEY, next);
       setRoleState(next);
-      /* 좁은 범위로 바꾸면 URL도 함께 옮긴다. 역할 이름이 아니라 범위로 가른다 */
-      if (scopeOf(next) === 'own-site') goToOwnSite(readAppliedAdmin());
-      if (scopeOf(next) === 'own-municipality') goToOwnMunicipality();
+
+      /* 범위로 가른다. 역할 이름으로 적으면 역할이 늘 때마다 이 자리를 다시 찾아야 한다 */
+      const scope = scopeOf(next);
+      if (scope === 'all-sites') goToAllSites();
+      if (scope === 'own-site') goToOwnSite(readAppliedAdmin());
+      if (scope === 'own-municipality') goToOwnMunicipality();
     },
-    [goToOwnSite, goToOwnMunicipality],
+    [goToOwnSite, goToOwnMunicipality, goToAllSites],
   );
 
   const setAdminAccount = useCallback(
