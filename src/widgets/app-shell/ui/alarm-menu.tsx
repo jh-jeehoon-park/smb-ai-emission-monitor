@@ -14,7 +14,8 @@ import {
   type Alarm,
   type AlarmPriority,
 } from '@/entities/alarm';
-import { ADMIN_ACCOUNTS } from '@/entities/user';
+import { ADMIN_ACCOUNTS, GOV_SCOPE } from '@/entities/user';
+import { siteIdsInScope, withinScope } from '@/entities/site';
 import { ALL_ALARMS, useAlarmStates } from '@/features/alarm-ack';
 import { useSiteHref } from '@/features/site-selection';
 import { ALARM_NAV_HREF } from '../config/navigation';
@@ -63,6 +64,8 @@ export function AlarmMenu() {
   }, [open]);
 
   const acknowledge = (id: string) => setState(id, 'acknowledged');
+  /* 관할은 셸이 손에 들고 있어야 한다 — 라우트 밖이라 URL을 읽지 못한다 */
+  const inMunicipality = withinScope(alarms, siteIdsInScope('municipality', GOV_SCOPE));
 
   return (
     <div ref={boxRef} className="relative">
@@ -76,8 +79,12 @@ export function AlarmMenu() {
         className="relative inline-flex size-7 cursor-pointer items-center justify-center rounded-chip text-fg-muted transition-colors duration-200 hover:bg-surface-2 hover:text-fg"
       >
         <Bell aria-hidden size={16} strokeWidth={1.9} />
-        {/* 역할마다 숫자가 다르다. 세 벌을 그리고 CSS가 고른다 */}
-        <CountBadge alarms={alarms} className="role-hide-site" />
+        {/*
+          * 역할마다 숫자가 다르다 — 시스템 관리자는 전 사업장, 기초지자체는 관할, 사업장은
+          * 자사다. **셸은 `?scope=`를 읽지 못하므로** 값마다 한 벌씩 그리고 CSS가 고른다.
+          */}
+        <CountBadge alarms={alarms} className="role-hide-site role-hide-gov" />
+        <CountBadge alarms={inMunicipality} className="role-hide-site role-hide-system" />
         {ADMIN_ACCOUNTS.map((account, index) => (
           <CountBadge
             key={account.key}
@@ -93,7 +100,16 @@ export function AlarmMenu() {
           role="menu"
           className="absolute right-0 z-20 mt-1.5 w-[min(320px,calc(100vw-2rem))] overflow-hidden rounded-nested border border-border-strong bg-surface shadow-lg"
         >
-          <AlarmPanel alarms={alarms} onAcknowledge={acknowledge} className="role-hide-site" />
+          <AlarmPanel
+            alarms={alarms}
+            onAcknowledge={acknowledge}
+            className="role-hide-site role-hide-gov"
+          />
+          <AlarmPanel
+            alarms={inMunicipality}
+            onAcknowledge={acknowledge}
+            className="role-hide-site role-hide-system"
+          />
           {ADMIN_ACCOUNTS.map((account, index) => (
             <AlarmPanel
               key={account.key}

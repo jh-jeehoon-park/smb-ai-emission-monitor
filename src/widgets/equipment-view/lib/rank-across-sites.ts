@@ -1,5 +1,5 @@
 import { compareEquipment, getEquipment, type Equipment } from '@/entities/equipment';
-import { SITES } from '@/entities/site';
+import type { Site } from '@/entities/site';
 
 export interface RankedEquipment {
   siteId: string;
@@ -11,12 +11,15 @@ export interface RankedEquipment {
 
 /**
  * 유지관리 우선순위 자동 추천(FR-21)은 한 사업장 안에서 줄을 세워서는 답이 나오지 않는다.
- * 정비 인력은 사업장을 가로질러 배치되므로 전 사업장을 한 줄로 놓고 봐야 한다.
+ * 정비 인력은 사업장을 가로질러 배치되므로 여러 사업장을 한 줄로 놓고 봐야 한다.
+ *
+ * **범위는 부르는 쪽이 정한다** — 한때 `SITES`를 직접 읽어 늘 전 10개소였고, 그러면
+ * 기초지자체가 관할 밖 사업장의 설비 순위를 보게 된다.
  */
-export function rankAcrossSites(limit: number): RankedEquipment[] {
+export function rankAcrossSites(sites: readonly Site[], limit: number): RankedEquipment[] {
   const all: RankedEquipment[] = [];
 
-  for (const site of SITES) {
+  for (const site of sites) {
     // 통신이 끊긴 사업장은 현재 지표가 없다. 옛 값으로 순위를 매기면 정비 순서가 거짓이 된다.
     if (!site.online) continue;
 

@@ -1,9 +1,17 @@
 'use client';
 
-import { usePathname, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { createContext, useCallback, useContext, useState, type ReactNode } from 'react';
 import {
+  MUNICIPALITY_QUERY_KEY,
+  SCOPE_QUERY_KEY,
+  SITE_QUERY_KEY,
+} from '@/shared/config/scope';
+import { replaceQuery } from '@/shared/lib/replace-query';
+import {
   DEFAULT_ADMIN_ACCOUNT,
+  GOV_HOME_SITE_ID,
+  GOV_MUNICIPALITY,
   adminSiteId,
   normalizeAdminAccount,
   type AdminAccountKey,
@@ -55,30 +63,49 @@ function write(key: string, value: string) {
 
 export function RoleProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
-  const pathname = usePathname();
   const [role, setRoleState] = useState<Role>(readAppliedRole);
   const [adminAccount, setAdminState] = useState<AdminAccountKey>(readAppliedAdmin);
 
   /**
    * 사업장 역할은 자사 1개소만 본다. 전환 즉시 URL을 자사로 바꿔 둔다 —
    * 라우트 가드가 나중에 되돌리게 두면 남의 사업장이 한 프레임 보인다.
+   *
+   * **쿼리만 바뀌므로 서버를 거치지 않는다.** `router.replace`로 두면 그 '한 프레임'이
+   * RSC 왕복만큼 길어져, 이 함수가 막으려던 것을 스스로 만든다.
    */
-  const goToOwnSite = useCallback(
-    (key: AdminAccountKey) => {
-      router.replace(`${pathname}?site=${adminSiteId(key)}`);
-    },
-    [router, pathname],
-  );
+  const goToOwnSite = useCallback((key: AdminAccountKey) => {
+    const next = new URLSearchParams(window.location.search);
+    next.set(SITE_QUERY_KEY, adminSiteId(key));
+    next.set(SCOPE_QUERY_KEY, 'site');
+    replaceQuery(next);
+  }, []);
+
+  /**
+   * 기초지자체는 관할 시·군·구만 본다. 같은 이유로 전환 즉시 URL을 관내로 옮긴다 —
+   * 가드에 맡기면 **남의 관할이 한 프레임 보인다.**
+   *
+   * `scope`까지 함께 박는다. 사업장 쪽은 한때 `site`만 박아 두어 가드가 다음 틱에 `scope`를
+   * 더했는데, 이 함수가 막으려던 그 한 프레임이 `scope`에서는 그대로 남아 있었다.
+   */
+  const goToOwnMunicipality = useCallback(() => {
+    /* 다른 쿼리(기간·우선순위 등)를 버리지 않는다 — 손으로 이어 붙이던 판본이 그랬다 */
+    const next = new URLSearchParams(window.location.search);
+    next.set(SCOPE_QUERY_KEY, 'municipality');
+    next.set(MUNICIPALITY_QUERY_KEY, GOV_MUNICIPALITY);
+    next.set(SITE_QUERY_KEY, GOV_HOME_SITE_ID);
+    replaceQuery(next);
+  }, []);
 
   const setRole = useCallback(
     (next: Role) => {
       document.documentElement.setAttribute('data-role', next);
       write(ROLE_STORAGE_KEY, next);
       setRoleState(next);
-      /* 자사 1개소 범위로 바꾸면 URL의 사업장도 자사로 옮긴다. 역할 이름이 아니라 범위로 가른다 */
+      /* 좁은 범위로 바꾸면 URL도 함께 옮긴다. 역할 이름이 아니라 범위로 가른다 */
       if (scopeOf(next) === 'own-site') goToOwnSite(readAppliedAdmin());
+      if (scopeOf(next) === 'own-municipality') goToOwnMunicipality();
     },
-    [goToOwnSite],
+    [goToOwnSite, goToOwnMunicipality],
   );
 
   const setAdminAccount = useCallback(

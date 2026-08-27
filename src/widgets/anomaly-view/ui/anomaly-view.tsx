@@ -12,8 +12,8 @@ import { StickyBar } from '@/shared/ui/sticky-bar';
 import { getAlarmsForView } from '@/entities/alarm';
 import { getAnomalySeries, getAnomalySummary, findIdleDischargeRuns } from '@/entities/anomaly';
 import { getMeasurementSeries } from '@/entities/measurement';
-import { SITES, getSite } from '@/entities/site';
-import { SiteTabs, useSelectedSiteId, useSiteHref } from '@/features/site-selection';
+import { getSite } from '@/entities/site';
+import { SiteTabs, useScopedSites, useSelectedSiteId, useSiteHref } from '@/features/site-selection';
 import { AlarmList } from '@/widgets/alarm-list';
 import { AnomalyPanel } from '@/widgets/anomaly-panel';
 import { AnomalyTimeline } from '@/widgets/anomaly-timeline';
@@ -28,6 +28,8 @@ const DETAIL_SECTION_ID = 'anomaly-detail';
 export function AnomalyView() {
   const { siteId, setSiteId } = useSelectedSiteId();
   const withSite = useSiteHref();
+  /* 순위·탭이 범위를 따른다 — `SITES`를 직접 읽으면 관할 밖 사업장이 줄에 선다 */
+  const scopedSites = useScopedSites();
   const site = getSite(siteId);
 
   /*
@@ -36,18 +38,20 @@ export function AnomalyView() {
    */
   const rankedSites = useMemo(
     () =>
-      [...SITES].sort((a, b) => {
+      [...scopedSites].sort((a, b) => {
         if (a.anomalyScore === null) return 1;
         if (b.anomalyScore === null) return -1;
         return b.anomalyScore - a.anomalyScore;
       }),
-    [],
+    [scopedSites],
   );
 
   const sparks = useMemo(
     () =>
-      new Map(SITES.map((s) => [s.id, downsample(buildAnomalyScores(s.id), RANKING_SPARK_POINTS)])),
-    [],
+      new Map(
+        scopedSites.map((s) => [s.id, downsample(buildAnomalyScores(s.id), RANKING_SPARK_POINTS)]),
+      ),
+    [scopedSites],
   );
   const sparkOf = (id: string) => sparks.get(id) ?? [];
 
@@ -120,7 +124,7 @@ export function AnomalyView() {
               content="탭으로 고른 한 개소의 이상 점수·기여 변수·관련 알람을 봅니다. 위 사업장별 점수는 전 사업장 기준입니다."
             />
           </div>
-          <SiteTabs sites={SITES} selectedId={siteId} onSelect={setSiteId} />
+          <SiteTabs sites={scopedSites} selectedId={siteId} onSelect={setSiteId} />
         </StickyBar>
 
         {/*

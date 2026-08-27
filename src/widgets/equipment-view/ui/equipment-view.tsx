@@ -19,7 +19,7 @@ import {
 } from '@/entities/equipment';
 import { SITES, getSite } from '@/entities/site';
 import { allAlarmsForSite } from '@/features/alarm-ack';
-import { useSelectedSiteId } from '@/features/site-selection';
+import { useScopedSites, useSelectedSiteId } from '@/features/site-selection';
 import { AlarmList } from '@/widgets/alarm-list';
 import { EquipmentPanel } from '@/widgets/equipment-panel';
 import { EquipmentDetailModal } from './equipment-detail-modal';
@@ -128,7 +128,9 @@ export function EquipmentView() {
 
 /** 한 사업장 안에서만 줄을 세우면 어느 사업장부터 갈지는 알 수 없다(FR-21) */
 function CrossSiteRanking({ selectedSiteId }: { selectedSiteId: string }) {
-  const rows = useMemo(() => rankAcrossSites(CROSS_SITE_RANK_LIMIT), []);
+  const scopedSites = useScopedSites();
+  /* 순위 대상이 곧 범위다 — 관할 밖 설비가 순위에 들어가면 감독 범위가 무너진다 */
+  const rows = useMemo(() => rankAcrossSites(scopedSites, CROSS_SITE_RANK_LIMIT), [scopedSites]);
 
   return (
     <ol className="divide-y divide-border">

@@ -1,6 +1,12 @@
 /** slice Public API — 바깥에서는 이 파일만 import 한다(FSD §6) */
 export { getAnomalySeries, getAnomalySummary } from './api/fixtures';
 export {
+  idleDischargeAcross,
+  tallyIdleDischarge,
+  type IdleDischargeTally,
+  type IdleDischargeVerdict,
+} from './lib/idle-discharge-across';
+export {
   canJudgeIdleDischarge,
   findIdleDischargeRuns,
   type IdleDischargeRun,

@@ -7,6 +7,7 @@ import { cn } from '@/shared/lib/cn';
 import { BADGE_BASE } from '@/shared/ui/badge';
 import { SCOPE_FILTERS, SCOPE_OPTIONS, SCOPE_QUERY_KEY } from '@/shared/config/scope';
 import { useQueryState } from '@/shared/lib/use-query-state';
+import { useMunicipality } from '@/shared/lib/use-scope';
 import { STATUS_VISUAL, statusInk } from '@/shared/config/status-visual';
 import { Panel } from '@/shared/ui/panel';
 import { SegmentedControl } from '@/shared/ui/segmented-control';
@@ -21,7 +22,7 @@ import {
   type AlarmPriority,
   type AlarmState,
 } from '@/entities/alarm';
-import { getSite } from '@/entities/site';
+import { getSite, scopeLabelOf, siteIdsInScope, withinScope } from '@/entities/site';
 import { ALL_ALARMS, AlarmStateActions, useAlarmStates } from '@/features/alarm-ack';
 import { groupAlarmsByDay } from '../lib/group-by-day';
 import { AlarmDetailModal } from './alarm-detail-modal';
@@ -62,6 +63,8 @@ export function AlarmsView() {
   const [priority, setPriority] = useQueryState(PRIORITY_QUERY_KEY, PRIORITY_FILTERS, 'all');
   const [state, setState] = useQueryState(STATE_QUERY_KEY, STATE_FILTERS, 'all');
   const [scope, setScope] = useQueryState(SCOPE_QUERY_KEY, SCOPE_FILTERS, 'all');
+  /* 관할은 계정이 정하고 라우트 가드가 URL에 박는다 — 여기서는 읽기만 한다 */
+  const municipality = useMunicipality();
 
   const source = useMemo(() => [...ALL_ALARMS].sort(byRaisedAtDesc), []);
   const { alarms, changedCount, setState: setAlarmState, reset } = useAlarmStates(source);
@@ -75,8 +78,8 @@ export function AlarmsView() {
    * 사업장에 남의 사업장 합계가 보이면 자사 1개소라는 전제가 깨진다(회의 2026-08-20).
    */
   const inScope = useMemo(
-    () => (scope === 'site' ? alarms.filter((a) => a.siteId === siteId) : alarms),
-    [alarms, scope, siteId],
+    () => withinScope(alarms, siteIdsInScope(scope, { siteId, municipality })),
+    [alarms, scope, siteId, municipality],
   );
 
   const visible = useMemo(
@@ -90,7 +93,7 @@ export function AlarmsView() {
   );
 
   /* 타일의 'N건 중'이 범위와 어긋나면 안 된다. 라벨도 같은 판정에서 만든다 */
-  const scopeLabel = scope === 'site' ? site.name : '전 사업장';
+  const scopeLabel = scopeLabelOf(scope, { siteName: site.name, municipality });
 
   /**
    * 확인·조치를 누르면 이 숫자가 바로 움직인다 — 목록만 바뀌면 처리한 티가 나지 않는다.

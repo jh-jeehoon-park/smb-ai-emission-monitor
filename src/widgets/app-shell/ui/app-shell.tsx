@@ -16,8 +16,8 @@ import { TopButton } from '@/shared/ui/top-button';
 import { ThemeToggle } from '@/shared/ui/theme';
 import { InfoTip } from '@/shared/ui/tooltip';
 import { openAlarms } from '@/entities/alarm';
-import { ADMIN_ACCOUNTS, ProfileMenu, ROLES, ROLE_PROFILES } from '@/entities/user';
-import { getSite } from '@/entities/site';
+import { ADMIN_ACCOUNTS, GOV_SCOPE, ProfileMenu, ROLES, ROLE_PROFILES } from '@/entities/user';
+import { getSite, siteIdsInScope, withinScope } from '@/entities/site';
 import { ALL_ALARMS, useAlarmStates } from '@/features/alarm-ack';
 import { useSelectedSiteId, useSiteHref } from '@/features/site-selection';
 import {
@@ -301,17 +301,28 @@ function hiddenForGroupClass(group: NavGroup): string {
 }
 
 /**
- * 미확인 알람 수. **역할·계정마다 숫자가 다르다** — 시스템 관리자·지자체는 전 사업장,
- * 사업장은 자사 1개소다. 서버는 둘 다 모르므로 세 벌을 렌더하고 CSS가 고른다.
- * 렌더 중에 역할로 분기해 숫자를 하나만 그리면 하이드레이션이 깨진다.
+ * 미확인 알람 수. **역할·계정마다 숫자가 다르다** — 시스템 관리자는 전 사업장,
+ * 기초지자체는 **관할 시·군·구**, 사업장은 자사 1개소다.
+ *
+ * **셸은 `?scope=`를 읽지 않는다** — 화면이 아니라 껍데기라 라우트 밖에 있다. 그래서
+ * 값마다 한 벌씩 렌더하고 CSS가 고른다. 렌더 중에 역할로 분기해 숫자를 하나만 그리면
+ * 하이드레이션이 깨진다(서버는 `data-role`을 모른다).
+ *
+ * **`role-hide-*`를 겹쳐 쓴다.** `role-only-*`는 `display: block`을 강제해 인라인 배지가
+ * 줄에서 떨어져 나간다 — 감추는 쪽은 `display: none`뿐이라 그 함정이 없다.
  */
 function AlarmBadge() {
   /* 헤더 알림과 **같은 상태**를 본다. 정적 fixture를 읽으면 확인 처리를 해도 줄지 않는다 */
   const { alarms } = useAlarmStates(ALL_ALARMS);
+  const inMunicipality = withinScope(alarms, siteIdsInScope('municipality', GOV_SCOPE));
 
   return (
     <>
-      <Badge count={openAlarms(alarms).length} className="role-hide-site" />
+      <Badge count={openAlarms(alarms).length} className="role-hide-site role-hide-gov" />
+      <Badge
+        count={openAlarms(inMunicipality).length}
+        className="role-hide-site role-hide-system"
+      />
       {ADMIN_ACCOUNTS.map((account, index) => (
         <Badge
           key={account.key}

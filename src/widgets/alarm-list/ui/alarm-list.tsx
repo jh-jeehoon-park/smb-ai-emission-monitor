@@ -42,8 +42,14 @@ export function AlarmList({
 }: {
   alarms: Alarm[];
   nowIso: string;
-  /** 이 사업장의 알람만 모인 목록에서는 사업장명을 반복하지 않는다 */
-  selectedSiteId: string;
+  /**
+   * 이 사업장의 알람만 모인 목록에서는 사업장명을 반복하지 않는다.
+   *
+   * **주지 않으면 줄마다 적는다.** 관내 목록처럼 여러 사업장이 섞이는 자리에서는
+   * *어느 사업장인가*가 정보다 — 있지도 않은 사업장 id를 넘겨 지우는 편법을 막으려고
+   * 선택 프롭으로 둔다.
+   */
+  selectedSiteId?: string;
 }) {
   /* 0건이면 카드 본문이 통째로 비어 무엇이 없는지 알 수 없다(R19) */
   if (alarms.length === 0) {

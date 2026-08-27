@@ -16,7 +16,7 @@ import { StatTile } from '@/shared/ui/stat-tile';
 import { StatusBadge } from '@/shared/ui/status-badge';
 import { getSite } from '@/entities/site';
 import { useDischargeLimits } from '@/features/discharge-limit-settings';
-import { useSelectedSiteId } from '@/features/site-selection';
+import { useSelectedSiteId, useScopedSites } from '@/features/site-selection';
 import { BucketReportPanel } from '@/widgets/bucket-report';
 import { PERIOD_HOURS, PERIOD_OPTIONS, PERIOD_QUERY_KEY } from '@/features/measurement-filter';
 import {
@@ -45,6 +45,8 @@ export function ReportsView() {
   const [period, setPeriod] = useQueryState(PERIOD_QUERY_KEY, PERIOD_HOURS, '24');
   const [scope, setScope] = useQueryState(SCOPE_QUERY_KEY, SCOPE_FILTERS, 'all');
   const { siteId } = useSelectedSiteId();
+  /* 집계 대상이 곧 범위다. `buildSiteReport`가 `SITES`를 직접 읽던 것을 여기로 올렸다 */
+  const scopedSites = useScopedSites();
   const hours = Number(period);
   /* 기준표는 사업장 설정에서 온다 — 리포트가 정적 표를 직접 읽으면 설정이 반영되지 않는다 */
   const limits = useDischargeLimits();
@@ -54,11 +56,7 @@ export function ReportsView() {
    * 행 수가 달라져 하이드레이션이 깨진다 — 서버는 역할을 모르지만 쿼리는 읽는다.
    * 사업장은 라우트 가드가 `scope=site`로 고정한다(회의 2026-08-20: 자사 1개소).
    */
-  const allRows = useMemo(() => buildSiteReport(hours), [hours]);
-  const rows = useMemo(
-    () => (scope === 'site' ? allRows.filter((r) => r.siteId === siteId) : allRows),
-    [allRows, scope, siteId],
-  );
+  const rows = useMemo(() => buildSiteReport(scopedSites, hours), [scopedSites, hours]);
 
   const totals = useMemo(
     () => ({
@@ -105,7 +103,8 @@ export function ReportsView() {
   return (
     <div className="space-y-6">
       <Panel
-        title={scope === 'site' ? '배출 집계' : '사업장별 배출 집계'}
+        /* 한 줄짜리를 `사업장별`이라 부르면 거짓이 된다 — 관할도 여러 곳이라 `사업장별`이 맞다 */
+        title={rows.length === 1 ? '배출 집계' : '사업장별 배출 집계'}
         action={
           <div className="flex flex-wrap items-center gap-2">
             {/* 사업장은 자사 1개소뿐이라 고를 것이 없다 */}

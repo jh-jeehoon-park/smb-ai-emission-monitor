@@ -6,6 +6,7 @@ import {
   Coins,
   Droplets,
   Settings,
+  ShieldCheck,
   SlidersHorizontal,
   Workflow,
   FileText,
@@ -61,6 +62,13 @@ export const NAV_GROUPS: NavGroup[] = [
          첫 화면이 손익(SCR-AD-001)이 아니라 현황이 되게 하는 것이 이 순서의 목적이다.
          통합 관제가 사업장에 닫혀 있어(회의 2026-08-20) 역할을 바꾸면 여기로 온다 */
       { screenId: 'SCR-AD-003', href: '/overview', label: '자사 현황', icon: LayoutDashboard },
+      /* 같은 이유로 기초지자체의 첫 화면이 여기여야 한다 — 통합 관제는 그 역할에 닫혀 있다 */
+      {
+        screenId: 'SCR-GU-001',
+        href: '/jurisdiction',
+        label: '관내 감독 현황',
+        icon: ShieldCheck,
+      },
       { screenId: 'SCR-OP-001', href: '/', label: '통합 관제', icon: LayoutDashboard },
       /* 계측값 그대로를 보는 화면이라 AI 묶음이 아니라 관제에 둔다 */
       { screenId: 'SCR-OP-003', href: '/timeseries', label: '시계열 변화', icon: LineChart },

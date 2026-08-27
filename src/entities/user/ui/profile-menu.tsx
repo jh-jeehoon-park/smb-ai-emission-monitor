@@ -126,10 +126,16 @@ export function ProfileMenu({ className }: { className?: string }) {
             })}
           </div>
 
-          {/* 왜 못 누르는지 화면이 말한다 — 흐릿하게만 두면 고장으로 읽힌다 */}
-          <p className="mt-2 text-[12px] leading-relaxed text-fg-subtle">
-            {ROLE_SWITCH_BLOCKED_REASON}
-          </p>
+          {/*
+           * 왜 못 누르는지 화면이 말한다 — 흐릿하게만 두면 고장으로 읽힌다.
+           * **막힌 역할이 하나도 없으면 문단을 두지 않는다** — 아무것도 막혀 있지 않은데
+           * 이유만 남으면 무엇을 말하는지 알 수 없다.
+           */}
+          {ROLES.some((role) => !SWITCHABLE_ROLES.includes(role)) && (
+            <p className="mt-2 text-[12px] leading-relaxed text-fg-subtle">
+              {ROLE_SWITCH_BLOCKED_REASON}
+            </p>
+          )}
 
           {/*
            * 지금 누구로 보고 있는지. **역할마다 한 벌을 그리고 CSS가 고른다** —

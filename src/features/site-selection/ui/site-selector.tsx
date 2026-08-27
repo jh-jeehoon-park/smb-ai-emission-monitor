@@ -3,7 +3,8 @@
 import { ChevronDown } from 'lucide-react';
 import { STATUS_VISUAL } from '@/shared/config/status-visual';
 import { cn } from '@/shared/lib/cn';
-import { SITES, getSite } from '@/entities/site';
+import { getSite } from '@/entities/site';
+import { useScopedSites } from '../model/use-scoped-sites';
 import { useSelectedSiteId } from '../model/use-selected-site';
 
 /**
@@ -15,6 +16,8 @@ import { useSelectedSiteId } from '../model/use-selected-site';
  */
 export function SiteSelector({ className }: { className?: string }) {
   const { siteId, setSiteId } = useSelectedSiteId();
+  /* 관할 밖 사업장을 고를 수 있으면 범위 정의가 무너진다 */
+  const sites = useScopedSites();
   const site = getSite(siteId);
   const visual = site.status ? STATUS_VISUAL[site.status] : null;
   const dotColor = visual ? visual.hex : 'var(--missing)';
@@ -23,7 +26,10 @@ export function SiteSelector({ className }: { className?: string }) {
     <>
       {/* 사업장은 자사 1개소뿐이라 고를 것이 없다. 드롭다운을 두면 남의 사업장으로 갈 수 있다.
           역할로 분기하지 않고 두 벌을 그린 뒤 CSS가 고른다 — 서버는 역할을 모른다.
-          기초지자체는 관할 내 다개소라 세 번째 상태가 필요하다 — 기초지자체 구현 때 만든다 */}
+
+          **기초지자체는 세 번째 상태가 아니라 같은 드롭다운을 쓴다.** 관할 내 다개소라
+          고를 것이 있고, 목록만 관내로 좁으면 된다(`useScopedSites`). 상태를 하나 더 만들면
+          같은 부품이 두 벌이 된다 */}
       {/* 정렬은 안쪽에서 한다. `role-only-*`가 바깥에 display:block을 강제하므로
           바깥에 flex를 걸면 죽고, 상태 점이 inline이 되어 크기를 잃는다(실제로 사라졌다) */}
       <div className={cn('role-only-site', className)}>
@@ -61,7 +67,7 @@ export function SiteSelector({ className }: { className?: string }) {
             'transition-colors duration-200 hover:border-border-strong',
           )}
         >
-          {SITES.map((s) => (
+          {sites.map((s) => (
             <option key={s.id} value={s.id}>
               {s.name} · {s.region}
             </option>

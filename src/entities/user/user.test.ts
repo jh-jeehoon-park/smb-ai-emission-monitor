@@ -88,12 +88,11 @@ describe('역할 — 문서와 코드가 갈리지 않는다', () => {
   });
 
   /**
-   * **기초지자체의 대체 화면은 아직 임시다** `[설계 2026-08-24]`. 통합 관제를 닫았고
-   * 그 자리를 받을 `SCR-GU-001`은 라우트가 없어(`[사용자 결정 2026-08-24]`) `NAV_ITEMS`의
-   * 다음 열린 항목으로 떨어진다. 관내 화면을 만들 때 이 기대값이 바뀐다.
+   * 통합 관제를 닫은 자리를 `SCR-GU-001`이 받는다. 한때 그 화면에 라우트가 없어
+   * `/timeseries`로 떨어졌는데 **그 임시값은 사라졌다.**
    */
-  it('기초지자체의 대체 화면은 시계열 변화다 — 관내 화면이 미구현이다', () => {
-    expect(NAV_ITEMS.find((item) => canRoleSee(item.screenId, 'gov'))?.href).toBe('/timeseries');
+  it('기초지자체의 대체 화면은 관내 감독 현황이다', () => {
+    expect(NAV_ITEMS.find((item) => canRoleSee(item.screenId, 'gov'))?.href).toBe('/jurisdiction');
   });
 });
 
@@ -184,17 +183,15 @@ describe('사업장 계정 — 범위 축', () => {
 });
 
 /**
- * 기초지자체는 **전환만** 막는다. 역할 자체를 없애는 것이 아니다 —
- * 권한 매트릭스는 기초지자체가 볼 수 있는 화면을 그대로 규정하고 있고,
- * 관할 시·군·구 범위를 구현하면 전환을 연다 `[사용자 지시 2026-08-20]`.
+ * 기초지자체 전환이 **열렸다** `[사용자 결정 2026-08-26]`.
+ *
+ * 한동안 전환만 막아 두었다 — 관할 범위 필터가 없어 전환해도 시스템 관리자와 화면이 같았고
+ * `[사용자 지시 2026-08-20]`, 구분되지 않는 것을 고를 수 있게 두면 없는 기능이 있는 것처럼
+ * 읽히기 때문이다. `scope=municipality`와 `SCR-GU-001`이 생겨 그 조건이 사라졌다.
  */
-describe('역할 전환 — 기초지자체는 아직 고를 수 없다', () => {
-  it('전환 목록에 기초지자체가 없다', () => {
-    expect(SWITCHABLE_ROLES).not.toContain('gov');
-  });
-
-  it('사업장·시스템 관리자는 전환할 수 있다', () => {
-    expect(SWITCHABLE_ROLES).toEqual(expect.arrayContaining(['site', 'system']));
+describe('역할 전환', () => {
+  it('세 역할 모두 전환할 수 있다', () => {
+    expect(SWITCHABLE_ROLES).toEqual(expect.arrayContaining([...ROLES]));
   });
 
   /** 전환 목록은 전체 역할의 부분집합이어야 한다 — 없는 역할을 고를 수 있으면 안 된다 */
@@ -210,8 +207,7 @@ describe('역할 전환 — 기초지자체는 아직 고를 수 없다', () => 
   /**
    * **통합 관제는 기초지자체에도 닫혀 있다** `[설계 2026-08-24]`. 전국 10개소를 보여 주는
    * 것이 `관할 시·군·구`라는 범위 정의와 모순이라, 사업장에 닫은 것과 같은 논리로 닫았다.
-   * 그 자리는 `SCR-GU-001 관내 감독 현황`이 받는다 — **설계서만 있고 라우트는 없다**
-   * `[사용자 결정 2026-08-24]`. 권한 매트릭스에는 미리 넣어 두었다(`screens.md` §5와 대조).
+   * 그 자리를 `SCR-GU-001 관내 감독 현황`이 받는다.
    */
   it('기초지자체의 화면 접근 권한은 정의돼 있다', () => {
     expect(canRoleSee('SCR-OP-001', 'gov')).toBe(false);
@@ -230,9 +226,13 @@ describe('역할 전환 — 기초지자체는 아직 고를 수 없다', () => 
     expect(new Set(ROLES.map((role) => ROLE_PROFILES[role].scope)).size).toBe(ROLES.length);
   });
 
-  /** 못 누르는 이유가 화면에 적혀야 한다 — 흐릿하기만 하면 고장으로 읽힌다 */
-  it('막힌 이유 문구가 있다', () => {
-    expect(ROLE_SWITCH_BLOCKED_REASON).toContain('기초지자체');
+  /**
+   * 못 누르는 이유가 화면에 적혀야 한다 — 흐릿하기만 하면 고장으로 읽힌다.
+   * **지금은 막힌 역할이 없지만** 문구는 남긴다: 그때 새로 지어내면 근거가 사라진다.
+   */
+  it('막힌 이유 문구가 남아 있다', () => {
+    expect(ROLE_SWITCH_BLOCKED_REASON).toContain('범위');
+    expect(ROLES.every((role) => SWITCHABLE_ROLES.includes(role))).toBe(true);
   });
 });
 

@@ -28,16 +28,22 @@ describe('역할별 첫 화면', () => {
    * 모순이다. 그 자리를 받을 `SCR-GU-001 관내 감독 현황`은 설계서만 있고 라우트가 없어
    * (`[사용자 결정 2026-08-24]`) 지금은 `NAV_ITEMS`의 다음 열린 항목으로 떨어진다.
    *
-   * **그 항목은 묶음 순서가 정한다.** `관제`가 `자사 현황(사업장만) · 통합 관제(닫힘) ·
-   * 시계열 변화`라 지금 답은 `/timeseries`다 — 묶음을 재배열하면 이 값이 바뀐다.
+   * **그 항목은 묶음 순서가 정한다.** `관제`가 `자사 현황(사업장만) · 관내 감독 현황 ·
+   * 통합 관제(닫힘) · 시계열 변화`라 답은 `/jurisdiction`이다.
    *
-   * **라우트가 생기면 이 기대값이 바뀐다** — 그때 `SCR-GU-001`을 `NAV_ITEMS` 앞쪽에
-   * 넣어야 관내가 첫 화면이 된다.
+   * 한때 `/timeseries`였다 — `SCR-GU-001`에 라우트가 없어 다음 열린 항목으로 떨어졌기
+   * 때문이다. **관내 화면이 앞쪽에 들어가면서 그 임시값이 사라졌다.**
    */
-  it('기초지자체는 통합 관제가 닫혀 시계열 변화로 간다 — 관내 화면이 미구현이다', () => {
+  it('기초지자체의 첫 화면은 관내 감독 현황이다', () => {
     expect(canRoleSee('SCR-OP-001', 'gov')).toBe(false);
-    expect(homeHrefFor('gov')).toBe('/timeseries');
-    expect(NAV_ITEMS.some((nav) => nav.screenId === 'SCR-GU-001')).toBe(false);
+    expect(homeHrefFor('gov')).toBe('/jurisdiction');
+    expect(NAV_ITEMS.some((nav) => nav.screenId === 'SCR-GU-001')).toBe(true);
+  });
+
+  /** 관할 화면은 감독 기관만 본다 — 관할 밖 사업장이 들어가 범위가 무너진다 */
+  it('관내 감독 현황은 기초지자체 전용이다', () => {
+    expect(canRoleSee('SCR-GU-001', 'system')).toBe(false);
+    expect(canRoleSee('SCR-GU-001', 'site')).toBe(false);
   });
 
   /** 목적지가 그 역할에 닫혀 있으면 라우트 가드가 곧바로 되돌려 무한히 튕긴다 */
