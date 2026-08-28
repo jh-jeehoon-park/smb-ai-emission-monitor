@@ -25,7 +25,7 @@ import { GOV_MUNICIPALITY } from '@/entities/user';
 import { getSite } from '@/entities/site';
 import { useDischargeLimits } from '@/features/discharge-limit-settings';
 import { ALL_ALARMS, useAlarmStates } from '@/features/alarm-ack';
-import { SiteTabs, useScopedSites, useSelectedSiteId } from '@/features/site-selection';
+import { SiteTabs, useScopedSites, useSelectedSiteId, useSiteHref } from '@/features/site-selection';
 import { AlarmList } from '@/widgets/alarm-list';
 import { AnomalyPanel } from '@/widgets/anomaly-panel';
 import { AnomalyTimeline } from '@/widgets/anomaly-timeline';
@@ -49,6 +49,7 @@ import { SupervisionTable } from './supervision-table';
  */
 export function JurisdictionView() {
   const { siteId, setSiteId } = useSelectedSiteId();
+  const withSite = useSiteHref();
   /* 목록은 URL 범위가 정한다 — 라우트 가드가 `scope=municipality`를 박아 둔다 */
   const sites = useScopedSites();
   const site = getSite(siteId);
@@ -150,7 +151,8 @@ export function JurisdictionView() {
             sites={sites}
             selectedId={siteId}
             onCardClick={setSiteId}
-            cardLabel={(s) => `${s.name} 상세 보기`}
+            /* 카드는 **선택**이다. 화면을 옮기는 것은 표의 `상세` 버튼뿐이다 */
+            cardLabel={(s) => `${s.name} 선택`}
             renderFooter={(s) => (
               <span className="text-[12px] text-fg-subtle">
                 미확인 알람{' '}
@@ -167,7 +169,12 @@ export function JurisdictionView() {
             <p className="mb-2 px-1 text-[12px] font-medium text-fg-subtle">
               관내 감독 표 — 조치 필요한 순
             </p>
-            <SupervisionTable rows={rows} selectedId={siteId} onSelect={setSiteId} />
+            <SupervisionTable
+              rows={rows}
+              selectedId={siteId}
+              onSelect={setSiteId}
+              detailHref={(id) => withSite('/overview', id)}
+            />
           </div>
         </div>
       </Panel>

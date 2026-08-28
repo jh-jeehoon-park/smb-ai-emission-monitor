@@ -1,10 +1,14 @@
 'use client';
 
 import Link from 'next/link';
+import { ChevronLeft } from 'lucide-react';
 import { useMemo } from 'react';
 import { DEMO_NOW_ISO } from '@/shared/config/demo';
+import { COLLECTION_INTERVAL_MINUTES } from '@/shared/config/measurement';
 import { PROVISIONAL_DISPLAY_DECIMALS, PROVISIONAL_STATUS_LABELS } from '@/shared/config/provisional';
 import { STATUS_VISUAL, statusInk } from '@/shared/config/status-visual';
+import { DISPLAY_TIMEZONE } from '@/shared/lib/format';
+import { getOutageWindow } from '@/shared/lib/timeline';
 import { Panel } from '@/shared/ui/panel';
 import { RiseItem, StaggerGroup } from '@/shared/ui/motion';
 import { StatTile } from '@/shared/ui/stat-tile';
@@ -12,15 +16,27 @@ import { StatusBadge } from '@/shared/ui/status-badge';
 import { countOpen } from '@/entities/alarm';
 import { getAnomalySeries, getAnomalySummary } from '@/entities/anomaly';
 import { EQUIPMENT_SIGNAL_LABELS, getEquipment, sortEquipment } from '@/entities/equipment';
-import { energyIntensity, getMeasurementSeries } from '@/entities/measurement';
+import {
+  FLOW_SERIES_CODES,
+  WATER_SERIES_CODES,
+  WINDOW_HOURS,
+  energyIntensity,
+  getMeasurementSeries,
+  outageNotice,
+} from '@/entities/measurement';
 import { CHEMICAL_SAVING_RANGE, getOptimization } from '@/entities/optimization';
 import { getSite } from '@/entities/site';
+import { ROLES } from '@/entities/user';
 import { allAlarmsForSite, useAlarmStates } from '@/features/alarm-ack';
 import { useSelectedSiteId, useSiteHref } from '@/features/site-selection';
+import { useDischargeLimits } from '@/features/discharge-limit-settings';
 import { AlarmList } from '@/widgets/alarm-list';
 import { AnomalyPanel } from '@/widgets/anomaly-panel';
 import { DailyRibbon, buildRibbon } from '@/widgets/daily-ribbon';
 import { EquipmentPanel } from '@/widgets/equipment-panel';
+import { WaterQualityGrid } from '@/widgets/water-quality-grid';
+/* 셸의 라우트 표를 읽는다 — 첫 화면의 정의를 여기서 다시 적으면 두 곳이 갈린다 */
+import { homeHrefFor, navLabelOf } from '@/widgets/app-shell/config/navigation';
 import { InfoTip } from '@/shared/ui/tooltip';
 import { ACTION_BUTTON_QUIET } from '@/shared/ui/action-button';
 
@@ -30,6 +46,9 @@ import { ACTION_BUTTON_QUIET } from '@/shared/ui/action-button';
  * 가운데가 **금액에서 절감률로** 바뀌었다 `[사용자 결정 2026-08-20: 금액은 전부 지우고 % 만
  * 남긴다]`. 사업장별 단가가 없어(`[TBD-41]`) 금액이 전부 원문 예시값이었다.
  */
+/** 이 화면의 경로. 사업장에게는 이것이 첫 화면이라 돌아갈 길을 그리지 않는다 */
+const OVERVIEW_HREF = '/overview';
+
 /** 절감 현황을 뺐다 — 그 화면을 메뉴에서 감췄으므로 여기 링크만 남으면 유일한 입구가 된다 */
 const SHORTCUTS = [
   { href: '/process', label: '수처리 공정' },
@@ -51,12 +70,16 @@ export function AdminOverviewView() {
   const { siteId } = useSelectedSiteId();
   const withSite = useSiteHref();
   const site = getSite(siteId);
+  /* 사용자가 설정한 기준치 — `site`의 두 축을 직접 읽으면 설정 후에도 `미확인`이 남는다 */
+  const limits = useDischargeLimits();
 
   const detail = useMemo(() => {
     const series = getMeasurementSeries(siteId);
     const alarms = allAlarmsForSite(siteId);
 
     return {
+      series,
+      outage: getOutageWindow(siteId),
       ribbon: buildRibbon(siteId, series, getAnomalySeries(siteId), alarms),
       anomalySummary: getAnomalySummary(siteId),
       alarms,
@@ -77,8 +100,46 @@ export function AdminOverviewView() {
 
   return (
     <div className="space-y-6">
+      {/*
+        * **돌아갈 길** `[사용자 요청 2026-08-28]`. 이 화면은 시스템 관리자·기초지자체의
+        * 사이드바에 없어(메뉴 노출은 사업장뿐), 그 둘이 들어오면 **활성 항목이 하나도 없고
+        * 나갈 길도 보이지 않는다.**
+        *
+        * **역할마다 한 벌씩 그리고 CSS가 고른다.** 서버는 `data-role`을 모르므로 렌더 중에
+        * 역할로 분기하면 하이드레이션이 깨진다 — 인사말·사이드바 메뉴와 같은 방식이다.
+        * 한때 `homeHrefFor(useRole().role)`로 하나만 그렸는데, 서버가 기본 역할로 그린
+        * 링크를 사업장 사용자의 클라이언트가 지워 **서버 HTML과 어긋났다.**
+        *
+        * 목적지는 `homeHrefFor`가 안다 — 첫 화면의 정의를 여기서 다시 적지 않는다.
+        * **사업장에게는 이 화면이 그 첫 화면이라** 자기 자신을 가리키게 되므로 그리지 않는다.
+        *
+        * `role-only-*`가 `display: block`을 강제하므로 **정렬은 안쪽에서** 한다
+        * (바깥에 flex를 걸면 죽는다 — `site-selector.tsx`가 그 함정을 기록해 두었다).
+        */}
+      {ROLES.map((each) => {
+        const target = homeHrefFor(each);
+        if (target === OVERVIEW_HREF) return null;
+
+        return (
+          <div key={each} className={`role-only-${each}`}>
+            <Link
+              href={withSite(target)}
+              className="inline-flex items-center gap-0.5 text-[12px] text-fg-subtle transition-colors duration-200 hover:text-accent"
+            >
+              <ChevronLeft aria-hidden size={16} strokeWidth={2} />
+              {navLabelOf(target)}(으)로 돌아가기
+            </Link>
+          </div>
+        );
+      })}
+
       <Panel
-        title="일간 운전"
+        /*
+         * **어느 사업장인지 화면이 말한다** `[사용자 요청 2026-08-28]`. 자사 1개소일 때는
+         * 자명했지만 이제 시스템 관리자·기초지자체가 남의 사업장을 열 수 있다 —
+         * `<h1>`은 `사업장 상세`라는 화면명뿐이라 여기가 그것을 적는 첫 자리다.
+         */
+        title={`일간 운전 · ${site.name}`}
         action={
           <div className="flex items-center gap-2 text-[12px]">
             {site.status ? (
@@ -153,6 +214,39 @@ export function AdminOverviewView() {
           <AlarmList alarms={alarms} nowIso={DEMO_NOW_ISO} selectedSiteId={siteId} />
         </Panel>
       </div>
+
+      {/*
+        * **판정의 근거를 함께 둔다** `[사용자 결정 2026-08-28]`. 통합 관제·관내 감독에서
+        * 넘어오는 화면이 되면서, 출발지에 있던 수질 8종이 여기 없으면 **보던 것을 잃는다.**
+        * 근거를 감추고 판정만 보이면 **E3**과 어긋난다 — `SCR-GU-001` §7.1이 같은 이유로
+        * 판정 셋을 뺐다가 철회했다.
+        *
+        * 예측·이상 타임라인은 더하지 않는다 — 전용 화면이 정본이고 아래 바로가기가 잇는다.
+        */}
+      <Panel
+        title="수질·설비 실시간 계측"
+        titleAside={
+          <InfoTip
+            label="조회 조건과 결측 표시"
+            content={`최근 ${WINDOW_HOURS}시간 · ${COLLECTION_INTERVAL_MINUTES}분 주기 · ${DISPLAY_TIMEZONE}. ${outageNotice(site.online, detail.outage)}`}
+          />
+        }
+      >
+        {/* 유량을 소절로 가른다 — 농도와 부피/시간을 한 격자에 두면 옆 칸과 비교된다는 신호를 준다 */}
+        <WaterQualityGrid
+          data={detail.series}
+          sections={[
+            { title: '수질 8종', codes: WATER_SERIES_CODES },
+            {
+              title: '유량 — 들어온 양과 나간 양',
+              codes: FLOW_SERIES_CODES,
+              diff: { of: ['inflow', 'flow'], label: '유입 − 유출' },
+            },
+          ]}
+          limits={limits.table}
+          windowHours={WINDOW_HOURS}
+        />
+      </Panel>
 
       <Panel
         title="설비 상태"

@@ -41,7 +41,7 @@ import {
 } from '@/entities/prediction';
 import { SITES, getSite } from '@/entities/site';
 import { ALL_ALARMS, useAlarmStates } from '@/features/alarm-ack';
-import { SITE_QUERY_KEY, SiteTabs, useSelectedSiteId, useSiteHref } from '@/features/site-selection';
+import { SiteTabs, useSelectedSiteId, useSiteHref } from '@/features/site-selection';
 import { AlarmList } from '@/widgets/alarm-list';
 import { AnomalyPanel } from '@/widgets/anomaly-panel';
 import { AnomalyTimeline } from '@/widgets/anomaly-timeline';
@@ -139,6 +139,12 @@ export function DashboardView() {
               label="이 구역의 범위"
               content="탭으로 고른 한 개소의 이상 판정·계측·예측·설비 상태를 모아 봅니다."
             />
+            {/*
+             * **사업장 축의 입구다** `[사용자 요청 2026-08-28]`. 이 화면의 다른 `상세 보기`
+             * 다섯은 주제별로 흩어 보내는데(계측→시계열, 예측→오염도…), 고른 사업장 하나를
+             * 통째로 볼 곳이 없었다. 선택은 탭·핀이 그대로 맡고 이 링크만 화면을 옮긴다.
+             */}
+            <DetailLink href={withSite('/overview')} label={`${site.name} 사업장 상세로 이동`} />
           </div>
           <SiteTabs sites={SITES} selectedId={selectedSiteId} onSelect={setSelectedSiteId} />
         </StickyBar>
@@ -312,6 +318,7 @@ function SiteAlarmsModal({
   alarms: Alarm[];
   onClose: () => void;
 }) {
+  const withSite = useSiteHref();
   const site = siteId ? getSite(siteId) : null;
   const open = siteId ? openAlarms(alarms, siteId) : [];
   const counts = countByPriorityIn(open);
@@ -357,9 +364,10 @@ function SiteAlarmsModal({
                 <span className={`${BADGE_BASE} bg-surface-3 text-fg-muted`}>통신 두절</span>
               )}
 
-              {/* 누른 카드의 사업장이다 — 탭에서 고른 사업장과 다를 수 있다 */}
+              {/* 누른 카드의 사업장이다 — 탭에서 고른 사업장과 다를 수 있어 id를 넘긴다.
+                  손으로 `?site=`를 이어 붙이면 `scope`·`municipality`가 함께 날아간다 */}
               <Link
-                href={`/alarms?${SITE_QUERY_KEY}=${site.id}`}
+                href={withSite('/alarms', site.id)}
                 className="ml-auto flex items-center gap-0.5 rounded-chip py-0.5 pl-1.5 pr-0.5 text-[12px] text-fg-subtle transition-colors duration-200 hover:bg-accent-weak hover:text-accent"
               >
                 이력 전체 보기

@@ -62,7 +62,21 @@ describe('역할별 첫 화면', () => {
    */
   it('목록 순서가 바뀌면 목적지도 바뀐다는 것을 못박는다', () => {
     expect(NAV_ITEMS[0]!.screenId).toBe('SCR-AD-003');
-    expect(NAV_ITEMS.find((item) => canRoleSee(item.screenId, 'system'))!.href).toBe('/');
+    expect(homeHrefFor('system')).toBe('/');
+  });
+
+  /**
+   * **첫 화면은 접근 권한이 아니라 메뉴 노출이 정한다.** 이 구분이 없으면 화면 하나를 다른
+   * 역할에 열 때마다 홈이 딸려 움직인다 — `SCR-AD-003`을 세 역할에 열자 목록 맨 앞이라는
+   * 이유만으로 시스템 관리자·기초지자체의 홈이 `/overview`가 됐다.
+   */
+  it('메뉴에 없는 화면은 그 역할의 홈이 되지 않는다', () => {
+    const home = NAV_ITEMS.find((item) => item.href === homeHrefFor('system'))!;
+    expect(menuRolesOf(home)).toContain('system');
+
+    /* 접근은 열려 있지만 메뉴에 없는 화면 — 홈이 되면 안 된다 */
+    expect(canRoleSee('SCR-AD-003', 'system')).toBe(true);
+    expect(homeHrefFor('system')).not.toBe('/overview');
   });
 });
 

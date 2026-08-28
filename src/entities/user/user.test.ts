@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { NAV_ITEMS } from '@/widgets/app-shell/config/navigation';
+import { NAV_ITEMS, homeHrefFor } from '@/widgets/app-shell/config/navigation';
 import {
   DEMO_PERSON_NAME,
   ROLES,
@@ -76,15 +76,15 @@ describe('역할 — 문서와 코드가 갈리지 않는다', () => {
   /**
    * 사업장의 첫 화면은 **현황**이지 손익이 아니다.
    *
-   * 가드가 `NAV_ITEMS`의 첫 접근 가능 항목을 폴백으로 쓰므로 순서가 곧 첫 화면이다.
+   * 가드가 `NAV_ITEMS`에서 **메뉴에 보이는** 첫 항목을 폴백으로 쓰므로 순서가 곧 첫 화면이다.
    * SCR-AD-003을 앞에서 치우면 다시 손익 화면으로 떨어진다 — 그때 여기서 걸린다.
    */
-  it('사업장으로 바꾸면 자사 현황으로 옮겨 간다 — 라우트 가드의 대체 화면', () => {
-    expect(NAV_ITEMS.find((item) => canRoleSee(item.screenId, 'site'))?.href).toBe('/overview');
+  it('사업장으로 바꾸면 사업장 상세로 옮겨 간다 — 라우트 가드의 대체 화면', () => {
+    expect(homeHrefFor('site')).toBe('/overview');
   });
 
   it('시스템 관리자의 대체 화면은 통합 관제다', () => {
-    expect(NAV_ITEMS.find((item) => canRoleSee(item.screenId, 'system'))?.href).toBe('/');
+    expect(homeHrefFor('system')).toBe('/');
   });
 
   /**
@@ -92,7 +92,7 @@ describe('역할 — 문서와 코드가 갈리지 않는다', () => {
    * `/timeseries`로 떨어졌는데 **그 임시값은 사라졌다.**
    */
   it('기초지자체의 대체 화면은 관내 감독 현황이다', () => {
-    expect(NAV_ITEMS.find((item) => canRoleSee(item.screenId, 'gov'))?.href).toBe('/jurisdiction');
+    expect(homeHrefFor('gov')).toBe('/jurisdiction');
   });
 });
 
@@ -223,7 +223,9 @@ describe('역할 전환', () => {
   it('기초지자체의 화면 접근 권한은 정의돼 있다', () => {
     expect(canRoleSee('SCR-OP-001', 'gov')).toBe(false);
     expect(canRoleSee('SCR-GU-001', 'gov')).toBe(true);
-    expect(canRoleSee('SCR-AD-003', 'gov')).toBe(false);
+    /* 접근은 열려 있다 — 관내 감독에서 사업장을 고른 뒤 `상세 보기`로 들어온다.
+       메뉴에 없는 것은 별개 축이다(`navigation.ts`의 menuRoles) */
+    expect(canRoleSee('SCR-AD-003', 'gov')).toBe(true);
   });
 
   /** 관내 화면은 기초지자체만 본다 — 관할 밖 사업장이 들어가므로 전 사업장 역할에도 닫는다 */

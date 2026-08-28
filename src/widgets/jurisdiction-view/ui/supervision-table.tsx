@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
 import { cn } from '@/shared/lib/cn';
 import { ACTION_BUTTON_QUIET } from '@/shared/ui/action-button';
@@ -31,6 +32,8 @@ interface SupervisionTableProps {
   rows: SupervisionRow[];
   selectedId: string;
   onSelect: (id: string) => void;
+  /** 그 사업장의 상세 화면 주소. 선택과 **다른 일**이라 따로 받는다 */
+  detailHref: (siteId: string) => string;
 }
 
 /**
@@ -41,7 +44,12 @@ interface SupervisionTableProps {
  *
  * 정렬은 `조치 필요한 순`이다(`buildSupervisionRows`) — 이상 점수 순이 아니다.
  */
-export function SupervisionTable({ rows, selectedId, onSelect }: SupervisionTableProps) {
+export function SupervisionTable({
+  rows,
+  selectedId,
+  onSelect,
+  detailHref,
+}: SupervisionTableProps) {
   if (rows.length === 0) {
     return (
       <p className="py-8 text-center text-[12px] text-fg-subtle">
@@ -119,21 +127,26 @@ export function SupervisionTable({ rows, selectedId, onSelect }: SupervisionTabl
               </td>
               <td className="px-3 py-3.5">
                 {/*
-                 * 줄 아무 데나 눌러도 되지만 `<tr>`에는 "누를 수 있다"는 역할이 없어
-                 * 마우스 밖에 길이 없다 — 이 버튼이 정식 조작이다(`SiteScoreTable` 선례).
+                 * **이 버튼만 화면을 옮긴다** `[사용자 요청 2026-08-28]`. 줄·카드·탭·핀 넷은
+                 * 그대로 선택이다.
+                 *
+                 * 한때 다섯이 같은 일(선택)을 하면서 이것만 `상세 보기`라 부르고 화살표까지
+                 * 달고 있었다 — **라벨이 하는 말과 동작이 어긋나 있었다.** 이름을 고치는 대신
+                 * 동작을 이름에 맞췄다.
+                 *
+                 * **`stopPropagation`이 있어야 이동한다.** 줄의 `onClick`이 함께 돌면
+                 * `setSiteId`가 `history.replaceState`로 주소를 덮어써 링크 이동이 지워진다 —
+                 * 실제로 그렇게 눌러도 표에 그대로 남았다. 기본 동작(이동)은 막지 않는다.
                  */}
-                <button
-                  type="button"
+                <Link
+                  href={detailHref(row.site.id)}
+                  onClick={(event) => event.stopPropagation()}
                   className={ACTION_BUTTON_QUIET}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    onSelect(row.site.id);
-                  }}
-                  aria-label={`${row.site.name} 상세 보기`}
+                  aria-label={`${row.site.name} 사업장 상세로 이동`}
                 >
                   상세
                   <ChevronRight aria-hidden size={13} strokeWidth={2} />
-                </button>
+                </Link>
               </td>
             </tr>
           ))}
