@@ -187,7 +187,7 @@
 
 #### 확인 상태는 셸이 공유한다
 
-확인·조치 결과는 [`AlarmStateProvider`](../../../src/features/alarm-ack/model/alarm-state-context.tsx)가 셸에서 들고, **헤더 알림·사이드바 배지·통합 관제·자사 현황·이 화면이 같은 값을 본다** `[설계]`.
+확인·조치 결과는 [`AlarmStateProvider`](../../../src/features/alarm-ack/model/alarm-state-context.tsx)가 셸에서 들고, **헤더 알림·사이드바 배지·통합 관제·사업장 상세·이 화면이 같은 값을 본다** `[설계]`.
 
 예전에는 이 화면만 지역 `useState`를 들고 나머지는 정적 fixture를 읽었다 — 여기서 확인 처리를 해도 사이드바 배지가 그대로였다. **헤더에 알림을 두면서 그 어긋남이 세 곳으로 늘어나므로** 상태를 한 곳으로 올렸다.
 
