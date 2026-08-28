@@ -11,6 +11,15 @@ import { useProcess } from '../model/use-process';
 const SELECTABLE: readonly MeasurementItemCode[] = [...WATER_QUALITY_CODES, ...EQUIPMENT_CODES];
 
 /**
+ * **어느 단계에서 무엇을 재는지는 원문에 없다** — 이 화면이 정한다는 사실을 밝힌다.
+ *
+ * 카드 제목을 가진 부모(`설정 > 공정 구성`)가 툴팁에 넣는다(`screens.md` §8) — 이 컴포넌트에는
+ * 제목이 없어 붙일 자리가 없다.
+ */
+export const PROCESS_STAGE_ITEMS_NOTE =
+  '단계별 계측 항목은 원문에 없습니다 [TBD-53]. 프로브를 각 공정에 부착한다는 것까지가 회의 결과이고 [회의 2026-08-20], 어느 단계에서 무엇을 재는지는 여기서 정합니다.';
+
+/**
  * 사업장의 공정 구성을 고른다 (SCR-OP-010).
  *
  * 회의가 방식을 정했다 — 최대 공정을 두고 필요한 단계만 켠다 `[회의 2026-08-20]`.
@@ -95,13 +104,13 @@ export function ProcessStageForm({ siteId }: { siteId: string }) {
         })}
       </ul>
 
-      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-2.5">
-        <p className="max-w-[68ch] text-[12px] leading-relaxed text-fg-subtle">
-          단계별 계측 항목은 원문에 없습니다 [TBD-53]. 프로브를 각 공정에 부착한다는 것까지가
-          회의 결과이고 [회의 2026-08-20], 어느 단계에서 무엇을 재는지는 여기서 정합니다.
-        </p>
-        {/* 설정한 적이 없으면 되돌릴 것이 없다 — 누를 수 있는 빈 버튼을 두지 않는다 */}
-        {isUserSet && (
+      {/*
+        * **되돌릴 것이 없으면 줄 자체를 그리지 않는다.** 버튼만 감추던 판본은 안내 문단이
+        * 이 줄을 늘 채우고 있어서 괜찮았는데, 그 문단이 제목 옆 툴팁으로 가자 위쪽 테두리만
+        * 남아 **빈 가로선**이 됐다.
+        */}
+      {isUserSet && (
+        <div className="flex justify-end border-t border-border pt-2.5">
           <button
             type="button"
             onClick={() => reset(siteId)}
@@ -109,8 +118,8 @@ export function ProcessStageForm({ siteId }: { siteId: string }) {
           >
             표준 공정으로 되돌리기
           </button>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

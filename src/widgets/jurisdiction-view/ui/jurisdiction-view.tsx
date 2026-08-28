@@ -3,9 +3,8 @@
 import { useMemo } from 'react';
 import { DEMO_NOW_ISO } from '@/shared/config/demo';
 import { COLLECTION_INTERVAL_MINUTES } from '@/shared/config/measurement';
-import { PROVISIONAL_DISPLAY_DECIMALS } from '@/shared/config/provisional';
 import { STATUS_VISUAL, statusInk } from '@/shared/config/status-visual';
-import { DISPLAY_TIMEZONE } from '@/shared/lib/format';
+import { DISPLAY_TIMEZONE, formatDateTime } from '@/shared/lib/format';
 import { getOutageWindow } from '@/shared/lib/timeline';
 import { Panel } from '@/shared/ui/panel';
 import { AnomalyBandLegend } from '@/shared/ui/anomaly-band-legend';
@@ -30,7 +29,7 @@ import { AlarmList } from '@/widgets/alarm-list';
 import { AnomalyPanel } from '@/widgets/anomaly-panel';
 import { AnomalyTimeline } from '@/widgets/anomaly-timeline';
 import { EquipmentPanel } from '@/widgets/equipment-panel';
-import { ForecastChart } from '@/widgets/forecast-chart';
+import { FORECAST_HORIZON_NOTE, ForecastChart } from '@/widgets/forecast-chart';
 import { IDLE_DISCHARGE_NOTE, IdleDischargePanel } from '@/widgets/anomaly-view';
 import { LocatorInset, SiteMapLegend, SiteMapPanel } from '@/widgets/site-map';
 import { SiteWallboard } from '@/widgets/site-wallboard';
@@ -181,13 +180,20 @@ export function JurisdictionView() {
 
       <section className="space-y-3 rounded-panel border border-card-border bg-section-bg p-4 lg:p-5">
         <StickyBar>
-          <h2 className="text-[16px] font-bold leading-tight tracking-tight text-fg">
-            선택 사업장 현황
-          </h2>
-          <InfoTip
-            label="이 구역의 범위"
-            content="아래 카드는 전부 위에서 고른 한 개소의 값입니다. 관내 합계는 이 구역이 아니라 위 판의 머리에 있습니다."
-          />
+          {/*
+           * **제목과 툴팁을 한 겹으로 묶는다.** `StickyBar`는 `space-y-3`이라 직계 자식마다
+           * 한 줄이 된다 — 셋을 나란히 넘기면 인포 아이콘이 제목 아래 혼자 한 줄을 차지한다
+           * `[사용자 지적 2026-08-28]`. 통합 관제의 같은 구역과 한 형태여야 한다.
+           */}
+          <div className="flex items-center gap-1.5">
+            <h2 className="text-[16px] font-bold leading-tight tracking-tight text-fg">
+              선택 사업장 현황
+            </h2>
+            <InfoTip
+              label="이 구역의 범위"
+              content="아래 카드는 전부 위에서 고른 한 개소의 값입니다. 관내 합계는 이 구역이 아니라 위 판의 머리에 있습니다."
+            />
+          </div>
           <SiteTabs sites={sites} selectedId={siteId} onSelect={setSiteId} />
         </StickyBar>
 
@@ -214,18 +220,6 @@ export function JurisdictionView() {
                 <AnomalyPanel
                   summary={detail.anomalySummary}
                   legend={<AnomalyBandLegend />}
-                  metrics={[
-                    {
-                      label: '데이터 처리율',
-                      value: `${site.dataThroughput.toFixed(PROVISIONAL_DISPLAY_DECIMALS.dataThroughput)}%`,
-                      hint: '목표 98%',
-                    },
-                    {
-                      label: '시스템 가동률',
-                      value: `${site.uptime.toFixed(PROVISIONAL_DISPLAY_DECIMALS.uptime)}%`,
-                      hint: '목표 95%',
-                    },
-                  ]}
                 />
                 <AnomalyTimeline data={detail.anomalySeries} outage={detail.outage} />
               </div>
@@ -257,7 +251,20 @@ export function JurisdictionView() {
             </Panel>
 
             {/* 선행 경보는 원문 요구다(FR-30) — 사후 적발보다 미리 아는 편이 낫다 */}
-            <Panel title={`${detail.forecast.targetLabel} · 최근 ${SERIES_WINDOW_HOURS}시간 추이`}>
+            <Panel
+              title={`${detail.forecast.targetLabel} · 최근 ${SERIES_WINDOW_HOURS}시간 추이`}
+              /* AI 산출값에는 언제·무엇을 근거로 나왔는지가 함께 와야 한다(E3) */
+              titleAside={
+                <InfoTip
+                  label="이 예측의 산출 근거"
+                  content={
+                    detail.forecast.online
+                      ? `산출 ${formatDateTime(detail.forecast.computedAtIso)} ${DISPLAY_TIMEZONE} · 입력 대상 기간 ${detail.forecast.inputWindowLabel}. ${FORECAST_HORIZON_NOTE}`
+                      : `통신이 두절되어 산출이 중단되었습니다. ${FORECAST_HORIZON_NOTE}`
+                  }
+                />
+              }
+            >
               <ForecastChart summary={detail.forecast} nowIso={DEMO_NOW_ISO} limits={limits.table} />
             </Panel>
 
@@ -273,12 +280,20 @@ export function JurisdictionView() {
 
             <Panel
               title="방지시설 미가동 중 방류 의심"
-              titleAside={<InfoTip label="판정 방법과 한계" content={IDLE_DISCHARGE_NOTE} />}
+              titleAside={
+                <InfoTip
+                  label="판정 방법과 한계"
+                  content={
+                    <>
+                      {IDLE_DISCHARGE_NOTE}
+                      {/* 못 잡는 경우를 함께 적는다 — 의심 0건이 "깨끗함"으로 읽히지 않게 */}
+                      <span className="mt-2 block">{BYPASS_PIPE_NOTE}</span>
+                    </>
+                  }
+                />
+              }
             >
               <IdleDischargePanel siteId={siteId} points={detail.series} />
-              <p className="mt-3 max-w-[86ch] border-t border-border pt-2 text-[12px] leading-relaxed text-fg-subtle">
-                {BYPASS_PIPE_NOTE}
-              </p>
             </Panel>
           </div>
         </div>

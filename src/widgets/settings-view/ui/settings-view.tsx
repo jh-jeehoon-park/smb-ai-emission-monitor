@@ -11,7 +11,11 @@ import {
   SiteClassificationForm,
   useDischargeLimits,
 } from '@/features/discharge-limit-settings';
-import { ProcessStageForm, useProcess } from '@/features/process-settings';
+import {
+  PROCESS_STAGE_ITEMS_NOTE,
+  ProcessStageForm,
+  useProcess,
+} from '@/features/process-settings';
 import { useSelectedSiteId } from '@/features/site-selection';
 import {
   SETTINGS_TABS,
@@ -108,6 +112,7 @@ export function SettingsView() {
       {tab === 'process' && (
         <Panel
           title="공정 구성"
+          titleAside={<InfoTip label="단계별 계측 항목의 출처" content={PROCESS_STAGE_ITEMS_NOTE} />}
           action={
             <span className="text-[12px] text-fg-subtle">
               켠 단계 {process.stages.length} · 끈 단계 {process.disabled.length}

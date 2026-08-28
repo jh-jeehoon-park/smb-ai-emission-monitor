@@ -125,20 +125,38 @@ export function CostSavingsView() {
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <Panel
           title="막은 사고"
-          titleAside={<InfoTip label="이 표를 읽는 법" content="건수와 금액을 나눠 봅니다 — 금액만 보면 큰 건 하나가 전체 추세를 가립니다." />}
+          titleAside={
+            <InfoTip
+              label="이 표를 읽는 법"
+              content={`건수와 금액을 나눠 봅니다 — 금액만 보면 큰 건 하나가 전체 추세를 가립니다. 회피 가능 비용은 건당 ${manwon(INCIDENT_AVOIDED_KRW_RANGE[0])} 또는 ${manwon(INCIDENT_AVOIDED_KRW_RANGE[1])} 기준이며, 원문이 같은 항목에 두 값을 주어 하나를 고르지 않았습니다. 사고 시 평균 대응 비용은 ${manwon(COST_EXAMPLE_KRW.incidentResponse)}입니다. 실제 사고 발생 여부와 무관한 상한값이라 위 절감률과 합산하지 않습니다 — 탐지했어도 사고로 이어지지 않았을 수 있습니다.`}
+            />
+          }
         >
           <AvoidedIncidents detections={detections} />
         </Panel>
 
         <Panel
           title="설비 이상 현황"
-          titleAside={<InfoTip label="정렬 기준" content="상태가 나쁜 쪽부터 정렬합니다." />}
+          titleAside={
+            <InfoTip
+              label="정렬 기준과 교체 시점"
+              content="상태가 나쁜 쪽부터 정렬합니다. 교체 시점은 내지 않습니다 — 잔여 수명을 산출하는 예지보전이 어렵다는 판단이라 [회의 2026-08-20] 이상 신호만 적습니다. 교체 계획은 이상 여부로 대신할 수 없습니다."
+            />
+          }
         >
           <ReplacementList equipment={equipment} />
         </Panel>
       </div>
 
-      <Panel title="TMS 구축 비용 회피">
+      <Panel
+        title="TMS 구축 비용 회피"
+        titleAside={
+          <InfoTip
+            label="이 금액을 위와 합치지 않는 이유"
+            content="기존 TMS는 구축비가 2~3억 원이라 소규모 사업장이 도입할 수 없었고, 본 시스템은 5,000만 원입니다. 초년도에만 발생하는 1회성 차액이라 위의 연간 절감액과 합치지 않습니다 — 합치면 매년 반복되는 절감처럼 읽힙니다. 기존 구축비는 원문 안에서 값이 갈립니다."
+          />
+        }
+      >
         <TmsAvoidance />
       </Panel>
 
@@ -281,17 +299,7 @@ function AvoidedIncidents({ detections }: { detections: number }) {
         <p className={`num mt-1 ${VALUE_MD} text-fg-muted`}>
           {manwon(detections * low)} ~ {manwon(detections * high)}
         </p>
-        <p className="mt-2 text-[12px] leading-relaxed text-fg-subtle">
-          건당 {manwon(low)} 또는 {manwon(high)} 기준. 원문이 같은 항목에 두 값을 주어
-          <strong className="font-medium text-fg-muted"> 하나를 고르지 않았습니다</strong>. 사고 시
-          평균 대응 비용은 {manwon(COST_EXAMPLE_KRW.incidentResponse)}입니다.
-        </p>
       </div>
-
-      <p className="rounded-nested bg-surface-2 px-2.5 py-2 text-[12px] leading-relaxed text-fg-subtle">
-        <strong className="font-medium text-fg-muted">실제 사고 발생 여부와 무관한 상한값입니다.</strong>{' '}
-        탐지했어도 사고로 이어지지 않았을 수 있어 위 절감률과 합산하지 않습니다.
-      </p>
     </div>
   );
 }
@@ -327,11 +335,6 @@ function ReplacementList({ equipment }: { equipment: Equipment[] }) {
           </p>
         </div>
       ))}
-      <p className="pt-1 text-[12px] leading-relaxed text-fg-subtle">
-        <strong className="font-medium text-fg-muted">교체 시점은 내지 않습니다.</strong> 잔여
-        수명을 산출하는 예지보전이 어렵다는 판단이라 [회의 2026-08-20] 이상 신호만 적습니다.
-        교체 계획은 이상 여부로 대신할 수 없습니다.
-      </p>
     </div>
   );
 }
@@ -339,18 +342,11 @@ function ReplacementList({ equipment }: { equipment: Equipment[] }) {
 function TmsAvoidance() {
   const [low, high] = TMS_AVOIDED_KRW_RANGE;
 
+  /* 값 한 줄만 남는다 — 합치지 않는 이유는 카드 제목 옆 툴팁이 맡는다 */
   return (
-    <div className="space-y-2">
-      <p className={`num ${VALUE_LG} text-fg`}>
-        {manwon(low)} ~ {manwon(high)}
-      </p>
-      <p className="text-[12px] leading-relaxed text-fg-subtle">
-        기존 TMS는 구축비가 2~3억 원이라 소규모 사업장이 도입할 수 없었고, 본 시스템은 5,000만
-        원입니다. <strong className="font-medium text-fg-muted">초년도에만 발생하는 1회성 차액</strong>
-        이라 위의 연간 절감액과 합치지 않습니다 — 합치면 매년 반복되는 절감처럼 읽힙니다. 기존
-        구축비는 원문 안에서 값이 갈립니다.
-      </p>
-    </div>
+    <p className={`num ${VALUE_LG} text-fg`}>
+      {manwon(low)} ~ {manwon(high)}
+    </p>
   );
 }
 

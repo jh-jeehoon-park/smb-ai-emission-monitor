@@ -1,6 +1,6 @@
 'use client';
 
-import { useId, useMemo, useState } from 'react';
+import { useId, useMemo, useRef, useState } from 'react';
 import { PROVINCE_SHAPES, PROVINCE_VIEWBOX } from '@/shared/config/korea-provinces';
 import {
   PROVISIONAL_STATUS_LABELS,
@@ -30,6 +30,7 @@ import {
 } from '../config/constants';
 import { placeTooltip, tooltipSize } from '../lib/tooltip-layout';
 import { useAnimatedFocus } from '../lib/use-animated-focus';
+import { useScreenUnit } from '../lib/use-screen-unit';
 import {
   SEG_ITEM,
   SEG_ITEM_OFF,
@@ -154,9 +155,17 @@ export function SiteMap({ sites, selectedId, onSelect, municipality }: SiteMapPr
   /*
    * **관할 모드는 뷰박스 세로를 잘라낸다.** 전국 뷰박스는 세로로 긴 상자라 시도 하나를
    * 넣으면 위아래가 비고 확대가 가로에서 막힌다 — 가로는 그대로 두고 세로만 줄이면
-   * 도형·핀·라벨·툴팁이 같은 비율로 함께 커진다(§`singleProvinceView`).
+   * 도형·핀·라벨이 같은 비율로 함께 커진다(§`singleProvinceView`) — 확대해서 보는 중이니
+   * 그것이 맞다. **툴팁만 예외다**: 지도 위에 얹힌 판이라 아래에서 되돌린다.
    */
   const view: Rect = region ? singleProvinceView(region.province) : PROVINCE_VIEWBOX;
+  const viewBox = `${view.x} ${view.y} ${view.width} ${view.height}`;
+  /*
+   * 뷰박스를 잘라내면 그 안의 것이 화면에서 함께 커진다. 도형·핀·라벨은 그래야 맞고
+   * **툴팁만 되돌린다** — 지도 위에 얹힌 판이라 축척과 무관하게 같은 크기여야 읽힌다.
+   */
+  const svgRef = useRef<SVGSVGElement>(null);
+  const screenUnit = useScreenUnit(svgRef, viewBox);
   /**
    * **처음 보이는 것은 남한 전체다** `[사용자 지시 2026-08-24]`. 화면에 들어온 순간 어느 한
    * 시도로 확대돼 있으면 나머지 9개소가 화면 밖이라 "전 사업장 관제"가 성립하지 않는다.
@@ -329,7 +338,8 @@ export function SiteMap({ sites, selectedId, onSelect, municipality }: SiteMapPr
        */}
       <div className="min-h-[320px] flex-1 xl:min-h-0">
         <svg
-          viewBox={`${view.x} ${view.y} ${view.width} ${view.height}`}
+          ref={svgRef}
+          viewBox={viewBox}
           /* 확대한 그룹과 그림자가 뷰박스 밖으로 나가는 것을 여기서 자른다 */
           className="mx-auto block h-full max-h-[630px] w-full max-w-[510px] overflow-hidden"
           role="img"
@@ -543,7 +553,9 @@ export function SiteMap({ sites, selectedId, onSelect, municipality }: SiteMapPr
            * 함께 커져 매번 1/k로 되돌려야 하고, 확대 전환 320ms 동안 상자가 늘어난다.
            * 밖에서 변환 결과 좌표만 받아 그리면 화면 크기가 배율과 무관하게 고정된다.
            */}
-{hoveredSite && <PinTooltip site={hoveredSite} focus={focus} view={view} />}
+          {hoveredSite && (
+            <PinTooltip site={hoveredSite} focus={focus} view={view} unit={screenUnit} />
+          )}
         </svg>
       </div>
     </div>
@@ -787,7 +799,18 @@ function SitePin({ site, idPrefix, selected, hovered, scale, onSelect, onHover }
  * 점수에 산출 시각을 덧붙이지 않는다 — 지도 전체가 한 기준 시각의 스냅숏이고 그 시각은
  * 헤더 띠가 이미 적고 있다(E3·E5). 핀마다 되풀이하면 툴팁이 표가 된다.
  */
-function PinTooltip({ site, focus, view }: { site: Site; focus: MapFocus; view: Rect }) {
+function PinTooltip({
+  site,
+  focus,
+  view,
+  unit,
+}: {
+  site: Site;
+  focus: MapFocus;
+  view: Rect;
+  /** 화면 1px이 뷰박스 몇 단위인가 — 이 상자는 축척과 무관하게 같은 크기여야 한다 */
+  unit: number;
+}) {
   const [lat, lng] = site.coordinates;
   const point = projectToMap(lat, lng);
   const level: StatusLevel | null = site.status;
@@ -797,14 +820,20 @@ function PinTooltip({ site, focus, view }: { site: Site; focus: MapFocus; view: 
   /* 값이 없으면 0으로 채우지 않는다. 두절은 두절이라고 적는다(E4) */
   const state = level ? `${PROVISIONAL_STATUS_LABELS[level]} ${site.anomalyScore}` : '통신 두절';
 
+  /* 상자 안은 **화면 px**으로 그리고 바깥 변환이 뷰박스 단위로 되돌린다(`unit`) */
   const { width, height } = tooltipSize(site.name, industry + state);
 
   const box = placeTooltip({
     // 그룹 밖이라 변환을 직접 건다 — transform: translate(t) scale(k)
     pinX: focus.translateX + focus.scale * point.x,
     pinY: focus.translateY + focus.scale * point.y,
-    width,
-    height,
+    /* 자리를 잡는 계산은 뷰박스 좌표에서 돈다 — 잘림 검사가 그 축이다 */
+    width: width * unit,
+    height: height * unit,
+    /*
+     * 간격·여백은 되돌리지 않는다. 핀은 뷰박스와 함께 커지므로(그것이 맞다) 간격도 같이
+     * 커져야 확대한 지도에서 상자가 핀을 덮지 않는다.
+     */
     gap: TOOLTIP_PIN_GAP,
     padding: TOOLTIP_EDGE_PADDING,
     /* 관할 모드는 뷰박스가 다르다 — 고정값을 쓰면 상자가 화면 밖으로 나간다 */
@@ -821,8 +850,16 @@ function PinTooltip({ site, focus, view }: { site: Site; focus: MapFocus; view: 
      *
      * 상자를 원점에 그리고 자리는 이 변환이 잡는다 — 안쪽 좌표에 `box.x`를 더하던 판본은
      * `foreignObject`와 두 `<text>`가 각자 같은 덧셈을 되풀이했다.
+     *
+     * **`scale(unit)`이 안쪽을 화면 px으로 만든다** `[사용자 지적 2026-08-28]`. 안의 상수는
+     * 전부 px으로 읽히고, 뷰박스가 어떻게 잘리든 화면에서 같은 크기가 된다 — 관할 지도에서
+     * 툴팁만 1.23배로 커져 있던 것이 이 한 줄로 맞는다(`use-screen-unit.ts`).
      */
-    <g className="pointer-events-none" aria-hidden transform={`translate(${box.x} ${box.y})`}>
+    <g
+      className="pointer-events-none"
+      aria-hidden
+      transform={`translate(${box.x} ${box.y}) scale(${unit})`}
+    >
       {/*
        * **유리면이다** `[사용자 지시 2026-08-24]`. 반투명 흰 면 + 뒤 배경 blur + 옅은 테두리로
        * 지도 도형 위에 얹힌 판이 된다 — 불투명 상자는 그 아래 시도 경계를 통째로 지웠다.

@@ -11,6 +11,7 @@ import {
 import { DISPLAY_TIMEZONE, formatDateTime } from '@/shared/lib/format';
 import { useQueryState } from '@/shared/lib/use-query-state';
 import { Panel } from '@/shared/ui/panel';
+import { InfoTip } from '@/shared/ui/tooltip';
 import { VALUE_MD } from '@/shared/ui/type-scale';
 import {
   FLOW_FORECAST,
@@ -36,7 +37,6 @@ import { useSelectedSiteId } from '@/features/site-selection';
 import { SegmentedControl } from '@/shared/ui/segmented-control';
 import {
   ForecastChart,
-  ForecastHorizonNote,
   ForecastOverlay,
 } from '@/widgets/forecast-chart';
 import { ALL_TARGETS, TARGET_QUERY_KEY, TARGET_VIEWS, type TargetView } from '../config/constants';
@@ -114,6 +114,16 @@ export function PredictionView() {
             ? `수질·수량 · 최근 ${SERIES_WINDOW_HOURS}시간`
             : `${forecast.targetLabel} · 최근 ${SERIES_WINDOW_HOURS}시간`
         }
+        /*
+         * **`추정 대상과 계측 대상` 카드를 걷고 여기로 옮겼다** `[사용자 요청 2026-08-28]`.
+         * 그 카드는 본문이 설명 문단 하나뿐이라 §8이 막는 형태였다 — 설명은 제목 옆 툴팁이다.
+         */
+        titleAside={
+          <InfoTip
+            label="무엇을 계측하고 무엇을 추정하는가"
+            content="TOC는 센서로 직접 계측하고, TN·TP는 계측 센서가 없어 소프트 센싱 추정만 존재합니다 [발표자료 p.17]. 그래서 카드는 농도를 적지 않고 기준 대비 높낮이만 냅니다 — 소프트 센싱으로는 절대값의 정확도를 맞추기 어렵다는 판단입니다 [회의 2026-08-20]. 통신이 두절되면 추정도 중단되며 마지막 산출 시각만 남습니다 — 값을 임의로 이어 붙이지 않습니다(E3). 향후 6시간 예측은 그리지 않습니다 — 예측 대상 항목과 입력 데이터가 정해지지 않았습니다 [TBD-52]. TN·TP는 6시간 예측 대상이 아니라 소프트 센싱으로 지금 값을 추정하는 항목입니다 [회의 2026-08-20]."
+          />
+        }
         action={
           <SegmentedControl
             ariaLabel="예측 대상 항목"
@@ -152,7 +162,6 @@ export function PredictionView() {
                 label="수량 2종"
               />
             </div>
-            <ForecastHorizonNote />
           </div>
         ) : (
           <ForecastChart summary={forecast} nowIso={DEMO_NOW_ISO} limits={limits.table} />
@@ -217,17 +226,6 @@ export function PredictionView() {
        */}
       <LimitMonitor trends={forecast.trends} limits={limits} />
 
-      <Panel title="추정 대상과 계측 대상">
-        <p className="max-w-[86ch] text-[12px] leading-relaxed text-fg-muted">
-          TOC는 센서로 직접 계측하고,{' '}
-          <strong className="text-fg">TN·TP는 계측 센서가 없어 소프트 센싱 추정만 존재한다</strong>
-          (발표자료 p.17). 그래서 카드는{' '}
-          <strong className="text-fg">농도를 적지 않고 기준 대비 높낮이만</strong> 냅니다 —
-          소프트 센싱으로는 절대값의 정확도를 맞추기 어렵다는 판단입니다 [회의 2026-08-20].
-          통신이 두절되면 추정도 중단되며 마지막 산출 시각만 남습니다 — 값을 임의로 이어
-          붙이지 않습니다(E3).
-        </p>
-      </Panel>
     </div>
   );
 }
@@ -266,6 +264,16 @@ function LimitMonitor({
   return (
     <Panel
       title="적용 기준치"
+      /*
+       * **수량이 왜 이 표에 없는지**와 **이 값이 법정 기준이 아니라는 것**을 한 자리에 모은다.
+       * 조용히 빠져 있으면 "빠뜨렸나"로 읽히고, 출처를 안 적으면 법정 표로 읽힌다.
+       */
+      titleAside={
+        <InfoTip
+          label="이 표가 담는 것과 담지 않는 것"
+          content={`유입 · 유량 · 유출은 기준 대상이 아닙니다 — 배출허용기준은 농도 기준입니다. 기준치는 지역구분 · 1일 폐수배출량 규모 · 항목으로 갈립니다 [공정자료 p.11]. 법령이 원천이라 우리가 법정 표를 채우지 않습니다 — 지금 표의 TOC · TN · TP는 시연 기본값이며 법정 기준이 아닙니다. 사업장 허가증(폐수배출시설 설치허가·신고증)의 값을 시스템 설정에 넣으면 그 값이 덮어씁니다.${limits.unresolvedReason ? ` ${limits.unresolvedReason}` : ''}`}
+        />
+      }
       action={
         <span className="text-[12px] text-fg-subtle">
           {classificationLabel ?? '사업장 분류 미설정'}
@@ -319,31 +327,6 @@ function LimitMonitor({
           </tbody>
         </table>
       </div>
-      {/*
-       * **수량이 왜 이 표에 없는지 적는다** `[사용자 결정 2026-08-25]`. 배출허용기준은 농도
-       * 기준이라 유량에는 기준이 없다 — 그런데 조용히 빠져 있으면 "빠뜨렸나"로 읽힌다.
-       */}
-      <p className="max-w-[86ch] border-t border-border pt-2 text-[12px] leading-relaxed text-fg-subtle">
-        유입 · 유량 · 유출은 <strong className="text-fg-muted">기준 대상이 아닙니다</strong> —
-        배출허용기준은 농도 기준입니다.
-      </p>
-      {/*
-       * **문구가 표와 어긋나면 안 된다.** 한때 여기가 *"우리가 값을 채우지 않습니다"* 라고
-       * 적는데 바로 위 `출처` 열은 `[시연 기본값]`이라 적고 있었다 — 한 카드가 두 말을 했다.
-       *
-       * 법정 표(`DISCHARGE_LIMITS`)를 채우지 않는 것은 여전히 사실이다. 다만 시연에서는
-       * *"사용자가 이미 넣어 둔 상태"* 를 만들어 두었고(`[PROVISIONAL]`), 그 사실을 여기서
-       * 밝힌다 — 값 옆의 `출처`와 같은 말을 해야 한다.
-       */}
-      <p className="max-w-[86ch] py-2 text-[12px] leading-relaxed text-fg-subtle">
-        기준치는 <strong className="text-fg-muted">지역구분 · 1일 폐수배출량 규모 · 항목</strong>으로
-        갈립니다 [공정자료 p.11].{' '}
-        <strong className="text-fg-muted">법령이 원천이라 우리가 법정 표를 채우지 않습니다</strong> —
-        지금 표의 TOC · TN · TP는 <strong className="text-fg-muted">시연 기본값이며 법정 기준이
-        아닙니다</strong>. 사업장 허가증(폐수배출시설 설치허가·신고증)의 값을 시스템 설정에 넣으면
-        그 값이 덮어씁니다.
-        {limits.unresolvedReason && <span className="ml-1">{limits.unresolvedReason}</span>}
-      </p>
     </Panel>
   );
 }

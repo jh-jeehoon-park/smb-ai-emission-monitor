@@ -14,44 +14,25 @@ import { MeterBar } from '@/shared/ui/meter-bar';
 import type { ReactNode } from 'react';
 import type { AnomalySummary } from '@/entities/anomaly';
 
-/** 점수 아래 붙는 운영 지표. 이상 판정과 **다른 축**이라 있는 화면에서만 넘긴다 */
-export interface SiteMetric {
-  label: string;
-  value: string;
-  /** 목표치처럼 값의 기준이 되는 것. 뱃지 안에 이어 붙는다 */
-  hint?: string;
-}
-
+/**
+ * **데이터 처리율·시스템 가동률 뱃지를 걷었다** `[사용자 요청 2026-08-28]`.
+ *
+ * 두 값은 원문 성과지표(p.3·p.119)이고 한때 이 카드 안, 게이지 바로 아래에 작은 뱃지로
+ * 있었다 — 그 판정이 **믿을 만한 상태에서 나왔는가**를 말하는 보조값이라는 것이 근거였다.
+ * 사용자가 두 화면 모두에서 내리기로 정했다. **값은 사라지지 않았다** — 사업장 모델
+ * (`Site.dataThroughput`·`Site.uptime`)과 시연 시나리오에 그대로 있고, 다시 세울 자리가
+ * 생기면 여기 뱃지 두 개를 되돌리면 된다.
+ *
+ * 아래 [모델][기간][산출] 세 뱃지는 **남긴다** `[사용자 결정 2026-08-28]` — 그쪽은 AI 산출
+ * 근거라 E3가 값과 함께 노출을 요구한다.
+ */
 export function AnomalyPanel({
   summary,
   legend,
-  metrics,
 }: {
   summary: AnomalySummary;
   legend?: ReactNode;
-  metrics?: SiteMetric[];
 }) {
-  /*
-   * **KPI 타일 두 장을 뱃지로 녹였다** `[사용자 지시 2026-08-24]`.
-   *
-   * 데이터 처리율·시스템 가동률은 성과지표(원문 p.3·p.119)라 화면에 있어야 하지만,
-   * 이상 점수와 같은 크기의 타일로 세우면 세 값이 같은 무게로 읽힌다 — 지금 봐야 하는 것은
-   * 이상 점수이고 두 비율은 그 판정이 **믿을 만한 상태에서 나왔는가**를 말하는 보조값이다.
-   * 그래서 점수 덩어리 안, 게이지 바로 아래에 작은 뱃지로 둔다.
-   */
-  const metricBadges = metrics?.length ? (
-    <div className="mt-3 flex flex-wrap gap-1.5">
-      {metrics.map((m) => (
-        <Meta
-          key={m.label}
-          label={m.label}
-          value={m.hint ? `${m.value} · ${m.hint}` : m.value}
-          mono
-        />
-      ))}
-    </div>
-  ) : null;
-
   // 값이 없으면 임의 보간이나 0으로 채우지 않고 빈 상태로 둔다(E3·R19)
   if (summary.score === null || summary.level === null) {
     return (
@@ -62,8 +43,6 @@ export function AnomalyPanel({
           ECP 통신이 두절되어 이상 점수가 산출되지 않았습니다. 마지막 수신{' '}
           <span className="num">{formatDateTime(summary.computedAtIso)}</span> KST.
         </p>
-        {/* 두절일 때야말로 처리율·가동률이 필요하다 — 왜 산출되지 않았는지의 단서다 */}
-        {metricBadges && <div className="flex justify-center">{metricBadges}</div>}
       </div>
     );
   }
@@ -130,8 +109,6 @@ export function AnomalyPanel({
           </div>
 
           <AnomalyGauge score={score} className="mt-4" />
-
-          {metricBadges}
 
           {/*
            * AI 산출값은 언제·무엇을 근거로 나왔는지 함께 보여야 한다(E3).

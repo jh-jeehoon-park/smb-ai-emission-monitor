@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { GOV_MUNICIPALITY } from '@/entities/user';
 import { SITES, sitesIn } from '@/entities/site';
@@ -90,5 +90,120 @@ describe('관할 지도', () => {
     );
     expect(container.querySelector('svg')).toBeNull();
     expect(screen.getByText(/0개소는 오류가 아닙니다/)).toBeInTheDocument();
+  });
+});
+
+/**
+ * **툴팁은 축척과 무관하게 같은 크기여야 한다** `[사용자 지적 2026-08-28]`.
+ *
+ * 관할 지도는 뷰박스 세로를 잘라내므로(`singleProvinceView`) 뷰박스 단위로 적은 것이
+ * 화면에서 함께 커진다 — 도형·핀·라벨은 **커져야 맞고**(확대해서 보는 중이다) 툴팁만
+ * 아니다. 실측 1.23배였다. 그래서 툴팁 안은 px으로 그리고 바깥 변환이 되돌린다.
+ *
+ * **두 자리가 같은 배율을 써야 한다.** 그리는 크기(`scale`)와 잘림을 재는 크기
+ * (`placeTooltip`에 넘기는 값)가 갈리면 상자는 제 크기로 그려지면서 가장자리 판정만
+ * 어긋난다 — 화면에서는 잘려야 할 것이 잘리지 않는 식으로 조용히 틀린다.
+ */
+describe('지도 툴팁 크기', () => {
+  /** jsdom에는 `getScreenCTM`이 없다. 뷰박스 1단위 = `perUnit` px인 지도를 흉내낸다 */
+  function withScreenScale(perUnit: number) {
+    const proto = SVGSVGElement.prototype as unknown as { getScreenCTM?: () => { a: number } };
+    const had = 'getScreenCTM' in proto;
+    proto.getScreenCTM = () => ({ a: perUnit });
+    return () => {
+      if (!had) delete proto.getScreenCTM;
+    };
+  }
+
+  function tooltipOf(container: HTMLElement) {
+    const box = container.querySelector('foreignObject');
+    return { box, group: box?.parentElement ?? null };
+  }
+
+  async function hoverFirstPin(container: HTMLElement) {
+    const pin = container.querySelectorAll<SVGGElement>('g[role="button"]')[0]!;
+    await act(async () => {
+      pin.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+    });
+  }
+
+  it('확대된 지도에서 안쪽을 배율만큼 되돌린다', async () => {
+    const restore = withScreenScale(2);
+    try {
+      const { container } = renderJurisdiction();
+      await hoverFirstPin(container);
+
+      const { box, group } = tooltipOf(container);
+      expect(box).not.toBeNull();
+      /* 1단위 = 2px이므로 안쪽은 0.5배로 줄여야 화면에서 px 그대로가 된다 */
+      expect(group!.getAttribute('transform')).toContain('scale(0.5)');
+    } finally {
+      restore();
+    }
+  });
+
+  /**
+   * 안쪽 상자는 **px 그대로**다 — 여기까지 배율을 먹이면 두 번 줄어든다.
+   * 배율이 달라도 이 값이 같아야 한다는 것이 "안은 px으로 그린다"의 뜻이다.
+   */
+  it('안쪽 상자 크기는 배율이 달라져도 같다', async () => {
+    const sizes: string[] = [];
+    for (const perUnit of [1, 2]) {
+      const restore = withScreenScale(perUnit);
+      try {
+        const { container, unmount } = renderJurisdiction();
+        await hoverFirstPin(container);
+        const { box } = tooltipOf(container);
+        sizes.push(`${box!.getAttribute('width')}x${box!.getAttribute('height')}`);
+        unmount();
+      } finally {
+        restore();
+      }
+    }
+    expect(sizes[0]).toBe(sizes[1]);
+  });
+
+  /**
+   * **그리는 크기와 잘림을 재는 크기가 같은 배율을 써야 한다.** 갈리면 상자는 제 크기로
+   * 그려지면서 가장자리 판정만 어긋난다 — 화면에서 티가 안 나는 종류의 오류다.
+   *
+   * 상자가 절반 높이가 되면 핀 위에 놓이는 자리도 그만큼 **내려온다**. 그 이동이 없으면
+   * 자리 계산이 옛 크기를 보고 있다는 뜻이다.
+   */
+  it('잘림을 재는 크기도 같은 배율을 쓴다', async () => {
+    const at = async (perUnit: number) => {
+      const restore = withScreenScale(perUnit);
+      try {
+        const { container, unmount } = renderJurisdiction();
+        await hoverFirstPin(container);
+        const { box, group } = tooltipOf(container);
+        const [x, y] = group!
+          .getAttribute('transform')!
+          .match(/translate\(([-\d.]+) ([-\d.]+)\)/)!
+          .slice(1)
+          .map(Number) as [number, number];
+        const size = {
+          w: Number(box!.getAttribute('width')),
+          h: Number(box!.getAttribute('height')),
+        };
+        unmount();
+        return { x, y, ...size };
+      } finally {
+        restore();
+      }
+    };
+
+    const full = await at(1);
+    const half = await at(2);
+
+    expect(half.y - full.y).toBeCloseTo(full.h / 2, 6);
+    expect(half.x - full.x).toBeCloseTo(full.w / 4, 6);
+  });
+
+  /** 잴 수 없는 곳(서버·구형)에서는 되돌리지 않는다 — 오늘과 같은 그림이 된다 */
+  it('배율을 잴 수 없으면 1배로 둔다', async () => {
+    const { container } = renderJurisdiction();
+    await hoverFirstPin(container);
+    expect(tooltipOf(container).group!.getAttribute('transform')).toContain('scale(1)');
   });
 });

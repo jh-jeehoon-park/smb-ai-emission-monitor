@@ -5,6 +5,7 @@ import { MEASUREMENT_ITEMS } from '@/shared/config/measurement';
 import { downloadCsv } from '@/shared/lib/csv';
 import { formatClock, formatValue } from '@/shared/lib/format';
 import { Panel } from '@/shared/ui/panel';
+import { InfoTip } from '@/shared/ui/tooltip';
 import { SegmentedControl } from '@/shared/ui/segmented-control';
 import { TABLE_HEAD_CELL, TABLE_HEAD_ROW, TABLE_ROOT, TABLE_ROW } from '@/shared/ui/table';
 import {
@@ -67,6 +68,12 @@ export function BucketReportPanel({
   return (
     <Panel
       title="구간별 집계"
+      titleAside={
+        <InfoTip
+          label="무엇을 어떻게 세는가"
+          content={`구간마다 ${STAT_LABELS[stat]}을 냅니다. 결측은 계산에서 빼고 건수로만 세며, 구간 전체가 결측이면 수신 없음입니다 — 0으로 채우면 값 자체가 거짓이 됩니다. 일·월 집계는 없습니다 — 시연 데이터의 축적 구간이 ${WINDOW_HOURS}시간이라 [원문 p.65] 일 단위로 묶으면 한 행뿐이고 월은 만들 수 없습니다. 이력이 쌓이면 단위만 더하면 됩니다.`}
+        />
+      }
       action={
         <div className="flex flex-wrap items-center gap-2">
           <SegmentedControl
@@ -98,13 +105,6 @@ export function BucketReportPanel({
       }
     >
       <BucketTable rows={rows} codes={codes} stat={stat} />
-      <p className="max-w-[80ch] border-t border-border py-2.5 text-[12px] leading-relaxed text-fg-subtle">
-        구간마다 {STAT_LABELS[stat]}을 냅니다. 결측은 계산에서 빼고 건수로만 세며, 구간 전체가
-        결측이면 <strong className="text-fg-muted">수신 없음</strong>입니다 — 0으로 채우면 값
-        자체가 거짓이 됩니다. <strong className="text-fg-muted">일·월 집계는 없습니다</strong> —
-        시연 데이터의 축적 구간이 {WINDOW_HOURS}시간이라 [원문 p.65] 일 단위로 묶으면 한 행뿐이고
-        월은 만들 수 없습니다. 이력이 쌓이면 단위만 더하면 됩니다.
-      </p>
     </Panel>
   );
 }

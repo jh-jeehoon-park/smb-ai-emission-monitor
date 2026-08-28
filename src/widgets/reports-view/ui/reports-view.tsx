@@ -105,6 +105,13 @@ export function ReportsView() {
       <Panel
         /* 한 줄짜리를 `사업장별`이라 부르면 거짓이 된다 — 관할도 여러 곳이라 `사업장별`이 맞다 */
         title={rows.length === 1 ? '배출 집계' : '사업장별 배출 집계'}
+        /* 무엇을 기준으로 센 값인지 적지 않으면 방류 열이 이상 점수까지 걸렀다고 읽힌다 */
+        titleAside={
+          <InfoTip
+            label="무엇을 기준으로 센 값인가"
+            content="이상 점수 통계는 전 구간 기준입니다 — 방류 여부로 거르지 않습니다. 이상 점수는 배출 수질이 아니라 공정 이상도이고, 방류하지 않는 동안에도 설비는 돌기 때문입니다. 방류 시간은 수신된 표본에서만 세므로 결측이 있는 사업장은 그만큼 적게 잡힙니다."
+          />
+        }
         action={
           <div className="flex flex-wrap items-center gap-2">
             {/* 사업장은 자사 1개소뿐이라 고를 것이 없다 */}
@@ -134,14 +141,6 @@ export function ReportsView() {
         }
       >
         <ReportTable rows={rows} />
-
-        {/* 무엇을 기준으로 센 값인지 적지 않으면 방류 열이 이상 점수까지 걸렀다고 읽힌다 */}
-        <p className="border-t border-border py-2 text-[12px] leading-relaxed text-fg-subtle">
-          이상 점수 통계는 <strong className="text-fg-muted">전 구간 기준</strong>입니다 — 방류
-          여부로 거르지 않습니다. 이상 점수는 배출 수질이 아니라 공정 이상도이고, 방류하지 않는
-          동안에도 설비는 돌기 때문입니다. 방류 시간은 <strong className="text-fg-muted">수신된
-          표본</strong>에서만 세므로 결측이 있는 사업장은 그만큼 적게 잡힙니다.
-        </p>
       </Panel>
 
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
@@ -194,6 +193,12 @@ export function ReportsView() {
        */}
       <Panel
         title="센서 값 기간 통계"
+        titleAside={
+          <InfoTip
+            label="결측과 기준 판정을 다루는 법"
+            content={`결측은 평균에서 빼고 건수로만 셉니다 — 0으로 채우면 값 자체가 거짓이 됩니다. 기준 판정은 최신값 기준입니다(평균으로 하면 한때의 초과가 묻힙니다). ${limits.unresolvedReason ?? '기준치가 설정되어 초과를 판정합니다.'}`}
+          />
+        }
         action={
           <button
             type="button"
@@ -206,11 +211,6 @@ export function ReportsView() {
         }
       >
         <SensorTable rows={sensors} />
-        <p className="border-t border-border py-2 text-[12px] leading-relaxed text-fg-subtle">
-          결측은 평균에서 빼고 건수로만 셉니다 — 0으로 채우면 값 자체가 거짓이 됩니다. 기준
-          판정은 <strong className="text-fg-muted">최신값</strong> 기준입니다(평균으로 하면
-          한때의 초과가 묻힙니다). {limits.unresolvedReason ?? '기준치가 설정되어 초과를 판정합니다.'}
-        </p>
       </Panel>
 
       {/*

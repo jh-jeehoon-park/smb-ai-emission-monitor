@@ -202,7 +202,18 @@ function StageDetail({
   const { stage } = resolved;
 
   return (
-    <Panel title={stage.name}>
+    <Panel
+      title={stage.name}
+      /* 계측하지 않는 단계는 그 사실이 결함으로 읽히지 않게 이유를 함께 둔다 */
+      titleAside={
+        stage.grade === 'none' ? (
+          <InfoTip
+            label="이 단계를 계측하지 않는 이유"
+            content="전처리·침전 구간에 계측기가 적은 것은 이 시스템의 한계가 아니라 업계 표준입니다 — 계측은 제어가 필요한 곳과 법이 요구하는 곳에 몰립니다."
+          />
+        ) : undefined
+      }
+    >
       <p className="text-[12px] text-fg-muted">{stage.units.join(' · ')}</p>
 
       {/*
@@ -260,9 +271,8 @@ function StageDetail({
       )}
 
       {stage.grade === 'none' && (
-        <p className="mt-3 rounded-nested bg-surface-2 px-2.5 py-2 text-[12px] leading-relaxed text-fg-subtle">
-          이 단계는 계측하지 않습니다. 전처리·침전 구간에 계측기가 적은 것은 이 시스템의 한계가
-          아니라 업계 표준입니다 — 계측은 제어가 필요한 곳과 법이 요구하는 곳에 몰립니다.
+        <p className="mt-3 rounded-nested bg-surface-2 px-2.5 py-2 text-[12px] text-fg-subtle">
+          이 단계는 계측하지 않습니다.
         </p>
       )}
     </Panel>

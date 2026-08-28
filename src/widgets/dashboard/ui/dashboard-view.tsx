@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from 'react';
 import { DEMO_NOW_ISO } from '@/shared/config/demo';
-import { PROVISIONAL_DISPLAY_DECIMALS } from '@/shared/config/provisional';
 import { isOverLimit } from '@/shared/config/discharge-limits';
 import { STATUS_VISUAL, statusInk } from '@/shared/config/status-visual';
 import { DISPLAY_TIMEZONE, formatDateTime } from '@/shared/lib/format';
@@ -46,7 +45,7 @@ import { AlarmList } from '@/widgets/alarm-list';
 import { AnomalyPanel } from '@/widgets/anomaly-panel';
 import { AnomalyTimeline } from '@/widgets/anomaly-timeline';
 import { EquipmentPanel } from '@/widgets/equipment-panel';
-import { ForecastChart } from '@/widgets/forecast-chart';
+import { FORECAST_HORIZON_NOTE, ForecastChart } from '@/widgets/forecast-chart';
 import { SiteMapLegend, SiteMapPanel } from '@/widgets/site-map';
 import { SiteWallboard } from '@/widgets/site-wallboard';
 import { useDischargeLimits } from '@/features/discharge-limit-settings';
@@ -177,19 +176,6 @@ export function DashboardView() {
                 <AnomalyPanel
                   summary={detail.anomalySummary}
                   legend={<AnomalyBandLegend />}
-                  /* 목표치를 함께 적는다 — 98%·95%가 원문 성과지표라 값만 두면 근거가 사라진다 */
-                  metrics={[
-                    {
-                      label: '데이터 처리율',
-                      value: `${site.dataThroughput.toFixed(PROVISIONAL_DISPLAY_DECIMALS.dataThroughput)}%`,
-                      hint: '목표 98%',
-                    },
-                    {
-                      label: '시스템 가동률',
-                      value: `${site.uptime.toFixed(PROVISIONAL_DISPLAY_DECIMALS.uptime)}%`,
-                      hint: '목표 95%',
-                    },
-                  ]}
                 />
                 <AnomalyTimeline data={detail.anomalySeries} outage={detail.outage} />
               </div>
@@ -232,8 +218,8 @@ export function DashboardView() {
                   label="이 예측의 산출 근거"
                   content={
                     detail.forecast.online
-                      ? `산출 ${formatDateTime(detail.forecast.computedAtIso)} ${DISPLAY_TIMEZONE} · 입력 대상 기간 ${detail.forecast.inputWindowLabel}`
-                      : '통신이 두절되어 산출이 중단되었습니다.'
+                      ? `산출 ${formatDateTime(detail.forecast.computedAtIso)} ${DISPLAY_TIMEZONE} · 입력 대상 기간 ${detail.forecast.inputWindowLabel}. ${FORECAST_HORIZON_NOTE}`
+                      : `통신이 두절되어 산출이 중단되었습니다. ${FORECAST_HORIZON_NOTE}`
                   }
                 />
               }
