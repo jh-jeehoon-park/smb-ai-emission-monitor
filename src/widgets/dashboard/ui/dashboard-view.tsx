@@ -115,7 +115,7 @@ export function DashboardView() {
               건
             </span>
             {priorityBreakdown && <span className="text-fg-subtle">{priorityBreakdown}</span>}
-            <DetailLink href={withSite('/alarms')} label="알람 이력으로 이동" />
+            <DetailLink href={withSite('/alarms')} label="알람 이력으로 이동" text="전체 보기" />
           </div>
         }
       >
@@ -411,17 +411,32 @@ const MODAL_PRIORITY_CHIP: Record<AlarmPriority, string> = {
 };
 
 /**
- * 카드 머리의 상세 이동 링크. 보이는 글자는 `상세 보기` 하나로 통일한다 —
- * 목적지는 `aria-label`이 적는다(짧은 글자·아이콘만으로는 링크 이름이 서지 않는다).
+ * 카드 머리의 이동 링크. 목적지는 `aria-label`이 적는다 — 짧은 글자·아이콘만으로는
+ * 링크 이름이 서지 않는다.
+ *
+ * **보이는 글자는 기본이 `상세 보기`이고 한 자리만 다르다** `[사용자 확인 2026-08-31]`.
+ * §8이 문구를 통일하라는 이유는 *"카드마다 문구가 다르면 같은 동작이 여러 개로 읽힌다"*
+ * 인데, 뒤집으면 **동작이 다르면 문구도 달라야 한다.** 넷은 «고른 사업장을 그 주제로 더
+ * 자세히»(계측→시계열·예측→오염도·설비→설비 이상 탐지·판정→이상 탐지)이고, `사업장 현황
+ * 요약` 머리의 하나만 **«전 사업장 알람을 전부»** 라 축이 다르다 — 패널 이름도 `요약`이라
+ * 그 반대는 `전체`다. 알람 모달의 `이력 전체 보기`가 같은 목적지로 가며 이미 그 말을 쓴다.
  */
-function DetailLink({ href, label }: { href: string; label: string }) {
+function DetailLink({
+  href,
+  label,
+  text = '상세 보기',
+}: {
+  href: string;
+  label: string;
+  text?: string;
+}) {
   return (
     <Link
       href={href}
       aria-label={label}
       className="flex shrink-0 cursor-pointer items-center gap-0.5 rounded-chip py-0.5 pl-1.5 pr-0.5 text-[12px] text-fg-subtle transition-colors duration-200 hover:bg-accent-weak hover:text-accent"
     >
-      <span className="hidden sm:inline">상세 보기</span>
+      <span className="hidden sm:inline">{text}</span>
       <ChevronRight aria-hidden size={16} strokeWidth={2} />
     </Link>
   );

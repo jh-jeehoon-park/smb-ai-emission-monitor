@@ -139,14 +139,24 @@ export function AnomalyPanel({
                   <div className="mb-1.5 flex items-center justify-between gap-2">
                     <span className="flex min-w-0 items-center gap-1.5 text-[12px] text-fg-muted">
                       {/* 도형 문자(▲▼)를 아이콘으로 바꾼다 — 폰트마다 크기·기준선이 달라 글자와 어긋났다 */}
+                      {/*
+                       * **방향은 화살표 모양이 나르고 색은 등급 하나뿐이다**
+                       * `[사용자 지적 2026-08-31]`. 하강 기여를 `--actual`로 칠하던 판본은
+                       * 아래 범례(정상·주의·경고·위험 네 색)에 없는 **다섯 번째 색**을
+                       * 화면에 세웠다 — 안동 염색 1공장은 `DO 용존산소`가 하강이라 초록 막대
+                       * 넷 사이에 파란 막대가 하나 섰다.
+                       *
+                       * 게다가 `--actual`은 **그래프 실측 계열색**이다(§8 `그래프 색`) —
+                       * 다른 모든 차트에서 «실측»을 뜻하는 색을 여기서만 «하강»으로 쓰면
+                       * 같은 색이 화면마다 다른 것을 말한다. 방향은 `TrendingUp`/`TrendingDown`
+                       * 모양과 `sr-only` 문구가 이미 나른다(§3.1이 그렇게 규정한다).
+                       */}
                       <Arrow
                         aria-hidden
                         size={13}
                         strokeWidth={2.2}
                         className="shrink-0"
-                        style={{
-                          color: up ? statusInk(visual) : 'var(--actual)',
-                        }}
+                        style={{ color: statusInk(visual) }}
                       />
                       <span className="truncate">{c.label}</span>
                       <span className="sr-only">{up ? '상승 기여' : '하강 기여'}</span>
@@ -155,10 +165,14 @@ export function AnomalyPanel({
                       {(c.weight * 100).toFixed(PROVISIONAL_DISPLAY_DECIMALS.contributionPercent)}%
                     </span>
                   </div>
-                  {/* 막대는 공용 부품이다 — 운영 최적화의 주입량·운전 조건 막대가 같은 것을 쓴다 */}
+                  {/*
+                   * 막대는 공용 부품이다 — 운영 최적화의 주입량·운전 조건 막대가 같은 것을 쓴다.
+                   * **다섯 막대가 한 색이다**: 길이가 «얼마나 기여했는가»를 말하는데 색이 둘이면
+                   * 길이 비교가 두 무리로 갈린다. 방향은 위 화살표가 나른다.
+                   */}
                   <MeterBar
                     percent={c.weight * 100}
-                    color={up ? visual.hex : 'var(--actual)'}
+                    color={visual.hex}
                     delay={0.1 + i * 0.06}
                   />
                 </li>
