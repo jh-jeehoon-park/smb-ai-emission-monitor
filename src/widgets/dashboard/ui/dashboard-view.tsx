@@ -56,7 +56,11 @@ import { StatusBadge } from '@/shared/ui/status-badge';
 import { VALUE_LG } from '@/shared/ui/type-scale';
 
 export function DashboardView() {
-  const { siteId: selectedSiteId, setSiteId: setSelectedSiteId } = useSelectedSiteId();
+  const {
+    siteId: selectedSiteId,
+    setSiteId: setSelectedSiteId,
+    chosen: siteChosen,
+  } = useSelectedSiteId();
   const withSite = useSiteHref();
   /* 선택(상세 대상)과 다른 축이다 — 알람만 열고 닫는다 */
   const [alarmSiteId, setAlarmSiteId] = useState<string | null>(null);
@@ -164,7 +168,13 @@ export function DashboardView() {
             /* flex 자식의 자동 최소 높이는 내용 높이다 — 잠그지 않으면 카드 밖으로 밀린다 */
             bodyClassName="min-h-0"
           >
-            <SiteMapPanel sites={SITES} selectedId={selectedSiteId} onSelect={setSelectedSiteId} />
+            {/* 새로고침해도 고른 사업장의 시도로 남아 있게 한다 — 상세는 `SiteMap`의 `siteChosen` */}
+            <SiteMapPanel
+              sites={SITES}
+              selectedId={selectedSiteId}
+              onSelect={setSelectedSiteId}
+              siteChosen={siteChosen}
+            />
           </Panel>
 
           <div className="@container min-w-0 space-y-6">

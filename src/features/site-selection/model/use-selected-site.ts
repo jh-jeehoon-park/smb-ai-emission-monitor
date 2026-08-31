@@ -8,9 +8,22 @@ import { SITE_QUERY_KEY } from '../config/constants';
 
 const SITE_IDS = SITES.map((site) => site.id);
 
-export function useSelectedSiteId(): { siteId: string; setSiteId: (next: string) => void } {
+export function useSelectedSiteId(): {
+  siteId: string;
+  setSiteId: (next: string) => void;
+  /**
+   * **주소가 사업장을 지목하고 있는가.** 기본값으로 떨어진 것과 사용자가 고른 것을 가른다.
+   *
+   * `siteId`만으로는 둘을 구분할 수 없다 — 고르지 않아도 `DEFAULT_SITE_ID`가 들어온다.
+   * 지도가 «첫 방문이면 전국을 보인다»를 판단할 때 이 값이 필요하다: 새로고침한 뒤에도
+   * 고른 사업장이 주소에 남아 있는데, 그것을 첫 방문으로 보면 확대가 풀린다.
+   */
+  chosen: boolean;
+} {
   const [siteId, setSiteId] = useQueryState(SITE_QUERY_KEY, SITE_IDS, DEFAULT_SITE_ID);
-  return { siteId, setSiteId };
+  const params = useSearchParams();
+  const raw = params.get(SITE_QUERY_KEY);
+  return { siteId, setSiteId, chosen: raw !== null && SITE_IDS.includes(raw) };
 }
 
 /**

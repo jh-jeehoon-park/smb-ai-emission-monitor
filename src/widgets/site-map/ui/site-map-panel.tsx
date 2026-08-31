@@ -11,6 +11,8 @@ interface SiteMapPanelProps {
   onSelect: (id: string) => void;
   /** 주면 그 관할 하나만 그린다. 상세는 `SiteMap`의 같은 프롭 주석 */
   municipality?: string;
+  /** 주소가 사업장을 지목한 채 들어왔는가. 상세는 `SiteMap`의 같은 프롭 주석 */
+  siteChosen?: boolean;
 }
 
 /**
@@ -76,13 +78,20 @@ export function SiteMapLegend({ density = true }: { density?: boolean } = {}) {
  * 더 크게 보이고, 핀 위치 주석(`시·군까지만 지정`)은 근거라 화면 문서가 갖는다.
  * 그만큼 지도가 위아래 여백 안에서 커지고, 카드 높이가 선택에 따라 흔들리지 않는다.
  */
-export function SiteMapPanel({ sites, selectedId, onSelect, municipality }: SiteMapPanelProps) {
+export function SiteMapPanel({
+  sites,
+  selectedId,
+  onSelect,
+  municipality,
+  siteChosen,
+}: SiteMapPanelProps) {
   return (
     <SiteMap
       sites={sites}
       selectedId={selectedId}
       onSelect={onSelect}
       municipality={municipality}
+      siteChosen={siteChosen}
     />
   );
 }

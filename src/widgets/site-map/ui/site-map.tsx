@@ -55,6 +55,12 @@ interface SiteMapProps {
    * 확대 상한(`MAX_MAP_ZOOM` 3) 안에 든다.
    */
   municipality?: string;
+  /**
+   * **주소가 사업장을 지목한 채 들어왔는가.** 아래 `initialSiteId`가 읽는다.
+   *
+   * 없으면 «고르지 않고 들어왔다»로 본다 — 기본값이므로 전국을 보인다.
+   */
+  siteChosen?: boolean;
 }
 
 /**
@@ -133,7 +139,13 @@ function pinFillId(prefix: string, level: StatusLevel | null): string {
   return `${prefix}-pin-${level ?? 'missing'}`;
 }
 
-export function SiteMap({ sites, selectedId, onSelect, municipality }: SiteMapProps) {
+export function SiteMap({
+  sites,
+  selectedId,
+  onSelect,
+  municipality,
+  siteChosen = false,
+}: SiteMapProps) {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [hoveredProvince, setHoveredProvince] = useState<string | null>(null);
   /**
@@ -185,7 +197,18 @@ export function SiteMap({ sites, selectedId, onSelect, municipality }: SiteMapPr
    */
   /* 그라데이션·필터 id는 문서 전역이라 지도가 두 곳에 놓여도 겹치지 않게 접두사를 받는다 */
   const gradientPrefix = `map-${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
-  const [initialSiteId] = useState(selectedId);
+  /*
+   * **고른 적 없이 들어왔을 때만 전국으로 연다.**
+   *
+   * 한때 이 값이 그냥 `selectedId`였는데, 그러면 **새로고침이 확대를 푼다** —
+   * 주소에 남은 `?site=`가 마운트 시점의 값이 되어 «첫 방문»으로 읽혔다
+   * `[사용자 지적 2026-08-31]`. 사업장을 골라 두고 새로고침하면 탭은 그대로인데 지도만
+   * 전국으로 돌아갔다.
+   *
+   * 위 규칙이 말하는 «처음»은 **아무것도 고르지 않은 첫 방문**이다. 골라서 주소에 남긴
+   * 것은 첫 방문이 아니다 — `null`을 넣어 아래 비교가 성립하지 않게 한다.
+   */
+  const [initialSiteId] = useState<string | null>(siteChosen ? null : selectedId);
   const [zoomOverride, setZoomOverride] = useState<{
     province: string | null;
     forSite: string;
