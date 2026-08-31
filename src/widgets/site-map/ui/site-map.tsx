@@ -56,9 +56,10 @@ interface SiteMapProps {
    */
   municipality?: string;
   /**
-   * **주소가 사업장을 지목한 채 들어왔는가.** 아래 `initialSiteId`가 읽는다.
+   * **주소가 지금 사업장을 지목하고 있는가.** 아래 `autoProvince`가 읽는다.
    *
-   * 없으면 «고르지 않고 들어왔다»로 본다 — 기본값이므로 전국을 보인다.
+   * 마운트 시점이 아니라 **매 렌더의 값**이다 — 고르면 참이 되고 그 뒤로 거짓이 되지 않으므로
+   * «아직 고른 적 없음»과 같은 뜻이 된다. 없으면 거짓으로 보고 전국을 보인다.
    */
   siteChosen?: boolean;
 }
@@ -178,46 +179,39 @@ export function SiteMap({
    */
   const svgRef = useRef<SVGSVGElement>(null);
   const screenUnit = useScreenUnit(svgRef, viewBox);
+  /* 그라데이션·필터 id는 문서 전역이라 지도가 두 곳에 놓여도 겹치지 않게 접두사를 받는다 */
+  const gradientPrefix = `map-${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
+
   /**
    * **처음 보이는 것은 남한 전체다** `[사용자 지시 2026-08-24]`. 화면에 들어온 순간 어느 한
    * 시도로 확대돼 있으면 나머지 9개소가 화면 밖이라 "전 사업장 관제"가 성립하지 않는다.
    *
-   * 그다음부터는 **탭으로 사업장을 바꿀 때 그 시도로 옮긴다** — 전국 축척에서는 핀 하나의
-   * 색만 달라져 어디를 골랐는지 눈으로 찾아야 했다.
+   * 그다음부터는 **사업장을 바꿀 때 그 시도로 옮긴다** — 전국 축척에서는 핀 하나의 색만
+   * 달라져 어디를 골랐는지 눈으로 찾아야 했다.
+   *
+   * **«처음»을 마운트 시점에 붙잡지 않는다.** 한때 들어온 순간의 사업장을 `useState`로 들고
+   * 그것과 같으면 전국으로 봤는데, **기본 사업장으로 되돌아오는 것**까지 첫 방문으로 읽혔다
+   * `[사용자 지적 2026-08-31]` — 다른 곳을 눌렀다가 구미를 다시 누르면 확대가 풀렸다.
+   *
+   * 고른 적이 있는지는 **주소가 이미 답한다**: 핀이든 탭이든 무엇을 누르면 `?site=`가 박히고
+   * 다시 지워지지 않는다. 마운트 값이 아니라 지금 값을 읽으면 새로고침(주소에 남아 있음)과
+   * 첫 방문(비어 있음)도 같은 한 줄로 갈린다.
    *
    * **effect로 맞추지 않고 파생시킨다.** 선택이 바뀔 때 `setState`를 부르면 렌더가 한 번 더
-   * 돌고(그 사이 한 프레임은 옛 축척이다) 린트도 막는다. 대신 두 가지만 들고 나머지는 계산한다 —
-   * ① 처음 들어왔을 때의 사업장(`initialSiteRef`) ② 직접 누른 확대(`zoomOverride`).
-   * 직접 누른 확대에는 **어느 사업장을 보던 중이었는지**를 함께 적어, 사업장이 바뀌면 그 기록이
-   * 처음 값은 `useRef`가 아니라 `useState`로 붙잡는다 — 렌더 중에 ref를 읽으면 React가
-   * 렌더를 순수하지 않다고 본다(린트도 막는다).
+   * 돌고 그 사이 한 프레임이 옛 축척이다(린트도 막는다). 들고 있는 것은 **직접 누른 확대**
+   * 하나뿐이고, 거기에 **어느 사업장을 보던 중이었는지**를 함께 적어 사업장이 바뀌면 그 기록이
    * 저절로 무효가 된다.
    *
    * 확대는 화면을 보는 방식일 뿐 데이터 조건이 아니라 URL에 담지 않는다.
    */
-  /* 그라데이션·필터 id는 문서 전역이라 지도가 두 곳에 놓여도 겹치지 않게 접두사를 받는다 */
-  const gradientPrefix = `map-${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
-  /*
-   * **고른 적 없이 들어왔을 때만 전국으로 연다.**
-   *
-   * 한때 이 값이 그냥 `selectedId`였는데, 그러면 **새로고침이 확대를 푼다** —
-   * 주소에 남은 `?site=`가 마운트 시점의 값이 되어 «첫 방문»으로 읽혔다
-   * `[사용자 지적 2026-08-31]`. 사업장을 골라 두고 새로고침하면 탭은 그대로인데 지도만
-   * 전국으로 돌아갔다.
-   *
-   * 위 규칙이 말하는 «처음»은 **아무것도 고르지 않은 첫 방문**이다. 골라서 주소에 남긴
-   * 것은 첫 방문이 아니다 — `null`을 넣어 아래 비교가 성립하지 않게 한다.
-   */
-  const [initialSiteId] = useState<string | null>(siteChosen ? null : selectedId);
   const [zoomOverride, setZoomOverride] = useState<{
     province: string | null;
     forSite: string;
   } | null>(null);
 
-  const autoProvince =
-    selectedId === initialSiteId
-      ? null
-      : (sites.find((site) => site.id === selectedId)?.province ?? null);
+  const autoProvince = siteChosen
+    ? (sites.find((site) => site.id === selectedId)?.province ?? null)
+    : null;
   const focusedProvince =
     zoomOverride && zoomOverride.forSite === selectedId ? zoomOverride.province : autoProvince;
   const setFocusedProvince = (province: string | null) =>

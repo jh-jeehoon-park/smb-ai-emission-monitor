@@ -58,8 +58,14 @@ export function useAnimatedFocus(target: MapFocus): MapFocus {
     let raf = 0;
     const start = performance.now();
 
+    /*
+     * **아래를 함께 막는다.** 한때 `Math.min(1, …)`만 있었는데, 프레임 시각(`now`)이 출발
+     * 시각(`performance.now()`)보다 **앞설 수 있다** — 두 값의 기준이 어긋나면 `t`가 음수가
+     * 되고, `easeOut`이 그것을 −2 언저리까지 키워 `lerp`가 **범위 밖으로 나간다.**
+     * 실제로 jsdom에서 축척이 −0.49가 나왔다: 배율이 음수면 지도가 뒤집힌다.
+     */
     const tick = (now: number) => {
-      const t = duration <= 0 ? 1 : Math.min(1, (now - start) / duration);
+      const t = duration <= 0 ? 1 : Math.min(1, Math.max(0, (now - start) / duration));
       const e = easeOut(t);
       setCurrent({
         scale: lerp(from.scale, target.scale, e),
