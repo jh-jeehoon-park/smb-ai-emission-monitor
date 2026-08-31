@@ -123,6 +123,17 @@ export function DashboardView() {
           sites={SITES}
           onCardClick={setAlarmSiteId}
           hasPopup
+          /*
+           * **훑다가 한 곳으로 바로 들어가는 길** `[사용자 요청 2026-08-31]`.
+           *
+           * 여기까지는 사업장 상세로 가려면 두 번 눌러야 했다 — 핀·탭으로 고르고, 구역 머리의
+           * `상세 보기`를 다시 누른다. 그 링크는 이 화면에 여섯 개인 같은 모양의 칩 중 하나라
+           * 눈에도 띄지 않았다. 카드에서 한 번에 가면 월보드가 원래 하겠다고 적어 둔 일
+           * (**전체를 훑고 이상한 곳으로 바로 들어간다**)이 실제로 된다.
+           *
+           * **카드 본체는 그대로 알람 모달이다** — 여기서 뺏으면 요청하지 않은 것이 바뀐다(A2).
+           */
+          detailHref={(s) => withSite('/overview', s.id)}
           cardLabel={(s) => `${s.name} 미확인 알람 ${alarmCounts[s.id] ?? 0}건 보기`}
           renderFooter={(s) => (
             <span className="text-[12px] text-fg-subtle">
@@ -134,6 +145,14 @@ export function DashboardView() {
 
       <section className="space-y-3 rounded-panel border border-card-border bg-section-bg p-4 lg:p-5">
         <StickyBar>
+          {/*
+           * **여기 있던 `상세 보기`를 걷었다** `[사용자 요청 2026-08-31]`.
+           *
+           * 2026-08-28에 넣은 «사업장 축의 입구»였다 — 다른 `상세 보기` 다섯이 주제별로 흩어
+           * 보내는데(계측→시계열…) 고른 사업장 하나를 통째로 볼 곳이 없어서였다. 그 자리를
+           * **월보드 카드의 상세 칸**이 물려받았고(위 `detailHref`), 카드에서는 고르지 않고
+           * 한 번에 간다 — 두 입구를 남기면 같은 목적지가 화면에 둘이 된다.
+           */}
           <div className="flex items-center gap-1.5">
             <h2 className="text-[16px] font-bold leading-tight tracking-tight text-fg">
               선택 사업장 현황
@@ -142,12 +161,6 @@ export function DashboardView() {
               label="이 구역의 범위"
               content="탭으로 고른 한 개소의 이상 판정·계측·예측·설비 상태를 모아 봅니다."
             />
-            {/*
-             * **사업장 축의 입구다** `[사용자 요청 2026-08-28]`. 이 화면의 다른 `상세 보기`
-             * 다섯은 주제별로 흩어 보내는데(계측→시계열, 예측→오염도…), 고른 사업장 하나를
-             * 통째로 볼 곳이 없었다. 선택은 탭·핀이 그대로 맡고 이 링크만 화면을 옮긴다.
-             */}
-            <DetailLink href={withSite('/overview')} label={`${site.name} 사업장 상세로 이동`} />
           </div>
           <SiteTabs sites={SITES} selectedId={selectedSiteId} onSelect={setSelectedSiteId} />
         </StickyBar>
