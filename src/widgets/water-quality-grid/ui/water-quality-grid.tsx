@@ -174,7 +174,17 @@ function DiffCard({
   return (
     <div className="h-full rounded-nested bg-surface-2 p-3">
       <div className="flex items-baseline justify-between gap-2">
-        <span className="text-[12px] font-medium tracking-[0.08em] text-fg-subtle">Δ</span>
+        {/*
+         * **기호에 단위 한글을 병기한다** — 같은 격자의 다른 두 카드가 이미 그렇게 하는데
+         * 이 카드만 빠져 있었다 `[사용자 지적 2026-08-28]`. `Δ`는 항목 기호가 아니라 두 값의
+         * 차이를 뜻하므로 라벨 자리에 `spec.label`(`유입 − 유출`)이 온다.
+         */}
+        <span
+          className="text-[12px] font-medium tracking-[0.08em] text-fg-subtle"
+          title={`${spec.label} · 단위 ${item.unit || '없음'} ${item.unitKo}`}
+        >
+          Δ
+        </span>
       </div>
 
       <div className="mt-1 flex items-baseline gap-1">
