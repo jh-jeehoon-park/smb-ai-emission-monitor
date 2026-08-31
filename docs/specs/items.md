@@ -5,7 +5,7 @@
 | 항목 | 내용 |
 |------|------|
 | 문서명 | 항목 사전 |
-| 버전 | v1.5.0 |
+| 버전 | v1.6.0 |
 | 작성일 | 2026-08-20 |
 | 기반 문서 | /.claude/rules/deliverable-xlsx.rule.md, /docs/specs/README.md, /docs/specs/data-definition.md, /docs/applications/HSKorea_AI_Application_Proposal.pdf, /docs/applications/AIoT_Emission_Control_System.pdf |
 
@@ -18,6 +18,7 @@
 | v1.2.0 | 2026-08-20 | Claude | **공정 단계 6 → 5** `[회의 2026-08-20]` `[INC-110]` — 표준 공정이 5단계이고 방류는 마지막 단계의 끝이다. `PS-discharge`를 `PS-advanced`에 합쳤다. 합계 76 → 75 |
 | v1.0.0 | 2026-08-20 | Claude | 신규 작성 — 화면에 보이는 항목을 집합별로 등재. 근거를 **여기 한 번만** 쓰고 화면 문서 §3.1은 항목ID로 참조한다(`deliverable-xlsx.rule.md` §6.2). **14집합 75항목**. 작성 중 EC 표시 단위 모순을 발견해 `INC-106`으로 등록했다 |
 | v1.1.0 | 2026-08-20 | Claude | **진동 등재** `[회의 2026-08-20]` — 설비 이상 탐지의 주 입력이다. 계측 항목 13 → 14, 합계 75 → 76. 사양(단위·범위·정확도)은 계측 사양표에 없어 `[TBD-49]`로 비웠고 **값을 표시하지 않고 이상 여부만 낸다**고 적었다. `EQUIPMENT_SERIES_CODES`에는 넣지 않는다 — y축을 세울 수 없어 시계열 화면이 빈 계열을 그린다 |
+| v1.6.0 | 2026-08-28 | Claude | **계측 항목 15 → 16** — `MEAS-level`(방류 수조 수위) 등재 `[사용자 요청 2026-08-28]`. **원문에 항목은 있다** — `[원문 p.1]`의 `배출 데이터` 3종 중 하나이고 그 대분류만 화면이 없었다(`SCR-OP-011`이 채운다). **단위·범위는 없어 `[TBD-57]`을 신설**하고 시연값 `m`·0~3m를 `provisional.ts`에 두었다 — `vibration`과 달리 **값을 낸다**(수조가 차고 비는 것을 보는 화면이라 이상 여부만으로는 답이 안 된다). 합계 76 → 77 |
 | v1.5.0 | 2026-08-25 | Claude | **계측 항목 14 → 16** — `MEAS-inflow`·`MEAS-outflow` 등재 `[사용자 결정 2026-08-25]`. `flow` 하나가 화면 세 곳에서 유입·방류 두 뜻으로 쓰여 **한쪽은 틀린 주장**이었다. **단위·범위·정확도는 원문에 없어 비우고 `[TBD-52]`를 단다** — `vibration`과 같은 방식이라 계열이 없고 화면이 `계측 없음`을 적는다. 집합 정의에 `유량 3종` 한 줄 추가, 합계 75 → 77 |
 
 ---
@@ -46,7 +47,7 @@
 
 | 집합코드 | 집합 | 개수 | 단일 출처 |
 |---|---|---|---|
-| `MEAS` | 계측 항목 | 15 | `src/shared/config/measurement.ts` `MEASUREMENT_ITEMS` |
+| `MEAS` | 계측 항목 | 16 | `src/shared/config/measurement.ts` `MEASUREMENT_ITEMS` |
 | `EQ` | 설비 | 4 — **시연값** `[TBD-48]` | `src/entities/equipment/api/fixtures.ts` `EQUIPMENT_TEMPLATE` |
 | `EQM` | 설비 지표 | 5 | `src/entities/equipment/model/types.ts` |
 | `FCST` | 예측·추정 대상 | 4 | `src/entities/prediction/config/constants.ts` |
@@ -58,7 +59,7 @@
 | `LGL` | 법정 점검 항목 | 5 | `src/shared/config/discharge-limits.ts` `LEGAL_CHECK_ITEMS` |
 | `XAI` | XAI 기여 변수 | 5 | `src/entities/anomaly/api/fixtures.ts` |
 | `SITE` | 실증 사업장 | 10 | `src/shared/config/demo-scenario.ts` `SITE_SCENARIOS` |
-| | **합계** | **76** (집합 14종) | |
+| | **합계** | **77** (집합 14종) | |
 
 ---
 
@@ -80,6 +81,7 @@
 | `MEAS-power` | 전력 | P | kW | 킬로와트 | 0~100 | ±1% | 1 | `[원문 p.55]` |
 | `MEAS-flow` | 유출 유량 | Qout | m³/day | 세제곱미터/일 | 0~1,000 | ±2% | 0 | `[원문 p.55]` · **유출(방류)로 확정** `[사용자 결정 2026-08-25]` — 한때 이 계열 하나를 화면 세 곳이 유입으로도 방류로도 불러 한쪽은 틀린 주장이었다 |
 | `MEAS-inflow` | 유입 유량 | Qin | m³/day | 세제곱미터/일 | 0~1,000 | 원문 미규정 [TBD-52] | 0 | `[PM 의견 2026-08-25]` `[사용자 결정 2026-08-25]` **원문에 없다.** 들어온 양과 나간 양의 **차이가 방류 의심의 단서**라(`[TBD-46]`) 도메인 전문가가 필요하다고 짚었다. 단위는 유출과 맞춘다 |
+| `MEAS-level` | 방류 수조 수위 | LT | m | 미터 | 0~3 | 원문 미규정 [TBD-57] | 2 | **항목은 원문에 있고 사양이 없다.** `[원문 p.1]`이 `배출 데이터`를 `유량 · 수위 · 방류 여부` 3종으로 규정하고 활용 목적을 *"배출량 및 부하량 산정 기반 데이터"* 라 적는다 — `data-dictionary.md` §4.2가 사양 없음을 `[TBD]`로 등재해 두었다. **단위·범위는 `[PROVISIONAL]`** `[사용자 결정 2026-08-28]`. `[원문 p.53]`의 수위스위치 7대는 ON/OFF라 **이 수치가 아니다** |
 | `MEAS-vibration` | 진동 | Vib | **원문 미규정** | 무차원 (신호 여부만) | **원문 미규정** | 원문 미규정 | — | `[회의 2026-08-20]` 설비 이상 탐지의 주 입력 · **사양이 없다** `[TBD-49]` — 계측 사양표 `[원문 p.55]`에 없고 목표시스템 그림·출력 화면 예시에만 나온다 `[원문 발표 p.11·18 그림]` `[INC-96]`. **값을 표시하지 않고 이상 여부만 낸다** |
 | `MEAS-TN` | 총질소 | TN | mg/L | 밀리그램/리터 | 0~100 | AI 추정 | 1 | `[원문 발표 p.17]` Soft Sensing · **계측기 없이 AI로만 추정** `[사용자 확인 2026-08-19]` |
 | `MEAS-TP` | 총인 | TP | mg/L | 밀리그램/리터 | 0~20 | AI 추정 | 2 | 같음 |

@@ -79,3 +79,51 @@ describe('계측 격자의 단위 한글 병기', () => {
     expect(diff).toContain(MEASUREMENT_ITEMS.inflow.unitKo);
   });
 });
+
+/**
+ * **나가는 양이 없는 것과 «정상»은 다르다.**
+ *
+ * 이 칸의 판정 축은 방류 의심(나간 양 > 들어온 양)이라 큰 양수는 «의심 아님»이 맞다. 그런데
+ * 방류를 멈춘 구간에서는 차가 유입 전부가 되는데 그것을 `정상 범위`라 적으면 **평상시의
+ * 작은 차와 같은 말**이 된다 — 들어오기만 하고 나가지 않는 상태를 정상이라 부르는 셈이다.
+ * 유량을 방류 여부에 맞추면서 드러났고 검토에서 잡았다 `[사용자 요청 2026-08-28]`.
+ */
+describe('유입 − 유출 칸의 판정', () => {
+  function renderDiff(inflow: number | null, flow: number | null) {
+    const at = (t: string): MeasurementPoint =>
+      ({
+        t,
+        pH: null, EC: null, turbidity: null, DO: null, temperature: null,
+        chromaticity: null, NO3N: null, TOC: null, current: null, power: null,
+        inflow, flow, level: null,
+      }) as MeasurementPoint;
+    return render(
+      <WaterQualityGrid
+        data={[at('2026-08-21T00:00:00Z'), at('2026-08-21T00:05:00Z')]}
+        sections={[
+          {
+            codes: [...FLOW_SERIES_CODES],
+            diff: { of: ['inflow', 'flow'], label: '유입 − 유출' },
+          },
+        ]}
+        windowHours={24}
+      />,
+    );
+  }
+
+  it('나가는 양이 0이면 정상이라 하지 않는다', () => {
+    const { container } = renderDiff(430, 0);
+    expect(container.textContent).toContain('나가는 양 없음');
+    expect(container.textContent).not.toContain('정상 범위');
+  });
+
+  it('평상시 작은 차는 정상이다', () => {
+    const { container } = renderDiff(430, 412);
+    expect(container.textContent).toContain('정상 범위');
+  });
+
+  it('나간 양이 더 많으면 그렇게 적는다', () => {
+    const { container } = renderDiff(300, 412);
+    expect(container.textContent).toContain('나간 양이 더 많다');
+  });
+});

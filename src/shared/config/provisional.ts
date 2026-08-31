@@ -164,6 +164,8 @@ export const PROVISIONAL_DECIMALS: Record<string, number> = {
    * 빠뜨리면 `undefined`가 `number`로 통과해 조용히 `NaN`을 만들기 때문이다.
    */
   vibration: 0,
+  /** 수위는 미터라 값이 한 자릿수다 — 두 자리를 줘야 10cm 아래 변화가 보인다 */
+  level: 2,
   // TN은 TOC와 값 크기가 비슷해(십 단위 mg/L) 같은 자릿수를 쓴다. TP는 한 자릿수라 두 자리가 필요하다.
   TN: 1,
   TP: 2,
@@ -238,6 +240,22 @@ export const PROVISIONAL_MEASUREMENT_GRADE_DASH: Record<MeasurementGrade, string
  * 확정되면 이 값과 `entities/optimization`의 기준 주입량(BASE_DOSE)을 함께 교체한다.
  */
 export const PROVISIONAL_DOSING_UNIT = 'L/h';
+
+/**
+ * 방류 수조 수위의 **단위와 만수위**. `[TBD-57]` — 원문에 근거 없음.
+ *
+ * **항목 자체는 원문에 있다** — `[원문 p.1]`이 `배출 데이터` 3종을 `유량 · 수위 · 방류 여부`로
+ * 규정하고 활용 목적을 *"배출량 및 부하량 산정 기반 데이터"* 라 적는다. 그런데
+ * **단위·범위·측정 방식이 없다**(`data-dictionary.md` §4.2가 `[TBD]`로 등재해 두었다).
+ *
+ * **`[원문 p.53]`의 수위스위치 7대는 이 값이 아니다** — 스위치는 ON/OFF이고 우리가 내는 것은
+ * 수치다. 그쪽을 근거로 쓰면 없는 계측을 주장하게 된다.
+ *
+ * 시연에서는 액상 수조에 흔한 표기인 미터를 쓰고 만수위를 3m로 둔다 `[사용자 결정 2026-08-28]`.
+ * 확정되면 이 두 값만 바꾼다 — 항목 사양(`measurement.ts`)이 여기서 읽어 간다.
+ */
+export const PROVISIONAL_LEVEL_UNIT = 'm';
+export const PROVISIONAL_LEVEL_RANGE: [number, number] = [0, 3];
 
 /**
  * 방지시설 미가동 방류를 **의심으로 볼 최소 지속 시간**(표본 수).

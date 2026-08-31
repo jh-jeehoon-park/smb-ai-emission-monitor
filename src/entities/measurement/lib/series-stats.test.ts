@@ -20,6 +20,7 @@ function point(t: string, pH: number | null): MeasurementPoint {
     power: null,
     inflow: null,
     flow: null,
+    level: null,
   };
 }
 

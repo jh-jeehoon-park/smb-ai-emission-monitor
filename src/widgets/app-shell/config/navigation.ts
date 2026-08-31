@@ -5,6 +5,7 @@ import {
   Cog,
   Coins,
   Droplets,
+  Waves,
   Settings,
   ShieldCheck,
   SlidersHorizontal,
@@ -83,6 +84,15 @@ export const NAV_GROUPS: NavGroup[] = [
       { screenId: 'SCR-OP-001', href: '/', label: '통합 관제', icon: LayoutDashboard },
       /* 계측값 그대로를 보는 화면이라 AI 묶음이 아니라 관제에 둔다 */
       { screenId: 'SCR-OP-003', href: '/timeseries', label: '시계열 변화', icon: LineChart },
+      /*
+       * **맨 뒤여야 한다.** `homeHrefFor`가 메뉴에 보이는 첫 항목을 그 역할의 첫 화면으로
+       * 쓰므로, 이 항목을 묶음 앞쪽에 두면 세 역할의 홈이 여기로 딸려 온다 —
+       * `navigation.test.ts`가 그 값을 못박고 있고, 앞으로 옮겨 실제로 4건이 깨지는 것을
+       * 확인했다.
+       *
+       * 계측값을 그대로 보는 화면이라 시계열 변화와 같은 자리(관제)에 둔다.
+       */
+      { screenId: 'SCR-OP-011', href: '/discharge', label: '금일 배출 현황', icon: Waves },
     ],
   },
   {

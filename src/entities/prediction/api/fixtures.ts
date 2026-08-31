@@ -2,7 +2,12 @@ import { DEMO_NOW_ISO } from '@/shared/config/demo';
 import { COLLECTION_INTERVAL_MINUTES } from '@/shared/config/measurement';
 import { getScenario, siteSeed } from '@/shared/config/demo-scenario';
 import { createRng, roundTo } from '@/shared/lib/prng';
-import { TIMELINE_POINT_COUNT, isMissingAt, timelineIsoAt } from '@/shared/lib/timeline';
+import {
+  TIMELINE_POINT_COUNT,
+  isDischargingAt,
+  isMissingAt,
+  timelineIsoAt,
+} from '@/shared/lib/timeline';
 import {
   FLOW_FORECAST,
   FLOW_FORECAST_CODE,
@@ -80,6 +85,20 @@ function buildPoints(
   for (let i = startIndex; i < TIMELINE_POINT_COUNT; i += 1) {
     if (isMissingAt(siteId, i)) {
       points.push({ t: timelineIsoAt(i), value: null });
+      continue;
+    }
+    /*
+     * **유출 유량은 방류 여부를 따라간다** `[사용자 결정 2026-08-28]`.
+     *
+     * 이 계열은 계측 fixture와 **다른 생성기**를 쓴다(창이 짧고 프로파일이 따로다). 그래서
+     * 계측 쪽만 방류에 맞추자 **두 화면이 다른 말을 했다** — `금일 배출 현황`은 유량 0인데
+     * 오염도 추정의 유량 계열은 계속 흘렀다(E3). 판정은 `isDischargingAt` 하나이므로 여기서도
+     * 같은 것을 읽는다.
+     *
+     * **유입은 0으로 만들지 않는다** — 방류를 멈춰도 폐수는 들어온다.
+     */
+    if (profile.code === FLOW_FORECAST_CODE && isDischargingAt(siteId, i) === false) {
+      points.push({ t: timelineIsoAt(i), value: 0 });
       continue;
     }
     const progress = Math.max(0, (i - (TIMELINE_POINT_COUNT - 36)) / 36) * intensity;

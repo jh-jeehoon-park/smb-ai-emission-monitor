@@ -1,4 +1,8 @@
-import { PROVISIONAL_DECIMALS } from './provisional';
+import {
+  PROVISIONAL_DECIMALS,
+  PROVISIONAL_LEVEL_RANGE,
+  PROVISIONAL_LEVEL_UNIT,
+} from './provisional';
 
 export type MeasurementCategory = 'water' | 'equipment' | 'estimated';
 
@@ -15,6 +19,7 @@ export type MeasurementItemCode =
   | 'power'
   | 'flow'
   | 'inflow'
+  | 'level'
   | 'vibration'
   | 'TN'
   | 'TP';
@@ -222,6 +227,32 @@ export const MEASUREMENT_ITEMS: Record<MeasurementItemCode, MeasurementItem> = {
     accuracy: '원문 미규정',
     category: 'equipment',
     decimals: PROVISIONAL_DECIMALS.vibration,
+  },
+  /**
+   * 방류 수조 수위 — **원문의 `배출 데이터` 3종 중 하나** `[원문 p.1]`.
+   *
+   * 그 대분류는 `유량 · 수위 · 방류 여부`이고 활용 목적이 *"배출량 및 부하량 산정 기반
+   * 데이터"* 다. 셋 중 유량·방류 여부는 이미 화면에 있었고 **수위만 없었다**
+   * `[사용자 요청 2026-08-28]`.
+   *
+   * **단위·범위는 원문에 없다** `[TBD-57]` — `provisional.ts`가 시연값을 갖고 여기서 읽어
+   * 온다. `vibration`과 달리 **값을 낸다**: 방류 수조가 차고 비는 것을 보는 화면이라
+   * 이상 여부만으로는 답이 되지 않는다.
+   *
+   * `category`는 `equipment`다 — 원문 대분류로는 `배출 데이터`이지만 코드의 세 분류에 그
+   * 칸이 없고, 같은 대분류의 `flow`가 이미 `equipment`에 있다. 분류를 늘리기보다 **이웃과
+   * 같은 자리**에 둔다(그 어긋남은 `items.md`가 적는다).
+   */
+  level: {
+    code: 'level',
+    label: '방류 수조 수위',
+    symbol: 'LT',
+    unit: PROVISIONAL_LEVEL_UNIT,
+    unitKo: '미터',
+    range: PROVISIONAL_LEVEL_RANGE,
+    accuracy: '원문 미규정 [TBD-57]',
+    category: 'equipment',
+    decimals: PROVISIONAL_DECIMALS.level,
   },
   // TN·TP는 직접 계측 센서 사양이 원문에 없다. AI 추정(Soft Sensing) 대상이다(발표자료 p.17).
   TN: {

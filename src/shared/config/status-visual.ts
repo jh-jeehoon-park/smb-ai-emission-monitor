@@ -72,6 +72,14 @@ export const STATUS_BAND: Record<StatusLevel, string> = {
 export const OUTAGE_BAND = 'var(--band-outage)';
 
 /**
+ * **방류를 멈춘 구간**의 배경 밴드 `[사용자 요청 2026-08-28]`.
+ *
+ * 두절 밴드를 빌려 쓰지 않는다 — 그쪽은 *값을 못 받았다*이고 이쪽은 *받은 값이 0이다*라,
+ * 같은 색을 쓰면 화면이 두절이라 거짓말한다(**E4**). 그래서 더 옅다.
+ */
+export const IDLE_BAND = 'var(--band-idle)';
+
+/**
  * 격자 칸의 `정상` 채움.
  *
  * 마크 색과 배경 밴드 사이의 단이다. 히트맵은 대부분이 정상이라 마크 색으로 전부 칠하면

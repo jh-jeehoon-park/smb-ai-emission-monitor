@@ -5,6 +5,7 @@ export {
   EQUIPMENT_SERIES_CODES,
   SERIES_CODES,
   FLOW_SERIES_CODES,
+  DISCHARGE_SERIES_CODES,
   BUCKET_UNITS,
   BUCKET_MINUTES,
   BUCKET_OPTIONS,
@@ -18,7 +19,13 @@ export {
   type BucketStat,
 } from './config/constants';
 export { bucketByMinutes, sliceRecentHours, summarizeSeries } from './lib/series-stats';
-export { energyIntensity } from './lib/energy';
+export { energyGap, energyIntensity, type EnergyGap } from './lib/energy';
+export {
+  dailyDischargeVolume,
+  dailyDischargeSeries,
+  type DailyDischargeVolume,
+  type CumulativePoint,
+} from './lib/discharge-volume';
 export { windowChange, type WindowChange } from './lib/window-change';
 export { outageNotice } from './lib/outage-notice';
 export { buildBucketReport, bucketReportToCsv, type BucketRow } from './lib/bucket-report';

@@ -7,7 +7,12 @@ import { Panel } from '@/shared/ui/panel';
 import { StatTile } from '@/shared/ui/stat-tile';
 import { VALUE_LG, VALUE_MD } from '@/shared/ui/type-scale';
 import { MeterBar } from '@/shared/ui/meter-bar';
-import { energyIntensity, getMeasurementSeries, windowChange } from '@/entities/measurement';
+import {
+  energyGap,
+  energyIntensity,
+  getMeasurementSeries,
+  windowChange,
+} from '@/entities/measurement';
 import {
   CHEMICAL_SAVING_RANGE,
   DOSING_DECIMALS,
@@ -42,7 +47,8 @@ export function OptimizationView() {
       dissolvedOxygen: windowChange(series, 'DO', recentHours, baselineHours),
       flow: windowChange(series, 'flow', recentHours, baselineHours),
     };
-    return getOptimization(siteId, energyNow, signals);
+    /* 값이 없을 때 **왜 없는지**가 문구를 가른다 — 받은 0을 «계측값 없음»이라 적지 않는다 */
+    return { ...getOptimization(siteId, energyNow, signals), energyGap: energyGap(series) };
   }, [siteId]);
 
   if (!summary.online) {
@@ -109,9 +115,17 @@ export function OptimizationView() {
               ? '—'
               : `${summary.energy.target.toFixed(ENERGY_DECIMALS)}`
           }
+          /*
+           * **`계측값이 없어`라고만 적으면 틀린 경우가 있다.** 하루 종일 방류하지 않은
+           * 사업장은 계측값을 받았고 그 값이 0이다 — 나눌 방류량이 없어 값이 안 나오는
+           * 것이지 못 받은 것이 아니다. 받은 0을 못 받은 것으로 적으면 결측을 0으로 그리는
+           * 것과 같은 종류의 거짓말이 된다(**E4**) `[사용자 요청 2026-08-28]`.
+           */
           note={
             summary.energy.target === null
-              ? '계측값이 없어 산출 불가'
+              ? summary.energyGap === 'noDischarge'
+                ? '오늘 방류가 없어 나눌 배출량이 없습니다'
+                : '계측값이 없어 산출 불가'
               : `kWh/m³ · 현재 대비 −${summary.energy.savingRate}%`
           }
           accent={summary.energy.target === null ? undefined : statusInk(STATUS_VISUAL.normal)}

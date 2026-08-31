@@ -170,6 +170,15 @@ function DiffCard({
   const value = last ? (last[a] as number) - (last[b] as number) : null;
   /* 나간 양이 들어온 양을 넘으면 증발·슬러지로 설명되지 않는다 */
   const suspect = value !== null && value < 0;
+  /*
+   * **나가는 양이 아예 없으면 `정상 범위`가 아니다** `[사용자 요청 2026-08-28]`.
+   *
+   * 이 칸의 판정 축은 방류 의심(나간 양 > 들어온 양)이라 큰 양수는 «의심 아님»이 맞다.
+   * 그런데 방류를 멈춘 구간에서는 차가 유입 전부(+430 언저리)가 되는데 그것을 `정상 범위`라
+   * 적으면 **평상시의 +18과 같은 말**이 된다 — 들어오기만 하고 나가지 않는 상태를 정상이라
+   * 부르는 셈이다. 유량을 방류 여부에 맞추면서 드러났다.
+   */
+  const noOutflow = last !== undefined && last[b] === 0;
 
   return (
     <div className="h-full rounded-nested bg-surface-2 p-3">
@@ -199,7 +208,13 @@ function DiffCard({
 
       <p className="mt-0.5 truncate text-[12px] text-fg-muted">{spec.label}</p>
       <p className="mt-1 truncate text-[12px] text-fg-subtle">
-        {value === null ? '수신 없음' : suspect ? '나간 양이 더 많다' : '정상 범위'}
+        {value === null
+          ? '수신 없음'
+          : suspect
+            ? '나간 양이 더 많다'
+            : noOutflow
+              ? '나가는 양 없음'
+              : '정상 범위'}
       </p>
     </div>
   );

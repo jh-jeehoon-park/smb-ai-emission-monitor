@@ -26,7 +26,24 @@ export const EQUIPMENT_SERIES_CODES: SeriesCode[] = ['current', 'power', 'inflow
  * `MeasurementPoint`를 없는 키로 인덱싱하고 `undefined`가 조용히 흐른다. 긍정 목록은
  * 새 항목이 기본적으로 제외되므로 같은 실수가 되풀이되지 않는다.
  */
-export const SERIES_CODES: SeriesCode[] = [...WATER_SERIES_CODES, ...EQUIPMENT_SERIES_CODES];
+/**
+ * 배출 데이터에만 있는 계열 — 지금은 **수위 하나**다 `[사용자 요청 2026-08-28]`.
+ *
+ * **`EQUIPMENT_SERIES_CODES`에 넣지 않는다.** 그 배열이 시계열 화면의 `설비`·`전체` 필터를
+ * 만들므로, 넣으면 요청하지 않은 화면이 함께 바뀐다(**A2**). 계열은 여기서 갖고, 계열의
+ * 존재만 아래 `SERIES_CODES`에 합류시킨다 — `isSeriesCode`와 fixture 생성 루프가 그것을 읽는다.
+ *
+ * 같은 대분류의 유량 2종(`FLOW_SERIES_CODES`)이 여기 없는 것은 그쪽이 **이미 설비 필터에
+ * 실려 있어서**다. 대분류를 코드에서 다시 그리는 배열이 아니라, **아직 자리가 없는 것**을
+ * 담는 배열이다.
+ */
+export const DISCHARGE_SERIES_CODES: SeriesCode[] = ['level'];
+
+export const SERIES_CODES: SeriesCode[] = [
+  ...WATER_SERIES_CODES,
+  ...EQUIPMENT_SERIES_CODES,
+  ...DISCHARGE_SERIES_CODES,
+];
 
 /**
  * 유량 2종 — **들어온 양과 나간 양**. 화면은 여기에 **차**(유입−유출) 칸을 하나 더 붙인다.

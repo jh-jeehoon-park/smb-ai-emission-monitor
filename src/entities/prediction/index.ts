@@ -16,6 +16,7 @@ export { SERIES_WINDOW_HOURS } from './config/constants';
 export {
   FLOW_FORECAST,
   FLOW_FORECAST_CODE,
+  INFLOW_FORECAST_CODE,
   FORECAST_TARGETS,
   FORECAST_TARGET_CODES,
   type ForecastSeriesCode,

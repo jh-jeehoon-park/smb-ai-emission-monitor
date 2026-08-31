@@ -5,6 +5,7 @@ import { clamp, createRng, roundTo } from '@/shared/lib/prng';
 import {
   EVENT_START_INDEX,
   TIMELINE_POINT_COUNT,
+  isDischargingAt,
   isMissingAt,
   isTreatmentIdleAt,
   timelineIsoAt,
@@ -25,6 +26,11 @@ const BASELINE: Record<SeriesCode, { mid: number; swing: number; period: number 
   /* 유입은 유출보다 조금 많다 — 증발·슬러지 반출로 빠지는 만큼이다 */
   inflow: { mid: 430, swing: 58, period: 91 },
   flow: { mid: 412, swing: 58, period: 91 },
+  /*
+   * 수위는 **파도로 만들지 않는다** — 아래 루프가 방류 여부를 보고 채우고 비운다.
+   * 여기 값은 그 계산의 출발점(중간 수위)이고 `swing`·`period`는 쓰이지 않는다.
+   */
+  level: { mid: 1.4, swing: 0, period: 1 },
 };
 
 const SERIES_CODES: SeriesCode[] = [
@@ -41,6 +47,35 @@ const SERIES_CODES: SeriesCode[] = [
   'inflow',
   'flow',
 ];
+
+/**
+ * **방류 수조 수위는 방류 여부가 정한다** `[사용자 요청 2026-08-28]`.
+ *
+ * 방류하면 빠지고 멈추면 찬다 — 멈춰도 처리수는 계속 들어오기 때문이다. 그래서 이 계열은
+ * 파도가 아니라 **앞 표본에서 이어진다**: 방류 여부가 목표 수위를 정하고 현재 값이 거기로
+ * 수렴한다. 항목 루프 안에서는 앞 표본을 볼 수 없어 두 번째 패스로 뺐다.
+ *
+ * **`isDischargingAt`을 그대로 읽는다** — 리본·리포트가 보는 것과 같은 원천이라, 화면이
+ * `방류 중단`이라 적는 구간에서 수위가 오르는 것이 눈으로 맞는다(E3).
+ *
+ * 목표 수위와 수렴 속도는 **시연 거동**이라 여기 둔다(`BASELINE`과 같은 층). 단위·만수위는
+ * 표기 사양이라 `provisional.ts`가 갖는다 `[TBD-57]`.
+ */
+const LEVEL_TARGET_RATIO = { discharging: 0.4, held: 0.85 } as const;
+/** 표본마다 목표까지의 6%를 좁힌다 — 5분 간격에서 한 시간이면 절반쯤 간다 */
+const LEVEL_APPROACH = 0.06;
+/**
+ * **목표 자체가 천천히 숨 쉰다.**
+ *
+ * 목표를 고정값으로 두었더니 방류 구간이 없는 사업장(10곳 중 7곳)에서 수위가 `1.20`에
+ * 수렴한 뒤 **완전한 직선**이 됐다 — 계측값이 아니라 설정값처럼 읽힌다. 실제 수조는 제어
+ * 목표 근처에서 유입 변동을 따라 오르내린다.
+ *
+ * 진폭은 만수위의 5%(±0.15m), 주기는 표본 37개(약 3시간)다. 상태가 바뀌는 폭(0.4↔0.85,
+ * 1.35m)보다 한참 작아 **방류 여부가 만드는 변화를 덮지 않는다** — 그것이 이 계열이
+ * 말해야 하는 것이다.
+ */
+const LEVEL_BREATH = { amplitude: 0.05, period: 37 } as const;
 
 /**
  * 유기물 부하가 오르면 미생물 산소 소비가 늘어 DO가 떨어진다는 원문의 인과(사업계획서 p.24)를
@@ -69,7 +104,7 @@ export function getMeasurementSeries(siteId: string): MeasurementPoint[] {
     SERIES_CODES.map((code) => [code, 1 + (offsetRng() - 0.5) * 0.24]),
   ) as Record<SeriesCode, number>;
 
-  return Array.from({ length: TIMELINE_POINT_COUNT }, (_, i) => {
+  const points = Array.from({ length: TIMELINE_POINT_COUNT }, (_, i) => {
     const point = { t: timelineIsoAt(i) } as MeasurementPoint;
     const missing = isMissingAt(siteId, i);
     /* 표본마다 한 번만 판정한다 — 항목 루프 안에서 부르면 표본당 11번 불린다 */
@@ -104,6 +139,21 @@ export function getMeasurementSeries(siteId: string): MeasurementPoint[] {
        * 판정과 같은 곳을 가리킨다** — 두 화면이 서로 다른 말을 하지 않는다(E3). 값을 여기서
        * 만들지 않고 화면마다 따로 계산하면 그 정합이 깨진다.
        */
+      /*
+       * **방류하지 않는 구간의 유출 유량은 0이다** `[사용자 결정 2026-08-28]`.
+       *
+       * 위 전류·전력과 같은 이유다 — 판정과 그림이 한 원천에서 나와야 한다. 이것이 없으면
+       * 일간 운전 리본은 `방류 중단`이라 적는데 유량 계열은 412 언저리로 계속 흘렀고,
+       * **금일 누적 배출량이 방류하지 않은 시간까지 더하게 된다.**
+       *
+       * 유입은 0으로 만들지 않는다 — 방류를 멈춰도 폐수는 들어온다. 그 차이가 아래
+       * 수위 계열이 차오르는 근거다.
+       */
+      if (code === 'flow' && isDischargingAt(siteId, i) === false) {
+        point[code] = 0;
+        continue;
+      }
+
       if (treatmentIdle && code === 'inflow') {
         const b = BASELINE.flow;
         const wave = Math.sin((i / b.period) * Math.PI * 2) * b.swing;
@@ -121,6 +171,39 @@ export function getMeasurementSeries(siteId: string): MeasurementPoint[] {
     }
 
     return point;
+  });
+
+  return fillLevel(points, siteId);
+}
+
+/**
+ * 수위를 채운다 — **앞 표본에서 이어지는 유일한 계열**이다.
+ *
+ * 결측 표본은 `null`로 두되 **직전 값을 기억한다** — 통신이 돌아왔을 때 수조가 처음부터
+ * 다시 차오르면 두절이 물을 비운 것처럼 읽힌다. 못 본 동안에도 수조는 그대로 있었다.
+ */
+function fillLevel(points: MeasurementPoint[], siteId: string): MeasurementPoint[] {
+  const [, full] = MEASUREMENT_ITEMS.level.range;
+  const decimals = MEASUREMENT_ITEMS.level.decimals;
+  let value = BASELINE.level.mid;
+
+  return points.map((point, i) => {
+    const discharging = isDischargingAt(siteId, i);
+
+    /*
+     * **두절 구간에서는 값을 움직이지 않는다.**
+     *
+     * 방류 여부를 모르는 시간이라 수조가 찼는지 빠졌는지도 모른다 — 어느 쪽으로든 굴리면
+     * 복구 뒤의 값이 **우리가 지어낸 가정** 위에 서게 된다. 못 본 동안의 변화는 시연
+     * 데이터가 만들 것이 아니다(E4). 값을 그대로 들고 있다가 수신이 돌아오면 거기서 잇는다.
+     */
+    if (discharging === null) return { ...point, level: null };
+
+    const base = discharging ? LEVEL_TARGET_RATIO.discharging : LEVEL_TARGET_RATIO.held;
+    const breath = Math.sin((i / LEVEL_BREATH.period) * Math.PI * 2) * LEVEL_BREATH.amplitude;
+    value += (full * (base + breath) - value) * LEVEL_APPROACH;
+
+    return { ...point, level: roundTo(value, decimals) };
   });
 }
 
