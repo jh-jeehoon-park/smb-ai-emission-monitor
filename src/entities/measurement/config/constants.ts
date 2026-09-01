@@ -104,13 +104,18 @@ export const TB_CHANNEL_BY_CODE: Partial<Record<SeriesCode, string>> = {
 };
 
 /**
- * 서버에 채널이 없는 계열. **지금은 없다** — `inflow`가 `flowIn`으로 들어오면서 비었다.
+ * 서버에 채널이 없는 계열. **화면이 fixture로 메우지 않고 전 구간 `null`**이 되게 하는 자리다 —
+ * 실측과 생성값을 한 행에 섞으면 어느 칸이 관측인지 알 수 없다(E4).
  *
- * 목록을 지우지 않는다: 채널이 빠지는 상황은 다시 생기고(`vibration`은 애초에 `SeriesCode`가
- * 아니다 `[TBD-49]`), 그때 화면이 fixture로 메우지 않고 **전 구간 `null`**로 두게 하는 자리가
- * 여기다 — 실측과 생성값을 한 행에 섞으면 어느 칸이 관측인지 알 수 없다(E4).
+ * **`level`(방류 수조 수위)이 여기 있다** `[TBD-57]`. 서버 채널 15종을 대조해 보면 우리 계열
+ * 13개 중 12개가 덮이고 수위 하나만 없다 — 백엔드에 추가를 요청해 둔 상태다
+ * `[사용자 요청 2026-09-01]`. 채널이 오면 이 배열에서 빼고 `RECEIVED_SERIES_CODES`에 넣는다.
+ *
+ * **비워 두면 `undefined`가 샌다.** 여기에도 `RECEIVED_SERIES_CODES`에도 없는 계열은 매퍼가
+ * 손대지 않아 `MeasurementPoint`의 그 칸이 `undefined`로 남는데, 타입은 `number | null`이라
+ * 소비처가 `=== null`로 걸러도 통과한다 — 병합 뒤 실제로 그 상태였다.
  */
-export const UNRECEIVED_SERIES_CODES: SeriesCode[] = [];
+export const UNRECEIVED_SERIES_CODES: SeriesCode[] = ['level'];
 
 /** 방류 여부는 계열이 아니라 플래그다. 서버가 실측 채널로 준다 — 파생하지 않는다 */
 export const DISCHARGING_KEY = 'discharging';

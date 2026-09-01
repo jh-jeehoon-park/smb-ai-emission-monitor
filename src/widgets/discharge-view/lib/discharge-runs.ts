@@ -1,3 +1,4 @@
+import { PROVISIONAL_STALE_SAMPLES } from '@/shared/config/provisional';
 import { COLLECTION_INTERVAL_MINUTES } from '@/shared/config/measurement';
 
 /** 한 표본의 방류 여부. **모르면 `null`이다** — `false`로 적으면 사실 주장이 된다(E4) */
@@ -66,21 +67,37 @@ export interface DischargeRun {
  * 지속 시간은 그대로 낸다 — `24시간`은 **창 길이**이지 사실을 넘겨 말하는 것이 아니다.
  */
 export function currentRun(samples: DischargeSample[]): DischargeRun {
-  const last = samples[samples.length - 1];
+  /*
+   * **마지막 한 칸이 비었다고 두절이 아니다** `[사용자 지적 2026-09-01]`. 격자의 가장 최근
+   * 칸은 그 시각의 표본이 아직 도착하지 않은 순간이 늘 있다 — fixture는 모든 칸을 채우므로
+   * 드러나지 않았고, 이 화면이 실측으로 옮겨 오자 정상 방류 중인 사업장이 주기마다
+   * `통신 두절`로 깜빡였다. 계측 쪽이 같은 함정을 `isReceptionStalled`로 이미 좁혀 두었고
+   * (명세 §4.5의 비활성 기준 = 수집 주기 × 3) 여기서도 같은 폭만큼 꼬리를 건너뛴다.
+   *
+   * **꼬리를 «건너뛰는» 것이지 «채우는» 것이 아니다.** 그 폭을 넘겨 비어 있으면 그대로
+   * 두절이고, 전 구간 결측도 그대로 참이다 — 좁힌 것은 한 칸짜리 깜빡임뿐이다(E4).
+   */
+  const tail = samples.slice(-PROVISIONAL_STALE_SAMPLES);
+  const stalled = tail.length > 0 && tail.every((sample) => sample.discharging === null);
+
+  let end = samples.length - 1;
+  if (!stalled) while (end >= 0 && samples[end]!.discharging === null) end -= 1;
+
+  const last = stalled ? undefined : samples[end];
   if (!last || last.discharging === null) {
     return { discharging: null, minutes: null, sinceIso: null, fromWindowStart: false };
   }
 
   let count = 0;
   let sinceIso = last.t;
-  for (let i = samples.length - 1; i >= 0; i -= 1) {
+  for (let i = end; i >= 0; i -= 1) {
     const sample = samples[i]!;
     if (sample.discharging !== last.discharging) break;
     count += 1;
     sinceIso = sample.t;
   }
 
-  const fromWindowStart = count === samples.length;
+  const fromWindowStart = count === end + 1;
   return {
     discharging: last.discharging,
     minutes: count * COLLECTION_INTERVAL_MINUTES,

@@ -11,7 +11,6 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { DEMO_NOW_ISO } from '@/shared/config/demo';
 import { COLLECTION_INTERVAL_MINUTES, MEASUREMENT_ITEMS } from '@/shared/config/measurement';
 import {
   ACTUAL_HEX,
@@ -33,7 +32,7 @@ import { getSite } from '@/entities/site';
 import {
   dailyDischargeSeries,
   dailyDischargeVolume,
-  getMeasurementSeries,
+  useSiteSeries,
   type CumulativePoint,
   type MeasurementPoint,
 } from '@/entities/measurement';
@@ -64,18 +63,46 @@ export function DischargeView() {
   const { siteId } = useSelectedSiteId();
   const site = getSite(siteId);
 
+  /*
+   * **계측은 `useSiteSeries` 하나로 들어온다** `[사용자 지적 2026-09-01]`.
+   *
+   * 이 화면만 `getMeasurementSeries`(fixture)를 직접 읽고 있었다 — 8월 28일에 만들어져
+   * 8월 27일에 멈춘 계측 연동 브랜치가 옮겨 줄 수 없었고, 병합에서도 충돌이 나지 않아
+   * 조용히 지나갔다. 그 사이 헤더는 `실측 수신 중`이라 적는데 이 화면의 숫자만 시연값이었다.
+   * 서버에 없는 수위가 값으로 뜨는 것이 그 증거였다(**E3** — AI·계측 산출값은 원천을 밝힌다).
+   */
+  const {
+    points: series,
+    discharging: liveDischarging,
+    observedAtIso,
+    unreceived,
+  } = useSiteSeries(siteId);
+  /*
+   * **채널이 없는 것과 통신이 끊긴 것은 다른 사실이다.** 둘 다 `null`로 오지만 화면이
+   * 같은 말을 하면 안 된다 — 수위는 서버에 채널 자체가 없어서 비고(`[TBD-57]`, 추가 요청
+   * 중), 두절은 있던 값이 끊긴 것이다. `수신 없음` 하나로 뭉치면 없는 두절을 주장한다(E4).
+   */
+  const levelUnreceived = unreceived.includes('level');
+
   const detail = useMemo(() => {
-    const series = getMeasurementSeries(siteId);
+    /*
+     * 방류 여부는 **실측이면 서버 값**, fixture면 시뮬레이션이다. 훅의 계약이 그렇다 —
+     * `discharging`은 실측일 때만 값이 있고 fixture 경로에서는 `null`이다.
+     */
     const samples: DischargeSample[] = series.map((point, i) => ({
       t: point.t,
-      discharging: isDischargingAt(siteId, i),
+      discharging: liveDischarging ? (liveDischarging[i] ?? null) : isDischargingAt(siteId, i),
     }));
 
     return {
       series,
       samples,
-      /** 자정 이후만 그린다 — `금일`이라 이름 붙인 값이 어제를 담으면 안 된다 */
-      today: series.filter((point) => point.t >= `${DEMO_NOW_ISO.slice(0, 10)}T00:00:00Z`),
+      /*
+       * 자정 이후만 그린다 — `금일`이라 이름 붙인 값이 어제를 담으면 안 된다.
+       * **기준 날짜는 계열의 끝에서 읽는다**(`observedAtIso`) — `DEMO_NOW_ISO`로 자르면
+       * 실측에서는 오늘이 아니라 시연 날짜를 기준으로 잘라 전 구간이 비거나 어제가 섞인다.
+       */
+      today: series.filter((point) => point.t >= `${observedAtIso.slice(0, 10)}T00:00:00Z`),
       volume: dailyDischargeVolume(series),
       cumulative: dailyDischargeSeries(series),
       run: currentRun(samples),
@@ -84,7 +111,7 @@ export function DischargeView() {
       latestFlow: [...series].reverse().find((p) => p.flow !== null)?.flow ?? null,
       latestLevel: [...series].reverse().find((p) => p.level !== null)?.level ?? null,
     };
-  }, [siteId]);
+  }, [siteId, series, liveDischarging, observedAtIso]);
 
   const { run, volume } = detail;
   const chart: ChartInput = {
@@ -129,9 +156,11 @@ export function DischargeView() {
             detail.latestLevel === null ? '수신 없음' : formatValue('level', detail.latestLevel)
           }
           note={
-            detail.latestLevel === null
-              ? '마지막 수신 없음'
-              : `${LEVEL.unit} · 만수위 ${LEVEL.range[1]}${LEVEL.unit} [PROVISIONAL]`
+            detail.latestLevel !== null
+              ? `${LEVEL.unit} · 만수위 ${LEVEL.range[1]}${LEVEL.unit} [PROVISIONAL]`
+              : levelUnreceived
+                ? '계측 서버에 수위 채널이 없습니다 [TBD-57]'
+                : '마지막 수신 없음'
           }
         />
         <StatTile
@@ -179,7 +208,7 @@ export function DischargeView() {
             />
           }
         >
-          <LevelChart input={chart} />
+          <LevelChart input={chart} unreceived={levelUnreceived} />
         </Panel>
       </div>
     </div>
@@ -203,14 +232,18 @@ function runMinutesLabel(minutes: number): string {
  *
  * `forecast-chart`의 `ForecastEmpty`와 같은 형태이되 문구가 다르다 — 그쪽은 «수신·산출 없음»
  * 이고 여기는 산출한 것이 없으므로 수신만 말한다.
+ *
+ * **왜 비었는지를 부르는 쪽이 준다** `[사용자 지적 2026-09-01]`. 기본은 두절이지만 수위는
+ * **서버에 채널 자체가 없어서** 비는데(`[TBD-57]`), 그것을 «통신 두절»이라 적으면 없는
+ * 두절을 주장한다 — 위 타일과 같은 구분이다(E4).
  */
-function ChartEmpty({ height }: { height: number }) {
+function ChartEmpty({ height, reason }: { height: number; reason?: string }) {
   return (
     <div
       className="flex items-center justify-center border-y border-border text-[12px] text-fg-subtle"
       style={{ height }}
     >
-      통신 두절 — 수신 없음
+      {reason ?? '통신 두절 — 수신 없음'}
     </div>
   );
 }
@@ -389,6 +422,13 @@ function CumulativeChart({ rows }: { rows: CumulativePoint[] }) {
               />
               <YAxis
                 domain={[0, 'dataMax']}
+                /*
+                 * **축 눈금을 반올림한다** `[사용자 지적 2026-09-01]`. `dataMax`를 그대로 쓰면
+                 * 마지막 눈금이 원값이라 `220.19722222222262`처럼 나온다 — 누적은 표본마다
+                 * 유량×주기를 더한 실수다. 화면의 다른 차트는 모두 눈금을 반올림한다.
+                 * 자릿수는 타일·표와 같은 `VOLUME_DECIMALS`를 쓴다(E1).
+                 */
+                tickFormatter={(v: number) => v.toFixed(VOLUME_DECIMALS)}
                 width={44}
                 tick={{ fill: AXIS_TEXT_HEX, fontSize: 11 }}
                 tickLine={false}
@@ -432,7 +472,7 @@ function CumulativeChart({ rows }: { rows: CumulativePoint[] }) {
   );
 }
 
-function LevelChart({ input }: { input: ChartInput }) {
+function LevelChart({ input, unreceived }: { input: ChartInput; unreceived: boolean }) {
   const { hoverProps, tooltipActive } = useChartHover();
   const empty = input.today.every((p) => p.level === null);
 
@@ -450,7 +490,10 @@ function LevelChart({ input }: { input: ChartInput }) {
       sampleEvery={12}
     >
       {empty ? (
-        <ChartEmpty height={200} />
+        <ChartEmpty
+          height={200}
+          reason={unreceived ? '계측 서버에 수위 채널이 없습니다 [TBD-57]' : undefined}
+        />
       ) : (
         <div className="h-[200px]" {...hoverProps}>
           <ResponsiveContainer width="100%" height="100%">

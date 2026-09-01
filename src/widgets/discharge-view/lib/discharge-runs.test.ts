@@ -58,9 +58,23 @@ describe('지금 상태와 지속 시간', () => {
     expect(run.minutes).toBe(3 * COLLECTION_INTERVAL_MINUTES);
   });
 
-  /** 모르는 상태를 `방류 중`으로도 `중단`으로도 적지 않는다(**E4**) */
-  it('마지막 표본이 두절이면 상태도 시간도 모름이다', () => {
-    const run = currentRun(samples([true, null]));
+  /**
+   * 모르는 상태를 `방류 중`으로도 `중단`으로도 적지 않는다(**E4**).
+   *
+   * **다만 «마지막 한 칸»은 두절이 아니다** `[사용자 지적 2026-09-01]`. 이 검사는 한때
+   * `[true, null]`로 «모름»을 기대했는데, 그것은 fixture가 모든 칸을 채우던 시절의 전제다 —
+   * 실측에서는 가장 최근 칸의 표본이 아직 도착하지 않은 순간이 늘 있어 정상 방류 중인
+   * 사업장이 주기마다 `통신 두절`로 깜빡였다. 계측 쪽이 같은 함정을 `isReceptionStalled`로
+   * 이미 좁혀 두었고(명세 §4.5의 비활성 기준 = 수집 주기 × 3) 여기도 같은 폭을 쓴다.
+   */
+  it('꼬리 한 칸이 비어도 두절로 적지 않는다', () => {
+    const run = currentRun(samples([true, true, null]));
+    expect(run.discharging).toBe(true);
+    expect(run.minutes).toBe(2 * COLLECTION_INTERVAL_MINUTES);
+  });
+
+  it('비활성 기준을 넘겨 비면 그때는 모름이다', () => {
+    const run = currentRun(samples([true, null, null, null]));
     expect(run.discharging).toBeNull();
     expect(run.minutes).toBeNull();
     expect(run.sinceIso).toBeNull();
