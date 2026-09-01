@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { TIMELINE_POINT_COUNT, timelineIsoAt } from '@/shared/lib/timeline';
+import { TIMELINE_POINT_COUNT, minutesToSamples, timelineIsoAt } from '@/shared/lib/timeline';
 import { buildTicks } from './ticks';
 
 const ticks = buildTicks(6);
@@ -65,7 +65,7 @@ describe('buildTicks — 좌표', () => {
   });
 
   it('6시간 격자가 빠짐없이 들어 있다', () => {
-    for (let index = 0; index < TIMELINE_POINT_COUNT; index += 6 * 12) {
+    for (let index = 0; index < TIMELINE_POINT_COUNT; index += minutesToSamples(6 * 60)) {
       expect(ticks.some((t) => t.index === index)).toBe(true);
     }
   });

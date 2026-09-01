@@ -1,4 +1,9 @@
-import { getMeasurementSeries, isSeriesCode, summarizeSeries, type SeriesCode } from '@/entities/measurement';
+import {
+  isSeriesCode,
+  summarizeSeries,
+  type MeasurementPoint,
+  type SeriesCode,
+} from '@/entities/measurement';
 import type { ResolvedStage } from '@/features/process-settings';
 
 export interface StageReading {
@@ -20,10 +25,9 @@ export interface StageReading {
  *
  * 진동은 여기 오지 않는다 — 설정 화면이 계열 항목만 고르게 한다(`[TBD-49]`로 단위가 없다).
  */
-export function stageReadings(siteId: string, stage: ResolvedStage): StageReading[] {
+export function stageReadings(points: MeasurementPoint[], stage: ResolvedStage): StageReading[] {
   if (stage.codes.length === 0) return [];
 
-  const points = getMeasurementSeries(siteId);
   /*
    * **계열이 있는 항목만 남긴다.** 예전에는 거르지 않고 `code as SeriesCode`로 캐스팅했는데,
    * 계열 없는 항목(진동·유입·유출)이 설정에 들어오면 `MeasurementPoint`를 없는 키로 인덱싱해

@@ -27,7 +27,7 @@ import { getEquipment } from '@/entities/equipment';
 import {
   FLOW_SERIES_CODES,
   WATER_SERIES_CODES,
-  getMeasurementSeries,
+  useSiteSeries,
   outageNotice,
 } from '@/entities/measurement';
 import {
@@ -77,16 +77,18 @@ export function DashboardView() {
       .map(([p, n]) => `${ALARM_PRIORITY_LABELS[p as AlarmPriority]} ${n}`)
       .join(' · ') || null;
 
+  const { points: series } = useSiteSeries(selectedSiteId);
+
   const detail = useMemo(
     () => ({
-      series: getMeasurementSeries(selectedSiteId),
+      series,
       anomalySeries: getAnomalySeries(selectedSiteId),
       anomalySummary: getAnomalySummary(selectedSiteId),
       forecast: getForecast(selectedSiteId),
       equipment: getEquipment(selectedSiteId),
       outage: getOutageWindow(selectedSiteId),
     }),
-    [selectedSiteId],
+    [selectedSiteId, series],
   );
 
   return (

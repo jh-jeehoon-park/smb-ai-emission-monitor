@@ -8,6 +8,7 @@ import {
   type MeasurementGrade,
 } from '@/shared/config/provisional';
 import { MEASUREMENT_ITEMS } from '@/shared/config/measurement';
+import type { MeasurementPoint } from '@/entities/measurement';
 import { ACTUAL_HEX, AI_HEX, MISSING_HEX } from '@/shared/config/status-visual';
 import { formatValue } from '@/shared/lib/format';
 import type { ProcessStage } from '@/entities/process';
@@ -64,12 +65,12 @@ const MAX_READINGS = 4;
 interface Props {
   /** **켠 단계만** 온다. 무엇을 켤지는 `features/process-settings`가 정한다 */
   stages: readonly ResolvedStage[];
-  siteId: string;
+  points: MeasurementPoint[];
   selectedId: string;
   onSelect: (id: string) => void;
 }
 
-export function ProcessDiagram({ stages, siteId, selectedId, onSelect }: Props) {
+export function ProcessDiagram({ stages, points, selectedId, onSelect }: Props) {
   const width = diagramWidth(stages.length);
 
   return (
@@ -93,7 +94,7 @@ export function ProcessDiagram({ stages, siteId, selectedId, onSelect }: Props) 
           key={resolved.stage.id}
           stage={resolved.stage}
           index={index}
-          readings={stageReadings(siteId, resolved)}
+          readings={stageReadings(points, resolved)}
           selected={resolved.stage.id === selectedId}
           onSelect={onSelect}
         />

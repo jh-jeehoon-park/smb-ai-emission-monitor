@@ -3,8 +3,8 @@ import type { DischargeLimitTable } from '@/shared/config/discharge-limits';
 import { countOpen } from '@/entities/alarm';
 import type { Alarm } from '@/entities/alarm';
 import { idleDischargeAcross } from '@/entities/anomaly';
-import { getMeasurementSeries } from '@/entities/measurement';
 import { countOverLimit } from '@/entities/measurement';
+import type { MeasurementPoint } from '@/entities/measurement';
 import { WATER_SERIES_CODES } from '@/entities/measurement';
 import type { Site } from '@/entities/site';
 
@@ -45,6 +45,7 @@ export function buildSupervisionRows(
   sites: readonly Site[],
   alarms: readonly Alarm[],
   limits: DischargeLimitTable,
+  seriesBySite: Map<string, MeasurementPoint[]>,
 ): SupervisionRow[] {
   const idle = new Map(
     idleDischargeAcross(sites.map((site) => site.id)).map((v) => [v.siteId, v.runs]),
@@ -54,7 +55,7 @@ export function buildSupervisionRows(
     site,
     status: site.status,
     anomalyScore: site.anomalyScore,
-    overLimit: countOverLimitIn(site, limits),
+    overLimit: countOverLimitIn(site, limits, seriesBySite.get(site.id) ?? []),
     idleRuns: idle.get(site.id) ?? null,
     openAlarms: countOpen(alarms, site.id),
   }));
@@ -72,10 +73,13 @@ export function buildSupervisionRows(
  * 기준이 하나도 설정되지 않았거나 통신이 두절된 경우다. 둘을 같은 `0`으로 적으면
  * 미설정과 두절이 안전으로 둔갑한다(**E4** · `[TBD-45]`).
  */
-function countOverLimitIn(site: Site, limits: DischargeLimitTable): number | null {
+function countOverLimitIn(
+  site: Site,
+  limits: DischargeLimitTable,
+  points: MeasurementPoint[],
+): number | null {
   if (!site.online) return null;
 
-  const points = getMeasurementSeries(site.id);
   let total = 0;
   let judged = false;
 

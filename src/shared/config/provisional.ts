@@ -141,6 +141,15 @@ export function toEquipmentStatus(signalCount: number, hours: number | null): St
 }
 
 /**
+ * 수신이 끊겼다고 볼 표본 수. **원문에 없다** `[TBD-58 관련]`.
+ *
+ * 계측 API 명세 §4.5가 장비의 비활성 판정(`inactivityTimeout`)을 **수집 주기 × 3**으로 두고
+ * 있어 화면도 같은 기준을 쓴다 — 서버와 화면이 다른 잣대로 두절을 판정하면 배지와 값이
+ * 어긋난다. 명세는 원문이 아니므로 여기 둔다.
+ */
+export const PROVISIONAL_STALE_SAMPLES = 3;
+
+/**
  * 항목별 표시 소수 자릿수. 원문은 센서 정확도(±0.1 등)만 규정하고 표시 자릿수를 정하지 않았다
  * (data-dictionary.md §10 #2). 정확도 한 자리 아래까지 보이도록 잡았다.
  */

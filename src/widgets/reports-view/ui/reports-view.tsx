@@ -23,7 +23,7 @@ import {
   DEFAULT_BUCKET,
   DEFAULT_STAT,
   WATER_SERIES_CODES,
-  getMeasurementSeries,
+  useSiteSeries,
   type BucketStat,
   type BucketUnit,
 } from '@/entities/measurement';
@@ -73,9 +73,10 @@ export function ReportsView() {
    * **선택 사업장 하나의 센서 통계다.** 10개소 × 11항목을 한 표에 넣으면 110행이 되어
    * 읽히지 않는다 — 회의가 요구한 것은 항목별 통계이고, 사업장 비교는 위 집계표가 이미 한다.
    */
+  const { points } = useSiteSeries(siteId);
   const sensors = useMemo(
-    () => buildSensorReport(siteId, hours, limits.table),
-    [siteId, hours, limits.table],
+    () => buildSensorReport(points, hours, limits.table),
+    [points, hours, limits.table],
   );
   const estimates = useMemo(
     () => buildEstimateReport(siteId, limits.table, limits.unresolvedReason),
@@ -89,7 +90,6 @@ export function ReportsView() {
    */
   const [bucket, setBucket] = useState<BucketUnit>(DEFAULT_BUCKET);
   const [stat, setStat] = useState<BucketStat>(DEFAULT_STAT);
-  const points = useMemo(() => getMeasurementSeries(siteId), [siteId]);
 
   const download = () =>
     downloadCsv(

@@ -5,9 +5,9 @@ import { csvCell, toCsvText } from '@/shared/lib/csv';
 import {
   EQUIPMENT_SERIES_CODES,
   WATER_SERIES_CODES,
-  getMeasurementSeries,
   sliceRecentHours,
   summarizeSeries,
+  type MeasurementPoint,
   type SeriesCode,
   type SeriesStats,
 } from '@/entities/measurement';
@@ -50,11 +50,11 @@ export interface SensorReportRow {
  * 이 함수가 localStorage를 읽으면 순수하지 않아 서버에서 터진다.
  */
 export function buildSensorReport(
-  siteId: string,
+  series: MeasurementPoint[],
   hours: number,
   limits: DischargeLimitTable,
 ): SensorReportRow[] {
-  const points = sliceRecentHours(getMeasurementSeries(siteId), hours);
+  const points = sliceRecentHours(series, hours);
 
   return REPORT_CODES.map((code) => {
     const item = MEASUREMENT_ITEMS[code];

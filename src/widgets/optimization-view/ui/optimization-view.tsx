@@ -10,7 +10,7 @@ import { MeterBar } from '@/shared/ui/meter-bar';
 import {
   energyGap,
   energyIntensity,
-  getMeasurementSeries,
+  useSiteSeries,
   windowChange,
 } from '@/entities/measurement';
 import {
@@ -35,8 +35,9 @@ export function OptimizationView() {
    * 에너지 효율은 계측에서 계산해 최적화 슬라이스에 넘긴다.
    * slice끼리 참조하지 않으므로(FSD §8) 두 도메인을 잇는 일은 위젯이 한다.
    */
+  const { points: series } = useSiteSeries(siteId);
+
   const summary = useMemo(() => {
-    const series = getMeasurementSeries(siteId);
     const energyNow = energyIntensity(series);
     /*
      * 운전 조건의 방향·근거도 계측에서 온다 `[사용자 결정 2026-08-21]`. 예전에는 조정폭이
@@ -49,7 +50,7 @@ export function OptimizationView() {
     };
     /* 값이 없을 때 **왜 없는지**가 문구를 가른다 — 받은 0을 «계측값 없음»이라 적지 않는다 */
     return { ...getOptimization(siteId, energyNow, signals), energyGap: energyGap(series) };
-  }, [siteId]);
+  }, [siteId, series]);
 
   if (!summary.online) {
     return (

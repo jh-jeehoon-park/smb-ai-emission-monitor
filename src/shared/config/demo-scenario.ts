@@ -40,8 +40,8 @@ export interface SiteScenario {
   eventRise: number;
   /** ECP 통신 상태. false면 계측·이상점수가 함께 결측이 된다 */
   online: boolean;
-  /** 통신이 잠시 끊겼던 구간(표본 인덱스 기준 시작점). null이면 두절 이력 없음 */
-  outageStartOffset: number | null;
+  /** 통신이 잠시 끊겼던 구간이 몇 분 전에 시작했는지. null이면 두절 이력 없음 */
+  outageStartMinutesAgo: number | null;
   /** 방류가 멈춘 구간. null이면 24시간 내내 방류 */
   dischargeGap: DischargeGap | null;
   /** 방지시설이 멈춘 채 방류가 이어진 구간. null이면 그런 구간이 없다 */
@@ -71,8 +71,8 @@ export interface SiteScenario {
  * 그래서 야간·주말 같은 주기 모델을 쓰지 않고 구간 하나를 직접 지정한다.
  */
 export interface DischargeGap {
-  /** 표본 인덱스 기준 시작점(끝에서부터). `outageStartOffset`과 같은 규약 */
-  startOffset: number;
+  /** 시간축 끝에서부터 몇 분 전에 시작하는지. `outageStartMinutesAgo`와 같은 규약 */
+  startMinutesAgo: number;
   hours: number;
 }
 
@@ -102,7 +102,7 @@ export const SITE_SCENARIOS: SiteScenario[] = [
     baseScore: 22,
     eventRise: 6,
     online: true,
-    outageStartOffset: null,
+    outageStartMinutesAgo: null,
     dischargeGap: null,
     idleDischargeWindow: null,
     regionGrade: null,
@@ -122,13 +122,13 @@ export const SITE_SCENARIOS: SiteScenario[] = [
     baseScore: 18,
     eventRise: 74,
     online: true,
-    outageStartOffset: 96,
+    outageStartMinutesAgo: 480,
     dischargeGap: null,
     /**
      * 방지시설이 멈춘 채 방류가 이어진 구간 `[원문 발표 p.13]`.
      * 길이의 근거는 위 주석(실측 2.8%)에 있다.
      */
-    idleDischargeWindow: { startOffset: 132, hours: 1 },
+    idleDischargeWindow: { startMinutesAgo: 660, hours: 1 },
     regionGrade: null,
     dischargeScale: null,
     dataThroughput: 98.6,
@@ -146,7 +146,7 @@ export const SITE_SCENARIOS: SiteScenario[] = [
     baseScore: 31,
     eventRise: 4,
     online: true,
-    outageStartOffset: null,
+    outageStartMinutesAgo: null,
     dischargeGap: null,
     idleDischargeWindow: null,
     /** 데이터셋의 진유원이 `규모 4종`(50~200㎥/일) — 지역구분은 없다 `[데이터셋 …/04_…]` */
@@ -167,7 +167,7 @@ export const SITE_SCENARIOS: SiteScenario[] = [
     baseScore: 12,
     eventRise: 2,
     online: false,
-    outageStartOffset: null,
+    outageStartMinutesAgo: null,
     /** 통신 두절이라 방류 여부를 알 수 없다. 구간이 아니라 판정 자체가 null이다 */
     dischargeGap: null,
     idleDischargeWindow: null,
@@ -188,7 +188,7 @@ export const SITE_SCENARIOS: SiteScenario[] = [
     baseScore: 44,
     eventRise: 22,
     online: true,
-    outageStartOffset: null,
+    outageStartMinutesAgo: null,
     dischargeGap: null,
     idleDischargeWindow: null,
     regionGrade: null,
@@ -208,10 +208,10 @@ export const SITE_SCENARIOS: SiteScenario[] = [
     baseScore: 39,
     eventRise: 5,
     online: true,
-    outageStartOffset: 148,
+    outageStartMinutesAgo: 740,
     dischargeGap: null,
     /** **통신 두절 구간과 일부러 겹쳐 둔다** — 겹친 표본은 의심이 아니라 모름이어야 한다(E4) */
-    idleDischargeWindow: { startOffset: 152, hours: 1 },
+    idleDischargeWindow: { startMinutesAgo: 760, hours: 1 },
     regionGrade: null,
     dischargeScale: null,
     dataThroughput: 97.6,
@@ -229,7 +229,7 @@ export const SITE_SCENARIOS: SiteScenario[] = [
     baseScore: 36,
     eventRise: 55,
     online: true,
-    outageStartOffset: null,
+    outageStartMinutesAgo: null,
     dischargeGap: null,
     idleDischargeWindow: null,
     regionGrade: null,
@@ -249,9 +249,9 @@ export const SITE_SCENARIOS: SiteScenario[] = [
     baseScore: 27,
     eventRise: 3,
     online: true,
-    outageStartOffset: null,
+    outageStartMinutesAgo: null,
     /** **배출 없음.** 설비는 돌지만 24시간 내내 방류가 없다 — 데이터셋 272일 중 15일 */
-    dischargeGap: { startOffset: 288, hours: 24 },
+    dischargeGap: { startMinutesAgo: 1440, hours: 24 },
     idleDischargeWindow: null,
     regionGrade: null,
     dischargeScale: null,
@@ -270,9 +270,9 @@ export const SITE_SCENARIOS: SiteScenario[] = [
     baseScore: 18,
     eventRise: 2,
     online: true,
-    outageStartOffset: null,
+    outageStartMinutesAgo: null,
     /** 지금 중단 2시간째. 사업장2 계정의 사업장이라 자사 현황에서도 이 상태가 보인다 */
-    dischargeGap: { startOffset: 24, hours: 2 },
+    dischargeGap: { startMinutesAgo: 120, hours: 2 },
     idleDischargeWindow: null,
     regionGrade: null,
     dischargeScale: null,
@@ -291,9 +291,9 @@ export const SITE_SCENARIOS: SiteScenario[] = [
     baseScore: 51,
     eventRise: 11,
     online: true,
-    outageStartOffset: null,
+    outageStartMinutesAgo: null,
     /** 11:58 수질 알람이 이 구간에 든다 — 비방류 중 알람 사례 */
-    dischargeGap: { startOffset: 48, hours: 3 },
+    dischargeGap: { startMinutesAgo: 240, hours: 3 },
     idleDischargeWindow: null,
     regionGrade: null,
     dischargeScale: null,

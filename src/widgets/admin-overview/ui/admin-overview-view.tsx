@@ -21,8 +21,8 @@ import {
   WATER_SERIES_CODES,
   WINDOW_HOURS,
   energyIntensity,
-  getMeasurementSeries,
   outageNotice,
+  useSiteSeries,
 } from '@/entities/measurement';
 import { CHEMICAL_SAVING_RANGE, getOptimization } from '@/entities/optimization';
 import { getSite } from '@/entities/site';
@@ -77,8 +77,9 @@ export function AdminOverviewView() {
   /* 사용자가 설정한 기준치 — `site`의 두 축을 직접 읽으면 설정 후에도 `미확인`이 남는다 */
   const limits = useDischargeLimits();
 
+  const { points: series } = useSiteSeries(siteId);
+
   const detail = useMemo(() => {
-    const series = getMeasurementSeries(siteId);
     const alarms = allAlarmsForSite(siteId);
 
     return {
@@ -90,7 +91,7 @@ export function AdminOverviewView() {
       equipment: sortEquipment(getEquipment(siteId), 'status'),
       optimization: getOptimization(siteId, energyIntensity(series)),
     };
-  }, [siteId]);
+  }, [siteId, series]);
 
   /* 확인 처리가 헤더·사이드바와 함께 반영되도록 공유 상태를 읽는다 */
   const { alarms } = useAlarmStates(detail.alarms);

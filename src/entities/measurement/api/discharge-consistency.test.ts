@@ -116,7 +116,7 @@ describe('방류 수조 수위', () => {
    * 지어낸 가정 위에 선다(E4). 끊기기 직전과 이어진 직후가 거의 같아야 한다.
    */
   it('두절 전후의 수위가 이어진다', () => {
-    const scenario = SITE_SCENARIOS.find((s) => s.online && s.outageStartOffset !== null)!;
+    const scenario = SITE_SCENARIOS.find((s) => s.online && s.outageStartMinutesAgo !== null)!;
     const series = getMeasurementSeries(scenario.id);
     const gapStart = series.findIndex((p) => p.level === null);
     expect(gapStart, `${scenario.id} 두절 구간`).toBeGreaterThan(0);
@@ -156,8 +156,9 @@ describe('예측 계열과 계측 계열의 정합', () => {
     for (const scenario of held) {
       const forecast = getFlowForecast(scenario.id);
       const idle = forecast.points.filter((p) => {
+        /* 창 밖 시각은 판정할 수 없다 — `timelineIndexAt`이 `null`을 돌려준다 */
         const i = timelineIndexAt(p.t);
-        return isDischargingAt(scenario.id, i) === false;
+        return i !== null && isDischargingAt(scenario.id, i) === false;
       });
       expect(idle.length, scenario.id).toBeGreaterThan(0);
       expect(idle.every((p) => p.value === 0), scenario.id).toBe(true);
@@ -170,8 +171,9 @@ describe('예측 계열과 계측 계열의 정합', () => {
     for (const scenario of held) {
       const forecast = getFlowForecast(scenario.id, INFLOW_FORECAST_CODE);
       const idle = forecast.points.filter((p) => {
+        /* 창 밖 시각은 판정할 수 없다 — `timelineIndexAt`이 `null`을 돌려준다 */
         const i = timelineIndexAt(p.t);
-        return isDischargingAt(scenario.id, i) === false;
+        return i !== null && isDischargingAt(scenario.id, i) === false;
       });
       expect(idle.every((p) => p.value !== null && p.value > 0), scenario.id).toBe(true);
     }

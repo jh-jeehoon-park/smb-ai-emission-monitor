@@ -57,12 +57,20 @@ export function buildRibbon(
     discharging: toRuns(discharging),
     receiving: toRuns(receiving),
     scores: anomaly.map((point) => point.score),
-    alarms: alarms.map((alarm) => ({
-      id: alarm.id,
-      index: timelineIndexAt(alarm.raisedAtIso),
-      priority: alarm.priority,
-      title: alarm.title,
-      timeIso: alarm.raisedAtIso,
-    })),
+    /* 시간축 밖에서 올라온 알람은 찍지 않는다. 양 끝으로 몰면 없던 시각에 표식이 생긴다 */
+    alarms: alarms.flatMap((alarm) => {
+      const index = timelineIndexAt(alarm.raisedAtIso);
+      if (index === null) return [];
+
+      return [
+        {
+          id: alarm.id,
+          index,
+          priority: alarm.priority,
+          title: alarm.title,
+          timeIso: alarm.raisedAtIso,
+        },
+      ];
+    }),
   };
 }

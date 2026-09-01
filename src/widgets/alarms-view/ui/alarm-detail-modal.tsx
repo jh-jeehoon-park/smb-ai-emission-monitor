@@ -2,7 +2,11 @@
 
 import { useMemo } from 'react';
 import { DEMO_NOW_ISO } from '@/shared/config/demo';
-import { COLLECTION_INTERVAL_MINUTES, MEASUREMENT_ITEMS } from '@/shared/config/measurement';
+import {
+  COLLECTION_INTERVAL_MINUTES,
+  HISTORY_WINDOW_HOURS,
+  MEASUREMENT_ITEMS,
+} from '@/shared/config/measurement';
 import { PROVISIONAL_STATUS_LABELS } from '@/shared/config/provisional';
 import { STATUS_VISUAL, statusInk } from '@/shared/config/status-visual';
 import { DISPLAY_TIMEZONE, formatDateTime, formatRelative, formatValue } from '@/shared/lib/format';
@@ -15,7 +19,7 @@ import {
   type Alarm,
   type AlarmState,
 } from '@/entities/alarm';
-import { getMeasurementSeries, type SeriesCode } from '@/entities/measurement';
+import { useSiteSeries, type MeasurementPoint, type SeriesCode } from '@/entities/measurement';
 import { AlarmStateActions } from '@/features/alarm-ack';
 import { SNAPSHOT_CODES } from '../config/constants';
 
@@ -38,7 +42,11 @@ interface AlarmDetailModalProps {
  * 알람에 붙이면 그 시각의 근거인 것처럼 보인다(E3). 시각별 산출이 생기면 그때 넣는다.
  */
 export function AlarmDetailModal({ alarm, onClose, onChange }: AlarmDetailModalProps) {
-  const snapshot = useMemo(() => (alarm ? buildSnapshot(alarm) : null), [alarm]);
+  const { points } = useSiteSeries(alarm?.siteId ?? null);
+  const snapshot = useMemo(
+    () => (alarm ? buildSnapshot(alarm, points) : null),
+    [alarm, points],
+  );
 
   /*
    * **닫혔을 때도 `Modal`을 마운트해 둔다.** 통째로 없애면 Radix가 포커스를 되돌릴 대상을
@@ -93,25 +101,7 @@ export function AlarmDetailModal({ alarm, onClose, onChange }: AlarmDetailModalP
         <p className="mb-2 text-[12px] text-fg-subtle">
           발생 시각 계측값 · {COLLECTION_INTERVAL_MINUTES}분 주기 표본
         </p>
-        {snapshot.missing ? (
-          <p className="text-[12px] text-fg-subtle">
-            그 시각 수신값이 없습니다 — 값을 앞뒤에서 끌어오지 않습니다.
-          </p>
-        ) : (
-          <ul className="grid grid-cols-2 gap-x-4 gap-y-1.5 sm:grid-cols-3">
-            {snapshot.values.map(({ code, value }) => (
-              <li key={code} className="flex items-baseline justify-between gap-2 text-[12px]">
-                <span className="text-fg-subtle">{MEASUREMENT_ITEMS[code].symbol}</span>
-                <span className="num text-fg">
-                  {formatValue(code, value)}
-                  <span className="ml-1 text-[12px] text-fg-subtle">
-                    {MEASUREMENT_ITEMS[code].unit}
-                  </span>
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
+        <SnapshotValues snapshot={snapshot} />
       </div>
     </Modal>
   );
@@ -134,6 +124,43 @@ function DischargeFact({ alarm, state }: { alarm: Alarm; state: boolean | null }
   );
 }
 
+/**
+ * 값이 없는 두 경우를 **다른 말로** 적는다(E4). 보관 구간 밖이라 표본이 없는 것과,
+ * 받았는데 값이 비어 있는 것은 서로 다른 사실이다.
+ */
+function SnapshotValues({ snapshot }: { snapshot: Snapshot }) {
+  if (snapshot.outOfWindow) {
+    return (
+      <p className="text-[12px] text-fg-subtle">
+        조회 구간(최근 {HISTORY_WINDOW_HOURS}시간) 밖에서 올라온 알람이라 그 시각 표본이
+        없습니다.
+      </p>
+    );
+  }
+
+  if (snapshot.missing) {
+    return (
+      <p className="text-[12px] text-fg-subtle">
+        그 시각 수신값이 없습니다 — 값을 앞뒤에서 끌어오지 않습니다.
+      </p>
+    );
+  }
+
+  return (
+    <ul className="grid grid-cols-2 gap-x-4 gap-y-1.5 sm:grid-cols-3">
+      {snapshot.values.map(({ code, value }) => (
+        <li key={code} className="flex items-baseline justify-between gap-2 text-[12px]">
+          <span className="text-fg-subtle">{MEASUREMENT_ITEMS[code].symbol}</span>
+          <span className="num text-fg">
+            {formatValue(code, value)}
+            <span className="ml-1 text-[12px] text-fg-subtle">{MEASUREMENT_ITEMS[code].unit}</span>
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function idleLabel(idle: boolean | null): string {
   if (idle === null) return '수신 없음';
   return idle ? '미가동 — 유입펌프 전류 없음' : '가동 중';
@@ -141,14 +168,29 @@ function idleLabel(idle: boolean | null): string {
 
 interface Snapshot {
   values: { code: SeriesCode; value: number | null }[];
+  /**
+   * 조회 구간 밖에서 올라온 알람. **`missing`과 다른 말이다** — 그쪽은 "그 시각을 받았지만
+   * 값이 없다"이고 이쪽은 "그 시각의 표본을 애초에 갖고 있지 않다"다(E4).
+   */
+  outOfWindow: boolean;
   missing: boolean;
   discharging: boolean | null;
   treatmentIdle: boolean | null;
 }
 
-function buildSnapshot(alarm: Alarm): Snapshot {
+function buildSnapshot(alarm: Alarm, series: MeasurementPoint[]): Snapshot {
   const index = timelineIndexAt(alarm.raisedAtIso);
-  const point = getMeasurementSeries(alarm.siteId)[index];
+  if (index === null) {
+    return {
+      values: [],
+      outOfWindow: true,
+      missing: false,
+      discharging: null,
+      treatmentIdle: null,
+    };
+  }
+
+  const point = series[index];
   const values = SNAPSHOT_CODES.map((code) => ({
     code: code as SeriesCode,
     value: point?.[code] ?? null,
@@ -156,6 +198,7 @@ function buildSnapshot(alarm: Alarm): Snapshot {
 
   return {
     values,
+    outOfWindow: false,
     missing: values.every((v) => v.value === null),
     discharging: isDischargingAt(alarm.siteId, index),
     treatmentIdle: isTreatmentIdleAt(alarm.siteId, index),

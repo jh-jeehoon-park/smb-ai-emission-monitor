@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { TIMELINE_POINT_COUNT } from '@/shared/lib/timeline';
+import { TIMELINE_POINT_COUNT, minutesToSamples, timelineIndexAt } from '@/shared/lib/timeline';
 import { getAlarmsForView } from '@/entities/alarm';
 import { getAnomalySeries } from '@/entities/anomaly';
 import { getMeasurementSeries } from '@/entities/measurement';
@@ -80,9 +80,18 @@ describe('buildRibbon — 방류 세 상태', () => {
 });
 
 describe('buildRibbon — 알람 마커', () => {
+  /**
+   * 표본 번호를 박아 두지 않는다 — 수집 주기가 바뀌면 같은 시각의 표본 번호가 달라진다.
+   * 검사할 것은 번호가 아니라 **그 알람의 시각에 놓였는가**다.
+   */
   it('사업장1(S-02) 알람 2건이 시간축 끝쪽에 놓인다', () => {
     const alarms = ribbonFor('S-02').alarms;
-    expect(alarms.map((a) => a.index)).toEqual([285, 284]);
+    expect(alarms).toHaveLength(2);
+
+    for (const alarm of alarms) {
+      expect(alarm.index).toBe(timelineIndexAt(alarm.timeIso));
+      expect(TIMELINE_POINT_COUNT - 1 - alarm.index).toBeLessThan(minutesToSamples(60));
+    }
   });
 
   it('마커가 시간축을 벗어나지 않는다', () => {

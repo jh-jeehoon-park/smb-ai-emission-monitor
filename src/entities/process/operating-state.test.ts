@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { COLLECTION_INTERVAL_MINUTES } from '@/shared/config/measurement';
 
 /**
  * **마지막 표본이 결측인 사업장을 만들어 낸다.**
@@ -15,8 +16,10 @@ vi.mock('@/shared/config/demo-scenario', async (importOriginal) => {
     ...actual,
     getScenario: (siteId: string) => {
       const scenario = actual.getScenario(siteId);
-      // offset 1~11이면 두절 구간이 마지막 표본을 덮는다(OUTAGE_LENGTH = 11)
-      return siteId === TAIL_OUTAGE_SITE ? { ...scenario, outageStartOffset: 1 } : scenario;
+      // 한 표본 전에 시작하면 두절 구간이 마지막 표본을 덮는다
+      return siteId === TAIL_OUTAGE_SITE
+        ? { ...scenario, outageStartMinutesAgo: COLLECTION_INTERVAL_MINUTES }
+        : scenario;
     },
   };
 });
