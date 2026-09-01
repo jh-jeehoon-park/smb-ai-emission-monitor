@@ -5,7 +5,7 @@
 | 항목 | 내용 |
 |------|------|
 | 문서명 | 프론트엔드 코딩 규칙 (Core + Project Profile) |
-| 버전 | v2.4.0 |
+| 버전 | v2.5.0 |
 | 작성일 | 2026-08-06 |
 | 기반 문서 | /docs/applications/AIoT_Emission_Control_System.pdf, /docs/applications/HSKorea_AI_Application_Proposal.pdf |
 
@@ -13,6 +13,7 @@
 
 | 버전 | 날짜 | 작성자 | 변경 내용 |
 |------|------|--------|-----------|
+| v2.5.0 | 2026-09-01 | Claude | **P11·P12 갱신** `[사용자 확인 2026-09-01]` — P11이 fixture를 남기는 근거로 적던 *"계측 서버가 사설망 http라 배포본에서 닿지 않아"* 가 **더는 사실이 아니다**(공인 IP 포트포워딩, 배포본도 실측을 본다). 폴백이 필요한 이유는 남으므로(재기동·토큰 만료·순단) 그 근거만 바꿨다. P12의 `[TBD-57]`은 **`TBD-58`**로 정정 — `develop`이 같은 번호를 방류 수조 수위에 먼저 쓰고 있었다 |
 | v2.4.0 | 2026-08-27 | Claude | **계측이 실 API가 됐다**(ThingsBoard) — P3 실시간 방식을 `[TBD]`에서 **폴링 확정**으로, P11에 fixture의 지위 변경(임시물 → 폴백 원천), P12를 `source-inconsistencies.md`로 일원화, **P14의 A1을 `보류`에서 `예외`로** 바꿨다. A1(Mock 전량 제거)과 사용자의 폴백 결정이 정면으로 부딪히며 사용자 지시가 이긴다(§5 레벨 1). Core(§2~§6) 미수정 |
 | v0.1.0 | 2026-08-06 | Claude | 신규 작성 — 스택·프로젝트 무관 이식형 프론트엔드 코딩 규칙. Core(절대규칙 A1~A4·컨벤션 R1~R20) + Project Profile(P1~P15) 구조 |
 | v2.0.0 | 2026-08-06 | Claude | §8 프로젝트 프로필을 타 프로젝트 값에서 본 프로젝트(소규모 사업장 오염물질 배출 관리 시스템, 단일 Next.js 웹 대시보드) 값으로 전면 교체. 공유 패키지 alias 제거(`@/*`만 사용), 디자인 토큰·Figma 관련 슬롯 [TBD] 표기, 차트(P9)를 대시보드 필수 영역으로 상향. Core(§2~§6) 미수정 |
@@ -161,8 +162,8 @@
 | P8 | 공용 컴포넌트 | `shared/ui` (Button/Input/Badge/Modal/Table/Tabs/EmptyState/StatusTag 등) — **shadcn/ui 기반**, 인라인 재구현 금지 |
 | P9 | 차트 | **필수 영역**(실시간 시계열·예측·이상점수·설비 상태). **Recharts 단일 사용** — 다른 차트 라이브러리 혼용 금지 · 계열 색은 P7 토큰 · 의미별 색 고정(정상/주의/경고/위험) · 커스텀 tooltip 패턴 통일 · 차트 작성 전 `dataviz` 스킬 로드 |
 | P10 | 투명도 정책 | 배경 불투명 원칙(투명도는 사용자 명시 지시 시) |
-| P11 | Mock 격리 | **`entities/<slice>/api/fixtures/`** — 컴포넌트 인라인 금지. **MSW는 쓰지 않는다**(폴백이 같은 일을 한다). **계측만 실 API가 됐다**(2026-08-27, ThingsBoard) — 그런데 **fixture는 제거 대상이 아니다**: 계측 서버가 사설망 http라 배포본에서 닿지 않아 **자동 폴백의 원천**으로 남는다 `[사용자 결정 2026-08-27]`. 지위가 *임시물*에서 **서버 미도달 시의 정식 대체 원천**으로 바뀌었다 → `docs/integration/README.md` §5 |
-| P12 | API 갭 문서 | `docs/api-gaps.md` — **여전히 미적용.** 계측 API의 갭은 `source-inconsistencies.md`에 등록한다(`[TBD-57]` 유입유량·진동 미수신) — 갭 대장을 따로 두면 미정 항목이 두 곳으로 갈린다 |
+| P11 | Mock 격리 | **`entities/<slice>/api/fixtures/`** — 컴포넌트 인라인 금지. **MSW는 쓰지 않는다**(폴백이 같은 일을 한다). **계측만 실 API가 됐다**(2026-08-27, ThingsBoard) — 그런데 **fixture는 제거 대상이 아니다**: 계측 서버 접속이 재기동·토큰 만료·순단으로 끊기면 **자동 폴백의 원천**으로 남는다 — 한때 근거가 *"사설망 http라 배포본에서 닿지 않아"* 였는데 공인 IP 포트포워딩으로 그 전제는 깨졌고(2026-09-01) 폴백이 필요한 이유만 남았다 `[사용자 결정 2026-08-27]`. 지위가 *임시물*에서 **서버 미도달 시의 정식 대체 원천**으로 바뀌었다 → `docs/integration/README.md` §5 |
+| P12 | API 갭 문서 | `docs/api-gaps.md` — **여전히 미적용.** 계측 API의 갭은 `source-inconsistencies.md`에 등록한다(`[TBD-58]` 유입유량·진동 미수신) — 갭 대장을 따로 두면 미정 항목이 두 곳으로 갈린다 |
 | P13 | 데이터 문서 | to-be **`docs/specs/`** 사용 — 화면별 요구 데이터는 `docs/specs/screens/<화면ID>.md` §4, 필드 정규화는 `docs/specs/data-definition.md`, 표기 규약·ID 체계는 `docs/specs/README.md`. **모든 수치·라벨에 근거 표기가 붙는다**(`[원문 p.nn]`·`[파생: 식]`·`[PROVISIONAL]`·`[TBD-nn]`·`[INC-nn]`·`[설계]`) · as-is `docs/page-api-map/<page>.md` — 현 단계 미적용 |
 | P14 | 절대규칙 채택 | A1~A4 채택. 단 현 단계는 **A1 예외**(계측이 실 API가 됐으나 **폴백이 fixture를 요구한다** `[사용자 결정 2026-08-27]` — 사용자 지시가 절대규칙보다 위다(§5 레벨 1). 계측 외 도메인은 애초에 제거할 실 API가 없다) · **A3 미적용**(P12 참조) · **A4 자동 충족**(백엔드 설계를 하지 않음). **A2는 유지하되 범위를 나눈다** — *무엇을 보여주는가*(항목·라벨·단위·수치)는 `docs/` 근거를 따르고, *어떻게 보이는가*(레이아웃·색·타이포·모션)는 디자인 스킬이 정한다 |
 | P15 | 하우스 규칙 | 본 저장소 `CLAUDE.md` + `.claude/rules/*`(frontend-architecture·code-organization·code-comments·figma-implementation·test-guide·unclear·document-template) + 사용자 글로벌 `CLAUDE.md`. 디자인 스킬(`ui-ux-pro-max`·`impeccable`·`frontend-design`·`dataviz`)의 사용 시점·라우팅은 루트 `CLAUDE.md`의 "디자인 스킬" 절을 따른다 |
