@@ -13,8 +13,15 @@ import { ALARM_PREVIEW_MAX_HEIGHT } from '../config/constants';
  */
 const source = readFileSync('src/widgets/admin-overview/ui/admin-overview-view.tsx', 'utf8');
 
-/** 알람 카드의 `bodyClassName`에 들어간 것 */
-const bodyClass = /<Panel title="알람" bodyClassName=\{`([^`]+)`\}/.exec(source)?.[1] ?? '';
+/**
+ * 알람 카드의 `bodyClassName`에 들어간 것.
+ *
+ * **한 줄로 붙어 있다고 가정하지 않는다.** prettier가 prop이 늘면 줄을 나누는데, 한때
+ * `<Panel title="알람" bodyClassName=…>`를 한 줄로 찾다가 서식만 바뀌어 검사가 깨졌다 —
+ * 무엇이 잘못됐는지는 화면과 무관했다. `알람` 카드 뒤로 처음 나오는 `bodyClassName`을 본다.
+ */
+const bodyClass =
+  /title="알람"[\s\S]{0,200}?bodyClassName=\{`([^`]+)`\}/.exec(source)?.[1] ?? '';
 
 describe('알람 카드 — 두 건 남짓만 보이고 스크롤한다', () => {
   it('알람 카드를 찾았다 — 못 찾으면 아래 검사가 조용히 통과한다', () => {

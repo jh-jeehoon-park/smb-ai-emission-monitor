@@ -77,7 +77,13 @@ export function DashboardView() {
       .map(([p, n]) => `${ALARM_PRIORITY_LABELS[p as AlarmPriority]} ${n}`)
       .join(' · ') || null;
 
-  const { points: series } = useSiteSeries(selectedSiteId);
+  /*
+   * **`status`도 받는다** `[사용자 지적 2026-09-07]`. 첫 응답이 오기 전에는 값이 없고
+   * (`pending`) 격자가 그 자리에 스켈레톤을 그린다 — 한때 그 자리에 내장 데이터가 그려져,
+   * 답이 아닐 수 있는 값이 답의 자리에 앉았다가 응답이 오면 카드가 다시 그려졌다.
+   */
+  const { points: series, status: seriesStatus } = useSiteSeries(selectedSiteId);
+  const seriesPending = seriesStatus === 'pending';
 
   const detail = useMemo(
     () => ({
@@ -221,6 +227,7 @@ export function DashboardView() {
                 * 두면 옆 칸과 비교된다는 잘못된 신호를 준다. 유입·유출은 서로 비교되어야 한다.
                 */}
               <WaterQualityGrid
+                pending={seriesPending}
                 data={detail.series}
                 sections={[
                   { title: '수질 8종', codes: WATER_SERIES_CODES },

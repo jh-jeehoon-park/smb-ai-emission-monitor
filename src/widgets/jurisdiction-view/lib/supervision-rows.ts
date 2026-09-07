@@ -46,6 +46,14 @@ export function buildSupervisionRows(
   alarms: readonly Alarm[],
   limits: DischargeLimitTable,
   seriesBySite: Map<string, MeasurementPoint[]>,
+  /**
+   * 아직 첫 응답이 오지 않은 사업장 `[사용자 지적 2026-09-07]`.
+   *
+   * **없으면 «초과 0건»이라 주장한다.** 대기 중에는 계열이 비어 있고, `countOverLimit`은
+   * 기준이 있는 항목에서 빈 배열을 «걸러 보니 0건»으로 세기 때문이다 — 확인하지 않은 것이
+   * 안전으로 둔갑한다(**E4**). 그 자리는 `null`이어야 하고 표가 `—`로 적는다.
+   */
+  pendingSites: ReadonlySet<string> = new Set(),
 ): SupervisionRow[] {
   const idle = new Map(
     idleDischargeAcross(sites.map((site) => site.id)).map((v) => [v.siteId, v.runs]),
@@ -55,7 +63,9 @@ export function buildSupervisionRows(
     site,
     status: site.status,
     anomalyScore: site.anomalyScore,
-    overLimit: countOverLimitIn(site, limits, seriesBySite.get(site.id) ?? []),
+    overLimit: pendingSites.has(site.id)
+      ? null
+      : countOverLimitIn(site, limits, seriesBySite.get(site.id) ?? []),
     idleRuns: idle.get(site.id) ?? null,
     openAlarms: countOpen(alarms, site.id),
   }));
@@ -70,8 +80,9 @@ export function buildSupervisionRows(
  * 수질 8종에서 기준을 넘긴 표본 수.
  *
  * **`0`과 `null`을 가른다.** `0`은 *"확인했더니 없었다"* 이고 `null`은 *"확인할 수 없었다"* 다 —
- * 기준이 하나도 설정되지 않았거나 통신이 두절된 경우다. 둘을 같은 `0`으로 적으면
- * 미설정과 두절이 안전으로 둔갑한다(**E4** · `[TBD-45]`).
+ * 기준이 하나도 설정되지 않았거나 통신이 두절된 경우, 그리고 **아직 첫 응답을 기다리는
+ * 경우**다(`pendingSites`). 셋을 같은 `0`으로 적으면 미설정·두절·대기가 안전으로 둔갑한다
+ * (**E4** · `[TBD-45]`).
  */
 function countOverLimitIn(
   site: Site,

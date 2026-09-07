@@ -1,7 +1,7 @@
 'use client';
 
 import { useQueries, useQuery } from '@tanstack/react-query';
-import { TbError, type TbFailure } from '@/shared/api/thingsboard';
+import { TB_FIRST_LOAD_DEADLINE_MS, TbError, type TbFailure } from '@/shared/api/thingsboard';
 import { DEMO_NOW_ISO } from '@/shared/config/demo';
 import { getMeasurementSeries } from './fixtures';
 import { COLLECTION_INTERVAL_MS } from './telemetry.mapper';
@@ -27,18 +27,56 @@ export interface SiteSeries {
   observedAtIso: string;
 }
 
-function fromFixture(siteId: string, failure: TbFailure | null): SiteSeries {
+/**
+ * 내장 데이터로 돌아간 계열. **`fallback`일 때만 쓴다.**
+ *
+ * 한때 `pending`도 이 값을 들고 있었다 — 첫 응답이 오기 전에 내장 데이터를 그려 두었고,
+ * 응답이 오면 카드가 눈에 보이게 다시 그려졌다 `[사용자 지적 2026-09-07]`. 그 사이 화면은
+ * **답이 아닐 수 있는 값을 답의 자리에** 두고 있었고, 소비처는 `pending`과 `fallback`이
+ * 같은 `points`를 들어 둘을 가릴 수도 없었다.
+ */
+function fromFixture(siteId: string, failure: TbFailure): SiteSeries {
   return {
     siteId,
     points: getMeasurementSeries(siteId),
     discharging: null,
-    status: failure === null ? 'pending' : 'fallback',
+    status: 'fallback',
     failure,
     unreceived: [],
     truncated: false,
     observedAtIso: DEMO_NOW_ISO,
   };
 }
+
+/**
+ * **아직 모르는 계열.** 값을 들지 않는다 — 화면은 이 상태에서 스켈레톤을 그린다
+ * (`shared/ui/skeleton.tsx`).
+ *
+ * 서버·클라이언트가 같은 것을 그리므로 하이드레이션도 어긋나지 않는다. 한때 그 안전을
+ * «시드가 고정된 fixture»로 얻었는데, 빈 계열은 그것을 더 단순하게 얻는다.
+ */
+function pendingSeries(siteId: string): SiteSeries {
+  return {
+    siteId,
+    points: [],
+    discharging: null,
+    status: 'pending',
+    failure: null,
+    unreceived: [],
+    truncated: false,
+    observedAtIso: DEMO_NOW_ISO,
+  };
+}
+
+/**
+ * 이 세션에서 **한 번이라도 응답을 받아 본** 사업장.
+ *
+ * 첫 로드에만 마감을 걸기 위한 것이다 — 배경 갱신은 화면에 이미 값이 있어 아무도
+ * 기다리지 않으므로 재시도 예산을 그대로 쓴다. 모듈에 두는 이유는 «이 사업장이 이번
+ * 세션에서 해결된 적이 있는가»가 컴포넌트가 아니라 세션의 사실이기 때문이다
+ * (`fixtures.ts`의 `seriesCache`가 같은 이유로 모듈에 있다).
+ */
+const settledSites = new Set<string>();
 
 /**
  * 계측 서버에서 받아 보고, 못 받으면 fixture로 돌아간다 `[사용자 결정 2026-08-27]`.
@@ -51,8 +89,19 @@ function fromFixture(siteId: string, failure: TbFailure | null): SiteSeries {
  * 포트포워딩으로 그 전제는 깨졌고 배포본도 서버를 본다. 실패가 일상이라는 이유만 남았다.)
  */
 async function loadSeries(siteId: string): Promise<SiteSeries> {
+  const firstLoad = !settledSites.has(siteId);
+
   try {
-    const live = await fetchSiteTelemetry(siteId, Date.now());
+    /*
+     * **첫 로드에만 마감을 건다** `[사용자 요청 2026-09-07]`. 그때 화면은 스켈레톤이고,
+     * 재시도 예산을 그대로 두면 그것을 최악 94초 보게 된다(`TB_FIRST_LOAD_DEADLINE_MS`).
+     * 넘기면 내장 데이터로 내려앉고, 다음 폴링이 이어서 다시 물어본다.
+     */
+    const live = firstLoad
+      ? await withDeadline(fetchSiteTelemetry(siteId, Date.now()), TB_FIRST_LOAD_DEADLINE_MS)
+      : await fetchSiteTelemetry(siteId, Date.now());
+
+    settledSites.add(siteId);
     return {
       siteId,
       points: live.points,
@@ -64,8 +113,33 @@ async function loadSeries(siteId: string): Promise<SiteSeries> {
       observedAtIso: live.points.at(-1)?.t ?? DEMO_NOW_ISO,
     };
   } catch (error) {
+    /*
+     * 마감을 넘긴 것도 `unreachable`로 센다 — 화면이 `내장 데이터 · 서버 미연결`이라 적는다.
+     *
+     * **느린 것과 못 닿는 것을 가르지 않는다.** 상태를 하나 더 두면 소비처 열한 곳이 그것을
+     * 모르는 채로 늘고, 실측 왕복이 1초 아래인 서버에서 2.5초를 넘겼다면 «느리다»보다
+     * «닿지 않는다»에 가깝다. 틀렸더라도 **다음 폴링이 1분 안에 `live`로 고친다.**
+     */
+    settledSites.add(siteId);
     return fromFixture(siteId, error instanceof TbError ? error.failure : 'unreachable');
   }
+}
+
+/**
+ * 마감까지만 기다린다.
+ *
+ * **요청을 취소하지 않는다.** 프록시가 이미 나간 뒤라 취소해도 서버 쪽 일은 줄지 않고,
+ * 그 응답은 다음 폴링이 쓸 수 있다. 여기서 필요한 것은 «화면을 언제 놓아 주는가»뿐이다.
+ */
+function withDeadline<T>(work: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout>;
+
+  const deadline = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new TbError('unreachable', `첫 조회가 ${ms}ms를 넘겼습니다`)), ms);
+  });
+
+  /* 이겼으면 타이머를 걷는다 — 두면 응답이 온 뒤에도 2.5초 뒤에 깨어나 헛일을 한다 */
+  return Promise.race([work, deadline]).finally(() => clearTimeout(timer));
 }
 
 /**
@@ -84,8 +158,9 @@ export function useSiteSeries(siteId: string | null): SiteSeries {
     refetchInterval: COLLECTION_INTERVAL_MS,
     staleTime: COLLECTION_INTERVAL_MS,
     /**
-     * 첫 렌더에 빈 화면을 만들지 않는다. fixture는 시드가 고정이라 서버와 클라이언트가
-     * 같은 값을 만들고, 그래서 하이드레이션도 어긋나지 않는다.
+     * **내장 데이터를 미리 그려 두지 않는다** `[사용자 지적 2026-09-07]`. 한때 이 자리가
+     * fixture를 돌려주어 첫 페인트가 답이 아닐 수 있는 값이었고, 응답이 오면 카드가 눈에
+     * 보이게 다시 그려졌다. 지금은 `pending`이 빈 계열이라 화면이 스켈레톤을 그린다.
      */
     placeholderData: () => idleOr(siteId),
   });
@@ -93,22 +168,12 @@ export function useSiteSeries(siteId: string | null): SiteSeries {
   return query.data ?? idleOr(siteId);
 }
 
-/** 대상이 없으면 **빈 계열**이다. 아무 사업장이나 끌어다 채우면 남의 값이 붙는다 */
+/**
+ * 아직 모르는 계열. 대상이 없으면 사업장 id도 비운다 — 아무 사업장이나 끌어다 채우면
+ * 남의 값이 붙는다.
+ */
 function idleOr(siteId: string | null): SiteSeries {
-  if (siteId === null) {
-    return {
-      siteId: '',
-      points: [],
-      discharging: null,
-      status: 'pending',
-      failure: null,
-      unreceived: [],
-      truncated: false,
-      observedAtIso: DEMO_NOW_ISO,
-    };
-  }
-
-  return fromFixture(siteId, null);
+  return siteId === null ? pendingSeries('') : pendingSeries(siteId);
 }
 
 /**
@@ -125,7 +190,7 @@ export function useSitesSeries(siteIds: string[]): Map<string, SiteSeries> {
       queryFn: () => loadSeries(siteId),
       refetchInterval: COLLECTION_INTERVAL_MS,
       staleTime: COLLECTION_INTERVAL_MS,
-      placeholderData: () => fromFixture(siteId, null),
+      placeholderData: () => pendingSeries(siteId),
     })),
     combine: combineSeries,
   });

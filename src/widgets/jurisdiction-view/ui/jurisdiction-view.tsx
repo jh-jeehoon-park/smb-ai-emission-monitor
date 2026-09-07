@@ -67,11 +67,29 @@ export function JurisdictionView() {
   const seriesBySite = useSitesSeries(useMemo(() => sites.map((s) => s.id), [sites]));
 
   const rows = useMemo(
-    () => buildSupervisionRows(sites, inMunicipality, limits.table, pointsBySite(seriesBySite)),
+    () =>
+      buildSupervisionRows(
+        sites,
+        inMunicipality,
+        limits.table,
+        pointsBySite(seriesBySite),
+        /* 대기 중인 사업장은 판정하지 않는다 — 빈 계열을 세면 «초과 0건»이 된다 */
+        new Set(
+          [...seriesBySite]
+            .filter(([, series]) => series.status === 'pending')
+            .map(([id]) => id),
+        ),
+      ),
     [sites, inMunicipality, limits.table, seriesBySite],
   );
 
-  const { points: series } = useSiteSeries(siteId);
+  /*
+   * **`status`도 받는다** `[사용자 지적 2026-09-07]`. 첫 응답이 오기 전에는 값이 없고
+   * (`pending`) 격자가 그 자리에 스켈레톤을 그린다 — 한때 그 자리에 내장 데이터가 그려져,
+   * 답이 아닐 수 있는 값이 답의 자리에 앉았다가 응답이 오면 카드가 다시 그려졌다.
+   */
+  const { points: series, status: seriesStatus } = useSiteSeries(siteId);
+  const seriesPending = seriesStatus === 'pending';
 
   const detail = useMemo(
     () => ({
@@ -243,6 +261,7 @@ export function JurisdictionView() {
               }
             >
               <WaterQualityGrid
+                pending={seriesPending}
                 data={detail.series}
                 sections={[
                   { title: '수질 8종', codes: WATER_SERIES_CODES },

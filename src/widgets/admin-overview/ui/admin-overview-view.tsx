@@ -78,7 +78,13 @@ export function AdminOverviewView() {
   /* 사용자가 설정한 기준치 — `site`의 두 축을 직접 읽으면 설정 후에도 `미확인`이 남는다 */
   const limits = useDischargeLimits();
 
-  const { points: series } = useSiteSeries(siteId);
+  /*
+   * **`status`도 받는다** `[사용자 지적 2026-09-07]`. 첫 응답이 오기 전에는 값이 없고
+   * (`pending`) 격자가 그 자리에 스켈레톤을 그린다 — 한때 그 자리에 내장 데이터가 그려져,
+   * 답이 아닐 수 있는 값이 답의 자리에 앉았다가 응답이 오면 카드가 다시 그려졌다.
+   */
+  const { points: series, status: seriesStatus } = useSiteSeries(siteId);
+  const seriesPending = seriesStatus === 'pending';
 
   const detail = useMemo(() => {
     const alarms = allAlarmsForSite(siteId);
@@ -261,6 +267,7 @@ export function AdminOverviewView() {
       >
         {/* 유량을 소절로 가른다 — 농도와 부피/시간을 한 격자에 두면 옆 칸과 비교된다는 신호를 준다 */}
         <WaterQualityGrid
+          pending={seriesPending}
           data={detail.series}
           sections={[
             { title: '수질 8종', codes: WATER_SERIES_CODES },

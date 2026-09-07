@@ -28,6 +28,7 @@ import {
   isReceptionStalled,
 } from '@/entities/measurement';
 import { SPARK_MARGIN } from '../config/constants';
+import { WaterQualityGridSkeleton } from './water-quality-grid-skeleton';
 import { limitZone, type LimitZone } from '../lib/limit-zone';
 import { useChartSurface } from '@/shared/lib/use-chart-hover';
 
@@ -76,13 +77,33 @@ interface WaterQualityGridProps {
    * `data`에서 셀 수도 있지만 표본 간격을 알아야 해서, 자른 쪽이 알려 준다.
    */
   windowHours: number;
+  /**
+   * 아직 첫 응답이 오지 않았다(`useSiteSeries`의 `pending`).
+   *
+   * **값 대신 스켈레톤을 그린다** `[사용자 지적 2026-09-07]`. 한때 그 상태가 내장 데이터를
+   * 들고 있어 **답이 아닐 수 있는 값이 답의 자리에** 앉았고, 응답이 오면 카드 여덟 장이
+   * 눈에 보이게 다시 그려졌다. «모른다»와 «이 값이다»를 가르는 것이 이 저장소의 규약이다
+   * (**E4**) — 그 규약을 라벨에만 적용하고 그림에는 적용하지 않고 있었다.
+   *
+   * 격자 밖이 아니라 **여기서** 가른다: 이 격자가 pending일 때 무엇을 그리는지는 격자가
+   * 아는 것이고, 쓰는 화면 넷이 같은 분기를 네 번 적을 이유가 없다.
+   */
+  pending?: boolean;
 }
 
 /**
  * 단위가 다른 항목을 한 축에 겹치지 않는다 — pH 0~14와 EC 0~20,000을 같은 y축에 두면
  * 둘 다 읽을 수 없게 된다. 항목마다 자기 축을 가진 작은 차트로 나눈다(small multiples).
  */
-export function WaterQualityGrid({ data, sections, limits, windowHours }: WaterQualityGridProps) {
+export function WaterQualityGrid({
+  data,
+  sections,
+  limits,
+  windowHours,
+  pending = false,
+}: WaterQualityGridProps) {
+  if (pending) return <WaterQualityGridSkeleton sections={sections} />;
+
   /**
    * 열 수는 뷰포트가 아니라 **이 그리드가 실제로 받은 폭**을 따라야 한다.
    * 같은 위젯이 통합 관제(지도 옆 좁은 열)와 시계열 화면(전폭)에 함께 쓰인다 —

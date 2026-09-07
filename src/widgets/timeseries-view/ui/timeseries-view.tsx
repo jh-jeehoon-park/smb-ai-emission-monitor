@@ -46,7 +46,13 @@ export function TimeseriesView() {
   /* 사용자가 설정한 기준치와 사업장 분류. `site`의 두 축을 직접 읽으면 설정 후에도 `미확인`이 남는다 */
   const limits = useDischargeLimits();
 
-  const { points: series } = useSiteSeries(siteId);
+  /*
+   * **`status`도 받는다** `[사용자 지적 2026-09-07]`. 첫 응답이 오기 전에는 값이 없고
+   * (`pending`) 격자가 그 자리에 스켈레톤을 그린다 — 한때 그 자리에 내장 데이터가 그려져,
+   * 답이 아닐 수 있는 값이 답의 자리에 앉았다가 응답이 오면 카드가 다시 그려졌다.
+   */
+  const { points: series, status: seriesStatus } = useSiteSeries(siteId);
+  const seriesPending = seriesStatus === 'pending';
 
   const view = useMemo(() => {
     const points = sliceRecentHours(series, filter.hours);
@@ -86,6 +92,7 @@ export function TimeseriesView() {
       >
         {/* 여기는 필터가 고른 항목 하나뿐이라 소절 제목을 두지 않는다 */}
         <WaterQualityGrid
+          pending={seriesPending}
           data={view.points}
           sections={[{ codes: filter.codes }]}
           limits={limits.table}
