@@ -19,7 +19,12 @@ import {
   type Alarm,
   type AlarmState,
 } from '@/entities/alarm';
-import { useSiteSeries, type MeasurementPoint, type SeriesCode } from '@/entities/measurement';
+import {
+  TELEMETRY_PENDING_NOTE,
+  useSiteSeries,
+  type MeasurementPoint,
+  type SeriesCode,
+} from '@/entities/measurement';
 import { AlarmStateActions } from '@/features/alarm-ack';
 import { SNAPSHOT_CODES } from '../config/constants';
 
@@ -42,7 +47,14 @@ interface AlarmDetailModalProps {
  * 알람에 붙이면 그 시각의 근거인 것처럼 보인다(E3). 시각별 산출이 생기면 그때 넣는다.
  */
 export function AlarmDetailModal({ alarm, onClose, onChange }: AlarmDetailModalProps) {
-  const { points } = useSiteSeries(alarm?.siteId ?? null);
+  /*
+   * **여기서 `pending`은 흔하다** `[사용자 지적 2026-09-07]`. 알람의 사업장은 고른 사업장과
+   * 다를 수 있어(관내 감독·통합 관제에서 남의 알람을 연다) 모달을 열 때 그 사업장의 첫 조회가
+   * 시작된다 — 그 사이 `buildSnapshot`이 빈 계열에서 값을 못 찾아 **`그 시각 수신값이
+   * 없습니다`**, 즉 결측을 주장했다. 대기와 결측은 다른 사실이다(**E4**).
+   */
+  const { points, status: seriesStatus } = useSiteSeries(alarm?.siteId ?? null);
+  const seriesPending = seriesStatus === 'pending';
   const snapshot = useMemo(
     () => (alarm ? buildSnapshot(alarm, points) : null),
     [alarm, points],
@@ -101,7 +113,7 @@ export function AlarmDetailModal({ alarm, onClose, onChange }: AlarmDetailModalP
         <p className="mb-2 text-[12px] text-fg-subtle">
           발생 시각 계측값 · {COLLECTION_INTERVAL_MINUTES}분 주기 표본
         </p>
-        <SnapshotValues snapshot={snapshot} />
+        <SnapshotValues snapshot={snapshot} pending={seriesPending} />
       </div>
     </Modal>
   );
@@ -125,10 +137,14 @@ function DischargeFact({ alarm, state }: { alarm: Alarm; state: boolean | null }
 }
 
 /**
- * 값이 없는 두 경우를 **다른 말로** 적는다(E4). 보관 구간 밖이라 표본이 없는 것과,
- * 받았는데 값이 비어 있는 것은 서로 다른 사실이다.
+ * 값이 없는 **세 경우를 다른 말로** 적는다(**E4**). 보관 구간 밖이라 표본이 아예 없는 것 ·
+ * 받았는데 값이 비어 있는 것 · **아직 받는 중인 것**은 서로 다른 사실이다.
  */
-function SnapshotValues({ snapshot }: { snapshot: Snapshot }) {
+function SnapshotValues({ snapshot, pending }: { snapshot: Snapshot; pending: boolean }) {
+  /*
+   * **창 밖인지를 먼저 본다.** 그 판정은 알람 시각만으로 나오므로 계측을 기다릴 필요가 없고,
+   * 기다린다고 답이 바뀌지도 않는다.
+   */
   if (snapshot.outOfWindow) {
     return (
       <p className="text-[12px] text-fg-subtle">
@@ -136,6 +152,10 @@ function SnapshotValues({ snapshot }: { snapshot: Snapshot }) {
         없습니다.
       </p>
     );
+  }
+
+  if (pending) {
+    return <p className="text-[12px] text-fg-subtle">{TELEMETRY_PENDING_NOTE}</p>;
   }
 
   if (snapshot.missing) {

@@ -62,15 +62,30 @@ const FALLBACK_ICON = ShieldCheck;
  */
 const MAX_READINGS = 4;
 
+/**
+ * 대기 중에 계측값 자리를 덮는 막대의 폭(px).
+ *
+ * 한 줄에 두 항목이 `기호 값  기호 값` 꼴로 들어가는 자리다 — 실제 글자보다 넓게 잡으면
+ * 노드를 넘고, 좁으면 값이 올 때 줄이 늘어난 것으로 보인다.
+ */
+const READING_SKELETON_WIDTH = 92;
+
 interface Props {
   /** **켠 단계만** 온다. 무엇을 켤지는 `features/process-settings`가 정한다 */
   stages: readonly ResolvedStage[];
   points: MeasurementPoint[];
   selectedId: string;
   onSelect: (id: string) => void;
+  /**
+   * 첫 응답을 기다리는 중인가 `[사용자 지적 2026-09-07]`.
+   *
+   * **도해의 뼈대는 계측이 아니라 설정이 정한다** — 단계·이름·등급·배치는 다 알고 있어
+   * 그대로 그린다. 모르는 것은 노드에 적히는 계측값뿐이라 **그 줄만** 덮는다.
+   */
+  pending?: boolean;
 }
 
-export function ProcessDiagram({ stages, points, selectedId, onSelect }: Props) {
+export function ProcessDiagram({ stages, points, selectedId, onSelect, pending = false }: Props) {
   const width = diagramWidth(stages.length);
 
   return (
@@ -95,6 +110,7 @@ export function ProcessDiagram({ stages, points, selectedId, onSelect }: Props) 
           stage={resolved.stage}
           index={index}
           readings={stageReadings(points, resolved)}
+          pending={pending}
           selected={resolved.stage.id === selectedId}
           onSelect={onSelect}
         />
@@ -138,12 +154,14 @@ function BasinNode({
   stage,
   index,
   readings,
+  pending,
   selected,
   onSelect,
 }: {
   stage: ProcessStage;
   index: number;
   readings: StageReading[];
+  pending: boolean;
   selected: boolean;
   onSelect: (id: string) => void;
 }) {
@@ -245,7 +263,7 @@ function BasinNode({
        * 것처럼 노드에 적는다 `[회의 2026-08-20]`. 설정하지 않은 단계는 비운다 —
        * 지어내면 없는 계측을 주장한다(`[TBD-53]`).
        */}
-      <Readings x={x} readings={readings} />
+      <Readings x={x} readings={readings} pending={pending} />
 
       {/* 실측 지점은 센서가 실제로 꽂혀 있다는 표시를 준다 */}
       {measured && (
@@ -264,13 +282,43 @@ function BasinNode({
  * **값이 없으면 `수신 없음`이다** — 0으로 채우면 그 지점이 0을 재고 있다는 뜻이 된다(E4).
  * 넘치는 것은 `+n`으로 접는다. 다 적으면 글자가 노드를 넘는다.
  */
-function Readings({ x, readings }: { x: number; readings: StageReading[] }) {
+function Readings({
+  x,
+  readings,
+  pending,
+}: {
+  x: number;
+  readings: StageReading[];
+  pending: boolean;
+}) {
   if (readings.length === 0) return null;
 
   const shown = readings.slice(0, MAX_READINGS);
   const rest = readings.length - shown.length;
   /* 두 개씩 두 줄. 한 줄에 넷을 넣으면 140px에서 잘린다 */
   const lines = [shown.slice(0, 2), shown.slice(2)].filter((line) => line.length > 0);
+
+  /*
+   * **아직 모르는 값을 `—`로 적지 않는다**(**E4**). 자리는 그대로 두어야 값이 도착할 때
+   * 노드가 흔들리지 않는다 — 줄 수는 항목 수가 정하므로 계측 없이도 안다.
+   */
+  if (pending) {
+    return (
+      <g aria-hidden>
+        {lines.map((_, row) => (
+          <rect
+            key={row}
+            x={x + 12}
+            y={NODE_TOP + 96 + row * 14}
+            width={READING_SKELETON_WIDTH}
+            height={8}
+            rx={2}
+            className="fill-surface-3 motion-safe:animate-pulse"
+          />
+        ))}
+      </g>
+    );
+  }
 
   return (
     <g>

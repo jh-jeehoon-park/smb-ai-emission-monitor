@@ -12,6 +12,7 @@ import {
   BUCKET_OPTIONS,
   STAT_LABELS,
   STAT_OPTIONS,
+  TELEMETRY_PENDING_NOTE,
   WINDOW_HOURS,
   buildBucketReport,
   bucketReportToCsv,
@@ -49,6 +50,7 @@ export function BucketReportPanel({
   onStatChange,
   siteName,
   baseIso,
+  pending = false,
 }: {
   points: MeasurementPoint[];
   codes: readonly SeriesCode[];
@@ -61,6 +63,13 @@ export function BucketReportPanel({
   siteName: string;
   /** CSV 파일명에 넣을 기준 시각 */
   baseIso: string;
+  /**
+   * 첫 응답을 기다리는 중인가 `[사용자 지적 2026-09-07]`.
+   *
+   * **이 표는 스켈레톤을 그릴 수 없다** — 행이 구간이라 몇 줄이 될지는 데이터가 정한다.
+   * 지어낸 줄 수가 틀리면 값이 올 때 오히려 더 크게 튄다. 그래서 빈 상자에 문구만 바꾼다.
+   */
+  pending?: boolean;
 }) {
   const window = sliceRecentHours(points, hours);
   const rows = buildBucketReport(window, codes, unit, stat);
@@ -104,7 +113,7 @@ export function BucketReportPanel({
         </div>
       }
     >
-      <BucketTable rows={rows} codes={codes} stat={stat} />
+      <BucketTable rows={rows} codes={codes} stat={stat} pending={pending} />
     </Panel>
   );
 }
@@ -113,15 +122,18 @@ function BucketTable({
   rows,
   codes,
   stat,
+  pending,
 }: {
   rows: BucketRow[];
   codes: readonly SeriesCode[];
   stat: BucketStat;
+  pending: boolean;
 }) {
   if (rows.length === 0) {
     return (
       <p className=" py-8 text-center text-[12px] text-fg-subtle">
-        이 구간에 표본이 없습니다.
+        {/* **아직 안 물어본 것을 «표본이 없다»고 적지 않는다**(E4) — 확인된 부재의 어휘다 */}
+        {pending ? TELEMETRY_PENDING_NOTE : '이 구간에 표본이 없습니다.'}
       </p>
     );
   }

@@ -1,6 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { TELEMETRY_STATUS_LABELS, telemetrySourceLabel } from './constants';
+import {
+  TELEMETRY_PENDING_NOTE,
+  TELEMETRY_STATUS_LABELS,
+  telemetrySourceLabel,
+} from './constants';
 
 /**
  * 원천 배지의 문구를 못박는다.
@@ -33,5 +37,44 @@ describe('원천 배지 문구', () => {
     const shell = readFileSync('src/widgets/app-shell/ui/app-shell.tsx', 'utf8');
     expect(shell).toContain('TELEMETRY_STATUS_LABELS.live');
     expect(shell.replace(/^\s*\*.*$/gm, '')).not.toMatch(/수신 중 ·/);
+  });
+});
+
+/**
+ * 화면 안에서 대기 자리를 채우는 한 줄 `[사용자 지적 2026-09-07]`.
+ *
+ * 배지와 **같은 규약을 받는다** — 확인된 부재의 어휘를 쓰지 않는다. 실제로 그 어휘를 그대로
+ * 쓰고 있던 자리가 여섯 화면에 있었다(`통신 두절 — 수신 없음` · `이 구간에 표본이 없습니다` ·
+ * `계측값이 없어 산출 불가` · `결측 없음` · `그 시각 수신값이 없습니다` · `초과 0건`).
+ */
+describe('대기 문구', () => {
+  it('확인된 부재의 어휘를 쓰지 않는다', () => {
+    expect(TELEMETRY_PENDING_NOTE).not.toMatch(/없음|없습니다|두절|불가|미연결|결측/);
+  });
+
+  /** 「받고 있다」는 사실을 말해야 한다 — 빈 문자열이나 `…`로는 무엇을 기다리는지 알 수 없다 */
+  it('무엇을 기다리는지 말한다', () => {
+    expect(TELEMETRY_PENDING_NOTE).toMatch(/계측/);
+    expect(TELEMETRY_PENDING_NOTE.length).toBeGreaterThan(6);
+  });
+
+  /**
+   * **화면마다 다시 적지 않는다.** 열 곳 넘는 자리가 이 문구를 쓰는데 각자 글자로 적으면
+   * 같은 상태가 화면마다 다른 말로 보인다 — 원천 배지에서 이미 겪은 일이다(위 검사).
+   */
+  it.each([
+    'src/widgets/discharge-view/ui/discharge-view.tsx',
+    'src/widgets/bucket-report/ui/bucket-report-panel.tsx',
+    'src/widgets/timeseries-view/ui/timeseries-view.tsx',
+    'src/widgets/reports-view/ui/reports-view.tsx',
+    'src/widgets/optimization-view/ui/optimization-view.tsx',
+    'src/widgets/anomaly-view/ui/idle-discharge-panel.tsx',
+    'src/widgets/alarms-view/ui/alarm-detail-modal.tsx',
+    'src/widgets/daily-ribbon/ui/daily-ribbon-skeleton.tsx',
+  ])('%s가 상수를 읽는다', (path) => {
+    const source = readFileSync(path, 'utf8');
+    expect(source).toContain('TELEMETRY_PENDING_NOTE');
+    /* 주석은 뺀다 — 옛 문구를 «이렇게 적었다»로 인용하는 자리가 있다 */
+    expect(source.replace(/^\s*[/*].*$/gm, '')).not.toContain(TELEMETRY_PENDING_NOTE);
   });
 });

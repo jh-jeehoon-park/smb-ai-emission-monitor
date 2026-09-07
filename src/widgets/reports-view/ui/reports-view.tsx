@@ -11,6 +11,7 @@ import { DEMO_NOW_ISO } from '@/shared/config/demo';
 import { SCOPE_FILTERS, SCOPE_OPTIONS, SCOPE_QUERY_KEY } from '@/shared/config/scope';
 import { useQueryState } from '@/shared/lib/use-query-state';
 import { Panel } from '@/shared/ui/panel';
+import { SkeletonCells } from '@/shared/ui/skeleton';
 import { SegmentedControl } from '@/shared/ui/segmented-control';
 import { StatTile } from '@/shared/ui/stat-tile';
 import { StatusBadge } from '@/shared/ui/status-badge';
@@ -22,6 +23,7 @@ import { PERIOD_HOURS, PERIOD_OPTIONS, PERIOD_QUERY_KEY } from '@/features/measu
 import {
   DEFAULT_BUCKET,
   DEFAULT_STAT,
+  TELEMETRY_PENDING_NOTE,
   WATER_SERIES_CODES,
   useSiteSeries,
   type BucketStat,
@@ -72,8 +74,12 @@ export function ReportsView() {
   /*
    * **선택 사업장 하나의 센서 통계다.** 10개소 × 11항목을 한 표에 넣으면 110행이 되어
    * 읽히지 않는다 — 회의가 요구한 것은 항목별 통계이고, 사업장 비교는 위 집계표가 이미 한다.
+   *
+   * **아직 안 받은 것을 «결측 0건»이라 적지 않는다** `[사용자 지적 2026-09-07]`. 빈 계열에서
+   * `missingCount`가 0이라 표의 결측 칸이 «전부 받았다»로 읽혔다(**E4**).
    */
-  const { points } = useSiteSeries(siteId);
+  const { points, status: seriesStatus } = useSiteSeries(siteId);
+  const seriesPending = seriesStatus === 'pending';
   const sensors = useMemo(
     () => buildSensorReport(points, hours, limits.table),
     [points, hours, limits.table],
@@ -175,6 +181,7 @@ export function ReportsView() {
        * 수질 8종만 낸다 — 설비 계열(전류·전력·유량)은 배출 리포트의 축이 아니다.
        */}
       <BucketReportPanel
+        pending={seriesPending}
         points={points}
         codes={WATER_SERIES_CODES}
         hours={hours}
@@ -210,7 +217,7 @@ export function ReportsView() {
           </button>
         }
       >
-        <SensorTable rows={sensors} />
+        <SensorTable rows={sensors} pending={seriesPending} />
       </Panel>
 
       {/*
@@ -335,23 +342,35 @@ function ReportTable({ rows }: { rows: SiteReportRow[] }) {
 }
 
 /**
+ * 계측에서 오는 열. **머리와 스켈레톤이 같은 배열을 본다** — 시계열 화면의 `항목별 요약`이
+ * 같은 다섯 칸을 갖는다(**E1** — 두 화면이 같은 값을 내야 한다). 배열을 공유하지 않는 이유는
+ * 위젯끼리 참조하지 않기 때문이고(FSD §8), 대기 표시 부품은 `SkeletonCells` 하나를 쓴다.
+ */
+const STAT_COLUMNS = ['최소', '평균', '최대', '최신', '결측'];
+
+/**
  * 센서별 기간 통계.
  *
  * 결측이 있는 항목은 **건수를 함께** 적는다 — 평균만 보이면 몇 개를 빼고 낸 평균인지 알 수 없다.
  */
-function SensorTable({ rows }: { rows: SensorReportRow[] }) {
+function SensorTable({ rows, pending }: { rows: SensorReportRow[]; pending: boolean }) {
   return (
     <div className="overflow-x-auto">
       <table className={`${TABLE_ROOT} min-w-[680px] text-[12px] text-center`}>
+        {/* 대기 중임을 여기서 말한다 — `<td>` 사이에는 `role="status"`를 끼울 수 없다 */}
+        <caption className="sr-only">
+          센서 값 기간 통계.{pending && ` ${TELEMETRY_PENDING_NOTE}`}
+        </caption>
         <thead>
           <tr className={TABLE_HEAD_ROW}>
             <th className={TABLE_HEAD_CELL}>항목</th>
             <th className={TABLE_HEAD_CELL}>단위</th>
-            <th className={TABLE_HEAD_CELL}>최소</th>
-            <th className={TABLE_HEAD_CELL}>평균</th>
-            <th className={TABLE_HEAD_CELL}>최대</th>
-            <th className={TABLE_HEAD_CELL}>최신</th>
-            <th className={TABLE_HEAD_CELL}>결측</th>
+            {/* 스켈레톤이 덮는 칸이 곧 이 열들이다 — 개수를 따로 적으면 한쪽만 늘어난다 */}
+            {STAT_COLUMNS.map((header) => (
+              <th key={header} className={TABLE_HEAD_CELL}>
+                {header}
+              </th>
+            ))}
             <th className={TABLE_HEAD_CELL}>기준</th>
           </tr>
         </thead>
@@ -373,21 +392,27 @@ function SensorTable({ rows }: { rows: SensorReportRow[] }) {
                   {MEASUREMENT_ITEMS[row.code].unitKo}
                 </span>
               </td>
-              <td className="num px-3 py-3.5 text-center text-fg-muted">
-                {formatValue(row.code, row.stats.min)}
-              </td>
-              <td className="num px-3 py-3.5 text-center text-fg">
-                {formatValue(row.code, row.stats.avg)}
-              </td>
-              <td className="num px-3 py-3.5 text-center text-fg-muted">
-                {formatValue(row.code, row.stats.max)}
-              </td>
-              <td className="num px-3 py-3.5 text-center text-fg">
-                {formatValue(row.code, row.stats.latest)}
-              </td>
-              <td className="num px-3 py-3.5 text-center text-fg-subtle">
-                {row.stats.missingCount}/{row.stats.totalCount}
-              </td>
+              {pending ? (
+                <SkeletonCells count={STAT_COLUMNS.length} />
+              ) : (
+                <>
+                  <td className="num px-3 py-3.5 text-center text-fg-muted">
+                    {formatValue(row.code, row.stats.min)}
+                  </td>
+                  <td className="num px-3 py-3.5 text-center text-fg">
+                    {formatValue(row.code, row.stats.avg)}
+                  </td>
+                  <td className="num px-3 py-3.5 text-center text-fg-muted">
+                    {formatValue(row.code, row.stats.max)}
+                  </td>
+                  <td className="num px-3 py-3.5 text-center text-fg">
+                    {formatValue(row.code, row.stats.latest)}
+                  </td>
+                  <td className="num px-3 py-3.5 text-center text-fg-subtle">
+                    {row.stats.missingCount}/{row.stats.totalCount}
+                  </td>
+                </>
+              )}
               <td className="px-3 py-3.5">
                 {/* 기준이 없으면 `미판정`이다. `정상`으로 적으면 없는 판정을 만든다(E4) */}
                 <span

@@ -1,5 +1,6 @@
 import { MEASUREMENT_ITEMS } from '@/shared/config/measurement';
 import { Skeleton, SkeletonRegion } from '@/shared/ui/skeleton';
+import { VALUE_MD } from '@/shared/ui/type-scale';
 import type { GridSection } from './water-quality-grid';
 
 /**
@@ -49,15 +50,21 @@ function Card({ symbol, label }: { symbol: string; label: string }) {
     <div className="h-full rounded-nested bg-surface-2 p-3">
       <span className="text-[12px] font-medium tracking-[0.08em] text-fg-subtle">{symbol}</span>
 
-      {/* 값 — `VALUE_MD`(18px)와 같은 높이로 덮는다 */}
-      <Skeleton className="mt-1 h-[18px] w-14" />
+      {/*
+       * 값 — **막대를 실제 값과 같은 요소 안에 둔다.** 그 요소의 단(`VALUE_MD`)이 높이를
+       * 정하고 `1em`이 그 글자 크기다. 픽셀을 박으면 단이 바뀔 때 한쪽만 남아 값이 도착할 때
+       * 칸이 튄다 — 같은 화면의 타일에서 실제로 6px 어긋나 있었다.
+       */}
+      <p className={`num mt-1 ${VALUE_MD}`}>
+        <Skeleton className="h-[1em] w-14" />
+      </p>
 
       <p className="mt-0.5 truncate text-[12px] text-fg-muted">{label}</p>
 
       {/* 기준 문구 한 줄 */}
       <Skeleton className="mt-1 h-3 w-20" />
 
-      {/* 스파크라인 — 실제와 같은 40px */}
+      {/* 스파크라인 — 실제 상자와 같은 클래스다(`-mx-1 mt-2 h-10`) */}
       <Skeleton className="-mx-1 mt-2 h-10" />
     </div>
   );

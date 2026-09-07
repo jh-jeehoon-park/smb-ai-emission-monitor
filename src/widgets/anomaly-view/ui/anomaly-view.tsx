@@ -69,7 +69,12 @@ export function AnomalyView() {
     document.getElementById(DETAIL_SECTION_ID)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  const { points } = useSiteSeries(siteId);
+  /*
+   * **`status`도 받는다** `[사용자 지적 2026-09-07]`. 미가동 방류 패널이 구간의 계측값을
+   * 적는데, 첫 응답 전에는 그 값이 없어 `—` 셋이 결측처럼 보였다.
+   */
+  const { points, status: seriesStatus } = useSiteSeries(siteId);
+  const seriesPending = seriesStatus === 'pending';
 
   const detail = useMemo(
     () => ({
@@ -186,7 +191,7 @@ export function AnomalyView() {
           title="방지시설 미가동 중 방류 의심"
           titleAside={<InfoTip label="판정 방법과 한계" content={IDLE_DISCHARGE_NOTE} />}
         >
-          <IdleDischargePanel siteId={siteId} points={detail.points} />
+          <IdleDischargePanel siteId={siteId} points={detail.points} pending={seriesPending} />
         </Panel>
       </section>
     </div>

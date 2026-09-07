@@ -8,6 +8,7 @@ import {
 import { ACTUAL_HEX, AI_HEX, MISSING_HEX } from '@/shared/config/status-visual';
 import { useQueryState } from '@/shared/lib/use-query-state';
 import { Panel } from '@/shared/ui/panel';
+import { Skeleton } from '@/shared/ui/skeleton';
 import { RiseItem, StaggerGroup } from '@/shared/ui/motion';
 import { EQUIPMENT_SIGNAL_LABELS, getEquipment } from '@/entities/equipment';
 import { useSiteSeries } from '@/entities/measurement';
@@ -53,7 +54,13 @@ export function ProcessView() {
   const selected = stages.find((s) => s.stage.id === stageId) ?? stages[0];
 
   /* 계측을 한 번만 읽어 도해·상세가 같은 계열을 본다 — JSX에서 부르면 단계마다 다시 만든다 */
-  const { points } = useSiteSeries(siteId);
+  const { points, status: seriesStatus } = useSiteSeries(siteId);
+  /*
+   * **도해와 단계 상세만 계측을 읽는다** `[사용자 지적 2026-09-07]`. 첫 응답 전에는 노드마다
+   * 값이 `—`로 찍혀 **계측 지점이 전부 결측인 공정**처럼 보였다 — 대기와 결측은 다른
+   * 사실이다(**E4**). 상단의 가동·방류 줄은 시연 시나리오가 갖는 값이라 그대로 나온다.
+   */
+  const seriesPending = seriesStatus === 'pending';
 
   const operating = useMemo(() => getOperatingState(siteId), [siteId]);
   const equipment = useMemo(() => getEquipment(siteId), [siteId]);
@@ -101,6 +108,7 @@ export function ProcessView() {
           <ProcessDiagram
             stages={stages}
             points={points}
+            pending={seriesPending}
             selectedId={selected.stage.id}
             onSelect={setStageId}
           />
@@ -112,6 +120,7 @@ export function ProcessView() {
           <StageDetail
             resolved={selected}
             readings={stageReadings(points, selected)}
+            pending={seriesPending}
             equipment={stageEquipment}
             online={site.online}
           />
@@ -195,11 +204,14 @@ function GradeLegend() {
 function StageDetail({
   resolved,
   readings,
+  pending,
   equipment,
   online,
 }: {
   resolved: ResolvedStage;
   readings: ReturnType<typeof stageReadings>;
+  /** 첫 응답 전인가. **설비 줄은 계측이 아니라 시나리오가 갖는다** — 여기 걸리지 않는다 */
+  pending: boolean;
   equipment: ReturnType<typeof getEquipment>;
   online: boolean;
 }) {
@@ -235,12 +247,23 @@ function StageDetail({
                   {MEASUREMENT_ITEMS[reading.code].symbol}
                 </dt>
                 <dd className="num mt-0.5 text-fg">
-                  {/* 결측을 0으로 채우지 않는다 — 그 지점이 0을 잰 것이 아니다(E4) */}
-                  {reading.latest === null ? '수신 없음' : formatValue(reading.code, reading.latest)}
-                  {reading.latest !== null && (
-                    <span className="ml-1 text-[12px] font-normal text-fg-subtle">
-                      {MEASUREMENT_ITEMS[reading.code].unit}
-                    </span>
+                  {/*
+                   * 결측을 0으로 채우지 않는다 — 그 지점이 0을 잰 것이 아니다(E4).
+                   * **아직 안 받은 것을 `수신 없음`이라 적지도 않는다** — 확인된 부재의 말이다.
+                   */}
+                  {pending ? (
+                    <Skeleton className="h-3.5 w-12" />
+                  ) : (
+                    <>
+                      {reading.latest === null
+                        ? '수신 없음'
+                        : formatValue(reading.code, reading.latest)}
+                      {reading.latest !== null && (
+                        <span className="ml-1 text-[12px] font-normal text-fg-subtle">
+                          {MEASUREMENT_ITEMS[reading.code].unit}
+                        </span>
+                      )}
+                    </>
                   )}
                 </dd>
               </div>

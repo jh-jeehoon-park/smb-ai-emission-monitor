@@ -17,9 +17,9 @@ import {
 import { cn } from '@/shared/lib/cn';
 import { DISPLAY_TIMEZONE, formatClock } from '@/shared/lib/format';
 import { TIMELINE_POINT_COUNT, timelineIsoAt } from '@/shared/lib/timeline';
-import { AnomalyBandLegend } from '@/shared/ui/anomaly-band-legend';
 import { CHART_SURFACE } from '@/shared/ui/chart-figure';
 import { ChartTooltipRow, ChartTooltipShell } from '@/shared/ui/chart-tooltip';
+import { RibbonLegend } from './ribbon-legend';
 import { tooltipSideAt, tooltipTransform } from '../lib/tooltip-placement';
 import {
   RIBBON_FILL,
@@ -28,7 +28,6 @@ import {
   RIBBON_LABEL_WIDTH,
   RIBBON_OVERLAY_ROW,
   RIBBON_ROW_GAP,
-  RIBBON_LEGEND,
   RIBBON_OFF_LABELS,
   RIBBON_SCORE_HEIGHT,
   RIBBON_SCORE_TICKS,
@@ -161,25 +160,7 @@ export function DailyRibbon({ data, dateIso }: { data: RibbonData; dateIso: stri
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-border pt-2">
-        <ul className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1">
-          {RIBBON_LEGEND.map((item) => (
-            <li key={item.state} className="flex items-center gap-1 text-[12px] text-fg-subtle">
-              <span
-                aria-hidden
-                className="inline-block h-2 w-3 rounded-[2px]"
-                style={{
-                  backgroundColor: RIBBON_FILL[item.state],
-                  opacity: item.state === 'unknown' ? 0.45 : 1,
-                }}
-              />
-              {item.label}
-            </li>
-          ))}
-        </ul>
-        {/* 좁아지면 눌러 담지 말고 줄을 바꾼다 — 구간 숫자는 줄어들면 못 읽는다 */}
-        <AnomalyBandLegend className="shrink-0" />
-      </div>
+      <RibbonLegend />
     </div>
   );
 }

@@ -319,7 +319,7 @@ export function JurisdictionView() {
                 />
               }
             >
-              <IdleDischargePanel siteId={siteId} points={detail.series} />
+              <IdleDischargePanel siteId={siteId} points={detail.series} pending={seriesPending} />
             </Panel>
           </div>
         </div>

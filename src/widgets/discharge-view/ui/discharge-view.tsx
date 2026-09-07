@@ -20,16 +20,25 @@ import {
   MISSING_HEX,
   OUTAGE_BAND,
 } from '@/shared/config/status-visual';
+import { cn } from '@/shared/lib/cn';
 import { DISPLAY_TIMEZONE, formatClock, formatDateTime, formatValue } from '@/shared/lib/format';
 import { getOutageWindow, isDischargingAt } from '@/shared/lib/timeline';
-import { ChartFigure } from '@/shared/ui/chart-figure';
+import { CHART_SURFACE, ChartFigure } from '@/shared/ui/chart-figure';
 import { ChartTooltipRow, ChartTooltipShell } from '@/shared/ui/chart-tooltip';
 import { Panel } from '@/shared/ui/panel';
-import { StatTile } from '@/shared/ui/stat-tile';
+import { Skeleton, SkeletonRegion } from '@/shared/ui/skeleton';
+import {
+  StatTile,
+  TILE_FOOTER,
+  TILE_LABEL,
+  TILE_SHELL,
+  TILE_VALUE,
+} from '@/shared/ui/stat-tile';
 import { InfoTip } from '@/shared/ui/tooltip';
 import { useChartHover } from '@/shared/lib/use-chart-hover';
 import { getSite } from '@/entities/site';
 import {
+  TELEMETRY_PENDING_NOTE,
   dailyDischargeSeries,
   dailyDischargeVolume,
   useSiteSeries,
@@ -43,7 +52,12 @@ import {
   type DischargeBand,
   type DischargeSample,
 } from '../lib/discharge-runs';
-import { VOLUME_DECIMALS } from '../config/constants';
+import {
+  FLOW_CHART_HEIGHT,
+  SIDE_CHART_HEIGHT,
+  TILE_LABELS,
+  VOLUME_DECIMALS,
+} from '../config/constants';
 
 const LEVEL = MEASUREMENT_ITEMS.level;
 const FLOW = MEASUREMENT_ITEMS.flow;
@@ -77,7 +91,16 @@ export function DischargeView() {
     discharging: liveDischarging,
     observedAtIso,
     unreceived,
+    status: seriesStatus,
   } = useSiteSeries(siteId);
+  /*
+   * **아직 못 받은 것을 «두절»이라 적지 않는다** `[사용자 지적 2026-09-07]`.
+   *
+   * 이 화면은 타일 넷과 차트 셋이 전부 계측이라, 첫 응답 전 빈 계열이 그대로 흘러
+   * **없는 두절을 네 번 주장했다** — 차트 셋이 `통신 두절 — 수신 없음`, 방류 상태 타일이
+   * `통신이 두절되어 방류 여부를 확인할 수 없습니다`. 셋 다 **확인된 부재**의 어휘다(**E4**).
+   */
+  const pending = seriesStatus === 'pending';
   /*
    * **채널이 없는 것과 통신이 끊긴 것은 다른 사실이다.** 둘 다 `null`로 오지만 화면이
    * 같은 말을 하면 안 된다 — 수위는 서버에 채널 자체가 없어서 비고(`[TBD-57]`, 추가 요청
@@ -131,48 +154,54 @@ export function DischargeView() {
          * **네 값이 원문의 한 묶음이다.** 순서는 읽는 차례다 — 내보내고 있나(상태) →
          * 얼마나(유량) → 수조는(수위) → 오늘 합쳐서(누적).
          */}
-        <StatTile
-          label="방류 상태"
-          value={runLabel}
-          /*
-           * **창 전체가 같은 상태면 `~부터`라 적지 않는다.** 그 시작점은 24시간 전이라
-           * 시:분만 적으면 어제 시각을 오늘처럼 말하고, 언제 시작됐는지는 창 밖이라 모른다.
-           */
-          note={
-            run.minutes === null
-              ? '통신이 두절되어 방류 여부를 확인할 수 없습니다'
-              : run.fromWindowStart
-                ? `조회한 ${runMinutesLabel(run.minutes)} 내내 · 그 전은 조회 범위 밖입니다`
-                : `${formatClock(run.sinceIso!)} ${DISPLAY_TIMEZONE}부터 · ${runMinutesLabel(run.minutes)}째`
-          }
-        />
-        <StatTile
-          label="실시간 배출 유량"
-          value={detail.latestFlow === null ? '수신 없음' : formatValue('flow', detail.latestFlow)}
-          note={detail.latestFlow === null ? '마지막 수신 없음' : `${FLOW.unit} · ${FLOW.unitKo}`}
-        />
-        <StatTile
-          label={LEVEL.label}
-          value={
-            detail.latestLevel === null ? '수신 없음' : formatValue('level', detail.latestLevel)
-          }
-          note={
-            detail.latestLevel !== null
-              ? `${LEVEL.unit} · 만수위 ${LEVEL.range[1]}${LEVEL.unit} [PROVISIONAL]`
-              : levelUnreceived
-                ? '계측 서버에 수위 채널이 없습니다 [TBD-57]'
-                : '마지막 수신 없음'
-          }
-        />
-        <StatTile
-          label="금일 누적 배출량"
-          value={volume.volumeM3 === null ? '수신 없음' : volume.volumeM3.toFixed(VOLUME_DECIMALS)}
-          note={
-            volume.volumeM3 === null
-              ? '센 표본이 없습니다 — 0이 아니라 모릅니다'
-              : `m³ · 세제곱미터${volume.missing > 0 ? ` · 결측 ${volume.missing}건 제외` : ''}`
-          }
-        />
+        {pending ? (
+          TILE_LABELS.map((label) => <PendingTile key={label} label={label} />)
+        ) : (
+          <>
+            <StatTile
+              label="방류 상태"
+              value={runLabel}
+              /*
+               * **창 전체가 같은 상태면 `~부터`라 적지 않는다.** 그 시작점은 24시간 전이라
+               * 시:분만 적으면 어제 시각을 오늘처럼 말하고, 언제 시작됐는지는 창 밖이라 모른다.
+               */
+              note={
+                run.minutes === null
+                  ? '통신이 두절되어 방류 여부를 확인할 수 없습니다'
+                  : run.fromWindowStart
+                    ? `조회한 ${runMinutesLabel(run.minutes)} 내내 · 그 전은 조회 범위 밖입니다`
+                    : `${formatClock(run.sinceIso!)} ${DISPLAY_TIMEZONE}부터 · ${runMinutesLabel(run.minutes)}째`
+              }
+            />
+            <StatTile
+              label="실시간 배출 유량"
+              value={detail.latestFlow === null ? '수신 없음' : formatValue('flow', detail.latestFlow)}
+              note={detail.latestFlow === null ? '마지막 수신 없음' : `${FLOW.unit} · ${FLOW.unitKo}`}
+            />
+            <StatTile
+              label={LEVEL.label}
+              value={
+                detail.latestLevel === null ? '수신 없음' : formatValue('level', detail.latestLevel)
+              }
+              note={
+                detail.latestLevel !== null
+                  ? `${LEVEL.unit} · 만수위 ${LEVEL.range[1]}${LEVEL.unit} [PROVISIONAL]`
+                  : levelUnreceived
+                    ? '계측 서버에 수위 채널이 없습니다 [TBD-57]'
+                    : '마지막 수신 없음'
+              }
+            />
+            <StatTile
+              label="금일 누적 배출량"
+              value={volume.volumeM3 === null ? '수신 없음' : volume.volumeM3.toFixed(VOLUME_DECIMALS)}
+              note={
+                volume.volumeM3 === null
+                  ? '센 표본이 없습니다 — 0이 아니라 모릅니다'
+                  : `m³ · 세제곱미터${volume.missing > 0 ? ` · 결측 ${volume.missing}건 제외` : ''}`
+              }
+            />
+          </>
+        )}
       </div>
 
       <Panel
@@ -180,11 +209,20 @@ export function DischargeView() {
         titleAside={
           <InfoTip
             label="이 그래프를 읽는 법"
-            content={`자정부터 지금까지의 유출 유량입니다. ${formatDateTime(volume.fromIso)}–${formatDateTime(volume.toIso)} ${DISPLAY_TIMEZONE} · ${COLLECTION_INTERVAL_MINUTES}분 주기. 옅은 띠는 방류를 멈춘 구간이고 그때 유량은 0입니다 — 값을 못 받은 것이 아니라 받은 값이 0입니다. 통신이 끊긴 구간은 더 진한 띠로 표시하고 선을 끊습니다.`}
+            /*
+             * **구간을 아직 모르면 적지 않는다.** `volume.fromIso`는 계열의 마지막 표본에서
+             * 오므로 첫 응답 전에는 빈 문자열이고, `formatDateTime('')`은 `NaN-NaN-NaN`을
+             * 돌려준다 — 툴팁을 열어 본 사람에게 고장으로 보인다.
+             */
+            content={`자정부터 지금까지의 유출 유량입니다. ${
+              pending
+                ? TELEMETRY_PENDING_NOTE
+                : `${formatDateTime(volume.fromIso)}–${formatDateTime(volume.toIso)} ${DISPLAY_TIMEZONE}`
+            } · ${COLLECTION_INTERVAL_MINUTES}분 주기. 옅은 띠는 방류를 멈춘 구간이고 그때 유량은 0입니다 — 값을 못 받은 것이 아니라 받은 값이 0입니다. 통신이 끊긴 구간은 더 진한 띠로 표시하고 선을 끊습니다.`}
           />
         }
       >
-        <FlowChart input={chart} />
+        {pending ? <ChartSkeleton height={FLOW_CHART_HEIGHT} /> : <FlowChart input={chart} />}
       </Panel>
 
       <div className="grid gap-6 xl:grid-cols-2">
@@ -197,7 +235,11 @@ export function DischargeView() {
             />
           }
         >
-          <CumulativeChart rows={detail.cumulative} />
+          {pending ? (
+            <ChartSkeleton height={SIDE_CHART_HEIGHT} />
+          ) : (
+            <CumulativeChart rows={detail.cumulative} />
+          )}
         </Panel>
 
         <Panel
@@ -209,10 +251,57 @@ export function DischargeView() {
             />
           }
         >
-          <LevelChart input={chart} unreceived={levelUnreceived} />
+          {pending ? (
+            <ChartSkeleton height={SIDE_CHART_HEIGHT} />
+          ) : (
+            <LevelChart input={chart} unreceived={levelUnreceived} />
+          )}
         </Panel>
       </div>
     </div>
+  );
+}
+
+/**
+ * 아직 모르는 타일. **제목만 그리고 값·보조줄을 덮는다** `[사용자 지적 2026-09-07]`.
+ *
+ * 제목은 계측이 아니라 이 화면이 아는 것이라 기다릴 이유가 없다 — 격자 스켈레톤이 기호와
+ * 항목 이름을 그리는 것과 같은 규칙이다. 골격은 실제 타일과 같은 클래스를 쓴다(`TILE_*`).
+ *
+ * **문구를 네 번 반복하지 않는다.** 셸 헤더가 이미 `수신 확인 중`을 적고 있고, 같은 말을
+ * 타일마다 쓰면 그 줄이 값이 아니라 소음이 된다.
+ */
+function PendingTile({ label }: { label: string }) {
+  return (
+    <SkeletonRegion label={`${label} — ${TELEMETRY_PENDING_NOTE}`} className={TILE_SHELL}>
+      <div className="flex items-start justify-between gap-2">
+        <p className={cn('min-w-0', TILE_LABEL)}>{label}</p>
+        {/*
+         * **높이를 글자로 적지 않는다.** 막대를 실제 값과 **같은 요소 안**에 넣어 그 요소의
+         * 단(`TILE_VALUE`)이 높이를 정하게 한다 — `1em`은 그 단의 글자 크기다. 픽셀을 박으면
+         * 단이 바뀔 때 한쪽만 남아 값이 도착할 때 타일이 튄다(실제로 6px 어긋나 있었다).
+         */}
+        <p className={`num ${TILE_VALUE}`}>
+          <Skeleton className="h-[1em] w-20" />
+        </p>
+      </div>
+      <div className={TILE_FOOTER}>
+        {/* 글자 흐름 안에 둔다 — 보조줄의 줄 높이를 그대로 물려받는다 */}
+        <Skeleton className="inline-block h-3 w-32 align-middle" />
+      </div>
+    </SkeletonRegion>
+  );
+}
+
+/**
+ * 아직 모르는 차트. **축을 그리지 않는다** — 값 없는 축에 시각·눈금을 적으면 그 자리의
+ * 값이 있는 것처럼 보인다. 높이는 실제 차트와 같은 상수에서 읽는다.
+ */
+function ChartSkeleton({ height }: { height: number }) {
+  return (
+    <SkeletonRegion label={TELEMETRY_PENDING_NOTE} className={CHART_SURFACE}>
+      <Skeleton style={{ height }} />
+    </SkeletonRegion>
   );
 }
 
@@ -300,9 +389,9 @@ function FlowChart({ input }: { input: ChartInput }) {
       sampleEvery={12}
     >
       {empty ? (
-        <ChartEmpty height={240} />
+        <ChartEmpty height={FLOW_CHART_HEIGHT} />
       ) : (
-        <div className="h-[240px]" {...hoverProps}>
+        <div style={{ height: FLOW_CHART_HEIGHT }} {...hoverProps}>
           <ResponsiveContainer width="100%" height="100%">
             {/*
              * `accessibilityLayer={false}` — **툴팁이 화면에 얼어붙는 것을 막는다.**
@@ -397,9 +486,9 @@ function CumulativeChart({ rows }: { rows: CumulativePoint[] }) {
       sampleEvery={12}
     >
       {empty ? (
-        <ChartEmpty height={200} />
+        <ChartEmpty height={SIDE_CHART_HEIGHT} />
       ) : (
-        <div className="h-[200px]" {...hoverProps}>
+        <div style={{ height: SIDE_CHART_HEIGHT }} {...hoverProps}>
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart
               data={rows}
@@ -499,9 +588,12 @@ function LevelChart({ input, unreceived }: { input: ChartInput; unreceived: bool
          * 영구 한계처럼 읽혔는데, 그 번호는 단위·만수위 **사양**이 미정이라는 뜻이고
          * 그것은 지금도 그대로다(`PROVISIONAL_LEVEL_*`) — 채널 부재와 다른 사안이다.
          */
-        <ChartEmpty height={200} reason={unreceived ? '수위 값이 한 점도 오지 않았습니다' : undefined} />
+        <ChartEmpty
+          height={SIDE_CHART_HEIGHT}
+          reason={unreceived ? '수위 값이 한 점도 오지 않았습니다' : undefined}
+        />
       ) : (
-        <div className="h-[200px]" {...hoverProps}>
+        <div style={{ height: SIDE_CHART_HEIGHT }} {...hoverProps}>
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart
               data={input.today}

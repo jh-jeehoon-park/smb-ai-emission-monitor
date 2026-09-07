@@ -3,11 +3,20 @@ import { PROVISIONAL_IDLE_DISCHARGE_MIN_SAMPLES } from '@/shared/config/provisio
 import { STATUS_VISUAL, statusInk } from '@/shared/config/status-visual';
 import { formatDateTime, formatValue } from '@/shared/lib/format';
 import { canJudgeIdleDischarge, findIdleDischargeRuns } from '@/entities/anomaly';
-import type { MeasurementPoint } from '@/entities/measurement';
+import { TELEMETRY_PENDING_NOTE, type MeasurementPoint } from '@/entities/measurement';
 
 interface IdleDischargePanelProps {
   siteId: string;
   points: MeasurementPoint[];
+  /**
+   * 첫 응답을 기다리는 중인가 `[사용자 지적 2026-09-07]`.
+   *
+   * **구간 판정과 그 구간의 계측값이 서로 다른 곳에서 온다.** 구간은 시연 시나리오가 갖고
+   * (`findIdleDischargeRuns`) 유량·전류·전력은 계측 계열에서 읽는데, 첫 응답 전에는 계열이
+   * 비어 세 값이 모두 `—`가 된다 — **구간은 있는데 그때 무슨 값이었는지는 모른다**로 읽혀
+   * 결측처럼 보인다. 대기와 결측은 다른 사실이다(**E4**).
+   */
+  pending?: boolean;
 }
 
 const MINUTES_PER_HOUR = 60;
@@ -32,7 +41,11 @@ export const IDLE_DISCHARGE_NOTE = (
   </>
 );
 
-export function IdleDischargePanel({ siteId, points }: IdleDischargePanelProps) {
+export function IdleDischargePanel({
+  siteId,
+  points,
+  pending = false,
+}: IdleDischargePanelProps) {
   const canJudge = canJudgeIdleDischarge(siteId);
   const runs = findIdleDischargeRuns(siteId);
 
@@ -71,20 +84,24 @@ export function IdleDischargePanel({ siteId, points }: IdleDischargePanelProps) 
                   {durationLabel(run.samples)} 연속
                 </p>
               </div>
-              <dl className="mt-1.5 flex flex-wrap gap-x-5 gap-y-1 text-[12px] text-fg-subtle">
-                <Fact
-                  label="유량"
-                  value={`${formatValue('flow', points[run.from]?.flow ?? null)} m³/day`}
-                />
-                <Fact
-                  label="전류"
-                  value={`${formatValue('current', points[run.from]?.current ?? null)} A`}
-                />
-                <Fact
-                  label="전력"
-                  value={`${formatValue('power', points[run.from]?.power ?? null)} kW`}
-                />
-              </dl>
+              {pending ? (
+                <p className="mt-1.5 text-[12px] text-fg-subtle">{TELEMETRY_PENDING_NOTE}</p>
+              ) : (
+                <dl className="mt-1.5 flex flex-wrap gap-x-5 gap-y-1 text-[12px] text-fg-subtle">
+                  <Fact
+                    label="유량"
+                    value={`${formatValue('flow', points[run.from]?.flow ?? null)} m³/day`}
+                  />
+                  <Fact
+                    label="전류"
+                    value={`${formatValue('current', points[run.from]?.current ?? null)} A`}
+                  />
+                  <Fact
+                    label="전력"
+                    value={`${formatValue('power', points[run.from]?.power ?? null)} kW`}
+                  />
+                </dl>
+              )}
             </li>
           ))}
         </ul>

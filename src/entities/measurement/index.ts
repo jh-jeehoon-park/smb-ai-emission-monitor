@@ -22,6 +22,7 @@ export {
   DEFAULT_STAT,
   WINDOW_HOURS,
   TELEMETRY_STATUS_LABELS,
+  TELEMETRY_PENDING_NOTE,
   telemetrySourceLabel,
   type BucketUnit,
   type BucketStat,

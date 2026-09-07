@@ -15,6 +15,7 @@ import { DISPLAY_TIMEZONE, formatValue } from '@/shared/lib/format';
 import { useQueryState } from '@/shared/lib/use-query-state';
 import { getOutageWindow } from '@/shared/lib/timeline';
 import { Panel } from '@/shared/ui/panel';
+import { SkeletonCells } from '@/shared/ui/skeleton';
 import { InfoTip } from '@/shared/ui/tooltip';
 import {
   useSiteSeries,
@@ -26,6 +27,7 @@ import {
   BUCKET_STATS,
   DEFAULT_BUCKET,
   DEFAULT_STAT,
+  TELEMETRY_PENDING_NOTE,
   outageNotice,
 } from '@/entities/measurement';
 import { getSite } from '@/entities/site';
@@ -108,6 +110,7 @@ export function TimeseriesView() {
        * 다른 값으로 보인다(E1).
        */}
       <BucketReportPanel
+        pending={seriesPending}
         points={view.points}
         codes={filter.codes}
         hours={filter.hours}
@@ -139,7 +142,7 @@ export function TimeseriesView() {
           </div>
         }
       >
-        <StatsTable rows={view.stats} limits={limits.table} />
+        <StatsTable rows={view.stats} limits={limits.table} pending={seriesPending} />
         {/*
          * 기준값을 화면이 확정 기준처럼 보이게 하면 안 된다 — `[공정자료 p.11]`이 통상 범위라고
          * 적었고, 적용 구간은 사업장마다 허가증으로 갈린다. 나머지 항목은 표를 고를 2축
@@ -181,6 +184,14 @@ export function TimeseriesView() {
 }
 
 /**
+ * 계측에서 오는 열. **머리와 스켈레톤이 같은 배열을 본다** — 개수를 따로 적으면 열을 하나
+ * 더할 때 한쪽만 늘어나 대기 중에 표가 어긋난다.
+ *
+ * 앞의 세 열(항목·단위·배출허용기준)은 사전과 설정이 아는 것이라 여기 오지 않는다.
+ */
+const STAT_COLUMNS = ['최소', '평균', '최대', '최신', '결측'];
+
+/**
  * 기준을 아는 항목만 값을 적는다.
  *
  * 세 상태를 구분한다 — **판정 가능**(pH), **기준표 미확보**(TOC), **기준 대상 아님**(수온·전류 등).
@@ -196,24 +207,41 @@ function limitText(code: SeriesCode, decimals: number, table: DischargeLimitTabl
 function StatsTable({
   rows,
   limits,
+  pending,
 }: {
   rows: { code: SeriesCode; stats: SeriesStats }[];
   /** 기준표는 사업장 설정에서 온다 — 화면이 자기 값을 갖지 않는다 */
   limits: DischargeLimitTable;
+  /**
+   * 첫 응답을 기다리는 중인가 `[사용자 지적 2026-09-07]`.
+   *
+   * **행 수는 필터가 정하므로 스켈레톤을 그릴 수 있다** — 항목·단위·기준 세 열은 계측이
+   * 아니라 사전과 설정이 아는 것이라 그대로 그리고, **통계 다섯 칸만** 덮는다. 격자
+   * 스켈레톤이 기호·이름을 그리는 것과 같은 규칙이다.
+   *
+   * 특히 `결측` 칸이 위험했다 — 빈 계열에서 `missingCount`가 0이라 **`없음`**, 즉
+   * «전부 받았다»로 읽혔다(**E4**).
+   */
+  pending: boolean;
 }) {
   return (
     <div className="overflow-x-auto">
       <table className={`${TABLE_ROOT} min-w-[560px] text-[12px] text-center`}>
+        {/* 대기 중임을 여기서 말한다 — `<td>` 사이에는 `role="status"`를 끼울 수 없다 */}
+        <caption className="sr-only">
+          항목별 기간 통계.{pending && ` ${TELEMETRY_PENDING_NOTE}`}
+        </caption>
         <thead>
           <tr className={TABLE_HEAD_ROW}>
             <th className={TABLE_HEAD_CELL}>항목</th>
             <th className={TABLE_HEAD_CELL}>단위</th>
             <th className={TABLE_HEAD_CELL}>배출허용기준</th>
-            <th className={TABLE_HEAD_CELL}>최소</th>
-            <th className={TABLE_HEAD_CELL}>평균</th>
-            <th className={TABLE_HEAD_CELL}>최대</th>
-            <th className={TABLE_HEAD_CELL}>최신</th>
-            <th className={TABLE_HEAD_CELL}>결측</th>
+            {/* 스켈레톤이 덮는 칸이 곧 이 열들이다 — 개수를 따로 적으면 한쪽만 늘어난다 */}
+            {STAT_COLUMNS.map((header) => (
+              <th key={header} className={TABLE_HEAD_CELL}>
+                {header}
+              </th>
+            ))}
           </tr>
         </thead>
         <tbody>
@@ -237,19 +265,27 @@ function StatsTable({
                   </span>
                 </td>
                 <td className="num px-3 py-3.5 text-fg-subtle">{limitText(code, item.decimals, limits)}</td>
-                <td className="num px-3 py-3.5 text-center text-fg-muted">
-                  {formatValue(code, stats.min)}
-                </td>
-                <td className="num px-3 py-3.5 text-center text-fg">{formatValue(code, stats.avg)}</td>
-                <td className="num px-3 py-3.5 text-center text-fg-muted">
-                  {formatValue(code, stats.max)}
-                </td>
-                <td className="num px-3 py-3.5 text-center text-fg">
-                  {formatValue(code, stats.latest)}
-                </td>
-                <td className="num px-3 py-3.5 text-center text-fg-subtle">
-                  {stats.missingCount > 0 ? `${stats.missingCount}/${stats.totalCount}` : '없음'}
-                </td>
+                {pending ? (
+                  <SkeletonCells count={STAT_COLUMNS.length} />
+                ) : (
+                  <>
+                    <td className="num px-3 py-3.5 text-center text-fg-muted">
+                      {formatValue(code, stats.min)}
+                    </td>
+                    <td className="num px-3 py-3.5 text-center text-fg">
+                      {formatValue(code, stats.avg)}
+                    </td>
+                    <td className="num px-3 py-3.5 text-center text-fg-muted">
+                      {formatValue(code, stats.max)}
+                    </td>
+                    <td className="num px-3 py-3.5 text-center text-fg">
+                      {formatValue(code, stats.latest)}
+                    </td>
+                    <td className="num px-3 py-3.5 text-center text-fg-subtle">
+                      {stats.missingCount > 0 ? `${stats.missingCount}/${stats.totalCount}` : '없음'}
+                    </td>
+                  </>
+                )}
               </tr>
             );
           })}

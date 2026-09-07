@@ -32,7 +32,7 @@ import { useSelectedSiteId, useSiteHref } from '@/features/site-selection';
 import { useDischargeLimits } from '@/features/discharge-limit-settings';
 import { AlarmList } from '@/widgets/alarm-list';
 import { AnomalyPanel } from '@/widgets/anomaly-panel';
-import { DailyRibbon, buildRibbon } from '@/widgets/daily-ribbon';
+import { DailyRibbon, DailyRibbonSkeleton, buildRibbon } from '@/widgets/daily-ribbon';
 import { EquipmentPanel } from '@/widgets/equipment-panel';
 import { WaterQualityGrid } from '@/widgets/water-quality-grid';
 /* 셸의 라우트 표를 읽는다 — 첫 화면의 정의를 여기서 다시 적으면 두 곳이 갈린다 */
@@ -92,13 +92,20 @@ export function AdminOverviewView() {
     return {
       series,
       outage: getOutageWindow(siteId),
-      ribbon: buildRibbon(siteId, series, getAnomalySeries(siteId), alarms),
+      /*
+       * **모르는 동안은 리본을 짓지 않는다** `[사용자 지적 2026-09-07]`.
+       *
+       * 첫 응답 전 계열이 비면서 `buildRibbon`이 `assertFullDay`에서 예외를 던졌다 —
+       * *"리본 '가동' 표본 0개 — 1440개여야 한다"*. **화면 전체가 렌더 중에 터졌다.**
+       * 그 단정은 네 행의 x가 같은 시각을 가리키게 하는 장치라 무르지 않는다.
+       */
+      ribbon: seriesPending ? null : buildRibbon(siteId, series, getAnomalySeries(siteId), alarms),
       anomalySummary: getAnomalySummary(siteId),
       alarms,
       equipment: sortEquipment(getEquipment(siteId), 'status'),
       optimization: getOptimization(siteId, energyIntensity(series)),
     };
-  }, [siteId, series]);
+  }, [siteId, series, seriesPending]);
 
   /* 확인 처리가 헤더·사이드바와 함께 반영되도록 공유 상태를 읽는다 */
   const { alarms } = useAlarmStates(detail.alarms);
@@ -163,7 +170,11 @@ export function AdminOverviewView() {
           </div>
         }
       >
-        <DailyRibbon data={detail.ribbon} dateIso={DEMO_NOW_ISO} />
+        {detail.ribbon === null ? (
+          <DailyRibbonSkeleton />
+        ) : (
+          <DailyRibbon data={detail.ribbon} dateIso={DEMO_NOW_ISO} />
+        )}
       </Panel>
 
       <StaggerGroup className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">

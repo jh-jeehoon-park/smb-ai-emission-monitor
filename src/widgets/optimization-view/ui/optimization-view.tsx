@@ -8,6 +8,7 @@ import { StatTile } from '@/shared/ui/stat-tile';
 import { VALUE_LG, VALUE_MD } from '@/shared/ui/type-scale';
 import { MeterBar } from '@/shared/ui/meter-bar';
 import {
+  TELEMETRY_PENDING_NOTE,
   energyGap,
   energyIntensity,
   useSiteSeries,
@@ -35,7 +36,18 @@ export function OptimizationView() {
    * 에너지 효율은 계측에서 계산해 최적화 슬라이스에 넘긴다.
    * slice끼리 참조하지 않으므로(FSD §8) 두 도메인을 잇는 일은 위젯이 한다.
    */
-  const { points: series } = useSiteSeries(siteId);
+  const { points: series, status: seriesStatus } = useSiteSeries(siteId);
+  /*
+   * **아직 안 물어본 것을 «계측값이 없어 산출 불가»라 적지 않는다** `[사용자 지적 2026-09-07]`.
+   *
+   * 첫 응답 전 빈 계열에서 `energyGap`이 `noSamples`를 돌려주어 화면이 그 문구를 적었다 —
+   * 그 함수가 애써 가른 두 사정(못 받았다 / 방류가 없었다)에 **«아직 안 받았다»가 하나 더
+   * 붙은 것**이고, 셋을 한 문구로 뭉치면 없는 부재를 주장한다(**E4**).
+   *
+   * **타일 다섯 중 셋은 계측과 무관하다**(목표·검증 수준). 화면을 통째로 스켈레톤으로 덮으면
+   * 아는 것까지 가려지므로 모르는 두 칸만 문구를 바꾼다.
+   */
+  const pending = seriesStatus === 'pending';
 
   const summary = useMemo(() => {
     const energyNow = energyIntensity(series);
@@ -102,7 +114,7 @@ export function OptimizationView() {
               ? '—'
               : `${summary.energy.current.toFixed(ENERGY_DECIMALS)}`
           }
-          note="kWh/m³ · 계측 전력÷유량"
+          note={pending ? TELEMETRY_PENDING_NOTE : 'kWh/m³ · 계측 전력÷유량'}
         />
         {/*
          * 다섯 번째 칸 — **최적화를 적용했을 때의 값**. 나머지 넷이 "지금"과 "목표"라면
@@ -124,9 +136,11 @@ export function OptimizationView() {
            */
           note={
             summary.energy.target === null
-              ? summary.energyGap === 'noDischarge'
-                ? '오늘 방류가 없어 나눌 배출량이 없습니다'
-                : '계측값이 없어 산출 불가'
+              ? pending
+                ? TELEMETRY_PENDING_NOTE
+                : summary.energyGap === 'noDischarge'
+                  ? '오늘 방류가 없어 나눌 배출량이 없습니다'
+                  : '계측값이 없어 산출 불가'
               : `kWh/m³ · 현재 대비 −${summary.energy.savingRate}%`
           }
           accent={summary.energy.target === null ? undefined : statusInk(STATUS_VISUAL.normal)}
@@ -155,7 +169,12 @@ export function OptimizationView() {
             />
           }
         >
-          {summary.operating.length === 0 ? (
+          {pending ? (
+            /* 조정 방향의 근거가 계측이라 아직 낼 수 없다 — «권하지 않는다»와 다른 상태다 */
+            <p className="py-3 text-[12px] leading-relaxed text-fg-subtle">
+              {TELEMETRY_PENDING_NOTE}
+            </p>
+          ) : summary.operating.length === 0 ? (
             /* 신호가 없으면 제안을 만들지 않는다 — 무엇이 없어서인지를 적는다(R19·E4) */
             <p className="py-3 text-[12px] leading-relaxed text-fg-subtle">
               최근 {OPERATING_WINDOW.recentHours}시간의 DO·유량 변화가 조정 문턱 아래이거나 표본이

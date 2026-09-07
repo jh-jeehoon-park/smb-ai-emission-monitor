@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { TB_FIRST_LOAD_DEADLINE_MS } from '@/shared/api/thingsboard';
 import { COLLECTION_INTERVAL_MINUTES } from '@/shared/config/measurement';
@@ -80,6 +80,69 @@ describe('첫 로드 마감', () => {
     expect(TB_FIRST_LOAD_DEADLINE_MS).toBeLessThanOrEqual(3_000);
   });
 });
+
+/**
+ * **계측을 읽는 화면은 «아직 모른다»를 알아야 한다** `[사용자 지적 2026-09-07]`.
+ *
+ * `pending`을 빈 계열로 바꾸자 값 없는 경로가 화면마다 열렸고, 그 경로가 하는 말이 전부
+ * **확인된 부재**였다 — `통신 두절 — 수신 없음`(금일 배출 차트 셋) · `이 구간에 표본이
+ * 없습니다`(구간 집계) · `계측값이 없어 산출 불가`(운영 최적화) · `결측 없음`(항목별 요약) ·
+ * `그 시각 수신값이 없습니다`(알람 상세) · `초과 0건`(관내 감독). 하나는 예외가 아니라
+ * **화면이 아예 터졌다**(사업장 상세의 리본).
+ *
+ * 이 검사는 **새 소비처가 그 사실을 모른 채 늘어나는 것**을 막는다. `status`를 받지 않으면
+ * 화면은 대기와 결측을 가릴 수 없고, 그때 무엇을 그릴지 결정조차 할 수 없다.
+ *
+ * 훅 자체를 돌려 검사하지 않는 이유는 위와 같다 — 브라우저 상태에 걸려 있다.
+ */
+describe('계측을 읽는 화면은 status를 함께 받는다', () => {
+  /**
+   * 값을 그리지 않아 대기를 가릴 필요가 없는 소비처. **이유를 함께 적는다** — 이유 없이
+   * 목록만 늘면 검사가 통과 도장이 된다.
+   */
+  const EXEMPT: Record<string, string> = {
+    'src/widgets/cost-savings-view/ui/cost-savings-view.tsx':
+      '계측에서 나온 값을 화면에 적지 않는다 — 절감률은 상수(ENERGY_SAVING_TARGET)와 시나리오에서 온다',
+  };
+
+  /** 한 사업장 훅에서 `status`를 뽑았는가 */
+  const DESTRUCTURED = /\{[^{}]*\bstatus\b[^{}]*\}\s*=\s*useSiteSeries\(/;
+  /** 여러 사업장 훅은 `Map`을 돌려주므로 항목마다 본다 */
+  const PER_ENTRY = /\bstatus\s*===\s*'pending'/;
+
+  const consumers = walk('src', '.tsx').filter((path) =>
+    /use(Site|Sites)Series\(/.test(readFileSync(path, 'utf8')),
+  );
+
+  it('소비처를 찾았다 — 정규식이 헛돌지 않는다', () => {
+    expect(consumers.length).toBeGreaterThan(5);
+  });
+
+  it.each(consumers)('%s', (path) => {
+    const source = readFileSync(path, 'utf8');
+    const aware = DESTRUCTURED.test(source) || PER_ENTRY.test(source);
+    const reason = EXEMPT[path.split('\\').join('/')];
+
+    if (reason) {
+      /* 면제였던 화면이 값을 그리기 시작했으면 목록에서 지워야 한다 — 그것을 여기서 알린다 */
+      expect(aware, `면제 목록에 있는데 status를 받는다 — 목록에서 지운다: ${reason}`).toBe(false);
+      return;
+    }
+
+    expect(aware, '계측 값을 그리는데 status를 받지 않는다').toBe(true);
+  });
+});
+
+/** 여기서만 쓴다 — `verify-docs.mjs`의 같은 이름 함수와 별개다(그쪽은 Node 스크립트다) */
+function walk(dir: string, ext: string): string[] {
+  const out: string[] = [];
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const path = `${dir}/${entry.name}`;
+    if (entry.isDirectory()) out.push(...walk(path, ext));
+    else if (entry.name.endsWith(ext)) out.push(path);
+  }
+  return out;
+}
 
 /**
  * **격자가 스스로 가른다.** 쓰는 화면 넷이 같은 분기를 네 번 적으면 한 곳만 빠뜨려도
