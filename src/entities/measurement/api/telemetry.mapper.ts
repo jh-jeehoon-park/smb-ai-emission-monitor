@@ -70,7 +70,7 @@ function byTimestamp(values: TbTsValue[] | undefined): Map<number, number> {
 
 export interface TelemetryWindow {
   points: MeasurementPoint[];
-  /** 표본별 방류 여부. 실측 채널이라 파생하지 않는다. 값이 없으면 **모름**이다 */
+  /** 표본별 방류 여부. 서버가 채널로 주므로 파생하지 않는다. 값이 없으면 **모름**이다 */
   discharging: (boolean | null)[];
   /** 응답 개수가 `limit`과 같아 **잘렸을 수 있다**(명세 §4.4) */
   truncated: boolean;
@@ -79,7 +79,7 @@ export interface TelemetryWindow {
 /**
  * 서버 응답을 화면 모델로 옮긴다.
  *
- * **값을 범위로 자르지 않는다.** fixture는 `clamp`로 잘라 두는데, 실측을 자르면 센서 고장이
+ * **값을 범위로 자르지 않는다.** fixture는 `clamp`로 잘라 두는데, 서버 값을 자르면 센서 고장이
  * 정상값으로 둔갑한다 — 이상 탐지가 잡아야 할 바로 그 값이다.
  *
  * 자릿수는 사전으로 복원한다 — 응답에는 단위도 자릿수도 없고(명세 §5) 소수점이 잘려 오기도

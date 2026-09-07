@@ -12,7 +12,7 @@ export interface SiteSeries {
   siteId: string;
   points: MeasurementPoint[];
   /**
-   * 표본별 방류 여부. **실측일 때만 값이 있다** — fixture 경로는 `null`이고, 그때는
+   * 표본별 방류 여부. **서버에서 받을 때만 값이 있다** — fixture 경로는 `null`이고, 그때는
    * 호출부가 지금처럼 `isDischargingAt`으로 판정한다.
    */
   discharging: (boolean | null)[] | null;
@@ -41,11 +41,14 @@ function fromFixture(siteId: string, failure: TbFailure | null): SiteSeries {
 }
 
 /**
- * 실측을 받아 보고, 못 받으면 fixture로 돌아간다 `[사용자 결정 2026-08-27]`.
+ * 계측 서버에서 받아 보고, 못 받으면 fixture로 돌아간다 `[사용자 결정 2026-08-27]`.
  *
- * **던지지 않는다.** 계측 서버는 사설망 http라 배포본에서는 아예 닿지 않고(명세 §2),
- * 사내에서도 재기동·토큰 만료로 실패가 일상이 된다 — 실패마다 화면이 비면 시연이 멈춘다.
- * 대신 어느 원천인지를 `status`로 드러내 화면이 그 사실을 적게 한다.
+ * **던지지 않는다.** 재기동·토큰 만료·네트워크 순단으로 실패가 일상이 된다(명세 §8) —
+ * 실패마다 화면이 비면 시연이 멈춘다. 대신 어느 원천인지를 `status`로 드러내 화면이 그
+ * 사실을 적게 한다.
+ *
+ * (한때 근거를 *"사설망 http라 배포본에서는 아예 닿지 않는다"* 로도 적었다 — 공인 IP
+ * 포트포워딩으로 그 전제는 깨졌고 배포본도 서버를 본다. 실패가 일상이라는 이유만 남았다.)
  */
 async function loadSeries(siteId: string): Promise<SiteSeries> {
   try {

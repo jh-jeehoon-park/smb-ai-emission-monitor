@@ -3,6 +3,11 @@ import type { TbTimeseries } from '@/shared/api/thingsboard';
 import { COLLECTION_INTERVAL_MINUTES } from '@/shared/config/measurement';
 import { formatClock, formatDateTime } from '@/shared/lib/format';
 import {
+  RECEIVED_SERIES_CODES,
+  SERIES_CODES,
+  UNRECEIVED_SERIES_CODES,
+} from '../config/constants';
+import {
   COLLECTION_INTERVAL_MS,
   TELEMETRY_KEYS,
   buildGrid,
@@ -115,7 +120,7 @@ describe('toTelemetryWindow — 결측 규약(E4)', () => {
   });
 });
 
-describe('toTelemetryWindow — 방류는 실측 채널이다', () => {
+describe('toTelemetryWindow — 방류는 서버가 주는 채널이다', () => {
   it('1은 방류 중, 0은 방류 아님, 없으면 모름이다', () => {
     const { discharging } = toTelemetryWindow(
       raw({ discharging: [{ ts: at(0), value: '1' }, { ts: at(1), value: '0' }] }),
@@ -174,5 +179,44 @@ describe('요청 키는 사전에서만 만든다', () => {
     expect(unreceivedCodes(raw({ pH: [{ ts: at(0), value: '7' }] }))).toContain('TOC');
     expect(unreceivedCodes(raw({ pH: [{ ts: at(0), value: '7' }] }))).toContain('inflow');
     expect(unreceivedCodes(raw({ pH: [{ ts: at(0), value: '7' }] }))).not.toContain('pH');
+  });
+});
+
+/**
+ * **두 목록의 합이 곧 계열 전부여야 한다.**
+ *
+ * 어느 쪽에도 없는 계열은 매퍼가 손대지 않아 `MeasurementPoint`의 그 칸이 `undefined`로 남는다 —
+ * 타입은 `number | null`이라 소비처가 `=== null`로 걸러도 통과하고, 병합 뒤 실제로 그 상태였다.
+ * 그동안 이 불변식은 `constants.ts`의 산문뿐이었다. `UNRECEIVED_SERIES_CODES`가 비면서
+ * (수위 채널이 도착했다 `[사용자 확인 2026-09-07]`) 그 산문이 가리키던 예시도 사라져,
+ * 여기서 값으로 못박는다.
+ */
+describe('계열이 빠짐없이 갈린다', () => {
+  it('수신 목록과 미수신 목록의 합이 SERIES_CODES와 같다', () => {
+    const covered = [...RECEIVED_SERIES_CODES, ...UNRECEIVED_SERIES_CODES];
+
+    expect([...covered].sort()).toEqual([...SERIES_CODES].sort());
+    /* 양쪽에 겹쳐 있으면 매퍼가 null로 덮은 뒤 값을 얹거나 그 반대가 된다 */
+    expect(new Set(covered).size).toBe(covered.length);
+  });
+
+  /** 수위는 백엔드 요청이 반영되어 서버에서 온다 — fixture로 메우던 자리가 아니다 */
+  it('수위가 서버 계열이다', () => {
+    expect(RECEIVED_SERIES_CODES).toContain('level');
+    expect(TELEMETRY_KEYS.split(',')).toContain('level');
+  });
+
+  /**
+   * **TN·TP를 계측 계열로 올리지 않는다** `[사용자 확인 2026-09-07]`.
+   *
+   * 서버에 채널이 있고 값도 온다 — 그러나 **화면 표출을 위해 넣어 둔 것**이고, 이 사업의
+   * 주된 목적은 그 둘을 **AI로 예측하는 것**이다. 여기 올리면 예측 대상이 계측값으로
+   * 둔갑해 과제의 성과 지표가 화면에서 사라진다(E3).
+   */
+  it('TN·TP는 계측 계열이 아니다 — AI 예측 대상이다', () => {
+    const keys = TELEMETRY_KEYS.split(',');
+
+    expect(keys).not.toContain('TN');
+    expect(keys).not.toContain('TP');
   });
 });

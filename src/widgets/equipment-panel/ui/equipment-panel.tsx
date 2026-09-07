@@ -1,6 +1,10 @@
 'use client';
 
-import { OPERATING_FILL } from '@/shared/config/operating-visual';
+import {
+  OPERATING_FILL,
+  OPERATING_LABELS,
+  operatingStateOf,
+} from '@/shared/config/operating-visual';
 import { RiseItem, StaggerGroup } from '@/shared/ui/motion';
 import { StatusBadge } from '@/shared/ui/status-badge';
 import { BADGE_BASE } from '@/shared/ui/badge';
@@ -46,7 +50,7 @@ export function EquipmentPanel({
   return (
     <StaggerGroup className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
       {items.map((eq) => {
-        const state = eq.running === null ? 'unknown' : eq.running ? 'on' : 'off';
+        const state = operatingStateOf(eq.running);
         return (
           <RiseItem key={eq.id} className="h-full">
             <div
@@ -89,7 +93,7 @@ export function EquipmentPanel({
                   className="size-2 shrink-0 rounded-full"
                   style={{ backgroundColor: OPERATING_FILL[state] }}
                 />
-                {RUN_LABEL[state]}
+                {OPERATING_LABELS[state]}
               </p>
 
               {/* 아래 줄은 바닥에 붙는다 — 신호가 없는 카드와 있는 카드의 높이가 갈리지 않는다 */}
@@ -115,4 +119,3 @@ export function EquipmentPanel({
   );
 }
 
-const RUN_LABEL = { on: '가동', off: '정지', unknown: '모름' } as const;

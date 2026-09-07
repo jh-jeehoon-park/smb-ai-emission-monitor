@@ -8,23 +8,35 @@ import type { SeriesCode, TelemetryStatus } from '../model/types';
  * `수신 확인 중`과 `서버 미연결`을 가르는 것이 요점이다. 기존 어휘(`—`·`수신 없음`)를 여기
  * 쓰지 않는다 — 그쪽은 **확인된 부재**를 뜻하고, 아직 안 온 것에 같은 말을 쓰면 모름을 사실
  * 주장으로 둔갑시킨다(E4).
+ *
+ * **«진짜냐»가 아니라 «어디서 오느냐»로 가른다** `[사용자 결정 2026-09-01]`.
+ *
+ * 한때 서버 쪽을 `실측 수신 중`, 폴백을 `시연 데이터`라 적었다 — 그 대비가 거짓이었다.
+ * **계측 서버로 들어오는 값도 센서에서 온 것이 아니다**: 주관사에게 받은 자료를 참고해 만든
+ * **에뮬레이터 출력**이다 `[사용자 확인 2026-09-01]`. 둘 다 생성값인데 한쪽만 «시연»이라
+ * 적으면 보는 사람이 다른 쪽을 관측으로 읽는다 — 결측을 0으로 그리지 않는 것과 같은 종류의
+ * 거짓말이다(**E3**·**E4**).
+ *
+ * 그래서 두 문구가 각자 **출처만** 말한다: 계측 서버에서 왔는가, 앱에 내장된 값인가.
  */
 export const TELEMETRY_STATUS_LABELS: Record<TelemetryStatus, string> = {
   pending: '수신 확인 중',
-  live: '실측 수신 중',
-  fallback: '시연 데이터 · 서버 미연결',
+  live: '계측 서버 수신 중',
+  fallback: '내장 데이터 · 서버 미연결',
 };
 
 /**
- * **접속 정보를 두지 않은 것은 실패가 아니다.** 계측 서버는 사설망에 있어 배포본과 사외에서는
- * 애초에 닿지 않는다 — 그 상태를 `서버 미연결`이라 적으면 전 화면에 경고가 상시로 떠 정작
- * 진짜 두절일 때 눈에 띄지 않는다.
+ * **접속 정보를 두지 않은 것은 실패가 아니다.** 그 상태를 `서버 미연결`이라 적으면 전 화면에
+ * 경고가 상시로 떠 정작 진짜 두절일 때 눈에 띄지 않는다.
+ *
+ * (한때 근거를 *"계측 서버는 사설망에 있어 배포본과 사외에서는 애초에 닿지 않는다"* 로 적었다 —
+ * 공인 IP 포트포워딩으로 그 전제는 깨졌고, 접속 정보를 비워 둘 수 있다는 사실만 남았다.)
  */
 export function telemetrySourceLabel(
   status: TelemetryStatus,
   failure: TbFailure | null,
 ): string {
-  if (status === 'fallback' && failure === 'unconfigured') return '시연 데이터';
+  if (status === 'fallback' && failure === 'unconfigured') return '내장 데이터';
   return TELEMETRY_STATUS_LABELS[status];
 }
 
@@ -85,6 +97,7 @@ export const RECEIVED_SERIES_CODES: SeriesCode[] = [
   'power',
   'inflow',
   'flow',
+  ...DISCHARGE_SERIES_CODES,
 ];
 
 /**
@@ -95,8 +108,10 @@ export const RECEIVED_SERIES_CODES: SeriesCode[] = [
  * 전부 그 이름을 쓰고 있고, 서버 채널 이름이 화면 계약이 되면 저쪽이 바꿀 때마다 전 화면이
  * 깨진다(명세 §7.3이 경계한 그것이다). 이름을 잇는 일은 매퍼 한 곳에서 한다.
  *
- * **옛 `flow` 채널을 쓰지 않는다** — 아직 살아 있지만 5분 주기이고, 1분 백필과 섞여 5분 배수
- * 시각에만 옛 값이 남아 있다. `flowOut`이 그 자리를 대신한다.
+ * **옛 `flow` 채널을 쓰지 않는다.** 5분 주기였고 1분 백필과 섞여 5분 배수 시각에만 옛 값이
+ * 남아 있었다 — 지금은 **서버 키 목록에서 아예 사라졌다**(2026-09-07 실측: 16종 중 없다).
+ * 매핑을 지우지 않는 이유는 이름이 우리 계열 `flow`와 같아서다: 매핑이 없으면 `channelOf`가
+ * 항등으로 떨어져 **없는 채널을 다시 묻게 된다**(유령 표본, 명세 §7.1).
  */
 export const TB_CHANNEL_BY_CODE: Partial<Record<SeriesCode, string>> = {
   inflow: 'flowIn',
@@ -105,19 +120,22 @@ export const TB_CHANNEL_BY_CODE: Partial<Record<SeriesCode, string>> = {
 
 /**
  * 서버에 채널이 없는 계열. **화면이 fixture로 메우지 않고 전 구간 `null`**이 되게 하는 자리다 —
- * 실측과 생성값을 한 행에 섞으면 어느 칸이 관측인지 알 수 없다(E4).
+ * 서버가 준 값과 내장 값을 한 행에 섞으면 어느 칸이 어디서 왔는지 알 수 없다(E4).
  *
- * **`level`(방류 수조 수위)이 여기 있다** `[TBD-57]`. 서버 채널 15종을 대조해 보면 우리 계열
- * 13개 중 12개가 덮이고 수위 하나만 없다 — 백엔드에 추가를 요청해 둔 상태다
- * `[사용자 요청 2026-09-01]`. 채널이 오면 이 배열에서 빼고 `RECEIVED_SERIES_CODES`에 넣는다.
+ * **지금은 비어 있다** `[사용자 확인 2026-09-07]`. `level`(방류 수조 수위)이 마지막 하나였는데
+ * 백엔드에 요청해 둔 채널이 도착해(`[사용자 요청 2026-09-01]` → 반영) 10개소 전부에서 값이
+ * 온다 — 계열 13개가 전부 서버로 덮인다. 사양은 여전히 미정이라 `[TBD-57]`은 살아 있다:
+ * 단위·만수위는 `PROVISIONAL_LEVEL_*`가 계속 맡는다.
  *
- * **비워 두면 `undefined`가 샌다.** 여기에도 `RECEIVED_SERIES_CODES`에도 없는 계열은 매퍼가
- * 손대지 않아 `MeasurementPoint`의 그 칸이 `undefined`로 남는데, 타입은 `number | null`이라
- * 소비처가 `=== null`로 걸러도 통과한다 — 병합 뒤 실제로 그 상태였다.
+ * **빈 배열 자체는 위험하지 않다. 빠진 계열이 위험하다.** 여기에도 `RECEIVED_SERIES_CODES`에도
+ * 없는 계열은 매퍼가 손대지 않아 `MeasurementPoint`의 그 칸이 `undefined`로 남는데, 타입은
+ * `number | null`이라 소비처가 `=== null`로 걸러도 통과한다 — 병합 뒤 실제로 그 상태였다.
+ * 그래서 «둘의 합이 곧 `SeriesCode` 전부»를 산문이 아니라 **테스트가 지킨다**
+ * (`telemetry.mapper.test.ts`).
  */
-export const UNRECEIVED_SERIES_CODES: SeriesCode[] = ['level'];
+export const UNRECEIVED_SERIES_CODES: SeriesCode[] = [];
 
-/** 방류 여부는 계열이 아니라 플래그다. 서버가 실측 채널로 준다 — 파생하지 않는다 */
+/** 방류 여부는 계열이 아니라 플래그다. 서버가 채널로 준다 — 파생하지 않는다 */
 export const DISCHARGING_KEY = 'discharging';
 
 /**

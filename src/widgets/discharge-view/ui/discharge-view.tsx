@@ -68,8 +68,9 @@ export function DischargeView() {
    *
    * 이 화면만 `getMeasurementSeries`(fixture)를 직접 읽고 있었다 — 8월 28일에 만들어져
    * 8월 27일에 멈춘 계측 연동 브랜치가 옮겨 줄 수 없었고, 병합에서도 충돌이 나지 않아
-   * 조용히 지나갔다. 그 사이 헤더는 `실측 수신 중`이라 적는데 이 화면의 숫자만 시연값이었다.
-   * 서버에 없는 수위가 값으로 뜨는 것이 그 증거였다(**E3** — AI·계측 산출값은 원천을 밝힌다).
+   * 조용히 지나갔다. 그 사이 헤더는 `계측 서버 수신 중`이라 적는데 이 화면의 숫자만 내장
+   * 데이터였고, 서버에 없는 수위가 값으로 뜨는 것이 그 증거였다(**E3** — 산출값은 원천을
+   * 밝힌다).
    */
   const {
     points: series,
@@ -86,8 +87,8 @@ export function DischargeView() {
 
   const detail = useMemo(() => {
     /*
-     * 방류 여부는 **실측이면 서버 값**, fixture면 시뮬레이션이다. 훅의 계약이 그렇다 —
-     * `discharging`은 실측일 때만 값이 있고 fixture 경로에서는 `null`이다.
+     * 방류 여부는 **서버에 닿으면 서버 값**, fixture면 시뮬레이션이다. 훅의 계약이 그렇다 —
+     * `discharging`은 서버에서 받을 때만 값이 있고 fixture 경로에서는 `null`이다.
      */
     const samples: DischargeSample[] = series.map((point, i) => ({
       t: point.t,
@@ -100,7 +101,7 @@ export function DischargeView() {
       /*
        * 자정 이후만 그린다 — `금일`이라 이름 붙인 값이 어제를 담으면 안 된다.
        * **기준 날짜는 계열의 끝에서 읽는다**(`observedAtIso`) — `DEMO_NOW_ISO`로 자르면
-       * 실측에서는 오늘이 아니라 시연 날짜를 기준으로 잘라 전 구간이 비거나 어제가 섞인다.
+       * 서버에서 받을 때 오늘이 아니라 시연 날짜로 잘라 전 구간이 비거나 어제가 섞인다.
        */
       today: series.filter((point) => point.t >= `${observedAtIso.slice(0, 10)}T00:00:00Z`),
       volume: dailyDischargeVolume(series),
@@ -490,10 +491,15 @@ function LevelChart({ input, unreceived }: { input: ChartInput; unreceived: bool
       sampleEvery={12}
     >
       {empty ? (
-        <ChartEmpty
-          height={200}
-          reason={unreceived ? '계측 서버에 수위 채널이 없습니다 [TBD-57]' : undefined}
-        />
+        /*
+         * **«채널이 없다»가 아니라 «값이 오지 않았다»다** `[사용자 확인 2026-09-07]`.
+         *
+         * 백엔드에 요청해 둔 수위 채널이 도착해 10개소 전부에서 값이 온다 — 이제 이 자리가
+         * 뜨는 것은 상시 제약이 아니라 **그 순간의 미수신**이다. 옛 문구는 `[TBD-57]`을 달아
+         * 영구 한계처럼 읽혔는데, 그 번호는 단위·만수위 **사양**이 미정이라는 뜻이고
+         * 그것은 지금도 그대로다(`PROVISIONAL_LEVEL_*`) — 채널 부재와 다른 사안이다.
+         */
+        <ChartEmpty height={200} reason={unreceived ? '수위 값이 한 점도 오지 않았습니다' : undefined} />
       ) : (
         <div className="h-[200px]" {...hoverProps}>
           <ResponsiveContainer width="100%" height="100%">

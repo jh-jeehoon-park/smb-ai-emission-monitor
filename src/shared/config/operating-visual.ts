@@ -20,6 +20,24 @@ export const OPERATING_FILL: Record<OperatingState, string> = {
 };
 
 /**
+ * 같은 축의 **글자**. 색과 한 파일에 두어 한쪽만 바뀌지 않게 한다(`code-organization` §3 #5).
+ *
+ * **`모름`을 `정지`라 적지 않는다** — 통신이 끊긴 것과 설비가 멈춘 것은 다른 사실이고,
+ * 섞으면 없는 정지를 주장하게 된다(**E4**).
+ */
+export const OPERATING_LABELS: Record<OperatingState, string> = {
+  on: '가동',
+  off: '정지',
+  unknown: '모름',
+};
+
+/** `Equipment.running`을 이 축의 키로. `null`은 정지가 아니라 모름이다(E4) */
+export function operatingStateOf(running: boolean | null): OperatingState {
+  if (running === null) return 'unknown';
+  return running ? 'on' : 'off';
+}
+
+/**
  * 격자 칸의 채움 — **같은 색의 그라데이션, 투명도로 눌러서** `[사용자 지시 2026-08-24]`.
  *
  * 위아래 농도가 갈리면 칸이 면 위에 얹힌 조각으로 읽힌다(단색 120칸은 색종이처럼 납작했다).

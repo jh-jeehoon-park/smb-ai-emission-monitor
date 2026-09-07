@@ -7,7 +7,11 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { BRAND_NAME } from '@/shared/config/constants';
 import { DEMO_NOTICE, DEMO_NOW_ISO } from '@/shared/config/demo';
-import { telemetrySourceLabel, useSiteSeries } from '@/entities/measurement';
+import {
+  TELEMETRY_STATUS_LABELS,
+  telemetrySourceLabel,
+  useSiteSeries,
+} from '@/entities/measurement';
 import { COLLECTION_INTERVAL_MINUTES } from '@/shared/config/measurement';
 import { cn } from '@/shared/lib/cn';
 import { BADGE_BASE } from '@/shared/ui/badge';
@@ -219,9 +223,12 @@ function ReceiveIndicator() {
   }
 
   /**
-   * **원천을 숨기지 않는다.** 생성 데이터를 실측처럼 보이게 두면 시연에서 읽은 값이 관측인지
-   * 아닌지 아무도 가릴 수 없다. `확인 중`을 따로 두는 이유도 같다 — 아직 모르는 것을
-   * `서버 미연결`로 적으면 없는 사실을 주장하게 된다(E4).
+   * **어디서 온 값인지 숨기지 않는다.** 계측 서버에서 온 것과 앱에 내장된 것은 갱신 주기도
+   * 신선도도 다르다 — 같은 표기로 두면 어제 굳은 값을 지금 값으로 읽는다. `확인 중`을 따로
+   * 두는 이유도 같다: 아직 모르는 것을 `서버 미연결`로 적으면 없는 사실을 주장하게 된다(E4).
+   *
+   * **«진짜냐»로는 가르지 않는다.** 계측 서버가 주는 값도 센서에서 온 것이 아니라 에뮬레이터
+   * 출력이다 `[사용자 확인 2026-09-01]` — 문구의 근거는 `TELEMETRY_STATUS_LABELS`에 있다.
    */
   if (status !== 'live') {
     return (
@@ -238,7 +245,7 @@ function ReceiveIndicator() {
         <span className="live-pulse absolute inset-0 rounded-full" />
         <span className="relative size-1.5 rounded-full bg-normal" />
       </span>
-      실측 수신 중 · {COLLECTION_INTERVAL_MINUTES}분 주기
+      {TELEMETRY_STATUS_LABELS.live} · {COLLECTION_INTERVAL_MINUTES}분 주기
     </span>
   );
 }
