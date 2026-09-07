@@ -8,7 +8,13 @@ import { cn } from '@/shared/lib/cn';
 import { Checkbox } from '@/shared/ui/checkbox';
 import { RiseItem, StaggerGroup } from '@/shared/ui/motion';
 import { useRole } from '@/entities/user';
-import { LOGIN_VIDEO_LABEL, LOGIN_VIDEO_SRC, REMEMBERED_ID_KEY } from '../config/login-media';
+import {
+  LOGIN_VIDEOS,
+  LOGIN_VIDEO_KEY,
+  LOGIN_VIDEO_LABEL,
+  REMEMBERED_ID_KEY,
+  resolveLoginVideo,
+} from '../config/login-media';
 
 const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
 
@@ -35,6 +41,29 @@ const readRememberedId = () => {
     return window.localStorage.getItem(REMEMBERED_ID_KEY);
   } catch {
     return null;
+  }
+};
+
+/*
+ * TODO(영상 확정 시 제거): 시연용 영상 선택 `[사용자 요청 2026-09-07]` —
+ * 지우는 순서는 `config/login-media.ts`의 구분선 주석에 있다.
+ *
+ * 아이디와 **같은 규율로** 감싼다. 시크릿 모드에서는 `localStorage`에 손대는 것만으로
+ * 예외가 나 이 화면이 렌더에서 터진다(실제로 그렇게 터졌다).
+ */
+const readChosenVideo = () => {
+  try {
+    return window.localStorage.getItem(LOGIN_VIDEO_KEY);
+  } catch {
+    return null;
+  }
+};
+
+const chooseVideo = (src: string) => {
+  try {
+    window.localStorage.setItem(LOGIN_VIDEO_KEY, src);
+  } catch {
+    /* 못 남겨도 이번 세션에는 바뀐다 — 아래 상태가 이긴다 */
   }
 };
 
@@ -73,14 +102,30 @@ export function LoginView() {
   const [password, setPassword] = useState<string>(DEMO_ACCOUNT.password);
   const videoRef = useRef<HTMLVideoElement>(null);
 
+  /*
+   * TODO(영상 확정 시 제거): 시연용 영상 선택 `[사용자 요청 2026-09-07]`.
+   *
+   * 저장값을 **렌더 중에 안전하게** 읽는다 — 서버는 `localStorage`를 모르므로 그냥 읽으면
+   * 하이드레이션이 깨진다(위 `savedId`와 같은 이유·같은 방법).
+   */
+  const storedVideo = useSyncExternalStore(subscribeNothing, readChosenVideo, noRememberedId);
+  const [pickedVideo, setPickedVideo] = useState<string | null>(null);
+  const videoSrc = resolveLoginVideo(pickedVideo ?? storedVideo);
+
   const id = typedId ?? savedId ?? DEMO_ACCOUNT.id;
   const remember = rememberChoice ?? savedId !== null;
 
-  /* 감속 설정이면 영상을 멈춘다 — 배경이 계속 움직이면 그 설정의 뜻이 없어진다 */
+  /*
+   * 감속 설정이면 영상을 멈춘다 — 배경이 계속 움직이면 그 설정의 뜻이 없어진다.
+   *
+   * **`videoSrc`에 매달아 둔다.** 영상을 갈아 끼우면 새 파일이 자동재생으로 다시 도는데,
+   * 마운트에서 한 번만 멈추면 그 순간부터 감속 설정이 무시된다. 목록에서 고를 수 있게 되면서
+   * 생긴 자리다 — 선택 기능을 지울 때 이 의존성도 함께 없어진다.
+   */
   useEffect(() => {
     if (!window.matchMedia(REDUCED_MOTION_QUERY).matches) return;
     videoRef.current?.pause();
-  }, []);
+  }, [videoSrc]);
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
@@ -112,7 +157,9 @@ export function LoginView() {
          * 잘라낼 세로가 없는 것이다.
          */
         className="absolute inset-0 size-full object-cover object-[center_35%]"
-        src={LOGIN_VIDEO_SRC}
+        /* `key`가 있어야 갈아 끼운 파일을 브라우저가 다시 읽는다 — `src`만 바꾸면 첫 영상이 남는다 */
+        key={videoSrc}
+        src={videoSrc}
         aria-hidden
         aria-label={LOGIN_VIDEO_LABEL}
         autoPlay
@@ -232,6 +279,49 @@ export function LoginView() {
 
           </StaggerGroup>
         </section>
+      </div>
+
+      {/*
+       * TODO(영상 확정 시 제거): 시연용 영상 선택 `[사용자 요청 2026-09-07]` —
+       * *"수처리 관련 동영상 여러개를 보여드린 후 영상 픽스 예정"*. 지우는 순서는
+       * `config/login-media.ts`의 구분선 주석에 있다.
+       *
+       * **화면 왼쪽 아래 구석에 둔다.** 이 화면의 구성은 첨부 이미지로 지정된 것이라
+       * (`[사용자 지시 2026-08-25]`) 영상·먹·유리 기둥·폼 어디에도 끼워 넣지 않는다 —
+       * 구석에 떠 있으면 «화면의 일부»가 아니라 «발표자가 쓰는 것»으로 읽히고, 지울 때
+       * 지정된 구성에 손댈 일이 없다.
+       *
+       * 격자 **밖**이라 좁은 폭에서도 남는다. 왼쪽 글 영역은 `lg` 미만에서 감춰지므로
+       * 그 안에 두면 노트북 화면에서 사라진다.
+       */}
+      <div
+        role="group"
+        aria-label="시연용 배경 영상 선택"
+        className="absolute bottom-4 left-4 z-10 flex items-center gap-1.5 rounded-full border border-white/25 bg-black/35 px-2 py-1.5 backdrop-blur-sm"
+      >
+        {/* 무엇을 고르는 자리인지 적는다 — 아이콘만 두면 발표자도 무엇인지 모른다 */}
+        <span className="px-1 text-[12px] font-medium text-white/70">배경</span>
+        {LOGIN_VIDEOS.map((video) => {
+          const on = video.src === videoSrc;
+          return (
+            <button
+              key={video.src}
+              type="button"
+              onClick={() => {
+                setPickedVideo(video.src);
+                chooseVideo(video.src);
+              }}
+              aria-pressed={on}
+              className={cn(
+                'cursor-pointer rounded-full px-2.5 py-1 text-[12px] font-medium transition-colors duration-200',
+                'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-white/70',
+                on ? 'bg-white text-[#0b1017]' : 'text-white/80 hover:bg-white/15',
+              )}
+            >
+              {video.name}
+            </button>
+          );
+        })}
       </div>
     </main>
   );
