@@ -12,7 +12,7 @@ import {
   YAxis,
 } from 'recharts';
 import type { DischargeLimitTable } from '@/shared/config/discharge-limits';
-import { ACTUAL_HEX, AI_HEX, AXIS_TEXT_HEX, GRID_HEX } from '@/shared/config/status-visual';
+import { AXIS_TEXT_HEX, GRID_HEX } from '@/shared/config/status-visual';
 import { formatClock } from '@/shared/lib/format';
 import { useChartHover } from '@/shared/lib/use-chart-hover';
 import { ChartFigure } from '@/shared/ui/chart-figure';
@@ -20,8 +20,11 @@ import { ChartTooltipRow, ChartTooltipShell } from '@/shared/ui/chart-tooltip';
 import { LegendItem } from './forecast-chart';
 import {
   LIMIT_BASE_PERCENT,
+  ORIGIN_DASH,
+  SERIES_INK,
   SERIES_ORIGIN_LABELS,
   buildOverlayRows,
+  type ForecastSeriesCode,
   type ForecastSummary,
   type OverlayRow,
 } from '@/entities/prediction';
@@ -29,20 +32,15 @@ import { PROVISIONAL_DISPLAY_DECIMALS } from '@/shared/config/provisional';
 import { FULL_HEIGHT, FUTURE_HOURS } from '../config/constants';
 
 /**
- * **항목은 선 질감이 가른다.** 색은 유래(계측/추정)를 맡고 있어 항목에 쓸 수 없다 —
- * `그래프 색` 규칙이 계열을 블루 한 계열로 묶었기 때문이다(`screens.md` §8).
+ * **색이 항목을, 실선·파선이 출처를 맡는다** `[사용자 요청 2026-09-07]`.
  *
- * 그래서 셋이 겹칠 때 색만으로는 갈리지 않는다. 질감을 뚜렷이 벌린다 — TN·TP가 둘 다
- * `--ai` 색이라 파선과 점선의 간격이 비슷하면 같은 선으로 보인다.
+ * 앞선 판본은 그 둘이 뒤바뀌어 있었다 — 색이 출처(계측/AI)라 **TN과 TP가 같은 색**이었고,
+ * 항목은 질감으로만 갈렸다. 2px 선에서 `7 4`와 `2 3`은 거의 같아 보여 셋이 한 선처럼 읽혔다.
+ * 유입·유출은 둘 다 계측이라 색도 질감도 갈릴 것이 없었다.
+ *
+ * 바꿔 끼운 것이지 어느 하나를 버린 것이 아니다 — 출처는 질감과 범례·툴팁 글자가 함께
+ * 말한다(**E3**). 값과 검증 결과는 `SERIES_INK`·`ORIGIN_DASH`가 갖는다.
  */
-const DASH: Record<string, string | undefined> = {
-  TOC: undefined,
-  TN: '7 4',
-  TP: '2 3',
-  inflow: undefined,
-  flow: '7 4',
-};
-
 interface ForecastOverlayProps {
   summaries: ForecastSummary[];
   nowIso: string;
@@ -184,8 +182,8 @@ export function ForecastOverlay({
                 key={s.code}
                 dataKey={s.code}
                 type="monotone"
-                stroke={s.origin === 'measured' ? ACTUAL_HEX : AI_HEX}
-                strokeDasharray={DASH[s.code]}
+                stroke={SERIES_INK[s.code]}
+                strokeDasharray={ORIGIN_DASH[s.origin]}
                 strokeWidth={2}
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -208,8 +206,8 @@ export function ForecastOverlay({
                     return (
                       <ChartTooltipRow
                         key={String(row.dataKey)}
-                        color={summary?.origin === 'measured' ? ACTUAL_HEX : AI_HEX}
-                        dashed={DASH[String(row.dataKey)] !== undefined}
+                        color={SERIES_INK[String(row.dataKey) as ForecastSeriesCode]}
+                        dashed={summary !== undefined && ORIGIN_DASH[summary.origin] !== undefined}
                         name={`${row.dataKey} · ${summary ? SERIES_ORIGIN_LABELS[summary.origin] : ''}`}
                         value={
                           value === null
@@ -248,8 +246,8 @@ function OverlayLegend({ drawable }: { drawable: ForecastSummary[] }) {
       {drawable.map((s) => (
         <LegendItem
           key={s.code}
-          color={s.origin === 'measured' ? ACTUAL_HEX : AI_HEX}
-          dashed={DASH[s.code] !== undefined}
+          color={SERIES_INK[s.code]}
+          dashed={ORIGIN_DASH[s.origin] !== undefined}
           label={`${s.code} · ${SERIES_ORIGIN_LABELS[s.origin]}`}
         />
       ))}

@@ -11,7 +11,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { ACTUAL_HEX, AI_HEX, AXIS_TEXT_HEX, GRID_HEX } from '@/shared/config/status-visual';
+import { AXIS_TEXT_HEX, GRID_HEX } from '@/shared/config/status-visual';
 import { formatClock } from '@/shared/lib/format';
 import { ChartFigure } from '@/shared/ui/chart-figure';
 import { ChartTooltipRow, ChartTooltipShell } from '@/shared/ui/chart-tooltip';
@@ -21,6 +21,8 @@ import {
   type DischargeLimitTable,
 } from '@/shared/config/discharge-limits';
 import {
+  ORIGIN_DASH,
+  SERIES_INK,
   hasPlottableValues,
   type ForecastSeriesCode,
   type ForecastSummary,
@@ -65,8 +67,11 @@ interface ForecastChartProps {
  * 것이 아니고 6시간 예측의 대상은 아직 정해지지 않았다(`[TBD-52]`) — 없는 데이터로 곡선을
  * 그리면 산출된 예측처럼 읽힌다(E3).
  *
- * 계열의 색은 **값의 출처**를 따른다 — TN·TP는 소프트 센싱 추정이라 계측과 같은 색으로
- * 그리지 않는다. 색만으로 가르지 않고 범례와 표가 함께 적는다.
+ * **색은 항목을 따른다** `[사용자 요청 2026-09-07]`. 한때 출처(계측/AI)를 따랐는데, 겹침
+ * 차트에서 TN·TP가 같은 색이 되어 갈리지 않았다 — 색과 질감을 바꿔 끼웠고 이 단일 차트도
+ * 같은 규약을 쓴다. 한 항목이 겹침 보기와 3단 보기에서 다른 색이면 그것이 더 헷갈린다.
+ *
+ * 출처는 실선·파선과 범례 글자가 말한다(**E3**).
  */
 export function ForecastChart({
   summary,
@@ -82,8 +87,8 @@ export function ForecastChart({
   const data = summary.points;
   const show = (v: number) => v.toFixed(summary.decimals);
   const height = compact ? COMPACT_HEIGHT : FULL_HEIGHT;
-  /* 추정 계열은 계측과 다른 색을 쓴다 — 한 화면에서 둘이 섞이면 추정이 계측으로 읽힌다(E3) */
-  const stroke = summary.origin === 'measured' ? ACTUAL_HEX : AI_HEX;
+  const stroke = SERIES_INK[summary.code];
+  const dash = ORIGIN_DASH[summary.origin];
   const originLabel = SERIES_ORIGIN_LABELS[summary.origin];
 
   /*
@@ -155,6 +160,8 @@ export function ForecastChart({
           strokeLinejoin="round"
           dataKey="value"
           stroke={stroke}
+          /* 출처를 질감이 맡는다 — 색은 항목으로 넘어갔다 */
+          strokeDasharray={dash}
           strokeWidth={2.5}
           fill={`url(#${areaId})`}
           dot={false}
@@ -206,7 +213,7 @@ export function ForecastChart({
         {chart}
       </ChartFigure>
 
-      <ForecastLegend origin={summary.origin} />
+      <ForecastLegend code={summary.code} origin={summary.origin} />
       <ForecastLimitNote code={summary.code} limits={limits} />
     </div>
   );
@@ -272,12 +279,18 @@ export function ForecastEmpty({ height }: { height: number }) {
   );
 }
 
-/** 3단 보기는 이 범례를 스택 전체에 하나만 둔다 — 계열 규약이 세 단에서 같기 때문이다 */
-export function ForecastLegend({ origin }: { origin: SeriesOrigin }) {
+/**
+ * 그 차트 한 줄이 무엇인가.
+ *
+ * **견본 색은 항목이고 글자는 출처다** `[사용자 요청 2026-09-07]` — 선과 같은 색이어야
+ * 범례가 그 선을 가리킨다. 한때 색이 출처라 항목마다 견본이 같았다.
+ */
+export function ForecastLegend({ code, origin }: { code: ForecastSeriesCode; origin: SeriesOrigin }) {
   return (
     <ul className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 px-1">
       <LegendItem
-        color={origin === 'measured' ? ACTUAL_HEX : AI_HEX}
+        color={SERIES_INK[code]}
+        dashed={ORIGIN_DASH[origin] !== undefined}
         label={SERIES_ORIGIN_LABELS[origin]}
       />
     </ul>

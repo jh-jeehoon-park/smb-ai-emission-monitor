@@ -1,4 +1,5 @@
 import { PROVISIONAL_DECIMALS } from '@/shared/config/provisional';
+import type { SeriesOrigin } from '../model/types';
 
 /**
  * 계열이 덮는 시간. **예측 구간이 아니라 관측 구간이다** `[INC-109]`.
@@ -153,4 +154,41 @@ export const INFLOW_FORECAST: ForecastTargetProfile = {
   code: INFLOW_FORECAST_CODE,
   label: '유입 유량',
   base: 430,
+};
+
+/**
+ * **겹침 차트에서 항목을 가르는 색 — 정해진 순서다** `[사용자 요청 2026-09-07]`.
+ *
+ * 이 화면은 TOC·TN·TP를 한 그림에, 유입·유출을 또 한 그림에 겹친다. 그런데 색이
+ * **출처**(계측/AI)를 맡고 있어 **TN과 TP가 같은 색**이었고, 유입·유출도 둘 다 계측이라
+ * 같은 색이었다 — 항목은 파선·점선의 간격 차이로만 갈려 셋이 한 선처럼 보였다.
+ *
+ * 그래서 이 차트에서만 **색이 항목을, 실선·파선이 출처를** 맡는다(`ORIGIN_DASH`). 바꿔
+ * 끼운 것이지 어느 하나를 버린 것이 아니라 **E3**(산출값은 원천을 밝힌다)는 그대로다 —
+ * 범례·툴팁이 `TN · 소프트 센싱 추정`이라 글자로도 적는다.
+ *
+ * **순서를 돌려 쓰지 않는다.** 색은 항목에 붙고 목록의 자리에 붙지 않는다 — 필터로 항목이
+ * 빠져도 남은 것의 색이 바뀌면 같은 항목이 화면마다 다른 색이 된다.
+ *
+ * 값과 검증 결과는 `globals.css`의 `--series-*`가 갖는다. 상태색·포인트색은 예약이라
+ * 쓸 수 없고, 남은 색 공간에서 `dataviz` 검증기를 통과한 셋이다.
+ */
+export const SERIES_INK: Record<ForecastSeriesCode, string> = {
+  TOC: 'var(--series-1)',
+  TN: 'var(--series-2)',
+  TP: 'var(--series-3)',
+  /* 유량은 그림이 다르다 — 슬롯 1·2를 처음부터 다시 쓴다 */
+  [INFLOW_FORECAST_CODE]: 'var(--series-1)',
+  [FLOW_FORECAST_CODE]: 'var(--series-2)',
+};
+
+/**
+ * **출처는 선 질감이 맡는다.** 색을 항목에 넘긴 자리를 이것이 받는다.
+ *
+ * 두 값뿐이라 실선·파선으로 충분하다 — 예전에는 질감이 항목을 맡아 `7 4`와 `2 3`을
+ * 갈라야 했고, 2px 선에서 그 둘은 거의 같아 보였다.
+ */
+export const ORIGIN_DASH: Record<SeriesOrigin, string | undefined> = {
+  measured: undefined,
+  softSensed: '6 4',
 };

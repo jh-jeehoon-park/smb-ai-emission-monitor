@@ -15,6 +15,8 @@ export { TrendChip } from './ui/trend-chip';
 export { SERIES_WINDOW_HOURS } from './config/constants';
 export {
   FLOW_FORECAST,
+  ORIGIN_DASH,
+  SERIES_INK,
   FLOW_FORECAST_CODE,
   INFLOW_FORECAST_CODE,
   FORECAST_TARGETS,
