@@ -1,13 +1,14 @@
 'use client';
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import {
   MUNICIPALITY_QUERY_KEY,
   SCOPE_QUERY_KEY,
   SITE_QUERY_KEY,
   clearMunicipalityLock,
   hasMunicipalityLock,
+  resetScopeToAllSites,
 } from '@/shared/config/scope';
 import { firstSiteIn, sitesIn } from '@/entities/site';
 import {
@@ -49,12 +50,55 @@ export function useRoleRouteGuard() {
   const params = useSearchParams();
   const router = useRouter();
 
+  /*
+   * 직전 역할. **마운트에서는 지금 역할로 시작한다** — 역할은 localStorage에 남아 있어
+   * 새로고침으로 다시 들어온 것은 «바뀐 것»이 아니다. 여기서 `DEFAULT_ROLE`로 시작하면
+   * 사업장 사용자가 새로고침할 때마다 보던 화면을 잃는다.
+   */
+  const seenRole = useRef(role);
+
   useEffect(() => {
+    const switched = seenRole.current !== role;
+    seenRole.current = role;
+
+    const home = homeHrefFor(role);
+
+    /*
+     * **역할을 바꾸면 그 역할의 메인 대시보드로 간다** `[사용자 요청 2026-09-01]`.
+     *
+     * 그전까지는 새 역할에도 열려 있는 화면이면 **그 자리에 그대로 머물렀다.** 그런데 역할이
+     * 바뀌면 범위(전국 10개소 / 관내 2개소 / 자사 1개소)와 사이드바 항목이 통째로 갈리므로,
+     * 같은 화면이 다른 숫자를 들고 남아 있으면 **무엇이 바뀐 것인지 화면이 말해 주지 않는다** —
+     * 알람 이력에서 전환하면 목록만 조용히 짧아졌다.
+     *
+     * 아래 «닫힌 화면» 분기와 목적지가 같지만 조건이 다르다: 그쪽은 *들어가면 안 되는 곳*을
+     * 막는 것이고 이쪽은 *열려 있어도 처음으로 되돌리는* 것이다. 이미 홈이면 옮기지 않는다 —
+     * 그 아래 범위 교정이 이어서 돈다.
+     *
+     * **범위를 먼저 리셋하고 얹는다.** `scopeParams`는 `scope=site`를 남겨 두는데(알람·리포트의
+     * 범위 세그먼트가 같은 키를 쓴다), 여기 오는 `params`는 **직전 역할의 것일 수 있다** —
+     * `role-context`가 이미 걷어 두지만 그것은 `history.replaceState`라 이 effect가 그 갱신
+     * *전에* 도는 순서를 배제할 수 없다. 그러면 시스템 관리자의 통합 관제가 `scope=site`를
+     * 달고 열려 **전 사업장 권한인데 1개소만 보인다.** 역할 전환은 한 번의 분명한 동작이라
+     * 새 역할의 기본 범위로 되돌리는 것이 맞고(`resetScopeToAllSites`), 그러면 순서에 기대지
+     * 않아도 된다.
+     */
+    if (switched && pathname !== home) {
+      router.replace(withScope(home, role, adminAccount, resetScopeToAllSites(params)));
+      return;
+    }
+
     const current = NAV_ITEMS.find((item) => item.href === pathname);
 
     if (current && !canRoleSee(current.screenId, role)) {
-      /* 로고 클릭과 같은 목적지를 쓴다 — 정의가 갈리면 앱이 '메인'을 두 개 갖는다 */
-      router.replace(withScope(homeHrefFor(role), role, adminAccount, params));
+      /*
+       * 로고 클릭과 같은 목적지를 쓴다 — 정의가 갈리면 앱이 '메인'을 두 개 갖는다.
+       *
+       * **위 분기와 달리 범위를 리셋하지 않는다.** 이 길은 역할 전환 없이도 돈다(닫힌 화면
+       * 주소를 직접 열었을 때), 그리고 `resetScopeToAllSites`는 «역할 전환에서만» 쓰는 것이다
+       * — 여기서 부르면 사용자가 알람·리포트에서 고른 `scope=site`를 조용히 걷는다.
+       */
+      router.replace(withScope(home, role, adminAccount, params));
       return;
     }
 
