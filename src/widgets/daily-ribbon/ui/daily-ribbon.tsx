@@ -20,6 +20,7 @@ import { TIMELINE_POINT_COUNT, timelineIsoAt } from '@/shared/lib/timeline';
 import { AnomalyBandLegend } from '@/shared/ui/anomaly-band-legend';
 import { CHART_SURFACE } from '@/shared/ui/chart-figure';
 import { ChartTooltipRow, ChartTooltipShell } from '@/shared/ui/chart-tooltip';
+import { tooltipSideAt, tooltipTransform } from '../lib/tooltip-placement';
 import {
   RIBBON_FILL,
   RIBBON_STRIP_FILL,
@@ -33,7 +34,6 @@ import {
   RIBBON_SCORE_TICKS,
   RIBBON_STRIP_HEIGHT,
   RIBBON_TICK_HOURS,
-  RIBBON_TOOLTIP_EDGE_PERCENT,
 } from '../config/constants';
 import { countOnSamples, type RibbonRun, type RibbonState } from '../lib/build-ribbon';
 import type { RibbonData } from '../lib/ribbon-rows';
@@ -53,6 +53,17 @@ const SEPARATOR_ROW = 2;
 const TICKS_ROW = SEPARATOR_ROW + STRIPS.length + 1;
 
 /**
+ * 커서는 **어느 표본인가**와 **무엇을 기준으로 쟀는가**를 함께 든다.
+ *
+ * 툴팁이 커서 옆에 앉으려면 상자가 들어갈 자리가 남았는지 알아야 하고, 그 답은 트랙 폭에
+ * 달렸다. 아래 `trackCursor`가 이미 재고 있으므로 따로 관측하지 않고 그대로 들고 온다.
+ */
+interface RibbonCursor {
+  index: number;
+  trackWidth: number;
+}
+
+/**
  * 하루를 한 장으로 본다.
  *
  * 통합 관제의 지도가 *공간*을 한눈에 보여준다면 이 리본은 *하루*를 한눈에 보여준다.
@@ -65,14 +76,17 @@ const TICKS_ROW = SEPARATOR_ROW + STRIPS.length + 1;
  * 마우스 대상이자 격자·커서의 좌표 원점**이라 어긋날 자리가 없다.
  */
 export function DailyRibbon({ data, dateIso }: { data: RibbonData; dateIso: string }) {
-  const [cursor, setCursor] = useState<number | null>(null);
+  const [cursor, setCursor] = useState<RibbonCursor | null>(null);
   const ticks = useMemo(() => buildTicks(RIBBON_TICK_HOURS), []);
 
   const trackCursor = (event: React.MouseEvent<HTMLDivElement>) => {
     const box = event.currentTarget.getBoundingClientRect();
     const ratio = (event.clientX - box.left) / box.width;
     const index = Math.floor(ratio * TIMELINE_POINT_COUNT);
-    setCursor(Math.min(Math.max(index, 0), TIMELINE_POINT_COUNT - 1));
+    setCursor({
+      index: Math.min(Math.max(index, 0), TIMELINE_POINT_COUNT - 1),
+      trackWidth: box.width,
+    });
   };
 
   return (
@@ -136,11 +150,11 @@ export function DailyRibbon({ data, dateIso }: { data: RibbonData; dateIso: stri
               <span
                 className="pointer-events-none absolute inset-y-0 w-px"
                 style={{
-                  left: `${(cursor / TIMELINE_POINT_COUNT) * 100}%`,
+                  left: `${(cursor.index / TIMELINE_POINT_COUNT) * 100}%`,
                   backgroundColor: 'var(--border-strong)',
                 }}
               />
-              <ActiveDot score={data.scores[cursor] ?? null} cursor={cursor} />
+              <ActiveDot score={data.scores[cursor.index] ?? null} cursor={cursor.index} />
               <CursorTooltip data={data} cursor={cursor} />
             </>
           )}
@@ -393,26 +407,23 @@ function Caption({ data, dateIso }: { data: RibbonData; dateIso: string }) {
  * 않는다는 규칙 그대로다. 한 시각의 네 사실을 세로로 쌓아 세로로 훑는 리본의 읽기
  * 방향과 맞춘다.
  *
- * 양 끝에서는 정렬을 뒤집는다. 가운데 정렬만 하면 트랙 밖으로 나간다.
+ * **커서 옆에 앉는다 — 덮지 않는다** `[사용자 지적 2026-09-07]`. 어느 쪽에 두고 왜 그렇게
+ * 정하는지는 `lib/tooltip-placement.ts`가 갖는다.
  */
-function CursorTooltip({ data, cursor }: { data: RibbonData; cursor: number }) {
-  const percent = (cursor / TIMELINE_POINT_COUNT) * 100;
-  const score = data.scores[cursor] ?? null;
+function CursorTooltip({ data, cursor }: { data: RibbonData; cursor: RibbonCursor }) {
+  const percent = (cursor.index / TIMELINE_POINT_COUNT) * 100;
+  const score = data.scores[cursor.index] ?? null;
   const level = score === null ? null : toStatusLevel(score);
-
-  const align =
-    percent < RIBBON_TOOLTIP_EDGE_PERCENT
-      ? 'translateX(0)'
-      : percent > 100 - RIBBON_TOOLTIP_EDGE_PERCENT
-        ? 'translateX(-100%)'
-        : 'translateX(-50%)';
 
   return (
     <div
       className="pointer-events-none absolute top-1 z-10"
-      style={{ left: `${percent}%`, transform: align }}
+      style={{
+        left: `${percent}%`,
+        transform: tooltipTransform(tooltipSideAt(cursor.index, cursor.trackWidth)),
+      }}
     >
-      <ChartTooltipShell label={`${formatClock(timelineIsoAt(cursor))} ${DISPLAY_TIMEZONE}`}>
+      <ChartTooltipShell label={`${formatClock(timelineIsoAt(cursor.index))} ${DISPLAY_TIMEZONE}`}>
         {/**
          * **이상 탐지 화면(`AnomalyTimeline`)과 같은 구성이다.** 점수와 등급을 각각의 줄에
          * 두고, 등급 줄은 상태 색을 쓴다. 결측은 `수신 없음 · —`으로 적는다 —
@@ -430,15 +441,15 @@ function CursorTooltip({ data, cursor }: { data: RibbonData; cursor: number }) {
             />
           </>
         )}
-        <StateRow label="가동" state={stateAt(data.running, cursor)} off={RIBBON_OFF_LABELS.running} />
+        <StateRow label="가동" state={stateAt(data.running, cursor.index)} off={RIBBON_OFF_LABELS.running} />
         <StateRow
           label="방류"
-          state={stateAt(data.discharging, cursor)}
+          state={stateAt(data.discharging, cursor.index)}
           off={RIBBON_OFF_LABELS.discharging}
         />
         <StateRow
           label="수신"
-          state={stateAt(data.receiving, cursor)}
+          state={stateAt(data.receiving, cursor.index)}
           off={RIBBON_OFF_LABELS.receiving}
         />
       </ChartTooltipShell>

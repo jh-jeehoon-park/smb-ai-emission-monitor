@@ -5,3 +5,13 @@
  * 여백을 두면 그 차이가 보인다. 넘은 값이 있을 때 잘리지 않게 하는 것도 이 여백이 맡는다.
  */
 export const LIMIT_ZONE_RATIO = 0.18;
+
+/**
+ * 스파크라인의 여백. **차트와 hover 중계가 같은 값을 봐야 한다.**
+ *
+ * Recharts는 포인터가 **플롯 안**에 있을 때만 축 툴팁을 켜고, 플롯은 상자에서 이 여백을 뺀
+ * 만큼이다. 중계가 상자 기준으로 자르면 여백에 해당하는 2px이 플롯 밖이라 —
+ * **툴팁을 끄는 쪽으로** 떨어진다(`mouseMoveMiddleware`가 범위 밖이면 `mouseLeaveChart`를
+ * 부른다). 카드가 차트보다 넓어 그 자리를 실제로 자주 지난다.
+ */
+export const SPARK_MARGIN = { top: 2, right: 2, bottom: 0, left: 2 } as const;

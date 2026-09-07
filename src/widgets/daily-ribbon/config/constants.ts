@@ -82,12 +82,16 @@ export const RIBBON_OVERLAY_ROW = `1 / ${TRACK_ROWS.length + 1}`;
 export const RIBBON_SCORE_TICKS = [100, 80, 70, 50, 0] as const;
 
 /**
- * 커서 툴팁을 트랙 가장자리에서 뒤집는 지점(%).
+ * 커서와 툴팁 사이 간격(px).
  *
- * 가운데 정렬만 하면 양 끝에서 툴팁이 트랙 밖으로 나간다. 왼쪽 끝에서는 왼쪽 맞춤,
- * 오른쪽 끝에서는 오른쪽 맞춤으로 바꾼다 — 지도 핀 툴팁과 같은 처리다.
+ * **툴팁이 커서를 덮지 않게 하는 값이다** `[사용자 지적 2026-09-07]`. 한때 커서에 정중앙
+ * 정렬(`translateX(-50%)`)해 두어 상자가 마우스 포인터와 그 자리의 값을 함께 가렸다.
+ *
+ * 뒤집는 지점을 정하던 `RIBBON_TOOLTIP_EDGE_PERCENT`(18%)는 걷었다 — 퍼센트 임계는 트랙이
+ * 넓을 때와 좁을 때 뜻이 달라진다(상자 140px이 1500px 트랙에서는 9%, 600px에서는 23%다).
+ * 지금은 마우스를 재는 자리가 들고 있는 **트랙 폭으로 px을 재서** 정한다(`tooltip-placement.ts`).
  */
-export const RIBBON_TOOLTIP_EDGE_PERCENT = 18;
+export const RIBBON_TOOLTIP_GAP_PX = 12;
 
 /** 세로 격자·눈금 간격 */
 export const RIBBON_TICK_HOURS = 6;

@@ -27,8 +27,9 @@ import {
   type SeriesCode,
   isReceptionStalled,
 } from '@/entities/measurement';
+import { SPARK_MARGIN } from '../config/constants';
 import { limitZone, type LimitZone } from '../lib/limit-zone';
-import { useChartHover } from '@/shared/lib/use-chart-hover';
+import { useChartSurface } from '@/shared/lib/use-chart-hover';
 
 /**
  * 격자 한 묶음. **제목이 없으면 소절을 만들지 않는다** — 묶음이 하나뿐인 화면에서
@@ -233,7 +234,13 @@ function MiniSeries({
   table?: DischargeLimitTable;
   windowHours: number;
 }) {
-  const { hoverProps, tooltipActive } = useChartHover();
+  /*
+   * **카드 전체가 hover 면이다** `[사용자 지적 2026-09-07: 작은 선에 정확히 맞춰야 함]`.
+   *
+   * 차트 상자만 hover 면이면 140px 카드에서 40px 스파크라인에 조준해야 한다 —
+   * 근거와 대안 검토는 `shared/lib/chart-relay.ts`가 갖는다.
+   */
+  const { surfaceProps, chartRef, tooltipActive } = useChartSurface(SPARK_MARGIN);
   const item = MEASUREMENT_ITEMS[code];
   const values = data.map((p) => p[code]);
   const latest = [...values].reverse().find((v) => v !== null) ?? null;
@@ -243,7 +250,7 @@ function MiniSeries({
 
   /* `h-full`이 있어야 칸 높이가 서로 달라도 격자 한 행이 같은 높이로 선다 */
   return (
-    <div className="h-full rounded-nested bg-surface-2 p-3">
+    <div className="h-full rounded-nested bg-surface-2 p-3" {...surfaceProps}>
       <div className="flex items-baseline justify-between gap-2">
         {/*
          * 단위 한글 병기를 **기호에** 붙인다 `[회의 피드백 2026-08-24]`. 아래 단위 span에만
@@ -291,7 +298,7 @@ function MiniSeries({
           item.unit ? `, 단위 ${item.unit} ${item.unitKo}` : ''
         }, KST 기준. 현재값 ${formatValue(code, latest)}`}
       >
-        <div className="-mx-1 mt-2 h-10" {...hoverProps}>
+        <div ref={chartRef} className="-mx-1 mt-2 h-10">
           <ResponsiveContainer width="100%" height="100%">
             {/*
              * `accessibilityLayer={false}` — **툴팁이 화면에 얼어붙는 것을 막는다.**
@@ -306,8 +313,16 @@ function MiniSeries({
              */}
             <AreaChart
               data={data}
-              margin={{ top: 2, right: 2, bottom: 0, left: 2 }}
+              margin={SPARK_MARGIN}
               accessibilityLayer={false}
+              /*
+               * **스로틀을 끈다** `[사용자 지적 2026-09-07: 툴팁이 뜨문뜨문 뜬다]`.
+               *
+               * 기본값 `'raf'`는 들어온 `mousemove`마다 앞서 예약한 rAF를 **취소하고 다시
+               * 예약한다**(`mouseEventsMiddleware`). 중계가 프레임당 하나로 줄여 보내므로
+               * 더 미룰 이유가 없고, 미루는 쪽이 그 경합을 만든다.
+               */
+              throttledEvents={[]}
             >
               <defs>
                 <linearGradient id={`fill-${code}`} x1="0" y1="0" x2="0" y2="1">

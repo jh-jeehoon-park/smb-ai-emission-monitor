@@ -39,6 +39,7 @@ import { WaterQualityGrid } from '@/widgets/water-quality-grid';
 import { homeHrefFor, navLabelOf } from '@/widgets/app-shell/config/navigation';
 import { InfoTip } from '@/shared/ui/tooltip';
 import { ACTION_BUTTON_QUIET } from '@/shared/ui/action-button';
+import { ALARM_PREVIEW_MAX_HEIGHT } from '../config/constants';
 
 /**
  * 사업장 사용자가 여기서 답을 얻어야 하는 세 질문 — 괜찮은가 / 얼마나 줄었나 / 뭘 해야 하나.
@@ -118,8 +119,9 @@ export function AdminOverviewView() {
         * 목적지는 `homeHrefFor`가 안다 — 첫 화면의 정의를 여기서 다시 적지 않는다.
         * **사업장에게는 이 화면이 그 첫 화면이라** 자기 자신을 가리키게 되므로 그리지 않는다.
         *
-        * `role-only-*`가 `display: block`을 강제하므로 **정렬은 안쪽에서** 한다
-        * (바깥에 flex를 걸면 죽는다 — `site-selector.tsx`가 그 함정을 기록해 두었다).
+        * 정렬은 **안쪽에서** 한다. 한때 `role-only-*`가 `display: block`을 강제해 바깥에
+        * flex를 걸면 죽었기 때문인데, 그 함정은 없앴다 `[사용자 지적 2026-09-07]` —
+        * 지금은 바깥에 걸어도 되지만 안쪽이 이미 맞아 굳이 옮기지 않는다.
         */}
       {ROLES.map((each) => {
         const target = homeHrefFor(each);
@@ -215,7 +217,27 @@ export function AdminOverviewView() {
           <AnomalyPanel summary={detail.anomalySummary} />
         </Panel>
 
-        <Panel title="알람">
+        {/*
+         * **알람 목록이 행 높이를 끌고 다니지 않게 한다** `[사용자 지적 2026-09-07]`.
+         *
+         * 두 카드가 한 격자 행이라 키가 큰 쪽이 행 높이를 정하고 다른 쪽이 늘어난다. 알람은
+         * 건수만큼 길어지므로 **왼쪽 `이상 탐지 결과`가 그만큼 늘어나 아래가 비었다** —
+         * 비는 쪽은 알람이 아니라 옆 카드였다.
+         *
+         * 상한을 걸어 **두 건 남짓만 보이고 나머지는 그 안에서 스크롤한다**
+         * `[사용자 요청 2026-09-07]`.
+         *
+         * **`min-h-0`이 함께 있어야 한다.** 본문은 `flex-1`이라 flex 자식의 기본
+         * `min-height: auto`가 걸리는데, CSS에서 `min-height`는 `max-height`를 이긴다 —
+         * 그것만 빠뜨리면 상한이 **아무 일도 하지 않고** 카드가 그대로 늘어난다.
+         *
+         * 흐름에서 들어내는 방법(`absolute inset-0`)도 재 봤다. 알람이 행 높이에 아예
+         * 기여하지 않아 더 깔끔하지만, **0건·1건에서 무너진다** — 절대 배치는 높이에
+         * 기여하지 않으므로 빈 상태 문구가 사라지고, 바닥값을 주면 한 건짜리 카드가 텅 빈다.
+         *
+         * 상한은 **이 화면만의 것**이다. 알람 이력(`SCR-OP-007`)은 목록이 본문이라 자른다.
+         */}
+        <Panel title="알람" bodyClassName={`${ALARM_PREVIEW_MAX_HEIGHT} min-h-0 overflow-y-auto`}>
           <AlarmList alarms={alarms} nowIso={DEMO_NOW_ISO} selectedSiteId={siteId} />
         </Panel>
       </div>
