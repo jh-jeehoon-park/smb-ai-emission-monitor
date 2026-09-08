@@ -1,5 +1,5 @@
 import { COLLECTION_INTERVAL_MINUTES } from '@/shared/config/measurement';
-import { PROVISIONAL_IDLE_DISCHARGE_MIN_SAMPLES } from '@/shared/config/provisional';
+import { PROVISIONAL_IDLE_DISCHARGE_MIN_MINUTES } from '@/shared/config/provisional';
 import { STATUS_VISUAL, statusInk } from '@/shared/config/status-visual';
 import { formatDateTime, formatValue } from '@/shared/lib/format';
 import { canJudgeIdleDischarge, findIdleDischargeRuns } from '@/entities/anomaly';
@@ -35,7 +35,7 @@ const MINUTES_PER_HOUR = 60;
 export const IDLE_DISCHARGE_NOTE = (
   <>
     방류(유량) 발생 시각과 방지시설 가동(유입펌프 전류) 시각을 비교한다 [원문 발표 p.13]. 연속{' '}
-    {durationLabel(PROVISIONAL_IDLE_DISCHARGE_MIN_SAMPLES)} 미만은 세지 않는다 [PROVISIONAL].{' '}
+    {minutesLabel(PROVISIONAL_IDLE_DISCHARGE_MIN_MINUTES)} 미만은 세지 않는다 [PROVISIONAL].{' '}
     <strong className="text-fg-muted">체류시간 보정은 적용하지 않았다</strong> — 원문이 값을 주지
     않았다 [TBD-46]. 무단 여부는 신고 정보 없이 판정하지 않는다.
   </>
@@ -64,7 +64,7 @@ export function IdleDischargePanel({
         <p className="text-[12px] leading-relaxed text-fg-subtle">
           최근 24시간에{' '}
           <strong className="text-fg-muted">
-            연속 {durationLabel(PROVISIONAL_IDLE_DISCHARGE_MIN_SAMPLES)} 이상
+            연속 {minutesLabel(PROVISIONAL_IDLE_DISCHARGE_MIN_MINUTES)} 이상
           </strong>{' '}
           이어진 구간이 없습니다. 그보다 짧거나 수신이 끊겨 확인되지 않은 시간은 여기에 세지
           않습니다.
@@ -131,7 +131,14 @@ function Fact({ label, value }: { label: string; value: string }) {
  * 60진법이라 소수 표기가 오히려 읽기 어렵다.
  */
 function durationLabel(samples: number): string {
-  const total = samples * COLLECTION_INTERVAL_MINUTES;
+  return minutesLabel(samples * COLLECTION_INTERVAL_MINUTES);
+}
+
+/**
+ * 분을 사람이 읽는 시간으로. **임계값은 이미 분이라 표본으로 되돌리지 않는다** —
+ * 되돌렸다 다시 곱하면 반올림이 한 번 더 끼어 `59분`이 된다.
+ */
+function minutesLabel(total: number): string {
   const hours = Math.floor(total / MINUTES_PER_HOUR);
   const minutes = total % MINUTES_PER_HOUR;
 

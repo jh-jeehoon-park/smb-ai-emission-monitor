@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { DEMO_NOW_ISO } from '@/shared/config/demo';
 import { MEASUREMENT_ITEMS } from '@/shared/config/measurement';
 import { SITE_SCENARIOS } from '@/shared/config/demo-scenario';
+import { SERIES_ORIGIN_LABELS } from './model/types';
 import { getFlowForecast, getForecast } from './api/fixtures';
 import { formatR2 } from './lib/format-r2';
 import { FLOW_FORECAST, FORECAST_TARGET_CODES, FORECAST_TARGETS } from './config/constants';
@@ -81,11 +82,25 @@ describe('prediction 슬라이스 불변식 — 자릿수(E1)와 산출 근거(E
     });
   });
 
-  /** TN·TP는 센서가 없다 — 값이 계측인지 추정인지 화면이 적어야 한다(E3) */
+  /** 값이 계측인지 추정인지 화면이 적어야 한다(**E3**) */
   describe('계열의 출처', () => {
-    it('TN·TP는 소프트 센싱 추정이다', () => {
-      expect(getForecast('S-01', 'TN').origin).toBe('softSensed');
-      expect(getForecast('S-01', 'TP').origin).toBe('softSensed');
+    /**
+     * **`softSensed`가 아니라 `preModel`이다** `[사용자 요청 2026-09-08]`.
+     *
+     * TN·TP는 실증에서 센서가 없어 소프트 센싱이 낼 항목인데 `[원문 발표 p.17]` 그 모델이
+     * 아직 없다 — 지금 화면에 뜨는 값은 **계측 서버가 임시로 보내 주는 것**이다.
+     * `softSensed`로 적으면 없는 AI 산출을 주장하고, `measured`로 적으면 없는 센서를
+     * 주장한다. 과제가 성공해 소프트 센싱이 붙으면 이 검사를 `softSensed`로 되돌린다.
+     */
+    it('TN·TP는 AI 산출 예정 자리다', () => {
+      expect(getForecast('S-01', 'TN').origin).toBe('preModel');
+      expect(getForecast('S-01', 'TP').origin).toBe('preModel');
+    });
+
+    /** 라벨이 «계측»이라 말하지 않아야 한다 — 그 자리가 곧 없는 센서 주장이 된다 */
+    it('그 라벨이 계측이라 적지 않는다', () => {
+      expect(SERIES_ORIGIN_LABELS.preModel).not.toMatch(/직접 계측/);
+      expect(SERIES_ORIGIN_LABELS.preModel).toMatch(/AI/);
     });
 
     it('TOC와 유량은 직접 계측이다 — 계측 사양에 있다', () => {
@@ -95,7 +110,7 @@ describe('prediction 슬라이스 불변식 — 자릿수(E1)와 산출 근거(E
 
     it('경향 카드도 출처를 함께 받는다 — 카드가 코드로 되찾아 오지 않게', () => {
       for (const trend of getForecast('S-01').trends) {
-        expect(trend.origin).toBe(trend.code === 'TOC' ? 'measured' : 'softSensed');
+        expect(trend.origin).toBe(trend.code === 'TOC' ? 'measured' : 'preModel');
       }
     });
   });

@@ -24,6 +24,7 @@ import {
   type ForecastTargetProfile,
 } from '../config/constants';
 import type {
+  MeasuredSeries,
   ForecastPoint,
   ForecastSummary,
   SeriesOrigin,
@@ -56,8 +57,13 @@ const SERIES_WAVE_PERIOD_MINUTES = 85;
  */
 const SERIES_ORIGIN: Record<ForecastSeriesCode, SeriesOrigin> = {
   TOC: 'measured',
-  TN: 'softSensed',
-  TP: 'softSensed',
+  /*
+   * **한때 `softSensed`였다** `[사용자 요청 2026-09-08]`. 그 라벨은 «AI가 추정한 값»이라는
+   * 뜻인데 그것을 낸 AI가 아직 없다 — 지금 화면에 뜨는 TN·TP는 **계측 서버가 임시로 보내 주는
+   * 값**이다. 과제가 성공해 소프트 센싱이 붙으면 이 둘을 `softSensed`로 되돌린다.
+   */
+  TN: 'preModel',
+  TP: 'preModel',
   flow: 'measured',
   inflow: 'measured',
 };
@@ -72,7 +78,14 @@ const SEED_OFFSET: Record<ForecastSeriesCode, number> = {
 };
 
 /**
- * 최근 6시간 계열.
+ * 최근 6시간 계열 — **계측을 못 받았을 때의 대체다** `[사용자 요청 2026-09-08]`.
+ *
+ * 화면 넷이 이제 계측 계열을 넘긴다(`MeasuredSeries`). 그래서 이 생성기는 **넘기지 않은
+ * 호출만** 탄다 — 지금은 검사가 그렇게 부른다. 남겨 두는 이유는 계약이 «안 넘기면 지어낸다»
+ * 이기 때문이고, 폴백 자체는 계측 fixture가 맡는다(그쪽이 방류 여부·결측을 이미 따른다).
+ *
+ * 여기 값을 고칠 일이 생기면 먼저 **계측 fixture 쪽인지** 확인한다 — 두 생성기가 갈리면
+ * 한 사업장을 두 화면이 다르게 말한다(2026-08-28에 실제로 그랬다).
  *
  * **예측 구간을 만들지 않는다** `[INC-109]` `[TBD-52]`. 6시간 예측의 대상 항목이 정해지지
  * 않았고 신뢰구간의 신뢰수준도 원문에 없다 — 없는 데이터로 곡선을 그리면 산출된 예측처럼
@@ -204,11 +217,36 @@ function buildTrends(
   });
 }
 
-export function getForecast(siteId: string, target: ForecastTargetCode = 'TOC'): ForecastSummary {
+/**
+ * 오염도 3항목을 **받은 것으로 채우고, 안 받은 것만 지어낸다.**
+ *
+ * 반씩 섞이지 않는다 — 위젯은 다섯 계열을 한 벌로 넘기거나 아예 안 넘긴다. 그래도 `??`를
+ * 두는 이유는 넘긴 벌에 빈 자리가 생겨도 화면이 죽지 않게 하려는 것이다.
+ */
+function seriesOf(
+  siteId: string,
+  intensity: number,
+  measured?: MeasuredSeries,
+): Record<ForecastTargetCode, ForecastPoint[]> {
+  const built = allSeries(siteId, intensity);
+  if (!measured) return built;
+
+  return {
+    TOC: measured.TOC ?? built.TOC,
+    TN: measured.TN ?? built.TN,
+    TP: measured.TP ?? built.TP,
+  };
+}
+
+export function getForecast(
+  siteId: string,
+  target: ForecastTargetCode = 'TOC',
+  measured?: MeasuredSeries,
+): ForecastSummary {
   const scenario = getScenario(siteId);
   const intensity = scenario.eventRise / 74;
   const profile = FORECAST_TARGETS[target];
-  const series = allSeries(siteId, intensity);
+  const series = seriesOf(siteId, intensity, measured);
 
   return {
     code: profile.code,
@@ -234,12 +272,13 @@ export function getForecast(siteId: string, target: ForecastTargetCode = 'TOC'):
 export function getFlowForecast(
   siteId: string,
   code: ForecastSeriesCode = FLOW_FORECAST_CODE,
+  measured?: MeasuredSeries,
 ): ForecastSummary {
   const scenario = getScenario(siteId);
   const intensity = scenario.eventRise / 74;
   /* 유입·유출은 같은 규약이고 기저값만 다르다 */
   const profile = code === INFLOW_FORECAST_CODE ? INFLOW_FORECAST : FLOW_FORECAST;
-  const points = buildPoints(siteId, profile, intensity);
+  const points = measured?.[code] ?? buildPoints(siteId, profile, intensity);
 
   return {
     code: profile.code,
@@ -252,6 +291,6 @@ export function getFlowForecast(
     inputWindowLabel: '과거 24시간 다변량 시계열',
     modelLabel: 'LSTM + Attention',
     points,
-    trends: buildTrends(allSeries(siteId, intensity)),
+    trends: buildTrends(seriesOf(siteId, intensity, measured)),
   };
 }

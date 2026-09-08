@@ -21,6 +21,8 @@ function point(t: string, flow: Reading): MeasurementPoint {
     inflow: null,
     flow,
     level: null,
+    TN: null,
+    TP: null,
   };
 }
 

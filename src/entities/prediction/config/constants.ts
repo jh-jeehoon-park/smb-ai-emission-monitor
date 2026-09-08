@@ -28,6 +28,18 @@ export type ForecastSeriesCode =
   | typeof FLOW_FORECAST_CODE
   | typeof INFLOW_FORECAST_CODE;
 
+/**
+ * 이 화면이 계측 서버에서 받아 오는 계열 전부 — 오염도 3항목 + 수량 2항목.
+ *
+ * 타입만으로는 원소를 돌 수 없어 값으로도 둔다. **`toMeasuredSeries`가 이 목록을 돈다** —
+ * 항목이 늘면 그 함수와 `SeriesSample`이 함께 컴파일 에러로 걸린다.
+ */
+export const FORECAST_SERIES_CODES = [
+  ...FORECAST_TARGET_CODES,
+  INFLOW_FORECAST_CODE,
+  FLOW_FORECAST_CODE,
+] as const satisfies readonly ForecastSeriesCode[];
+
 export interface ForecastTargetProfile {
   code: ForecastSeriesCode;
   label: string;
@@ -185,10 +197,15 @@ export const SERIES_INK: Record<ForecastSeriesCode, string> = {
 /**
  * **출처는 선 질감이 맡는다.** 색을 항목에 넘긴 자리를 이것이 받는다.
  *
- * 두 값뿐이라 실선·파선으로 충분하다 — 예전에는 질감이 항목을 맡아 `7 4`와 `2 3`을
+ * 실선은 «잰 값», 파선은 «잰 것이 아닌 값»이다 — 예전에는 질감이 항목을 맡아 `7 4`와 `2 3`을
  * 갈라야 했고, 2px 선에서 그 둘은 거의 같아 보였다.
+ *
+ * **`preModel`도 파선이다** `[사용자 요청 2026-09-08]`. 계측 서버에서 오는 값이지만 실증에서는
+ * 센서가 없는 항목이라, 실선으로 그리면 «잰 값»으로 읽힌다 — 무엇으로 대신 채운 자리인지는
+ * 범례·툴팁이 글자로 적는다(`SERIES_ORIGIN_LABELS`).
  */
 export const ORIGIN_DASH: Record<SeriesOrigin, string | undefined> = {
   measured: undefined,
   softSensed: '6 4',
+  preModel: '6 4',
 };

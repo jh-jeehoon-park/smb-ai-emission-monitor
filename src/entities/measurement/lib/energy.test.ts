@@ -20,6 +20,8 @@ function point(power: number | null, flow: number | null): MeasurementPoint {
     inflow: null,
     flow,
     level: null,
+    TN: null,
+    TP: null,
   };
 }
 

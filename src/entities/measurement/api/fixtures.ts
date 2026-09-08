@@ -35,6 +35,13 @@ const BASELINE: Record<SeriesCode, { mid: number; swing: number; periodMinutes: 
    * (`swing: 0`이라 파도 항이 0이 된다). `SeriesCode` 전부를 요구하는 `Record`라 자리는 있어야 한다.
    */
   level: { mid: 1.4, swing: 0, periodMinutes: 1 },
+  /*
+   * **TN·TP는 서버가 보내 주고, 여기 값은 그 서버에 못 닿을 때의 대체다**
+   * `[사용자 요청 2026-09-08]`. 규모는 오염도 추정 화면이 쓰던 프로파일과 맞췄다 —
+   * 같은 사업장을 두 화면이 다른 크기로 말하지 않게 한다(**E1**).
+   */
+  TN: { mid: 16, swing: 3, periodMinutes: 335 },
+  TP: { mid: 1.5, swing: 0.3, periodMinutes: 295 },
 };
 
 const SERIES_CODES: SeriesCode[] = [
@@ -50,6 +57,8 @@ const SERIES_CODES: SeriesCode[] = [
   'power',
   'inflow',
   'flow',
+  'TN',
+  'TP',
 ];
 
 /**
@@ -95,6 +104,9 @@ function eventFactor(index: number, code: SeriesCode, intensity: number): number
   if (code === 'EC') return progress * 180;
   if (code === 'current') return progress * 22;
   if (code === 'power') return progress * 7;
+  /* 유기물 부하가 오르면 질소·인 부하도 함께 오른다 — 사건 구간에서 오염도가 같이 움직인다 */
+  if (code === 'TN') return progress * 8;
+  if (code === 'TP') return progress * 0.7;
   return 0;
 }
 

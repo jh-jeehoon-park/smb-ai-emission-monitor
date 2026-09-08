@@ -27,6 +27,7 @@ import { getEquipment } from '@/entities/equipment';
 import {
   FLOW_SERIES_CODES,
   WATER_SERIES_CODES,
+  sliceRecentHours,
   useSiteSeries,
   outageNotice,
 } from '@/entities/measurement';
@@ -36,6 +37,7 @@ import {
   TrendChip,
   formatR2,
   getForecast,
+  toMeasuredSeries,
   trendVerdict,
 } from '@/entities/prediction';
 import { SITES, getSite } from '@/entities/site';
@@ -84,17 +86,23 @@ export function DashboardView() {
    */
   const { points: series, status: seriesStatus } = useSiteSeries(selectedSiteId);
   const seriesPending = seriesStatus === 'pending';
+  /* 오염도 계열도 계측에서 온다 `[사용자 요청 2026-09-08]` — 창은 예측 화면과 같은 6시간이다 */
+  const measured = useMemo(
+    () => toMeasuredSeries(sliceRecentHours(series, SERIES_WINDOW_HOURS)),
+    [series],
+  );
 
   const detail = useMemo(
     () => ({
       series,
       anomalySeries: getAnomalySeries(selectedSiteId),
       anomalySummary: getAnomalySummary(selectedSiteId),
-      forecast: getForecast(selectedSiteId),
+      /* 오염도 추정 화면과 **같은 계열**을 본다 — 갈리면 한 사업장이 화면마다 다른 값이 된다(E1) */
+      forecast: getForecast(selectedSiteId, 'TOC', measured),
       equipment: getEquipment(selectedSiteId),
       outage: getOutageWindow(selectedSiteId),
     }),
-    [selectedSiteId, series],
+    [selectedSiteId, series, measured],
   );
 
   return (

@@ -19,9 +19,10 @@ import {
   pointsBySite,
   useSiteSeries,
   useSitesSeries,
+  sliceRecentHours,
   outageNotice,
 } from '@/entities/measurement';
-import { SERIES_WINDOW_HOURS, getForecast } from '@/entities/prediction';
+import { SERIES_WINDOW_HOURS, getForecast, toMeasuredSeries } from '@/entities/prediction';
 import { GOV_MUNICIPALITY } from '@/entities/user';
 import { getSite } from '@/entities/site';
 import { useDischargeLimits } from '@/features/discharge-limit-settings';
@@ -90,17 +91,23 @@ export function JurisdictionView() {
    */
   const { points: series, status: seriesStatus } = useSiteSeries(siteId);
   const seriesPending = seriesStatus === 'pending';
+  /* 오염도 계열도 계측에서 온다 `[사용자 요청 2026-09-08]` — 창은 예측 화면과 같은 6시간이다 */
+  const measured = useMemo(
+    () => toMeasuredSeries(sliceRecentHours(series, SERIES_WINDOW_HOURS)),
+    [series],
+  );
 
   const detail = useMemo(
     () => ({
       series,
       anomalySeries: getAnomalySeries(siteId),
       anomalySummary: getAnomalySummary(siteId),
-      forecast: getForecast(siteId),
+      /* 오염도 추정 화면과 **같은 계열**을 본다 — 갈리면 한 사업장이 화면마다 다른 값이 된다(E1) */
+      forecast: getForecast(siteId, 'TOC', measured),
       equipment: getEquipment(siteId),
       outage: getOutageWindow(siteId),
     }),
-    [siteId, series],
+    [siteId, series, measured],
   );
 
   const online = sites.filter((s) => s.online).length;

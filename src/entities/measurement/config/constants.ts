@@ -55,8 +55,10 @@ export function telemetrySourceLabel(
 }
 
 /**
- * 시계열이 실제로 존재하는 항목만. TN·TP는 센서가 없어 계측 시계열이 없고
- * AI 추정(Soft Sensing) 대상이라 예측 화면에서 다룬다.
+ * **수질 격자와 시계열 필터가 이 목록으로 정해진다.**
+ *
+ * TN·TP는 여기 없다 — 계측 서버가 그 둘을 보내 주지만(`ESTIMATE_SERIES_CODES`) 실증에서는
+ * 센서가 없어 AI가 낼 값이고, 여기 넣으면 계측 화면 넷이 그것을 «수질 계측»으로 그린다.
  */
 export const WATER_SERIES_CODES: SeriesCode[] = [
   'pH',
@@ -72,14 +74,6 @@ export const WATER_SERIES_CODES: SeriesCode[] = [
 export const EQUIPMENT_SERIES_CODES: SeriesCode[] = ['current', 'power', 'inflow', 'flow'];
 
 /**
- * 계열이 실제로 있는 항목 전부. **긍정 목록이다.**
- *
- * 한때 `code !== 'vibration' && code !== 'TN' && code !== 'TP'`처럼 부정 목록이었는데,
- * 계열 없는 항목을 새로 등재하면(`inflow`·`outflow`) 그 술어가 **참을 돌려주어**
- * `MeasurementPoint`를 없는 키로 인덱싱하고 `undefined`가 조용히 흐른다. 긍정 목록은
- * 새 항목이 기본적으로 제외되므로 같은 실수가 되풀이되지 않는다.
- */
-/**
  * 배출 데이터에만 있는 계열 — 지금은 **수위 하나**다 `[사용자 요청 2026-08-28]`.
  *
  * **`EQUIPMENT_SERIES_CODES`에 넣지 않는다.** 그 배열이 시계열 화면의 `설비`·`전체` 필터를
@@ -92,10 +86,35 @@ export const EQUIPMENT_SERIES_CODES: SeriesCode[] = ['current', 'power', 'inflow
  */
 export const DISCHARGE_SERIES_CODES: SeriesCode[] = ['level'];
 
+/**
+ * 계측 서버가 임시로 보내 주는 **AI 산출 예정 항목** `[사용자 요청 2026-09-08]`.
+ *
+ * 실증에서는 센서가 없고 소프트 센싱이 낼 값이다 `[원문 발표 p.17]` `[회의 2026-08-20]`.
+ * 그 모델이 아직 없어 프로토타입에서는 **화면에 값이 그려지는 것이 먼저**라, 백엔드가 넣어 둔
+ * 에뮬레이터 채널을 그대로 받는다 — 과제가 성공하면 AI 산출이 이 자리를 대신한다.
+ *
+ * **`WATER_SERIES_CODES`에 넣지 않는다.** 그 배열이 계측 격자의 `수질 8종`과 시계열 화면의
+ * `수질`·`전체` 필터를 만들므로, 넣으면 **요청하지 않은 화면 넷이 함께 바뀐다**(**A2**).
+ * `DISCHARGE_SERIES_CODES`(수위)가 같은 이유로 따로 서 있고 여기가 그 선례를 따른다 —
+ * 계열의 **존재**만 아래 `SERIES_CODES`에 합류시킨다.
+ */
+export const ESTIMATE_SERIES_CODES: SeriesCode[] = ['TN', 'TP'];
+
+/**
+ * 계열이 실제로 있는 항목 전부. **긍정 목록이다.**
+ *
+ * 한때 `code !== 'vibration' && code !== 'TN' && code !== 'TP'`처럼 부정 목록이었는데,
+ * 계열 없는 항목을 새로 등재하면 그 술어가 **참을 돌려주어** `MeasurementPoint`를 없는 키로
+ * 인덱싱하고 `undefined`가 조용히 흐른다. 긍정 목록은 새 항목이 기본적으로 제외되므로 같은
+ * 실수가 되풀이되지 않는다 — `isSeriesCode`와 fixture 생성 루프가 이 배열을 읽는다.
+ *
+ * (그 부정 목록이 TN·TP를 이름으로 막고 있었다. 지금 둘은 계열이 있다.)
+ */
 export const SERIES_CODES: SeriesCode[] = [
   ...WATER_SERIES_CODES,
   ...EQUIPMENT_SERIES_CODES,
   ...DISCHARGE_SERIES_CODES,
+  ...ESTIMATE_SERIES_CODES,
 ];
 
 /**
@@ -112,6 +131,7 @@ export const RECEIVED_SERIES_CODES: SeriesCode[] = [
   'inflow',
   'flow',
   ...DISCHARGE_SERIES_CODES,
+  ...ESTIMATE_SERIES_CODES,
 ];
 
 /**

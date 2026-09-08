@@ -3,21 +3,36 @@
 import { useMemo } from 'react';
 import { DEMO_NOW_ISO } from '@/shared/config/demo';
 import { buildAnomalyScores, downsample } from '@/shared/lib/anomaly-score';
-import { getOutageWindow } from '@/shared/lib/timeline';
+import { HISTORY_WINDOW_HOURS } from '@/shared/config/measurement';
+import {
+  PROVISIONAL_ANOMALY_RUN_MIN_MINUTES,
+  PROVISIONAL_STATUS_LABELS,
+} from '@/shared/config/provisional';
+import { useQueryState } from '@/shared/lib/use-query-state';
+import { getOutageWindow, timelineIndexAt } from '@/shared/lib/timeline';
 import Link from 'next/link';
 import { AnomalyBandLegend } from '@/shared/ui/anomaly-band-legend';
 import { InfoTip } from '@/shared/ui/tooltip';
 import { Panel } from '@/shared/ui/panel';
 import { StickyBar } from '@/shared/ui/sticky-bar';
 import { getAlarmsForView } from '@/entities/alarm';
-import { getAnomalySeries, getAnomalySummary, findIdleDischargeRuns } from '@/entities/anomaly';
+import {
+  ANOMALY_RUN_MIN_SCORE,
+  canJudgeAnomalyRuns,
+  findAnomalyRuns,
+  getAnomalySeries,
+  getAnomalySummaryAt,
+} from '@/entities/anomaly';
 import { useSiteSeries } from '@/entities/measurement';
 import { getSite } from '@/entities/site';
 import { SiteTabs, useScopedSites, useSelectedSiteId, useSiteHref } from '@/features/site-selection';
 import { AlarmList } from '@/widgets/alarm-list';
-import { AnomalyPanel } from '@/widgets/anomaly-panel';
 import { AnomalyTimeline } from '@/widgets/anomaly-timeline';
+import { NO_RUN, RUN_MIN_SAMPLES, RUN_QUERY_KEY } from '../config/constants';
+import { contributionEvidence } from '../lib/distribution';
 import { IDLE_DISCHARGE_NOTE, IdleDischargePanel } from './idle-discharge-panel';
+import { RunInvestigation } from './run-investigation';
+import { RunInvestigationSkeleton } from './run-investigation-skeleton';
 import { SiteScoreTable } from './site-score-table';
 
 const RANKING_SPARK_POINTS = 40;
@@ -76,17 +91,67 @@ export function AnomalyView() {
   const { points, status: seriesStatus } = useSiteSeries(siteId);
   const seriesPending = seriesStatus === 'pending';
 
-  const detail = useMemo(
-    () => ({
+  /*
+   * **구간을 1급 객체로 세운다** `[사용자 요청 2026-09-08]`.
+   *
+   * 이 화면에 오는 이유는 «이 사업장 왜 91점이지?»인데, 그 답의 나머지 셋(언제부터·얼마나·
+   * 무엇 때문에)은 **되감을 수단이 없어** 낼 수 없었다 — 이 앱의 모든 화면이 «지금»에 고정돼
+   * 있고, 그래서 통합 관제와 이 화면이 같은 그림을 그렸다.
+   *
+   * `idleRuns`를 여기서 걷었다 — 계산해 놓고 아무도 읽지 않았고, 패널이 같은 함수를 다시
+   * 부르고 있었다.
+   */
+  const detail = useMemo(() => {
+    const scores = buildAnomalyScores(siteId);
+
+    return {
       series: getAnomalySeries(siteId),
-      summary: getAnomalySummary(siteId),
       outage: getOutageWindow(siteId),
       points,
-      idleRuns: findIdleDischargeRuns(siteId),
+      runs: findAnomalyRuns(scores, ANOMALY_RUN_MIN_SCORE, RUN_MIN_SAMPLES),
+      canJudgeRuns: canJudgeAnomalyRuns(scores),
       alarms: getAlarmsForView(siteId).filter((a) => a.condition === 'anomaly'),
-    }),
-    [siteId, points],
+    };
+  }, [siteId, points]);
+
+  /*
+   * 고른 구간을 URL에 남긴다(§8 `URL 상태`·**P6**) — 링크를 보내면 «왜 91점이지?»가 그대로
+   * 전달된다. `useQueryState`가 요구하는 허용 목록에 **구간 시작 시각이 유한 목록으로 맞는다.**
+   */
+  const runIsos = detail.runs.map((run) => run.fromIso);
+  const [runIso, setRunIso] = useQueryState(
+    RUN_QUERY_KEY,
+    runIsos.length > 0 ? runIsos : [NO_RUN],
+    runIsos[runIsos.length - 1] ?? NO_RUN,
   );
+  const selectedRun = detail.runs.find((run) => run.fromIso === runIso) ?? detail.runs.at(-1) ?? null;
+
+  /*
+   * 판독은 구간의 **최고점 시각**을 연다 — 구간을 대표하는 한 지점이고, 거기가 곧 «무엇 때문에»의
+   * 답이 가장 뚜렷한 자리다.
+   */
+  const reading = useMemo(() => {
+    if (selectedRun === null) return { summary: null, evidence: [] };
+
+    const summary = getAnomalySummaryAt(siteId, selectedRun.peakIndex);
+    return {
+      summary,
+      evidence: contributionEvidence(summary.contributions, points, selectedRun.peakIndex),
+    };
+  }, [siteId, points, selectedRun]);
+
+  /**
+   * **알람에서 들어온 사람을 그 시각으로 데려간다.** 이 화면에 오는 가장 흔한 경로가 알람이라
+   * 그것이 화면 안에서 완결되어야 한다 — 창 밖 알람이면 `timelineIndexAt`이 `null`이라
+   * 아무 일도 하지 않는다(양 끝으로 클램프하면 없는 시각을 짚는다).
+   */
+  const revealAlarm = (raisedAtIso: string) => {
+    const index = timelineIndexAt(raisedAtIso);
+    if (index === null) return;
+
+    const hit = detail.runs.find((run) => index >= run.from && index <= run.to);
+    if (hit) setRunIso(hit.fromIso);
+  };
 
   return (
     <div className="space-y-6">
@@ -128,58 +193,105 @@ export function AnomalyView() {
             </h2>
             <InfoTip
               label="이 구역의 범위"
-              content="탭으로 고른 한 개소의 이상 점수·기여 변수·관련 알람을 봅니다. 위 사업장별 점수는 전 사업장 기준입니다."
+              content="탭으로 고른 한 개소를 되감아 봅니다 — 이상 점수가 경계 위로 이어진 구간을 고르면 그 시각의 판정·기여 변수·계측이 열립니다. 위 사업장별 점수는 전 사업장 기준입니다."
             />
           </div>
           <SiteTabs sites={scopedSites} selectedId={siteId} onSelect={setSiteId} />
         </StickyBar>
 
         {/*
-         * **두 칸이다** `[사용자 지시 2026-08-24]` — 왼쪽 판정, 오른쪽에 시간 흐름과 그 결과로
-         * 나간 알람을 위아래로 쌓는다. 세 칸이던 판본은 xl에서 한 칸이 260px 밑으로 떨어져
-         * XAI 막대의 라벨과 퍼센트가 접혔다.
+         * **판정 카드 옆에 타임라인을 세우던 두 칸 배치를 걷었다** `[사용자 요청 2026-09-08]`.
          *
-         * **높이는 왼쪽 판정 카드가 정한다** `[사용자 지시 2026-08-24]`. 격자 기본값이
-         * `stretch`라 두 칸은 같은 높이가 되고, 오른쪽은 타임라인(고정) + 알람(남는 자리)로
-         * 나눠 갖는다. 알람 목록은 `min-h-0` + `overflow-auto`라 **자기 안에서만 스크롤한다** —
-         * `min-h-0`이 없으면 격자 칸의 자동 최소 높이가 목록 전체 길이가 되어 알람 20건이
-         * 왼쪽 카드를 그만큼 늘린다.
+         * 그 배치의 근거는 «왼쪽 판정, 오른쪽에 시간 흐름과 알람» `[사용자 지시 2026-08-24]`
+         * 이었고, 왼쪽을 넓게 잡은 것도 점수·게이지·XAI가 위로 몰리지 않게 하려던 것이다.
+         * **그 왼쪽 카드가 통합 관제의 것과 같은 컴포넌트·같은 props였다** — 카드 제목까지
+         * 같아 두 화면이 구분되지 않았다.
          *
-         * 왼쪽을 넓힌 것도 그래서다 — 오른쪽이 두 카드를 겹쳐 쓰게 되어 세로로 길어지므로,
-         * 판정 카드도 그만큼 넓어야 점수·게이지·XAI가 위쪽에 몰리지 않는다.
+         * 지금은 **조사 카드가 전폭으로 서고** 타임라인·알람이 그 아래에서 그것을 뒷받침한다.
+         * 조사 카드 안이 이미 두 칸(구간 목록 │ 판독)이라 밖에서 또 나누면 칸이 넷이 된다.
+         * 통합 관제의 카드는 그대로 남는다(**A2**) — 이 화면만 자리를 내준다.
          */}
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,420px)_minmax(0,1fr)] 2xl:grid-cols-[minmax(0,480px)_minmax(0,1fr)]">
-          <Panel title={`이상 탐지 결과 · ${site.name}`} className="min-h-0">
-            <AnomalyPanel summary={detail.summary} legend={<AnomalyBandLegend />} />
+        <Panel
+          /*
+           * **어느 사업장인지 화면이 말한다.** 이 구역은 탭으로 사업장을 갈아 끼우므로
+           * 카드가 자기 대상을 적지 않으면 스크롤 중에 무엇을 보고 있는지 잃는다.
+           */
+          title={`이상 구간 조사 · ${site.name}`}
+          titleAside={
+            <InfoTip
+              label="구간을 세는 방법과 한계"
+              content={`이상 점수가 ${PROVISIONAL_STATUS_LABELS.caution} 경계(${ANOMALY_RUN_MIN_SCORE}점) 위로 연속 ${PROVISIONAL_ANOMALY_RUN_MIN_MINUTES}분 이상 이어진 구간을 셉니다 [PROVISIONAL] — 점수 구간 경계는 원문에 없어 잠정값입니다 [TBD-02]. 수신이 끊긴 표본에서 구간을 닫습니다: 모르는 시간을 이어 붙이면 없는 이상을 만듭니다. 판독은 구간의 최고점 시각을 열며, 기여 변수의 %는 모델 산출이고 그 옆의 값·분포는 같은 시각의 계측입니다 — 둘이 어긋나면 어긋난 대로가 검증 결과입니다. 백분위는 관측 분포 안에서의 자리이지 기준 초과 판정이 아닙니다 [TBD-45].`}
+            />
+          }
+          action={
+            <span className="text-[12px] text-fg-subtle">
+              최근 {HISTORY_WINDOW_HOURS}시간 ·{' '}
+              {detail.canJudgeRuns ? (
+                <span className="num text-fg-muted">{detail.runs.length}건</span>
+              ) : (
+                <span className="text-fg-muted">판정 불가</span>
+              )}
+            </span>
+          }
+        >
+          {seriesPending ? (
+            <RunInvestigationSkeleton />
+          ) : (
+            <RunInvestigation
+              runs={detail.runs}
+              selectedIso={runIso}
+              onSelect={setRunIso}
+              summary={reading.summary}
+              evidence={reading.evidence}
+              canJudge={detail.canJudgeRuns}
+              minMinutes={PROVISIONAL_ANOMALY_RUN_MIN_MINUTES}
+            />
+          )}
+        </Panel>
+
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,420px)]">
+          <Panel
+            title="이상 점수 타임라인"
+            action={
+              /* 원문 p.22의 현장 문제 — "TOC가 상승했는데 펌프 이상인지 유입 부하 증가인지
+                 판단 어려움". 어느 공정 단계인지 짚으려면 공정도로 갈 수 있어야 한다 */
+              <Link
+                href={withSite('/process')}
+                className="text-[12px] text-accent underline decoration-accent/40 underline-offset-2 transition-colors duration-200 hover:decoration-accent"
+              >
+                공정에서 보기
+              </Link>
+            }
+          >
+            {/* 위에서 고른 구간을 여기서 짚는다 — 목록과 그림이 서로를 가리킨다 */}
+            <AnomalyTimeline
+              data={detail.series}
+              outage={detail.outage}
+              focus={selectedRun && { fromIso: selectedRun.fromIso, toIso: selectedRun.toIso }}
+            />
+            <div className="mt-3 border-t border-border pt-2">
+              <AnomalyBandLegend />
+            </div>
           </Panel>
 
-          <div className="flex min-h-0 min-w-0 flex-col gap-6">
-            <Panel
-              className="shrink-0"
-              title="이상 점수 타임라인"
-              action={
-                /* 원문 p.22의 현장 문제 — "TOC가 상승했는데 펌프 이상인지 유입 부하 증가인지
-                   판단 어려움". 어느 공정 단계인지 짚으려면 공정도로 갈 수 있어야 한다 */
-                <Link
-                  href={withSite('/process')}
-                  className="text-[12px] text-accent underline decoration-accent/40 underline-offset-2 transition-colors duration-200 hover:decoration-accent"
-                >
-                  공정에서 보기
-                </Link>
-              }
-            >
-              <AnomalyTimeline data={detail.series} outage={detail.outage} />
-            </Panel>
-
-            {/* 남는 높이를 받아 그 안에서만 스크롤한다 — 목록 길이가 격자 높이를 정하지 않는다 */}
-            <Panel
-              title="관련 알람"
-              className="min-h-0 flex-1"
-              bodyClassName="min-h-0 overflow-auto xl:min-h-[160px]"
-            >
-              <AlarmList alarms={detail.alarms} nowIso={DEMO_NOW_ISO} selectedSiteId={siteId} />
-            </Panel>
-          </div>
+          {/* 목록 길이가 격자 높이를 정하지 않는다 — 자기 안에서만 스크롤한다 */}
+          <Panel
+            title="관련 알람"
+            titleAside={
+              <InfoTip
+                label="알람과 구간의 관계"
+                content="이상 판정으로 올라온 알람만 모읍니다. 알람을 누르면 그 시각이 든 이상 구간이 위에서 열립니다 — 조회 구간(24시간) 밖에서 올라온 알람은 짚을 자리가 없어 움직이지 않습니다."
+              />
+            }
+            bodyClassName="max-h-[420px] overflow-auto"
+          >
+            <AlarmList
+              alarms={detail.alarms}
+              nowIso={DEMO_NOW_ISO}
+              selectedSiteId={siteId}
+              onReveal={revealAlarm}
+            />
+          </Panel>
         </div>
 
         {/*

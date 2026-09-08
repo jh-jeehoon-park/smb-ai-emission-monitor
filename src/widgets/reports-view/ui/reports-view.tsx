@@ -16,6 +16,7 @@ import { SegmentedControl } from '@/shared/ui/segmented-control';
 import { StatTile } from '@/shared/ui/stat-tile';
 import { StatusBadge } from '@/shared/ui/status-badge';
 import { getSite } from '@/entities/site';
+import { SERIES_WINDOW_HOURS, toMeasuredSeries } from '@/entities/prediction';
 import { useDischargeLimits } from '@/features/discharge-limit-settings';
 import { useSelectedSiteId, useScopedSites } from '@/features/site-selection';
 import { BucketReportPanel } from '@/widgets/bucket-report';
@@ -24,6 +25,7 @@ import {
   DEFAULT_BUCKET,
   DEFAULT_STAT,
   TELEMETRY_PENDING_NOTE,
+  sliceRecentHours,
   WATER_SERIES_CODES,
   useSiteSeries,
   type BucketStat,
@@ -84,9 +86,14 @@ export function ReportsView() {
     () => buildSensorReport(points, hours, limits.table),
     [points, hours, limits.table],
   );
+  /* 오염도 판정도 계측에서 온다 — 창은 오염도 추정 화면과 같은 6시간이다 `[사용자 요청 2026-09-08]` */
+  const measured = useMemo(
+    () => toMeasuredSeries(sliceRecentHours(points, SERIES_WINDOW_HOURS)),
+    [points],
+  );
   const estimates = useMemo(
-    () => buildEstimateReport(siteId, limits.table, limits.unresolvedReason),
-    [siteId, limits.table, limits.unresolvedReason],
+    () => buildEstimateReport(siteId, limits.table, limits.unresolvedReason, measured),
+    [siteId, limits.table, limits.unresolvedReason, measured],
   );
 
   /*

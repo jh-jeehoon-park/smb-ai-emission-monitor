@@ -10,7 +10,9 @@ import {
 } from '@/shared/config/discharge-limits';
 import { DISPLAY_TIMEZONE, formatDateTime } from '@/shared/lib/format';
 import { useQueryState } from '@/shared/lib/use-query-state';
+import { CHART_SURFACE } from '@/shared/ui/chart-figure';
 import { Panel } from '@/shared/ui/panel';
+import { Skeleton, SkeletonRegion } from '@/shared/ui/skeleton';
 import { InfoTip } from '@/shared/ui/tooltip';
 import { VALUE_MD } from '@/shared/ui/type-scale';
 import {
@@ -25,6 +27,7 @@ import {
   formatR2,
   getFlowForecast,
   getForecast,
+  toMeasuredSeries,
   peakValue,
   type ForecastTargetCode,
   type TrendEstimate,
@@ -33,9 +36,15 @@ import {
   useDischargeLimits,
   type DischargeLimitsView,
 } from '@/features/discharge-limit-settings';
+import {
+  TELEMETRY_PENDING_NOTE,
+  sliceRecentHours,
+  useSiteSeries,
+} from '@/entities/measurement';
 import { useSelectedSiteId } from '@/features/site-selection';
 import { SegmentedControl } from '@/shared/ui/segmented-control';
 import {
+  FULL_HEIGHT,
   ForecastChart,
   ForecastOverlay,
 } from '@/widgets/forecast-chart';
@@ -60,25 +69,47 @@ export function PredictionView() {
   const limits = useDischargeLimits();
   const [view, setView] = useQueryState(TARGET_QUERY_KEY, TARGET_VIEWS, DEFAULT_VIEW);
 
-  /* 전체 보기에서는 세 항목을 모두 만든다. 데이터는 이미 세 벌 다 생성돼 있다 */
+  /*
+   * **이 화면이 계측을 안 보고 있었다** `[사용자 지적 2026-09-07]` `[사용자 요청 2026-09-08]`.
+   *
+   * 다섯 계열(TOC·TN·TP·유입·유출)이 전부 시드 난수 생성값이었다 — 서버에 채널이 다 있고
+   * 다른 화면들은 실측을 보는데 이 화면만 그랬다. 그러면서 TOC·유량을 `직접 계측`이라
+   * 적었다(**E3**).
+   *
+   * **`useSiteSeries` 하나로 들어온다** — 화면이 계측을 읽는 통로는 그것뿐이다.
+   */
+  const { points, status: seriesStatus } = useSiteSeries(siteId);
+  const seriesPending = seriesStatus === 'pending';
+  const measured = useMemo(
+    () => toMeasuredSeries(sliceRecentHours(points, SERIES_WINDOW_HOURS)),
+    [points],
+  );
+
+  /* 전체 보기에서는 세 항목을 모두 만든다. 계열은 한 번 옮겨 두고 셋이 나눠 쓴다 */
   const showAll = view === ALL_TARGETS;
   const showFlow = FLOW_VIEWS.includes(view);
   const single: ForecastTargetCode = showAll || showFlow ? 'TOC' : (view as ForecastTargetCode);
   const forecast = useMemo(
-    () => (showFlow ? getFlowForecast(siteId, view as 'flow' | 'inflow') : getForecast(siteId, single)),
-    [siteId, single, showFlow, view],
+    () =>
+      showFlow
+        ? getFlowForecast(siteId, view as 'flow' | 'inflow', measured)
+        : getForecast(siteId, single, measured),
+    [siteId, single, showFlow, view, measured],
   );
   const allForecasts = useMemo(
-    () => (showAll ? FORECAST_TARGET_CODES.map((code) => getForecast(siteId, code)) : []),
-    [siteId, showAll],
+    () => (showAll ? FORECAST_TARGET_CODES.map((code) => getForecast(siteId, code, measured)) : []),
+    [siteId, showAll, measured],
   );
   /* 수량은 축이 달라 따로 겹친다 — 농도와 부피/시간을 한 눈금에 두면 둘 다 못 읽는다 */
   const flowForecasts = useMemo(
     () =>
       showAll
-        ? [getFlowForecast(siteId, 'inflow'), getFlowForecast(siteId, FLOW_FORECAST_CODE)]
+        ? [
+            getFlowForecast(siteId, 'inflow', measured),
+            getFlowForecast(siteId, FLOW_FORECAST_CODE, measured),
+          ]
         : [],
-    [siteId, showAll],
+    [siteId, showAll, measured],
   );
   /* 결정계수는 보고 있는 계열의 것이다 — 유량은 성능 목표 자체가 없다 `[원문 발표 p.26]` */
   const r2 = showFlow ? FLOW_FORECAST.r2 : FORECAST_TARGETS[single].r2;
@@ -99,7 +130,7 @@ export function PredictionView() {
        */}
       <div className="grid gap-6 lg:grid-cols-3">
         {forecast.trends.map((trend) => (
-          <TrendCard key={trend.code} trend={trend} limits={limits} />
+          <TrendCard key={trend.code} trend={trend} limits={limits} pending={seriesPending} />
         ))}
       </div>
 
@@ -121,7 +152,7 @@ export function PredictionView() {
         titleAside={
           <InfoTip
             label="무엇을 계측하고 무엇을 추정하는가"
-            content="TOC는 센서로 직접 계측하고, TN·TP는 계측 센서가 없어 소프트 센싱 추정만 존재합니다 [발표자료 p.17]. 그래서 카드는 농도를 적지 않고 기준 대비 높낮이만 냅니다 — 소프트 센싱으로는 절대값의 정확도를 맞추기 어렵다는 판단입니다 [회의 2026-08-20]. 통신이 두절되면 추정도 중단되며 마지막 산출 시각만 남습니다 — 값을 임의로 이어 붙이지 않습니다(E3). 향후 6시간 예측은 그리지 않습니다 — 예측 대상 항목과 입력 데이터가 정해지지 않았습니다 [TBD-52]. TN·TP는 6시간 예측 대상이 아니라 소프트 센싱으로 지금 값을 추정하는 항목입니다 [회의 2026-08-20]."
+            content="다섯 계열 모두 계측 서버에서 받습니다 [사용자 요청 2026-09-08]. TOC와 유입·유출은 계측 사양에 있는 항목이고 [원문 p.55], TN·TP는 실증에서 센서가 없어 AI 소프트 센싱이 낼 항목입니다 [발표자료 p.17] — 그 모델이 아직 없어 지금은 계측 서버가 보내 주는 값을 그립니다. 그래서 그 둘의 출처를 «계측 서버 수신 · AI 산출 예정»이라 적고 선을 파선으로 둡니다: «직접 계측»이라 적으면 없는 센서를, «소프트 센싱 추정»이라 적으면 없는 AI 산출을 주장하게 됩니다(E3). 카드는 농도를 적지 않고 기준 대비 높낮이만 냅니다 — 소프트 센싱으로는 절대값의 정확도를 맞추기 어렵다는 판단입니다 [회의 2026-08-20]. 통신이 두절되면 값이 끊기고 마지막 산출 시각만 남습니다 — 임의로 이어 붙이지 않습니다(E3). 향후 6시간 예측은 그리지 않습니다 — 예측 대상 항목과 입력 데이터가 정해지지 않았습니다 [TBD-52]."
           />
         }
         action={
@@ -133,7 +164,23 @@ export function PredictionView() {
           />
         }
       >
-        {showAll ? (
+        {seriesPending ? (
+          /*
+           * **아직 안 받은 것을 «통신 두절»이라 적지 않는다**(**E4**). 계열이 비면 판정도
+           * 계열도 낼 수 없다 — 자리는 실제 차트와 같은 높이로 잡아 값이 도착할 때 카드가
+           * 튀지 않게 한다.
+           */
+          <SkeletonRegion label={TELEMETRY_PENDING_NOTE} className="space-y-5">
+            <div className={CHART_SURFACE}>
+              <Skeleton style={{ height: FULL_HEIGHT }} />
+            </div>
+            {showAll && (
+              <div className={CHART_SURFACE}>
+                <Skeleton style={{ height: FULL_HEIGHT }} />
+              </div>
+            )}
+          </SkeletonRegion>
+        ) : showAll ? (
           <div className="space-y-5">
             {/*
               * **수질은 기준 대비 한 축에 겹친다.** 3단으로 쌓던 판본은 축이 각자라 같은
@@ -224,7 +271,7 @@ export function PredictionView() {
        * 자리가 아래인 이유: 이 표는 **판정의 근거**이지 판정이 아니다. 맨 위 카드가
        * 답을 내고, 차트가 그 답이 나온 계열을 보이고, 이 표가 무엇에 견줬는지 밝힌다.
        */}
-      <LimitMonitor trends={forecast.trends} limits={limits} />
+      <LimitMonitor trends={forecast.trends} limits={limits} pending={seriesPending} />
 
     </div>
   );
@@ -252,9 +299,12 @@ function Meta({ label, value, mono }: { label: string; value: string; mono?: boo
 function LimitMonitor({
   trends,
   limits,
+  pending,
 }: {
   trends: TrendEstimate[];
   limits: DischargeLimitsView;
+  /** 첫 응답 전인가. **기준치 열은 설정에서 오므로 그대로 두고 판정 열만 기다린다** */
+  pending: boolean;
 }) {
   const classificationLabel = formatClassification(
     limits.classification.regionGrade,
@@ -312,8 +362,13 @@ function LimitMonitor({
                       </span>
                     )}
                   </td>
-                  <td className="px-3 py-3.5" style={{ color: verdict.ink }}>
-                    {verdict.text}
+                  {/* 판정만 계열에서 온다 — 기준치·출처 열은 설정이 아는 것이라 그대로 둔다 */}
+                  <td className="px-3 py-3.5" style={{ color: pending ? undefined : verdict.ink }}>
+                    {pending ? (
+                      <Skeleton className="mx-auto h-3 w-16" />
+                    ) : (
+                      verdict.text
+                    )}
                   </td>
                   {/* 우리가 넣은 값이 아니라 사용자가 넣은 값임을 심사자가 바로 알아야 한다 */}
                   <td className="px-3 py-3.5 text-[12px] text-fg-subtle">
@@ -341,14 +396,24 @@ function LimitMonitor({
 function TrendCard({
   trend,
   limits,
+  pending,
 }: {
   trend: TrendEstimate;
   /** 기준표는 사업장 설정에서 온다 — 카드가 정적 표를 직접 읽으면 설정이 반영되지 않는다 */
   limits: DischargeLimitsView;
+  /**
+   * 첫 응답 전인가 `[사용자 지적 2026-09-07]`.
+   *
+   * 계열이 비면 `trendVerdict`가 값 없음을 **`수신 없음 · 통신 두절로 산출 중단`** 이라
+   * 적는다 — 아직 묻지도 않은 상태에 확인된 부재의 말을 쓰는 것이다(**E4**).
+   */
+  pending: boolean;
 }) {
   /* `null`은 판정하지 않았다는 뜻이다 — 기준이 없거나 값이 결측이다(E4) */
   const over = isOverLimit(trend.code, trend.value, limits.table);
-  const headline = trendVerdict(trend, over, limits.unresolvedReason);
+  const headline = pending
+    ? { text: TELEMETRY_PENDING_NOTE, ink: undefined, basis: null }
+    : trendVerdict(trend, over, limits.unresolvedReason);
   /* 판정만 있고 기준치가 안 보이면 무엇에 견준 판정인지 알 수 없다 `[회의 2026-08-20]` */
   const range = formatLimitRange(limits.table[trend.code], trend.decimals);
   const classificationLabel = formatClassification(

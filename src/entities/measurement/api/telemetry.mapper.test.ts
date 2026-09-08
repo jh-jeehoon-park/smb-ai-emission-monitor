@@ -3,7 +3,10 @@ import type { TbTimeseries } from '@/shared/api/thingsboard';
 import { COLLECTION_INTERVAL_MINUTES } from '@/shared/config/measurement';
 import { formatClock, formatDateTime } from '@/shared/lib/format';
 import {
+  EQUIPMENT_SERIES_CODES,
+  ESTIMATE_SERIES_CODES,
   RECEIVED_SERIES_CODES,
+  WATER_SERIES_CODES,
   SERIES_CODES,
   UNRECEIVED_SERIES_CODES,
 } from '../config/constants';
@@ -207,16 +210,38 @@ describe('계열이 빠짐없이 갈린다', () => {
   });
 
   /**
-   * **TN·TP를 계측 계열로 올리지 않는다** `[사용자 확인 2026-09-07]`.
+   * **TN·TP를 서버에서 받는다** `[사용자 요청 2026-09-08]`.
    *
-   * 서버에 채널이 있고 값도 온다 — 그러나 **화면 표출을 위해 넣어 둔 것**이고, 이 사업의
-   * 주된 목적은 그 둘을 **AI로 예측하는 것**이다. 여기 올리면 예측 대상이 계측값으로
-   * 둔갑해 과제의 성과 지표가 화면에서 사라진다(E3).
+   * **이 검사는 뒤집힌 것이다.** 하루 전까지 정반대를 지켰다 `[사용자 확인 2026-09-07]` —
+   * *"서버에 채널이 있고 값도 오지만 화면 표출을 위해 넣어 둔 것이고, 이 사업의 주된 목적은
+   * 그 둘을 AI로 예측하는 것이다. 계측 계열로 올리면 예측 대상이 계측값으로 둔갑해 과제의
+   * 성과 지표가 화면에서 사라진다(E3)."*
+   *
+   * 그 걱정은 그대로 옳고, 막는 자리가 바뀌었다. **프로토타입에서는 화면에 값이 그려지는
+   * 것이 1순위**이고 AI 소프트 센싱은 과제 성공 이후다 — 값을 안 받으면 오염도 추정 화면이
+   * 내장 생성값을 그리는데, 그쪽이 오히려 **«직접 계측»이라 적고 있었다.** 받아 오는 편이
+   * 더 정직하다.
+   *
+   * 대신 **두 자리가 대신 막는다**: 아래 검사가 수질 필터·격자에 오르지 못하게 하고,
+   * 화면은 원천을 `AI 산출 예정`으로 적는다(`entities/prediction`의 `SeriesOrigin`).
    */
-  it('TN·TP는 계측 계열이 아니다 — AI 예측 대상이다', () => {
+  it('TN·TP를 서버에 물어본다', () => {
     const keys = TELEMETRY_KEYS.split(',');
 
-    expect(keys).not.toContain('TN');
-    expect(keys).not.toContain('TP');
+    expect(keys).toContain('TN');
+    expect(keys).toContain('TP');
+  });
+
+  /**
+   * **그래도 «수질 계측»은 아니다.** `WATER_SERIES_CODES`가 계측 격자의 `수질 8종`과 시계열
+   * 화면의 필터를 만든다 — 여기 오르면 요청하지 않은 화면 넷이 그 둘을 계측으로 그리고(**A2**),
+   * 위 주석이 걱정하던 «예측 대상이 계측값으로 둔갑»이 실제로 일어난다.
+   */
+  it('수질 필터·격자에는 오르지 않는다', () => {
+    expect(WATER_SERIES_CODES).not.toContain('TN');
+    expect(WATER_SERIES_CODES).not.toContain('TP');
+    expect(EQUIPMENT_SERIES_CODES).not.toContain('TN');
+    expect(EQUIPMENT_SERIES_CODES).not.toContain('TP');
+    expect(ESTIMATE_SERIES_CODES).toEqual(['TN', 'TP']);
   });
 });

@@ -13,6 +13,7 @@ import {
 } from '@/entities/measurement';
 import {
   getForecast,
+  type MeasuredSeries,
   trendVerdict,
   type TrendEstimate,
   type TrendVerdict,
@@ -99,8 +100,15 @@ export function buildEstimateReport(
   limits: DischargeLimitTable,
   /** 기준치가 없는 이유. 사업장 분류 미설정과 항목값 미입력은 **할 일이 다르다** */
   unresolvedReason: string | null,
+  /**
+   * 계측에서 온 오염도 계열 `[사용자 요청 2026-09-08]`.
+   *
+   * **오염도 추정 화면과 같은 값을 내야 한다**(**E1**) — 넘기지 않으면 이 표만 내장
+   * 생성값으로 판정해 같은 사업장의 TOC를 두 화면이 다르게 말한다.
+   */
+  measured?: MeasuredSeries,
 ): EstimateReportRow[] {
-  return getForecast(siteId).trends.map((trend) => ({
+  return getForecast(siteId, 'TOC', measured).trends.map((trend) => ({
     code: trend.code,
     label: trend.label,
     origin: trend.origin,

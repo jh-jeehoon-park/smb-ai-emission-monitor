@@ -39,9 +39,18 @@ export function AlarmList({
   alarms,
   nowIso,
   selectedSiteId,
+  onReveal,
 }: {
   alarms: Alarm[];
   nowIso: string;
+  /**
+   * 줄을 누르면 그 알람의 **발생 시각**을 넘긴다 `[사용자 요청 2026-09-08]`.
+   *
+   * 이상 탐지 화면만 넘긴다 — 그 화면이 시각을 되감을 수 있는 유일한 곳이고, 알람이 그 화면에
+   * 오는 가장 흔한 경로라 «알람 보고 들어왔다»가 화면 안에서 완결되어야 한다.
+   * **넘기지 않으면 줄은 표시일 뿐이다**(§8 `hover` — 누를 수 있는 것에만 반응한다).
+   */
+  onReveal?: (raisedAtIso: string) => void;
   /**
    * 이 사업장의 알람만 모인 목록에서는 사업장명을 반복하지 않는다.
    *
@@ -68,7 +77,29 @@ export function AlarmList({
            * 자기 부모의 첫 자식이다. 그래서 모든 항목에 `pt-0`이 걸려 둘째 항목부터 위 여백이
            * 사라졌다. 순서를 아는 것은 부모뿐이므로 여기서는 index로 판단한다.
            */}
-          <article className={cn('flex gap-3 pb-3', index > 0 && 'pt-3')}>
+          <article
+            className={cn(
+              'flex gap-3 pb-3',
+              index > 0 && 'pt-3',
+              /* 누를 수 있을 때만 반응한다 — 표시뿐인 줄이 눌릴 것처럼 보이면 안 된다 */
+              onReveal && 'relative rounded-nested transition-colors duration-200 hover:bg-surface-2',
+            )}
+          >
+            {/*
+             * **줄 아무 데나 눌리게 한다**(§8 `표` — 줄이 데려가면 줄 전체가 대상이다).
+             *
+             * 덮개 버튼을 쓰는 이유: 줄 안에 `<p>`가 있어 내용을 `<button>`으로 감싸면 브라우저
+             * 파서가 문단을 끊어 **하이드레이션이 깨진다.** 이름은 `sr-only`가 나른다.
+             */}
+            {onReveal && (
+              <button
+                type="button"
+                onClick={() => onReveal(alarm.raisedAtIso)}
+                className="absolute inset-0 z-10 cursor-pointer rounded-nested"
+              >
+                <span className="sr-only">{alarm.title} 발생 시각의 이상 구간 보기</span>
+              </button>
+            )}
             {/*
              * **한 줄에 세 단이다** `[사용자 지시 2026-08-25]`.
              *

@@ -5,6 +5,7 @@ import {
   AreaChart,
   CartesianGrid,
   ReferenceArea,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -23,29 +24,56 @@ import {
   STATUS_BAND,
   STATUS_VISUAL,
 } from '@/shared/config/status-visual';
-import { formatClock } from '@/shared/lib/format';
+import { COLLECTION_INTERVAL_MINUTES, HISTORY_WINDOW_HOURS } from '@/shared/config/measurement';
+import { DISPLAY_TIMEZONE, formatClock } from '@/shared/lib/format';
+import { minutesToSamples } from '@/shared/lib/timeline';
 import { ChartFigure } from '@/shared/ui/chart-figure';
 import { ChartTooltipRow, ChartTooltipShell } from '@/shared/ui/chart-tooltip';
 import type { AnomalyPoint } from '@/entities/anomaly';
 import { useChartHover } from '@/shared/lib/use-chart-hover';
 
+/**
+ * 표 한 행이 담는 구간(분).
+ *
+ * 24시간을 1시간마다 한 행으로 접으면 24행이다 — 「288행을 읽히면 안 된다」던 원래 취지가
+ * 노린 규모다. **표본 수가 아니라 분으로 적는다**(`[INC-111]`의 교훈).
+ */
+const TABLE_ROW_MINUTES = 60;
+
 interface AnomalyTimelineProps {
   data: AnomalyPoint[];
   outage: { fromIso: string; toIso: string } | null;
+  /**
+   * 조사 중인 구간을 **짚는다** `[사용자 요청 2026-09-08]`. 이상 탐지 화면만 넘긴다 —
+   * 다른 세 화면(통합 관제·사업장 상세·관내 감독)은 고를 구간이 없어 그대로다.
+   *
+   * **밴드를 하나 더 깔지 않는다.** 뒤에 이미 등급 밴드 넷과 두절 밴드가 있어 면을 더하면
+   * 색이 경쟁한다. 좌우 세로선 둘로 «여기»만 말하고, 색은 커서 선과 같은 `--border-strong`이라
+   * «짚은 자리»라는 어휘가 이어진다.
+   */
+  focus?: { fromIso: string; toIso: string } | null;
 }
 
 /**
  * 단일 계열이라 범례를 두지 않는다(제목이 계열을 이름 짓는다).
  * 등급은 선 색이 아니라 배경 밴드가 전달한다 — 선 색은 'AI가 산출한 값'을 뜻하는 보라로 고정된다.
  */
-export function AnomalyTimeline({ data, outage }: AnomalyTimelineProps) {
+export function AnomalyTimeline({ data, outage, focus = null }: AnomalyTimelineProps) {
   const { hoverProps, tooltipActive } = useChartHover();
 
   return (
     <ChartFigure
-      label="이상 점수 타임라인 — 최근 24시간, 5분 주기, KST 기준"
+      /*
+       * **주기를 글자로 박지 않는다** `[사용자 지적 2026-09-08]`. `5분 주기`라 적혀 있었는데
+       * 수집 주기가 1분으로 확정되면서 `[INC-111]` **스크린리더가 읽는 유일한 설명이 틀렸다.**
+       */
+      label={`이상 점수 타임라인 — 최근 ${HISTORY_WINDOW_HOURS}시간, ${COLLECTION_INTERVAL_MINUTES}분 주기, ${DISPLAY_TIMEZONE} 기준`}
       rows={data}
-      sampleEvery={12}
+      /*
+       * **표 행 수를 창 길이에서 낸다.** `12`를 박아 두었더니 1분 주기에서 120행이 됐다 —
+       * 「288행을 읽히면 안 된다」던 원래 취지가 주기가 바뀌며 조용히 뒤집혔다.
+       */
+      sampleEvery={minutesToSamples(TABLE_ROW_MINUTES)}
       columns={[
         { header: '시각(KST)', cell: (r) => formatClock(r.t) },
         { header: '이상 점수', cell: (r) => (r.score === null ? '수신 없음' : String(r.score)) },
@@ -91,6 +119,19 @@ export function AnomalyTimeline({ data, outage }: AnomalyTimelineProps) {
         {/* 통신 두절 구간을 눈에 보이게 남긴다. 값이 없다는 사실 자체가 정보다(E4). */}
         {outage && (
           <ReferenceArea x1={outage.fromIso} x2={outage.toIso} fill={OUTAGE_BAND} stroke="none" />
+        )}
+
+        {/* 조사 중인 구간 — 면이 아니라 좌우 세로선 둘이다(위 `focus` 주석) */}
+        {focus && (
+          <>
+            <ReferenceLine x={focus.fromIso} stroke="var(--border-strong)" strokeWidth={1} />
+            <ReferenceLine
+              x={focus.toIso}
+              stroke="var(--border-strong)"
+              strokeWidth={1}
+              label={{ value: '조사 구간', position: 'insideTopRight', fill: AXIS_TEXT_HEX, fontSize: 11 }}
+            />
+          </>
         )}
 
         <CartesianGrid stroke={GRID_HEX} strokeDasharray="2 4" vertical={false} />
