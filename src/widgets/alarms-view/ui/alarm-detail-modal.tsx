@@ -13,6 +13,7 @@ import { DISPLAY_TIMEZONE, formatDateTime, formatRelative, formatValue } from '@
 import { isDischargingAt, isTreatmentIdleAt, timelineIndexAt } from '@/shared/lib/timeline';
 import { Modal, ModalFact, ModalFacts } from '@/shared/ui/modal';
 import {
+  ALARM_CONDITION_LABELS,
   ALARM_PRIORITY_LABELS,
   ALARM_STATE_LABELS,
   raisedWhileNotDischarging,
@@ -95,6 +96,12 @@ export function AlarmDetailModal({ alarm, onClose, onChange }: AlarmDetailModalP
             label="상태 등급"
             value={`${PROVISIONAL_STATUS_LABELS[alarm.level]} (우선순위 ${ALARM_PRIORITY_LABELS[alarm.priority]})`}
           />
+          {/*
+           * **발생 조건이 빠져 있었다** `[사용자 요청 2026-09-08]`. 목록 줄은 조건 칩을 다는데
+           * 상세에는 없어, 모달만 보면 이 알람이 넷 중 무엇으로 올라온 것인지 알 수 없었다 —
+           * 같은 화면의 필터가 그 축으로 거르므로 되짚을 수도 없다 `[원문 p.32]`.
+           */}
+          <ModalFact label="발생 조건" value={ALARM_CONDITION_LABELS[alarm.condition]} />
           <ModalFact
             label="발생 시각"
             value={`${formatDateTime(alarm.raisedAtIso)} ${DISPLAY_TIMEZONE} · ${formatRelative(alarm.raisedAtIso, DEMO_NOW_ISO)}`}

@@ -414,12 +414,13 @@ FR-16 (원문 요구)  ↔  REQ-AD-014 (산출물 ID)  ↔  SCR-OP-006 (화면) 
 | `hours` | `6` \| `12` \| `24` | SCR-OP-003, SCR-OP-008 | `24` |
 | `cat` | `water` \| `equipment` \| `all` | SCR-OP-003 | `water` |
 | `target` | `TOC` \| `TN` \| `TP` | SCR-OP-004 | `TOC` |
-| `sort` | `mpi` \| `failure` \| `rul` | SCR-OP-005 | `mpi` |
 | `prio` | `all` \| `urgent` \| `caution` \| `info` | SCR-OP-007 | `all` |
 | `state` | `all` \| `open` \| `acknowledged` \| `resolved` | SCR-OP-007 | `all` |
 | `scope` | `all` \| `site` | SCR-OP-007 | `all` |
 
 허용 목록에 없는 값이 들어오면 빈 화면 대신 기본값으로 되돌린다([`shared/lib/use-query-state.ts`](../../src/shared/lib/use-query-state.ts)).
+
+> **`sort`(SCR-OP-005) 행을 지웠다** `[사용자 요청 2026-09-08]`. 설비 정렬 세그먼트를 걷고 `상태 나쁜 순`으로 고정하면서 키가 없어졌다 — 뒤집은 근거는 [`SCR-OP-005`](screens/SCR-OP-005-설비예지보전.md) §7. 이 행은 그 전에도 낡아 있었다(`mpi`·`failure`·`rul`은 `[INC-107]`로 내려간 옛 축이고 실제 값은 `status`·`duration`·`signals`였다).
 
 > 이 때문에 전 라우트가 동적 렌더(`ƒ Dynamic`)다. 정적 프리렌더는 쿼리를 모르므로 사이드바가 스켈레톤으로 굳는다. 실시간 관제 화면이라 손해가 없다.
 

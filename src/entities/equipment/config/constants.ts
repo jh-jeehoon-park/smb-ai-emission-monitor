@@ -3,15 +3,12 @@ import { COLLECTION_INTERVAL_MINUTES } from '@/shared/config/measurement';
 /**
  * 정렬 축 셋. **예전 셋(MPI·고장 확률·잔여 수명)을 회의가 내리게 했다** `[INC-107]` —
  * 값이 사라졌으므로 이상 신호 쪽 축으로 옮겼다.
+ *
+ * **화면이 고르게 하지는 않는다** `[사용자 요청 2026-09-08]` — 세그먼트를 걷고 `'status'`로
+ * 고정했다. 축은 남긴다: 정렬 함수의 계약이고, 다시 고르게 할 때 되살릴 곳이 여기 하나다.
  */
 export const EQUIPMENT_SORT_KEYS = ['status', 'duration', 'signals'] as const;
 export type EquipmentSortKey = (typeof EQUIPMENT_SORT_KEYS)[number];
-
-export const EQUIPMENT_SORT_OPTIONS: { value: EquipmentSortKey; label: string }[] = [
-  { value: 'status', label: '상태 나쁜 순' },
-  { value: 'duration', label: '이상 오래된 순' },
-  { value: 'signals', label: '이상 신호 많은 순' },
-];
 
 /**
  * 가동 격자의 칸 수. 원문 예시가 `00시~24시`를 시간 단위로 끊는다 `[원문 발표 p.18 그림]`.

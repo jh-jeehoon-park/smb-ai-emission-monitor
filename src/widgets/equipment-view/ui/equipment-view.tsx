@@ -3,19 +3,14 @@
 import { useMemo, useState } from 'react';
 import { DEMO_NOW_ISO } from '@/shared/config/demo';
 import { OPERATING_FILL } from '@/shared/config/operating-visual';
-import { useQueryState } from '@/shared/lib/use-query-state';
 import { Panel } from '@/shared/ui/panel';
-import { SegmentedControl } from '@/shared/ui/segmented-control';
 import { StatusBadge } from '@/shared/ui/status-badge';
 
 import {
   EQUIPMENT_SIGNAL_LABELS,
-  EQUIPMENT_SORT_KEYS,
-  EQUIPMENT_SORT_OPTIONS,
   getEquipment,
   sortEquipment,
   type Equipment,
-  type EquipmentSortKey,
 } from '@/entities/equipment';
 import { SITES, getSite } from '@/entities/site';
 import { allAlarmsForSite } from '@/features/alarm-ack';
@@ -25,42 +20,39 @@ import { EquipmentPanel } from '@/widgets/equipment-panel';
 import { EquipmentDetailModal } from './equipment-detail-modal';
 import { StatusHeatmap } from './status-heatmap';
 import { cn } from '@/shared/lib/cn';
-import { CROSS_SITE_RANK_LIMIT, SORT_QUERY_KEY } from '../config/constants';
+import { CROSS_SITE_RANK_LIMIT } from '../config/constants';
 import { rankAcrossSites } from '../lib/rank-across-sites';
 import { TABLE_HEAD_CELL, TABLE_HEAD_ROW, TABLE_ROOT, TABLE_ROW } from '@/shared/ui/table';
 import { InfoTip } from '@/shared/ui/tooltip';
 
-const DEFAULT_SORT: EquipmentSortKey = 'status';
 const OFFLINE_SITE_COUNT = SITES.filter((site) => !site.online).length;
 
 export function EquipmentView() {
   const { siteId } = useSelectedSiteId();
-  const [sortBy, setSortBy] = useQueryState(SORT_QUERY_KEY, EQUIPMENT_SORT_KEYS, DEFAULT_SORT);
   const site = getSite(siteId);
-  /* 선택은 id로 든다 — 정렬이 바뀌어도 같은 설비를 가리킨다 */
   const [openId, setOpenId] = useState<string | null>(null);
 
   const view = useMemo(
     () => ({
-      items: sortEquipment(getEquipment(siteId), sortBy),
+      /*
+       * **정렬 축은 `상태 나쁜 순` 하나다** `[사용자 요청 2026-09-08]`. 세그먼트로 셋 중
+       * 하나를 고르게 했었는데, 넷뿐인 카드에서 순서를 바꿔 봐야 읽는 것이 달라지지 않고
+       * 나머지 두 축(지속·신호 수)은 상세표가 열로 이미 보여 준다. 통합 관제·비용 절감이
+       * 쓰는 것도 같은 `'status'`라 화면끼리 순서가 어긋나지 않게 된다.
+       */
+      items: sortEquipment(getEquipment(siteId), 'status'),
       /* 설비 상태에서 만든 알람이 여기 들어온다 — 손으로 쓴 목록에는 두 사업장만 있었다 */
       alarms: allAlarmsForSite(siteId).filter((a) => a.condition === 'equipment'),
     }),
-    [siteId, sortBy],
+    [siteId],
   );
 
   return (
     <div className="space-y-6">
       <Panel
         title="설비 상태 요약"
-        action={
-          <SegmentedControl
-            ariaLabel="설비 정렬 기준"
-            options={EQUIPMENT_SORT_OPTIONS}
-            value={sortBy}
-            onChange={setSortBy}
-          />
-        }
+        /* 순서를 고를 수 없게 됐으니 무슨 순서인지는 적어 둔다 — 통합 관제·사업장 상세와 같은 문구다 */
+        titleAside={<InfoTip label="정렬 기준" content="상태가 나쁜 설비부터 정렬합니다." />}
       >
         <EquipmentPanel items={view.items} online={site.online} onSelect={(eq) => setOpenId(eq.id)} />
 

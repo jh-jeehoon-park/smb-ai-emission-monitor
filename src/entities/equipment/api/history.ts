@@ -1,8 +1,8 @@
 import { siteSeed } from '@/shared/config/demo-scenario';
 import { createRng } from '@/shared/lib/prng';
-import { isMissingAt, isTreatmentIdleAt, timelineIsoAt } from '@/shared/lib/timeline';
+import { isMissingAt, timelineIsoAt } from '@/shared/lib/timeline';
 import { STATUS_TIMELINE_HOURS, SAMPLES_PER_STATUS_CELL } from '../config/constants';
-import type { Equipment, EquipmentRunCell, TreatmentCell } from '../model/types';
+import type { Equipment, EquipmentRunCell } from '../model/types';
 
 /**
  * 24시간 × 설비의 **가동 상태 격자**.
@@ -46,28 +46,5 @@ export function getRunTimeline(siteId: string, equipment: Equipment): EquipmentR
       /* 이상 구간 안이면 지금 걸린 신호를 그대로 쓴다 — 시간마다 다른 신호를 만들 근거가 없다 */
       signals: anomalyFrom !== null && hour >= anomalyFrom ? equipment.signals : [],
     };
-  });
-}
-
-/**
- * 같은 격자의 **방지시설 가동 여부** 줄.
- *
- * 설비 칸에 함께 담지 않는다. 방지시설 가동은 **사업장 단위 사실**이고, 설비 칸에 붙이면
- * "이 방류 펌프도 멈춰 있었다"를 주장하게 된다 — 방지시설은 멈췄는데 방류 펌프는 돌았다는
- * 것이 바로 무단방류 의심의 요지다(`TBD-46`). 두 축을 겹치면 그 구분이 사라진다.
- *
- * 판정 자체는 `isTreatmentIdleAt`이 이미 한다. 여기서는 시간 단위로 묶기만 한다.
- */
-export function getTreatmentTimeline(siteId: string): TreatmentCell[] {
-  return Array.from({ length: STATUS_TIMELINE_HOURS }, (_, hour) => {
-    const from = hour * SAMPLES_PER_STATUS_CELL;
-    const samples = Array.from({ length: SAMPLES_PER_STATUS_CELL }, (_, k) =>
-      isTreatmentIdleAt(siteId, from + k),
-    );
-
-    /* 한 표본이라도 모르면 그 시간은 모름이다 — 아는 것만 모아 단정하면 공백이 사라진다(E4) */
-    const idle = samples.some((v) => v === null) ? null : samples.some((v) => v === true);
-
-    return { hourOffset: hour, iso: timelineIsoAt(from), idle };
   });
 }

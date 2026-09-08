@@ -4,13 +4,12 @@ import {
   PROVISIONAL_STATUS_LEVELS,
   toEquipmentStatus,
 } from '@/shared/config/provisional';
-import { TIMELINE_POINT_COUNT, isMissingAt, isTreatmentIdleAt } from '@/shared/lib/timeline';
+import { TIMELINE_POINT_COUNT, isMissingAt } from '@/shared/lib/timeline';
 import {
   EQUIPMENT_SIGNAL_LABELS,
   STATUS_TIMELINE_HOURS,
   getEquipment,
   getRunTimeline,
-  getTreatmentTimeline,
 } from '@/entities/equipment';
 import { SAMPLES_PER_STATUS_CELL } from './config/constants';
 
@@ -144,30 +143,15 @@ describe('가동 격자', () => {
   });
 });
 
-describe('방지시설 가동 줄', () => {
-  /**
-   * **설비 칸과 같은 축이되 같은 값이 아니다.** 방지시설은 멈췄는데 방류 펌프는 돌았다는 것이
-   * 무단방류 의심의 요지다 — 두 축을 겹치면 그 구분이 사라진다.
-   */
-  it('설비 격자와 칸 수·시각이 맞는다', () => {
-    const treatment = getTreatmentTimeline('S-02');
-    const run = getRunTimeline('S-02', online[0]!);
-    expect(treatment.map((c) => c.iso)).toEqual(run.map((c) => c.iso));
-  });
-
-  it('판정은 방류 의심 축이 이미 한 것을 시간으로 묶기만 한다', () => {
-    getTreatmentTimeline('S-02').forEach((cell, hour) => {
-      const from = hour * SAMPLES_PER_STATUS_CELL;
-      const samples = Array.from({ length: SAMPLES_PER_STATUS_CELL }, (_, k) =>
-        isTreatmentIdleAt('S-02', from + k),
-      );
-      expect(cell.idle).toBe(
-        samples.some((v) => v === null) ? null : samples.some((v) => v === true),
-      );
-    });
-  });
-
-  it('한 표본이라도 모르면 그 시간은 모름이다 — 아는 것만 모아 단정하지 않는다(E4)', () => {
-    expect(getTreatmentTimeline('S-04').every((c) => c.idle === null)).toBe(true);
+/**
+ * **방지시설 가동 줄이 없어졌다** `[사용자 요청 2026-09-08]`. 격자 아래에 사업장 단위 축을
+ * 한 줄 더 두었었는데, 그 사실이 뜻을 갖는 곳은 방류 여부와 나란히 놓이는 이상 탐지의
+ * `방지시설 미가동 중 방류 의심`이다. 판정 자체(`isTreatmentIdleAt`)는 그대로 남아 있고
+ * `idle-discharge.test.ts`가 지킨다 — 없어진 것은 이 화면의 표현뿐이다.
+ */
+describe('격자에 설비 아닌 행이 없다', () => {
+  it('방지시설 줄을 만들던 함수가 없다', async () => {
+    const slice = await import('@/entities/equipment');
+    expect(slice).not.toHaveProperty('getTreatmentTimeline');
   });
 });
