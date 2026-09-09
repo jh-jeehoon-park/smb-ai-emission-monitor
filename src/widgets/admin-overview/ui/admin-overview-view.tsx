@@ -32,7 +32,7 @@ import { useSelectedSiteId, useSiteHref } from '@/features/site-selection';
 import { useDischargeLimits } from '@/features/discharge-limit-settings';
 import { AlarmList } from '@/widgets/alarm-list';
 import { AnomalyPanel } from '@/widgets/anomaly-panel';
-import { DailyRibbon, DailyRibbonSkeleton, buildRibbon } from '@/widgets/daily-ribbon';
+import { DailyRibbon, buildRibbon } from '@/widgets/daily-ribbon';
 import { EquipmentPanel } from '@/widgets/equipment-panel';
 import { WaterQualityGrid } from '@/widgets/water-quality-grid';
 /* 셸의 라우트 표를 읽는다 — 첫 화면의 정의를 여기서 다시 적으면 두 곳이 갈린다 */
@@ -93,19 +93,21 @@ export function AdminOverviewView() {
       series,
       outage: getOutageWindow(siteId),
       /*
-       * **모르는 동안은 리본을 짓지 않는다** `[사용자 지적 2026-09-07]`.
+       * **더는 계측을 기다리지 않는다** `[사용자 요청 2026-09-08]`. `가동` 행이 걷히면서
+       * 리본이 계측 계열을 아예 읽지 않게 됐다 — 이상 점수·시연 시나리오·알람만 쓴다.
+       * `pending` 관문을 남겨 두면 **쓰지도 않는 값을 기다리며** 그림을 비워 둔다.
        *
-       * 첫 응답 전 계열이 비면서 `buildRibbon`이 `assertFullDay`에서 예외를 던졌다 —
-       * *"리본 '가동' 표본 0개 — 1440개여야 한다"*. **화면 전체가 렌더 중에 터졌다.**
-       * 그 단정은 네 행의 x가 같은 시각을 가리키게 하는 장치라 무르지 않는다.
+       * 그 관문은 `[사용자 지적 2026-09-07]`이 넣은 것이다 — 첫 응답 전 빈 계열이
+       * `assertFullDay`의 *"리본 '가동' 표본 0개"* 에 걸려 **화면이 렌더 중에 터졌다.**
+       * 이제 그 단정이 읽는 축(`가동`)이 없어 같은 사고가 일어날 자리도 없다.
        */
-      ribbon: seriesPending ? null : buildRibbon(siteId, series, getAnomalySeries(siteId), alarms),
+      ribbon: buildRibbon(siteId, getAnomalySeries(siteId), alarms),
       anomalySummary: getAnomalySummary(siteId),
       alarms,
       equipment: sortEquipment(getEquipment(siteId), 'status'),
       optimization: getOptimization(siteId, energyIntensity(series)),
     };
-  }, [siteId, series, seriesPending]);
+  }, [siteId, series]);
 
   /* 확인 처리가 헤더·사이드바와 함께 반영되도록 공유 상태를 읽는다 */
   const { alarms } = useAlarmStates(detail.alarms);
@@ -170,11 +172,7 @@ export function AdminOverviewView() {
           </div>
         }
       >
-        {detail.ribbon === null ? (
-          <DailyRibbonSkeleton />
-        ) : (
-          <DailyRibbon data={detail.ribbon} dateIso={DEMO_NOW_ISO} />
-        )}
+        <DailyRibbon data={detail.ribbon} dateIso={DEMO_NOW_ISO} />
       </Panel>
 
       <StaggerGroup className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">

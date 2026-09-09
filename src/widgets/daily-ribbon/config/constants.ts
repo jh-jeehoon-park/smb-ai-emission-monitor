@@ -1,100 +1,70 @@
-import { OPERATING_FILL, OPERATING_GRADIENT } from '@/shared/config/operating-visual';
-import type { RibbonState } from '../lib/build-ribbon';
+import { PROVISIONAL_ANOMALY_BANDS } from '@/shared/config/provisional';
 
 /**
- * 상태별 채움 — 실체는 `shared/config/operating-visual.ts`에 있다.
+ * **상태 띠 셋(가동·방류·수신)이 걷혔다** `[사용자 요청 2026-09-08]`.
  *
- * 설비 상태 격자(SCR-OP-005)의 방지시설 줄이 같은 축을 쓰게 되면서 공유 위치로 올렸다
- * (`code-organization.rule.md` §3 배치원칙 3). 두 화면이 다른 색으로 `가동`을 칠하면
- * 같은 사실이 화면마다 달라 보인다.
+ * 이 파일이 갖고 있던 값의 절반이 그 띠의 것이었다 — 채움(`RIBBON_FILL`·`RIBBON_STRIP_FILL`),
+ * 행 높이·격자 행·오버레이 범위(`RIBBON_GRID_ROWS`·`RIBBON_OVERLAY_ROW`), 라벨 칸 폭, 손으로
+ * 짠 커서의 툴팁 간격. 행이 하나가 되면서 그 전부가 필요 없어졌고 차트는 Recharts로 옮겼다
+ * (**P9**) — 남은 것은 **계열을 어떻게 솎고 어떻게 그리는가**뿐이다.
+ *
+ * 지운 값을 여기 주석으로 남기지 않는다. git이 갖고 있고, 되살릴 근거는
+ * `docs/specs/screens/SCR-AD-003-자사현황.md` §3.1이 뒤집힌 이유와 함께 적어 두었다.
  */
-export const RIBBON_FILL: Record<RibbonState, string> = OPERATING_FILL;
 
 /**
- * 상태 띠의 채움 `[사용자 지시 2026-08-25: 다른 그래프와 톤앤매너를 맞춰라]`.
+ * 점수 계열을 솎는 **버킷 길이(분)** `[사용자 지적 2026-09-08]`.
  *
- * 단색이던 것을 **설비 상태 격자와 같은 그라데이션**으로 바꿨다 — 두 화면이 같은 운전 상태
- * 축을 쓰는데 한쪽만 진한 단색이면 같은 사실로 보이지 않는다.
- *
- * `RIBBON_FILL`(단색)은 **범례 점과 커서 판독줄이 계속 쓴다** — 2px 점에 그라데이션을 주면
- * 그냥 흐린 점이 된다.
+ * **표본 수가 아니라 분으로 적는다**(`[INC-111]`의 교훈) — 수집 주기가 바뀌면 박아 둔
+ * 표본 수가 조용히 다른 시간을 뜻하게 된다. 6분이면 1440점이 240점이 되어 970px에서
+ * 점당 4px이다: 잡음이 사라지면서 봉우리 하나하나는 그대로 남는 지점이다.
  */
-export const RIBBON_STRIP_FILL: Record<RibbonState, string> = OPERATING_GRADIENT;
-
-/** 상태 띠 세 줄이 공유하는 범례. 행마다 다른 말(정지·중단·결측)은 hover 판독줄이 맡는다 */
-export const RIBBON_LEGEND = [
-  { state: 'on', label: '가동·방류 중' },
-  { state: 'off', label: '정지·중단' },
-  { state: 'unknown', label: '모름(결측)' },
-] as const satisfies readonly { state: RibbonState; label: string }[];
-
-/** 행마다 '꺼짐'의 뜻이 다르다 — 커서 판독줄에서 쓴다 */
-export const RIBBON_OFF_LABELS = {
-  running: '정지',
-  discharging: '중단',
-  receiving: '결측',
-} as const;
+export const RIBBON_SCORE_BUCKET_MINUTES = 6;
 
 /**
- * 행 높이(px).
+ * 대체 표 한 행이 담는 구간(분).
  *
- * **이상 점수 하나에만 무게를 준다.** 네 행이 같은 높이면 어디를 먼저 볼지 정해지지
- * 않아 덩어리로 읽힌다(루트 `CLAUDE.md` — 대담함은 한 곳에). 가동·방류·수신은
- * 읽히기만 하면 되는 상태 띠다.
+ * 24시간을 1시간마다 한 행으로 접으면 24행이다 — 이상 탐지 타임라인이 쓰는 것과 같은 값이고
+ * 같은 이유다(「288행을 읽히면 안 된다」). **여기도 분으로 적는다**(`[INC-111]`).
  */
-export const RIBBON_SCORE_HEIGHT = 96;
-export const RIBBON_STRIP_HEIGHT = 14;
+export const RIBBON_TABLE_ROW_MINUTES = 60;
 
 /**
- * 격자 행 높이.
+ * 차트 높이(px).
  *
- * **행을 명시적으로 정의해야 오버레이가 전 행을 덮는다.**
- *
- * `grid-row: 1 / -1`의 `-1`은 **명시 격자**의 마지막 선을 가리킨다. `grid-template-rows`가
- * 없으면 명시 격자에 행 선이 하나뿐이라 `-1`이 1번 선으로 풀리고, 시작과 끝이 같아져
- * `span 1`로 떨어진다 — 오버레이가 첫 행만 덮어 격자선·커서·마우스가 상태 띠에 닿지
- * 않았다. 클래스는 생성돼 있었고 값도 맞았다. 격자 정의가 없던 것이 원인이다.
- *
- * 눈금 줄은 뺀다 — 격자선과 커서가 시간 눈금 위까지 내려올 이유가 없다.
+ * 96px이던 것을 올렸다 `[사용자 요청 2026-09-08]`. 그 값은 **네 행이 한 카드에 들어가야
+ * 했을 때**의 것이다 — 점수에 무게를 주면서도 아래 띠 셋의 자리를 남겨야 해서 눌러 둔
+ * 높이였고, 0~100 눈금을 다 적을 수 없어 끝값 둘만 적었다. 행이 하나가 된 지금은 이 그림이
+ * 카드의 주인공이라 구간 경계가 눈금으로 읽힐 만큼 열어 준다.
  */
-const TRACK_ROWS = [
-  `${RIBBON_SCORE_HEIGHT}px`,
-  'auto', // 분석값과 상태 띠를 가르는 선
-  `${RIBBON_STRIP_HEIGHT}px`,
-  `${RIBBON_STRIP_HEIGHT}px`,
-  `${RIBBON_STRIP_HEIGHT}px`,
-] as const;
-
-export const RIBBON_GRID_ROWS = [...TRACK_ROWS, 'auto'].join(' ');
+export const RIBBON_CHART_HEIGHT = 220;
 
 /**
- * 행 사이 간격.
+ * 배경에서 **선으로 내린 구간 경계.**
  *
- * **0이면 12px 띠 세 줄이 한 덩어리로 보인다** — 실제로 그렇게 붙어 라벨까지 뭉쳤다.
- * 띠마다 경계가 보여야 "가동은 이어지고 방류만 끊겼다"가 읽힌다.
+ * `PROVISIONAL_ANOMALY_BANDS`에서 파생시킨다 — 화면에 숫자를 박으면 경계를 바꿀 때 한쪽만
+ * 바뀌어 조용히 어긋난다. 첫 구간의 하한(0)은 축의 바닥이라 뺀다.
  */
-export const RIBBON_ROW_GAP = 4;
-
-/** 오버레이가 덮는 행 범위. 행을 더하거나 빼면 `TRACK_ROWS` 하나만 고치면 된다 */
-export const RIBBON_OVERLAY_ROW = `1 / ${TRACK_ROWS.length + 1}`;
-
-/** 이상 점수 행 좌측에 적는 눈금. 구간 경계에서 파생시킨다 */
-export const RIBBON_SCORE_TICKS = [100, 80, 70, 50, 0] as const;
+export const RIBBON_THRESHOLD_LINES = PROVISIONAL_ANOMALY_BANDS.map((band) => band.min).filter(
+  (min) => min > 0,
+);
 
 /**
- * 커서와 툴팁 사이 간격(px).
+ * 위험 구간을 덮는 농도 `[사용자 요청 2026-09-08: 기존 룩을 청산]`.
  *
- * **툴팁이 커서를 덮지 않게 하는 값이다** `[사용자 지적 2026-09-07]`. 한때 커서에 정중앙
- * 정렬(`translateX(-50%)`)해 두어 상자가 마우스 포인터와 그 자리의 값을 함께 가렸다.
+ * **넷을 다 깔던 것을 하나로 줄였다.** 96px에 파스텔 네 줄을 깔면 점수가 20~40에 사는 하루
+ * 에서도 면적의 대부분이 색인데, 그 색은 데이터가 가 본 적 없는 높이를 칠한다 — 선과 면이
+ * 그 위에 잠겼다. 지금은 경계를 파선으로만 긋고 **위험 구간만** 덮어 «저 위로 올라가면 안
+ * 된다»가 형태로 남는다.
  *
- * 뒤집는 지점을 정하던 `RIBBON_TOOLTIP_EDGE_PERCENT`(18%)는 걷었다 — 퍼센트 임계는 트랙이
- * 넓을 때와 좁을 때 뜻이 달라진다(상자 140px이 1500px 트랙에서는 9%, 600px에서는 23%다).
- * 지금은 마우스를 재는 자리가 들고 있는 **트랙 폭으로 px을 재서** 정한다(`tooltip-placement.ts`).
+ * 토큰(`--band-critical`)을 그대로 쓰지 않고 더 누른다 — 그 값은 배경 위 단독으로 쓰일 때의
+ * 농도이고, 여기서는 곡선·면·파선이 같은 자리를 지난다.
  */
-export const RIBBON_TOOLTIP_GAP_PX = 12;
+export const DANGER_ZONE_OPACITY = 0.4;
 
-/** 세로 격자·눈금 간격 */
-export const RIBBON_TICK_HOURS = 6;
-
-/** 라벨 칸 폭. 가장 긴 라벨 `이상 점수`(11px 한글 4자 + 공백)가 들어가야 한다 */
-export const RIBBON_LABEL_WIDTH = 64;
+/**
+ * SVG `<defs>`의 id. 문서 전역이라 한 화면에 리본이 하나뿐임을 전제한다 —
+ * 사업장 상세는 리본을 한 장만 그린다(여러 장이 생기면 `useId`로 바꾼다).
+ */
+export const RIBBON_AREA_GRADIENT_ID = 'ribbon-score-area';
+export const OUTAGE_PATTERN_ID = 'ribbon-outage-hatch';

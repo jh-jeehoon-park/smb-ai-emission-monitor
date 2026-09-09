@@ -59,7 +59,19 @@ export function operatingStateOf(running: boolean | null): OperatingState {
  */
 export const OPERATING_GRADIENT: Record<OperatingState, string> = {
   on: 'linear-gradient(to bottom, color-mix(in srgb, var(--actual) 48%, transparent), color-mix(in srgb, var(--actual) 26%, transparent))',
-  off: 'linear-gradient(to bottom, color-mix(in srgb, var(--surface-3) 86%, transparent), color-mix(in srgb, var(--surface-3) 52%, transparent))',
+  /*
+   * **`--surface-3`에서 `--border-strong`으로 올렸다** `[사용자 지적 2026-09-08]`.
+   *
+   * 어느 면 위에 놓아도 **1.09:1**이라(위 주석이 스스로 적어 둔 값) «아는 꺼짐»이 **빈 자리**로
+   * 보였다 — 계측 서버가 하루 종일 전류 0을 보내는 사업장(S-09)에서 일간 운전의 가동 행이
+   * 통째로 비어 «값이 없다»로 읽혔다. **정지는 결측이 아니다**(**E4**): 결측은 빗금이고
+   * 정지는 채움이어야 하는데, 그 채움이 안 보이면 둘의 구분이 화면에서 사라진다.
+   *
+   * 면 색(`--surface-*`)을 쓰던 것이 원인이다 — 면 위에 면을 얹으면 같은 계열끼리 붙는다.
+   * `--border-strong`은 **선**의 색이라 면과 갈리도록 만들어진 값이고, 그만큼 올라온다.
+   * 상태 등급 색은 여전히 쓰지 않는다(이 축은 등급이 아니다).
+   */
+  off: 'linear-gradient(to bottom, color-mix(in srgb, var(--border-strong) 100%, transparent), color-mix(in srgb, var(--border-strong) 68%, transparent))',
   unknown:
     'linear-gradient(to bottom, color-mix(in srgb, var(--missing) 46%, transparent), color-mix(in srgb, var(--missing) 26%, transparent))',
 };
@@ -88,3 +100,16 @@ export const OPERATING_CELL_HIGHLIGHT =
 
 /** 모름은 옅게 둔다 — 아는 값과 같은 무게로 칠하면 공백이 사실처럼 읽힌다(E4) */
 export const OPERATING_UNKNOWN_OPACITY = 0.45;
+
+/**
+ * **모른다는 것을 형태로 말한다** — 45도 빗금.
+ *
+ * 채움 농도만으로 가르면 «옅은 파랑»과 «옅은 회색»이 되어 색맹·인쇄·작은 높이에서 붙는다.
+ * 빗금은 색이 아니라 **질감**이라 그 셋 어디서도 살아남고, 결측 구간이 여러 줄에 걸쳐 있을 때
+ * 세로로 한 줄기로 이어져 «그 시각은 전부 몰랐다»가 한눈에 읽힌다.
+ *
+ * 설비 상태 격자(SCR-OP-005)가 먼저 쓰고 일간 운전 리본(SCR-AD-003)이 따라 쓴다 —
+ * 두 화면이 같은 «모름»을 다른 표기로 칠하면 같은 사실로 보이지 않는다
+ * (`code-organization.rule.md` §3 배치원칙 3).
+ */
+export const MISSING_HATCH = `repeating-linear-gradient(45deg, var(--missing) 0 2px, transparent 2px 5px)`;

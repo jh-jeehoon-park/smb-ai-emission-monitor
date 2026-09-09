@@ -70,7 +70,10 @@ describe('대기 문구', () => {
     'src/widgets/optimization-view/ui/optimization-view.tsx',
     'src/widgets/anomaly-view/ui/idle-discharge-panel.tsx',
     'src/widgets/alarms-view/ui/alarm-detail-modal.tsx',
-    'src/widgets/daily-ribbon/ui/daily-ribbon-skeleton.tsx',
+    /*
+     * `daily-ribbon`은 목록에서 빠졌다 `[사용자 요청 2026-09-08]` — 상태 띠 셋이 걷히면서
+     * 리본이 계측 계열을 아예 읽지 않게 됐고, 기다릴 것이 없어 스켈레톤도 함께 사라졌다.
+     */
   ])('%s가 상수를 읽는다', (path) => {
     const source = readFileSync(path, 'utf8');
     expect(source).toContain('TELEMETRY_PENDING_NOTE');

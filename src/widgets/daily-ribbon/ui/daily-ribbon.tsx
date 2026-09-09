@@ -1,473 +1,331 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  ReferenceArea,
+  ReferenceDot,
+  ReferenceLine,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 import { COLLECTION_INTERVAL_MINUTES, HISTORY_WINDOW_HOURS } from '@/shared/config/measurement';
 import {
-  PROVISIONAL_ANOMALY_BANDS,
+  PROVISIONAL_ANOMALY_TICKS,
   PROVISIONAL_STATUS_LABELS,
   toStatusLevel,
 } from '@/shared/config/provisional';
 import {
   AI_HEX,
+  AXIS_TEXT_HEX,
   GRID_HEX,
-  OUTAGE_BAND,
   STATUS_BAND,
   STATUS_VISUAL,
+  statusInk,
 } from '@/shared/config/status-visual';
-import { cn } from '@/shared/lib/cn';
 import { DISPLAY_TIMEZONE, formatClock } from '@/shared/lib/format';
-import { TIMELINE_POINT_COUNT, timelineIsoAt } from '@/shared/lib/timeline';
-import { CHART_SURFACE } from '@/shared/ui/chart-figure';
+import { useChartHover } from '@/shared/lib/use-chart-hover';
+import { ChartFigure } from '@/shared/ui/chart-figure';
 import { ChartTooltipRow, ChartTooltipShell } from '@/shared/ui/chart-tooltip';
+import { CountUp } from '@/shared/ui/motion';
+import { StatusBadge } from '@/shared/ui/status-badge';
+import { VALUE_LG } from '@/shared/ui/type-scale';
 import { RibbonLegend } from './ribbon-legend';
-import { tooltipSideAt, tooltipTransform } from '../lib/tooltip-placement';
 import {
-  RIBBON_FILL,
-  RIBBON_STRIP_FILL,
-  RIBBON_GRID_ROWS,
-  RIBBON_LABEL_WIDTH,
-  RIBBON_OVERLAY_ROW,
-  RIBBON_ROW_GAP,
-  RIBBON_OFF_LABELS,
-  RIBBON_SCORE_HEIGHT,
-  RIBBON_SCORE_TICKS,
-  RIBBON_STRIP_HEIGHT,
-  RIBBON_TICK_HOURS,
+  DANGER_ZONE_OPACITY,
+  OUTAGE_PATTERN_ID,
+  RIBBON_AREA_GRADIENT_ID,
+  RIBBON_CHART_HEIGHT,
+  RIBBON_SCORE_BUCKET_MINUTES,
+  RIBBON_TABLE_ROW_MINUTES,
+  RIBBON_THRESHOLD_LINES,
 } from '../config/constants';
-import { countOnSamples, type RibbonRun, type RibbonState } from '../lib/build-ribbon';
+import { countOnSamples, type RibbonRun } from '../lib/build-ribbon';
+import { buildDayView, DANGER_FROM, type DayPoint, type Peak } from '../lib/day-view';
 import type { RibbonData } from '../lib/ribbon-rows';
-import { toScorePath } from '../lib/score-path';
-import { buildTicks } from '../lib/ticks';
 
 const SAMPLES_PER_HOUR = 60 / COLLECTION_INTERVAL_MINUTES;
 
-const STRIPS = [
-  { key: 'running', label: '가동' },
-  { key: 'discharging', label: '방류' },
-  { key: 'receiving', label: '수신' },
-] as const;
-
-/** 이상 점수 다음이 구분선, 그 아래 상태 띠, 마지막이 눈금 줄 */
-const SEPARATOR_ROW = 2;
-const TICKS_ROW = SEPARATOR_ROW + STRIPS.length + 1;
-
 /**
- * 커서는 **어느 표본인가**와 **무엇을 기준으로 쟀는가**를 함께 든다.
+ * 하루의 **이상 점수 한 장** — 이 화면의 시그니처.
  *
- * 툴팁이 커서 옆에 앉으려면 상자가 들어갈 자리가 남았는지 알아야 하고, 그 답은 트랙 폭에
- * 달렸다. 아래 `trackCursor`가 이미 재고 있으므로 따로 관측하지 않고 그대로 들고 온다.
- */
-interface RibbonCursor {
-  index: number;
-  trackWidth: number;
-}
-
-/**
- * 하루를 한 장으로 본다.
+ * **상태 띠 셋(가동·방류·수신)을 걷고 룩을 새로 세웠다** `[사용자 요청 2026-09-08]`.
+ * 앞선 판본은 «네 축이 같은 x를 같은 시각으로 쓴다»가 존재 이유였고, 그래서 격자·오버레이·
+ * 좌표 원점을 손으로 짜야 했다(SVG 직접 그리기 + 마우스 좌표 관측). **행이 하나가 되면서 그
+ * 제약이 사라져** Recharts로 옮겼다(**P9** 단일 차트 라이브러리) — 딸려 오는 것이 셋이다:
+ * `useChartHover`의 툴팁 규율 · `ChartFigure`의 **`표로 보기`**(SVG 선은 스크린리더에 아무것도
+ * 주지 못한다 — 앞선 판본에는 이 대체 경로가 **없었다**) · 축·툴팁 어휘의 공유.
  *
- * 통합 관제의 지도가 *공간*을 한눈에 보여준다면 이 리본은 *하루*를 한눈에 보여준다.
- * 네 축이 **같은 x를 같은 시각으로** 쓰는 것이 전부다 — 세로로 훑으면 "그때 무슨
- * 일이 동시에 있었나"가 읽힌다.
+ * **읽는 순서를 세로로 세웠다.** 하루를 보는 사람이 묻는 것은 «오늘 최악이 언제, 얼마였나»라
+ * 그 답을 **맨 위에 크게** 두고(`ui-ux-pro-max`가 이상 탐지 차트에 권한 *"text annotation per
+ * anomaly event"*), 곡선은 그 답이 어디서 왔는지를 보인다.
  *
- * **좌표 기준을 트랙 열 하나로 못박는다.** 예전에는 라벨 칸과 트랙이 한 flex 행에 있어
- * 마우스를 재는 박스(라벨 포함)와 막대가 그려지는 박스(라벨 제외)가 달랐다 —
- * 커서 판독이 2.4시간 어긋났다. 이제 오버레이가 트랙 열만 덮고, **그 오버레이가
- * 마우스 대상이자 격자·커서의 좌표 원점**이라 어긋날 자리가 없다.
+ * **배경 4구간을 걷고 «넘으면 안 되는 선»만 남겼다.** 96px에 파스텔 넷을 깔면 점수가 20~40에
+ * 사는 하루에서도 면적의 대부분이 색인데, 그 색은 데이터가 가 본 적 없는 높이를 칠한다.
+ * 지금은 경계를 옅은 파선으로 긋고 **위험 구간만** 아주 옅게 덮는다 — 같은 근거
+ * (`PROVISIONAL_ANOMALY_BANDS`)를 다른 형태로 말하는 것이라 *무엇을* 보여주는가는 그대로다.
  */
 export function DailyRibbon({ data, dateIso }: { data: RibbonData; dateIso: string }) {
-  const [cursor, setCursor] = useState<RibbonCursor | null>(null);
-  const ticks = useMemo(() => buildTicks(RIBBON_TICK_HOURS), []);
-
-  const trackCursor = (event: React.MouseEvent<HTMLDivElement>) => {
-    const box = event.currentTarget.getBoundingClientRect();
-    const ratio = (event.clientX - box.left) / box.width;
-    const index = Math.floor(ratio * TIMELINE_POINT_COUNT);
-    setCursor({
-      index: Math.min(Math.max(index, 0), TIMELINE_POINT_COUNT - 1),
-      trackWidth: box.width,
-    });
-  };
+  const { hoverProps, tooltipActive } = useChartHover();
+  const view = useMemo(() => buildDayView(data), [data]);
 
   return (
-    <div className="space-y-2">
-      <Caption data={data} dateIso={dateIso} />
+    <div className="space-y-3">
+      <PeakReading peak={view.peak} data={data} dateIso={dateIso} />
 
-      {/* 그래프 면. 여백이 격자 전체를 함께 밀므로 오버레이의 좌표 기준도 같이 옮겨간다 */}
-      <div
-        className={`grid gap-x-3 ${CHART_SURFACE}`}
-        style={{
-          gridTemplateColumns: `${RIBBON_LABEL_WIDTH}px minmax(0, 1fr)`,
-          gridTemplateRows: RIBBON_GRID_ROWS,
-          rowGap: RIBBON_ROW_GAP,
-        }}
-        role="img"
-        aria-label={summarize(data, dateIso)}
+      <ChartFigure
+        label={summarize(data, dateIso)}
+        rows={view.points}
+        sampleEvery={RIBBON_TABLE_ROW_MINUTES / RIBBON_SCORE_BUCKET_MINUTES}
+        columns={[
+          { header: '시각(KST)', cell: (row: DayPoint) => formatClock(row.t) },
+          {
+            header: '이상 점수',
+            /* 없는 값을 0으로 적지 않는다 — 표에서도 결측은 결측이다(**E4**) */
+            cell: (row: DayPoint) => (row.score === null ? '수신 없음' : String(row.score)),
+          },
+        ]}
       >
-        {/**
-         * **모든 칸을 명시적으로 배치한다.** 아래 오버레이가 트랙 열 6행을 확정 배치로
-         * 점유하는데, 자동 배치는 점유된 칸을 건너뛴다 — 라벨만 자동으로 두면 트랙이
-         * 64px 라벨 칸으로 밀려 들어간다(실제로 그렇게 깨졌다).
-         */}
-        <ScoreLabel row={1} />
-        <Track row={1}>
-          <ScoreTrack scores={data.scores} receiving={data.receiving} />
-        </Track>
+        <div style={{ height: RIBBON_CHART_HEIGHT }} {...hoverProps}>
+          <ResponsiveContainer width="100%" height="100%">
+            {/* 포커스로 툴팁이 고정되는 것을 막는다 — 근거는 `chart-figure.tsx` */}
+            <AreaChart
+              data={view.points}
+              margin={{ top: 8, right: 8, bottom: 0, left: 0 }}
+              accessibilityLayer={false}
+            >
+              <defs>
+                {/*
+                 * 선 아래가 진하게 시작해 바닥에서 사라진다. 평면 채움은 값의 높낮이와
+                 * 무관하게 같은 농도라 선이 그 위에 얹힌 띠처럼 보인다.
+                 */}
+                <linearGradient id={RIBBON_AREA_GRADIENT_ID} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={AI_HEX} stopOpacity={0.28} />
+                  <stop offset="70%" stopColor={AI_HEX} stopOpacity={0.06} />
+                  <stop offset="100%" stopColor={AI_HEX} stopOpacity={0} />
+                </linearGradient>
 
-        {/* 분석값과 상태 띠를 가른다 — 위계가 선으로도 드러나야 한다 */}
-        <span
-          className="my-1.5 border-t border-border"
-          style={{ gridRow: SEPARATOR_ROW, gridColumn: '1 / -1' }}
-        />
+                {/*
+                 * **결측은 빗금이다**(`screens.md` §8 `결측`). 면으로 덮으면 «값이 낮았다»로
+                 * 읽히고 옅은 회색으로 깔면 배경과 붙는다 — 질감이라 색맹·인쇄에서도 남는다.
+                 */}
+                <pattern
+                  id={OUTAGE_PATTERN_ID}
+                  width={6}
+                  height={6}
+                  patternTransform="rotate(45)"
+                  patternUnits="userSpaceOnUse"
+                >
+                  <line x1={0} y1={0} x2={0} y2={6} stroke="var(--missing)" strokeWidth={2} />
+                </pattern>
+              </defs>
 
-        {STRIPS.map((strip, i) => (
-          <Fragment key={strip.key}>
-            <Label text={strip.label} row={SEPARATOR_ROW + 1 + i} />
-            <Track row={SEPARATOR_ROW + 1 + i}>
-              <StatusStrip runs={data[strip.key]} />
-            </Track>
-          </Fragment>
-        ))}
+              {/*
+               * **위험 구간만 덮는다.** 넷을 다 깔면 배경이 그림이 되고, 하나만 깔면
+               * «저 위로 올라가면 안 된다»가 형태로 남는다.
+               */}
+              <ReferenceArea
+                y1={DANGER_FROM}
+                y2={100}
+                fill={STATUS_BAND.critical}
+                fillOpacity={DANGER_ZONE_OPACITY}
+                stroke="none"
+              />
 
-        <Track row={TICKS_ROW}>
-          <TickLabels ticks={ticks} />
-        </Track>
+              {/* 경계는 선으로만. 숫자와 이름은 왼쪽 눈금과 발치 범례가 함께 적는다 */}
+              {RIBBON_THRESHOLD_LINES.map((value) => (
+                <ReferenceLine
+                  key={value}
+                  y={value}
+                  stroke={GRID_HEX}
+                  strokeDasharray="3 5"
+                  strokeWidth={1}
+                />
+              ))}
 
-        {/**
-         * 트랙 열 전체를 덮는다 — 여기가 마우스 대상이자 격자·커서의 **유일한 좌표 기준**이다.
-         * 마지막에 두어 트랙 위에 그려지게 한다.
-         */}
-        <div
-          className="relative"
-          style={{ gridColumn: 2, gridRow: RIBBON_OVERLAY_ROW }}
-          onMouseMove={trackCursor}
-          onMouseLeave={() => setCursor(null)}
-        >
-          <GridLines ticks={ticks} />
-          {cursor !== null && (
-            <>
-              {/* 커서 선과 활성 점 모두 이상 탐지 차트(Recharts)의 기본값과 같은 색·크기다 */}
-              <span
-                className="pointer-events-none absolute inset-y-0 w-px"
-                style={{
-                  left: `${(cursor.index / TIMELINE_POINT_COUNT) * 100}%`,
-                  backgroundColor: 'var(--border-strong)',
+              {/* 값이 없다는 사실 자체가 정보다(**E4**) */}
+              {view.outages.map((run) => (
+                <ReferenceArea
+                  key={run.fromIso}
+                  x1={run.fromIso}
+                  x2={run.toIso}
+                  fill={`url(#${OUTAGE_PATTERN_ID})`}
+                  fillOpacity={0.5}
+                  stroke="none"
+                />
+              ))}
+
+              {/*
+               * **하루가 넘어가는 자리를 짚는다.** 없으면 `02:00`이 어제인지 오늘인지 알 수
+               * 없다(**E5**). 눈금에 맡기면 6시간 간격에 걸리기를 기다려야 해서 영영 안 나온다.
+               */}
+              {view.dayBreakIso && (
+                <ReferenceLine
+                  x={view.dayBreakIso}
+                  stroke="var(--border-strong)"
+                  strokeDasharray="2 3"
+                  label={{
+                    value: view.dayBreakIso.slice(5, 10),
+                    position: 'insideTopLeft',
+                    fill: AXIS_TEXT_HEX,
+                    fontSize: 12,
+                  }}
+                />
+              )}
+
+              <CartesianGrid stroke={GRID_HEX} strokeDasharray="2 4" vertical={false} />
+              <XAxis
+                dataKey="t"
+                tickFormatter={formatClock}
+                minTickGap={56}
+                tick={{ fill: AXIS_TEXT_HEX, fontSize: 12 }}
+                axisLine={{ stroke: GRID_HEX }}
+                tickLine={false}
+              />
+              {/*
+               * **경계를 다 적는다**(`interval={0}`). Recharts는 눈금이 가깝다고 판단하면
+               * 조용히 빼는데, 그러면 `70`에 파선은 그려지고 라벨만 사라져 **이름 없는 선**이
+               * 남는다 — 구간 경계는 이 그림에서 판정의 기준이라 하나라도 빠지면 안 된다.
+               */}
+              <YAxis
+                domain={[0, 100]}
+                ticks={PROVISIONAL_ANOMALY_TICKS}
+                interval={0}
+                tick={{ fill: AXIS_TEXT_HEX, fontSize: 12 }}
+                axisLine={false}
+                tickLine={false}
+                width={34}
+              />
+
+              <Tooltip
+                /* 포인터가 밖이면 끈다 — 근거는 `shared/lib/use-chart-hover.ts` */
+                active={tooltipActive}
+                cursor={{ stroke: 'var(--border-strong)', strokeWidth: 1 }}
+                content={({ active, payload, label }) => {
+                  if (!active || !payload?.length) return null;
+                  const score = payload[0]?.value as number | null | undefined;
+                  return (
+                    <ChartTooltipShell label={`${formatClock(String(label))} ${DISPLAY_TIMEZONE}`}>
+                      {/*
+                       * **점수와 등급 둘만 남는다** `[사용자 요청 2026-09-08]` — 가동·방류·수신
+                       * 줄을 걷었다. 이상 탐지 타임라인의 툴팁과 같은 구성이라 같은 값을 두
+                       * 화면이 다르게 보여 주지 않는다.
+                       */}
+                      {score === null || score === undefined ? (
+                        <ChartTooltipRow color="var(--missing)" name="수신 없음" value="—" />
+                      ) : (
+                        <>
+                          <ChartTooltipRow color={AI_HEX} name="이상 점수" value={String(score)} />
+                          <ChartTooltipRow
+                            color={STATUS_VISUAL[toStatusLevel(score)].hex}
+                            name="등급"
+                            value={PROVISIONAL_STATUS_LABELS[toStatusLevel(score)]}
+                          />
+                        </>
+                      )}
+                    </ChartTooltipShell>
+                  );
                 }}
               />
-              <ActiveDot score={data.scores[cursor.index] ?? null} cursor={cursor.index} />
-              <CursorTooltip data={data} cursor={cursor} />
-            </>
-          )}
+
+              <Area
+                type="monotone"
+                dataKey="score"
+                stroke={AI_HEX}
+                strokeWidth={2.5}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                fill={`url(#${RIBBON_AREA_GRADIENT_ID})`}
+                /* 결측 구간을 끊는다 — 이어 그으면 못 받은 시간에도 값이 있었던 것처럼 보인다 */
+                connectNulls={false}
+                dot={false}
+                activeDot={{ r: 4, strokeWidth: 2, stroke: 'var(--surface)', fill: AI_HEX }}
+                isAnimationActive={false}
+              />
+
+              {/*
+               * **최고점을 형태로 짚는다** — `ui-ux-pro-max`가 이상 탐지 차트에 권한
+               * *"Use shape marker (not color only) for anomaly points"*. 값과 시각은 위
+               * 판독줄이 글로 적으므로 여기서는 «어디»만 말한다(라벨을 곡선에 붙이면
+               * 100 근처에서 잘린다). 색은 그 점의 **등급**이라 판독줄의 숫자와 같은 잉크다.
+               */}
+              {view.peak && (
+                <ReferenceDot
+                  x={view.peak.x}
+                  y={view.peak.score}
+                  r={5}
+                  fill={statusInk(STATUS_VISUAL[view.peak.level])}
+                  stroke="var(--surface)"
+                  strokeWidth={2}
+                />
+              )}
+            </AreaChart>
+          </ResponsiveContainer>
         </div>
-      </div>
+      </ChartFigure>
 
       <RibbonLegend />
     </div>
   );
 }
 
-/** JSX 조각을 묶기만 한다 — 격자 행이 깨지지 않게 래퍼 div를 두지 않는다 */
-function Fragment({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
-}
-
-/** 높이는 격자 행이 정한다 — 라벨에 따로 적으면 트랙과 갈릴 자리가 생긴다 */
-function Label({ text, row }: { text: string; row: number }) {
-  return (
-    <span
-      className="flex items-center justify-end pr-0.5 text-[12px] text-fg-muted"
-      style={{ gridRow: row, gridColumn: 1 }}
-    >
-      {text}
-    </span>
-  );
-}
-
 /**
- * 점수 행 라벨. 위아래 끝값을 함께 적어 **세로 위치를 보정한다.**
+ * **오늘의 답을 맨 위에 크게 둔다** `[사용자 요청 2026-09-08]`.
  *
- * 0~100 전체 눈금은 96px에 넣으면 숫자가 겹친다. 끝값 둘만 있으면 "선이 위쪽이면 높다"가
- * 읽히고, 구간 경계는 배경 밴드와 오른쪽 범례가 이미 말한다.
- */
-function ScoreLabel({ row }: { row: number }) {
-  return (
-    <span
-      className="flex flex-col items-end justify-between py-px text-[11px]"
-      style={{ gridRow: row, gridColumn: 1 }}
-    >
-      <span className="num text-[10px] leading-none text-fg-subtle">100</span>
-      <span className="text-fg-muted">이상 점수</span>
-      <span className="num text-[10px] leading-none text-fg-subtle">0</span>
-    </span>
-  );
-}
-
-/** 트랙 칸. 자동 배치에 맡기면 오버레이가 점유한 칸을 피해 라벨 칸으로 밀려 들어간다 */
-function Track({ row, children }: { row: number; children: React.ReactNode }) {
-  return (
-    <div className="min-w-0" style={{ gridRow: row, gridColumn: 2 }}>
-      {children}
-    </div>
-  );
-}
-
-/**
- * 이상 점수 — 이 그림의 주인공.
+ * 하루를 보는 사람이 묻는 것은 «오늘 최악이 언제, 얼마였나»인데 앞선 판본은 그 답을
+ * **대체 텍스트에만** 갖고 있었다(`aria-label`) — 눈으로 보는 사람은 곡선에서 눈짐작으로
+ * 찾아야 했다. 점수는 AI 산출값이라 **산출 시각을 함께 적는다**(**E3**).
  *
- * **배경이 등급, 계열이 값이다.** 예전에는 표본마다 등급 색으로 칠해 무지개 줄무늬가
- * 됐다. 이 저장소의 규약은 `AnomalyTimeline`(SCR-OP-001·002)이 정해 두었다 —
- * 배경은 `STATUS_BAND`, 계열은 `AI_HEX`. 이상 점수는 AI 산출값이라 실측과 색이
- * 달라야 한다(**E3**). 같은 값을 두 화면이 다른 색으로 그리면 안 된다.
+ * 크기는 `VALUE_LG`(22px)다. 히어로라고 더 키우지 않는다 — 그 단은 *"카드에 값이 하나일 때"*
+ * 로 정의돼 있고(`type-scale.ts`), 새 단을 만들면 그 파일이 정리한 «17·18·19·22·26·30·32px이
+ * 섞여 있었다»가 다시 시작된다.
  */
-function ScoreTrack({
-  scores,
-  receiving,
+function PeakReading({
+  peak,
+  data,
+  dateIso,
 }: {
-  scores: (number | null)[];
-  receiving: RibbonRun[];
+  peak: Peak | null;
+  data: RibbonData;
+  dateIso: string;
 }) {
-  const segments = useMemo(() => toScorePath(scores), [scores]);
-
   return (
-    <svg
-      viewBox={`0 0 ${TIMELINE_POINT_COUNT} 100`}
-      preserveAspectRatio="none"
-      className="block w-full"
-      style={{ height: RIBBON_SCORE_HEIGHT }}
-    >
-      {PROVISIONAL_ANOMALY_BANDS.map((band, i) => {
-        const end = PROVISIONAL_ANOMALY_BANDS[i + 1]?.min ?? 100;
-        return (
-          <rect
-            key={band.level}
-            x={0}
-            y={100 - end}
-            width={TIMELINE_POINT_COUNT}
-            height={end - band.min}
-            fill={STATUS_BAND[band.level]}
-          />
-        );
-      })}
-
-      {/* 결측 구간은 배경으로 먼저 알린다 — 면적이 끊긴 것이 데이터 탓임을 보이려는 것이다 */}
-      {receiving
-        .filter((run) => run.state !== 'on')
-        .map((run) => (
-          <rect key={run.from} x={run.from} y={0} width={run.length} height={100} fill={OUTAGE_BAND} />
-        ))}
-
-      {segments.map((segment, i) => (
-        <path key={i} d={segment.area} fill={AI_HEX} fillOpacity={0.22} stroke="none" />
-      ))}
-      {/* 선은 면적과 **다른 path**다. 면적 path를 그대로 그으면 밑변과 닫는 변까지 그려진다 */}
-      {segments.map((segment, i) => (
-        <path
-          key={`line-${i}`}
-          d={segment.line}
-          fill="none"
-          stroke={AI_HEX}
-          strokeWidth={1.5}
-          strokeLinejoin="round"
-          vectorEffect="non-scaling-stroke"
-        />
-      ))}
-
-      {/* 구간 경계. 기준 화면(AnomalyTimeline)과 같은 점선이라 두 화면이 같게 읽힌다 */}
-      {RIBBON_SCORE_TICKS.filter((value) => value !== 0 && value !== 100).map((value) => (
-        <line
-          key={value}
-          x1={0}
-          x2={TIMELINE_POINT_COUNT}
-          y1={100 - value}
-          y2={100 - value}
-          stroke={GRID_HEX}
-          strokeWidth={1}
-          strokeDasharray="2 4"
-          vectorEffect="non-scaling-stroke"
-        />
-      ))}
-    </svg>
-  );
-}
-
-/**
- * 상태 띠 한 줄 — **화면의 다른 막대와 같은 어휘로 그린다** `[사용자 지시 2026-08-25]`.
- *
- * 각진 단색 사각형을 잇던 판본은 이 카드만 다른 부품으로 보였다. 지금은 셋을 맞춘다:
- *   ① **홈**(`--surface-2` + `shadow-track` 안쪽 그림자) — 게이지·XAI 막대와 같은 트랙
- *   ② **모서리**(`--radius-chip`) — 트랙이 잘라 주므로 조각마다 둥글릴 필요가 없다
- *   ③ **그라데이션 채움**(`OPERATING_GRADIENT`) — 설비 상태 격자가 **같은 운전 상태 축**에
- *      쓰는 바로 그 값이다. 두 화면이 같은 사실을 다른 농도로 칠하면 같은 것으로 보이지 않는다.
- *
- * `unknown`에 따로 투명도를 주지 않는다 — 그라데이션이 이미 46%→26%로 눌러 놓았고,
- * 그 위에 또 곱하면 결측 구간이 홈과 구분되지 않는다.
- *
- * SVG를 걷은 이유: 조각이 `%` 좌표의 상자라 트랙의 `overflow-hidden`이 양 끝을 둥글게
- * 잘라 준다. SVG `<rect>`로는 같은 것을 하려면 조각마다 모서리를 따로 계산해야 한다.
- */
-function StatusStrip({ runs }: { runs: RibbonRun[] }) {
-  return (
-    <div
-      className="relative w-full overflow-hidden rounded-chip bg-surface-2 shadow-track"
-      style={{ height: RIBBON_STRIP_HEIGHT }}
-    >
-      {runs.map((run) => (
-        <span
-          key={run.from}
-          className="absolute inset-y-0"
-          style={{
-            left: `${(run.from / TIMELINE_POINT_COUNT) * 100}%`,
-            width: `${(run.length / TIMELINE_POINT_COUNT) * 100}%`,
-            backgroundImage: RIBBON_STRIP_FILL[run.state],
-          }}
-        />
-      ))}
-    </div>
-  );
-}
-
-/** hover 없이도 '언제'가 읽혀야 한다. 자정은 한 단계 진하게 */
-function GridLines({ ticks }: { ticks: ReturnType<typeof buildTicks> }) {
-  return (
-    <div className="pointer-events-none absolute inset-0">
-      {ticks.map((tick) => (
-        <span
-          key={tick.index}
-          className={cn('absolute inset-y-0 w-px', tick.isDayBreak ? 'bg-border-strong' : 'bg-border')}
-          style={{ left: `${tick.percent}%`, opacity: tick.isDayBreak ? 0.9 : 0.5 }}
-        />
-      ))}
-    </div>
-  );
-}
-
-function TickLabels({ ticks }: { ticks: ReturnType<typeof buildTicks> }) {
-  return (
-    <div className="relative h-6 pt-1">
-      {ticks.map((tick) => (
-        <span
-          key={tick.index}
-          className={cn(
-            'absolute top-1 text-[10px]',
-            tick.percent === 0 && 'translate-x-0',
-            tick.percent === 100 && '-translate-x-full',
-            tick.percent > 0 && tick.percent < 100 && '-translate-x-1/2',
-            tick.isDayBreak ? 'text-fg-muted' : 'text-fg-subtle',
-          )}
-          style={{ left: `${tick.percent}%` }}
-        >
-          <span className="num whitespace-nowrap">{tick.label}</span>
-          {tick.dateLabel && (
-            <span className="num block whitespace-nowrap text-fg-subtle">{tick.dateLabel}</span>
-          )}
-        </span>
-      ))}
-    </div>
-  );
-}
-
-/**
- * 하루 요약 — **고정 캡션**이다. hover에 따라 바뀌지 않는다.
- *
- * 예전에는 이 줄이 커서를 따라 바뀌었는데, 값을 보려면 그래프에서 눈을 떼고 위를 봐야 했다.
- * 다른 차트와 읽는 방식도 달랐다 — 이제 커서 값은 툴팁이 그 자리에서 말한다.
- */
-function Caption({ data, dateIso }: { data: RibbonData; dateIso: string }) {
-  return (
-    <p className="text-[12px] text-fg-subtle">
-      {dateIso.slice(0, 10)} 기준 {HISTORY_WINDOW_HOURS}시간 · {COLLECTION_INTERVAL_MINUTES}분 주기 ·{' '}
-      {DISPLAY_TIMEZONE} — 방류 <span className="num text-fg-muted">{dischargeHoursText(data)}</span>{' '}
-      · 알람 <span className="num text-fg-muted">{data.alarms.length}</span>건
-    </p>
-  );
-}
-
-/**
- * 커서 값 툴팁.
- *
- * **다른 차트와 같은 껍데기를 쓴다**(`ChartTooltipShell`) — 화면마다 다른 툴팁을 만들지
- * 않는다는 규칙 그대로다. 한 시각의 네 사실을 세로로 쌓아 세로로 훑는 리본의 읽기
- * 방향과 맞춘다.
- *
- * **커서 옆에 앉는다 — 덮지 않는다** `[사용자 지적 2026-09-07]`. 어느 쪽에 두고 왜 그렇게
- * 정하는지는 `lib/tooltip-placement.ts`가 갖는다.
- */
-function CursorTooltip({ data, cursor }: { data: RibbonData; cursor: RibbonCursor }) {
-  const percent = (cursor.index / TIMELINE_POINT_COUNT) * 100;
-  const score = data.scores[cursor.index] ?? null;
-  const level = score === null ? null : toStatusLevel(score);
-
-  return (
-    <div
-      className="pointer-events-none absolute top-1 z-10"
-      style={{
-        left: `${percent}%`,
-        transform: tooltipTransform(tooltipSideAt(cursor.index, cursor.trackWidth)),
-      }}
-    >
-      <ChartTooltipShell label={`${formatClock(timelineIsoAt(cursor.index))} ${DISPLAY_TIMEZONE}`}>
-        {/**
-         * **이상 탐지 화면(`AnomalyTimeline`)과 같은 구성이다.** 점수와 등급을 각각의 줄에
-         * 두고, 등급 줄은 상태 색을 쓴다. 결측은 `수신 없음 · —`으로 적는다 —
-         * 같은 값을 두 화면이 다르게 보여 주면 어느 쪽이 정본인지 알 수 없다.
-         */}
-        {score === null ? (
-          <ChartTooltipRow color="var(--missing)" name="수신 없음" value="—" />
+    <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
+      <div>
+        <p className="text-[12px] text-fg-subtle">최고 이상 점수</p>
+        {peak === null ? (
+          /* 하루 내내 결측이면 0이 아니라 «산출 없음»이다 — 없는 사실을 적지 않는다(**E4**) */
+          <p className="mt-0.5 text-[13px] text-fg-muted">
+            통신이 두절되어 <strong className="text-fg">산출된 점수가 없습니다.</strong>
+          </p>
         ) : (
-          <>
-            <ChartTooltipRow color={AI_HEX} name="이상 점수" value={String(score)} />
-            <ChartTooltipRow
-              color={STATUS_VISUAL[level!].hex}
-              name="등급"
-              value={PROVISIONAL_STATUS_LABELS[level!]}
-            />
-          </>
+          <div className="mt-0.5 flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
+            <span
+              className={`num ${VALUE_LG}`}
+              style={{ color: statusInk(STATUS_VISUAL[peak.level]) }}
+            >
+              <CountUp value={peak.score} />
+            </span>
+            <StatusBadge level={peak.level} />
+            <span className="num text-[12px] text-fg-subtle">
+              {formatClock(peak.iso)} {DISPLAY_TIMEZONE}
+            </span>
+          </div>
         )}
-        <StateRow label="가동" state={stateAt(data.running, cursor.index)} off={RIBBON_OFF_LABELS.running} />
-        <StateRow
-          label="방류"
-          state={stateAt(data.discharging, cursor.index)}
-          off={RIBBON_OFF_LABELS.discharging}
-        />
-        <StateRow
-          label="수신"
-          state={stateAt(data.receiving, cursor.index)}
-          off={RIBBON_OFF_LABELS.receiving}
-        />
-      </ChartTooltipShell>
+      </div>
+
+      {/* 조회 조건과 하루 요약. 값이 아니라 곁의 사실이라 오른쪽으로 물린다 */}
+      <p className="text-[12px] text-fg-subtle">
+        {dateIso.slice(0, 10)} · {HISTORY_WINDOW_HOURS}시간 · {COLLECTION_INTERVAL_MINUTES}분 주기
+        · 방류 <span className="num text-fg-muted">{dischargeHoursText(data)}</span> · 알람{' '}
+        <span className="num text-fg-muted">{data.alarms.length}</span>건
+      </p>
     </div>
   );
-}
-
-/**
- * 커서가 짚은 값 위의 점.
- *
- * 이상 탐지 차트의 `activeDot`(r=3, `AI_HEX`)과 같다. SVG 안에 그리지 않는 이유는
- * 점수 트랙이 `preserveAspectRatio="none"`이라 원이 타원으로 늘어나기 때문이다 —
- * 오버레이 위에 HTML로 얹는다.
- */
-function ActiveDot({ score, cursor }: { score: number | null; cursor: number }) {
-  if (score === null) return null;
-
-  return (
-    <span
-      className="pointer-events-none absolute size-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full"
-      style={{
-        left: `${(cursor / TIMELINE_POINT_COUNT) * 100}%`,
-        top: ((100 - score) / 100) * RIBBON_SCORE_HEIGHT,
-        backgroundColor: AI_HEX,
-      }}
-    />
-  );
-}
-
-/** 색은 리본의 그 띠와 같다 — 툴팁에서 다른 색을 쓰면 어느 줄 얘기인지 알 수 없다 */
-function StateRow({ label, state, off }: { label: string; state: RibbonState; off: string }) {
-  const text = state === 'unknown' ? '모름' : state === 'on' ? '중' : off;
-  return <ChartTooltipRow color={RIBBON_FILL[state]} name={label} value={text} />;
-}
-
-function stateAt(runs: RibbonRun[], index: number): RibbonState {
-  return runs.find((run) => index >= run.from && index < run.from + run.length)?.state ?? 'unknown';
 }
 
 /** 하루 내내 모름이면 '0시간'이 아니라 '모름'이다 — 없는 사실을 적지 않는다(E4) */
@@ -476,18 +334,19 @@ function dischargeHoursText(data: RibbonData): string {
   return samples === null ? '모름' : `${Math.floor(samples / SAMPLES_PER_HOUR)}시간`;
 }
 
-/** 막대 하나하나가 아니라 이 그림이 말하는 결론을 전한다 */
+/** 점 하나하나가 아니라 이 그림이 말하는 결론을 전한다 */
 function summarize(data: RibbonData, dateIso: string): string {
   const scores = data.scores.filter((s): s is number => s !== null);
   const peak = scores.length > 0 ? Math.max(...scores) : null;
-  const missing = data.receiving.filter((run) => run.state !== 'on').length;
+  const missing = data.receiving.filter((run: RibbonRun) => run.state !== 'on').length;
 
   return [
-    `일간 운전 ${dateIso.slice(0, 10)}`,
-    `방류 ${dischargeHoursText(data)}`,
+    `일간 이상 점수 ${dateIso.slice(0, 10)}`,
+    `${HISTORY_WINDOW_HOURS}시간 · ${COLLECTION_INTERVAL_MINUTES}분 주기 · ${DISPLAY_TIMEZONE}`,
     peak === null
       ? '이상 점수 산출 없음'
-      : `최고 이상 점수 ${peak} ${PROVISIONAL_STATUS_LABELS[toStatusLevel(peak)]}`,
+      : `최고 ${peak} ${PROVISIONAL_STATUS_LABELS[toStatusLevel(peak)]}`,
+    `방류 ${dischargeHoursText(data)}`,
     `알람 ${data.alarms.length}건`,
     missing > 0 ? `결측 ${missing}구간` : '결측 없음',
   ].join(' · ');

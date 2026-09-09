@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react';
 import {
+  MISSING_HATCH,
   OPERATING_ANOMALY_GRADIENT,
   OPERATING_CELL_HIGHLIGHT,
   OPERATING_FILL,
@@ -25,8 +26,11 @@ import {
   HEATMAP_TOOLTIP_WIDTH_PX,
 } from '../config/constants';
 
-/** 값이 없는 시간을 여백과 구분해 드러낸다 — 빈 칸으로 두면 "여기 아무 일 없었다"로 읽힌다 */
-const MISSING_FILL = `repeating-linear-gradient(45deg, ${MISSING_HEX} 0 2px, transparent 2px 5px)`;
+/**
+ * 값이 없는 시간을 여백과 구분해 드러낸다 — 빈 칸으로 두면 "여기 아무 일 없었다"로 읽힌다.
+ * 일간 운전 리본이 같은 «모름»을 그리게 되면서 값은 `shared/config`로 올렸다.
+ */
+const MISSING_FILL = MISSING_HATCH;
 
 const RUN_LABEL = { on: '가동', off: '정지', unknown: '모름' } as const;
 
