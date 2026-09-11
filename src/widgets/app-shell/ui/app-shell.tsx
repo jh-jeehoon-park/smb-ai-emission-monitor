@@ -39,6 +39,7 @@ import {
 import { useRoleRouteGuard } from '../lib/use-role-route-guard';
 import { AlarmMenu } from './alarm-menu';
 import { LiveClock } from './live-clock';
+import { WallboardExit } from './wallboard-exit';
 
 export function AppShell({ children }: { children: ReactNode }) {
   const headerRef = useRef<HTMLElement>(null);
@@ -75,8 +76,19 @@ export function AppShell({ children }: { children: ReactNode }) {
    *
    * **훅보다 아래에 둔다** — 훅은 조건부로 부를 수 없다. 가드·헤더 관측은 그대로 돌고
    * 그리는 것만 달라진다.
+   *
+   * **나가는 길은 셸이 함께 얹는다** `[사용자 지적 2026-09-11: 현황판 페이지에서 나갈 수
+   * 있는 방법이 없다]`. 크롬을 걷으면서 돌아갈 곳까지 함께 걷혀 있었다 — 전체화면으로
+   * 띄우면 주소창도 없어 갇힌다. 평소에는 보이지 않고 사람이 만질 때만 드러난다.
    */
-  if (pathname === WALLBOARD_HREF) return <>{children}</>;
+  if (pathname === WALLBOARD_HREF) {
+    return (
+      <>
+        {children}
+        <WallboardExit />
+      </>
+    );
+  }
 
   return (
     <div className="flex min-h-screen bg-bg">
