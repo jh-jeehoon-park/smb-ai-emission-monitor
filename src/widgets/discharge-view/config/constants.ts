@@ -1,15 +1,16 @@
 import { MEASUREMENT_ITEMS } from '@/shared/config/measurement';
 
 /**
- * 누적 배출량의 표시 자릿수.
+ * 누적 배출량의 표시 자릿수 — **`shared/config`로 올라갔다.**
  *
- * 유량이 `m³/day` 정수라 5분치 몫은 소수점 아래에서 쌓인다 — 정수로 반올림하면 이른 아침에
- * `0 m³`이 한참 이어져 **안 내보낸 것으로 읽힌다**. 한 자리면 첫 표본부터 값이 움직인다.
+ * `현황판`(`SCR-AD-006`)이 같은 값을 적기 시작하면서 소비처가 둘이 됐다. 위젯끼리는 서로
+ * import 할 수 없으므로(FSD §8) 복제하거나 올리거나 둘 중 하나였고, 같은 물의 양이 화면마다
+ * 다른 자릿수로 보이는 것을 **E1**이 막는다. 이유는 올라간 자리에 그대로 적혀 있다.
  *
- * 계측 항목이 아니라 파생값이라 `PROVISIONAL_DECIMALS`가 아니라 여기 둔다 — 그쪽은 항목별
- * 센서 정확도에서 온 값이고 이것은 표시 규칙이다.
+ * 여기서 다시 내보내는 이유는 이 위젯의 소비처들이 `../config/constants` 한 곳만 보게
+ * 두기 위해서다 — 같은 파일에서 오던 값이 갑자기 두 경로로 갈리지 않는다.
  */
-export const VOLUME_DECIMALS = 1;
+export { VOLUME_DECIMALS } from '@/shared/config/constants';
 
 /**
  * 차트 높이(px).

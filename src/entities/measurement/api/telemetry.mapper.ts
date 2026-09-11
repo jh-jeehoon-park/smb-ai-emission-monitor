@@ -8,6 +8,7 @@ import {
   TB_CHANNEL_BY_CODE,
   UNRECEIVED_SERIES_CODES,
 } from '../config/constants';
+import { fillInletQuality } from '../lib/inlet-quality';
 import type { MeasurementPoint, SeriesCode } from '../model/types';
 
 export const COLLECTION_INTERVAL_MS = COLLECTION_INTERVAL_MINUTES * 60_000;
@@ -89,6 +90,7 @@ export function toTelemetryWindow(
   raw: TbTimeseries,
   grid: number[],
   limit: number,
+  siteId: string,
 ): TelemetryWindow {
   const columns = new Map<string, Map<number, number>>();
   let maxCount = 0;
@@ -108,6 +110,15 @@ export function toTelemetryWindow(
       point[code] =
         value === undefined ? null : roundTo(value, MEASUREMENT_ITEMS[code].decimals);
     }
+
+    /*
+     * **서버가 주지 않는 유입 수질을 여기서 만든다** `[TBD-59]`.
+     *
+     * 실측 경로에도 채우는 이유는 이 화면이 실측을 보기 때문이다 — 안 채우면 서버에 닿는
+     * 순간 대조 줄의 왼쪽이 통째로 비고, 내장 데이터로 볼 때와 다른 화면이 된다.
+     * 값은 fixture와 **같은 함수**를 지나므로 두 경로의 판정이 갈리지 않는다.
+     */
+    fillInletQuality(point, siteId);
 
     return point;
   });

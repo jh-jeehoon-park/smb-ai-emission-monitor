@@ -113,3 +113,30 @@ export const OPERATING_UNKNOWN_OPACITY = 0.45;
  * (`code-organization.rule.md` §3 배치원칙 3).
  */
 export const MISSING_HATCH = `repeating-linear-gradient(45deg, var(--missing) 0 2px, transparent 2px 5px)`;
+
+/**
+ * **같은 빗금의 SVG 표기.**
+ *
+ * 위 `MISSING_HATCH`는 `repeating-linear-gradient`라 **DOM 전용**이다 — SVG `fill`은 CSS
+ * 그라데이션을 받지 않아 `<pattern>`을 거쳐야 한다. 물의 단면(SCR-AD-005)이 슬러지층·알약
+ * 배경을 SVG 안에서 칠하면서 두 번째 표기가 필요해졌다.
+ *
+ * **기하를 여기 한 곳에 둔다.** 두 표기가 갈리면 같은 «모름»이 화면마다 다른 결로 보인다 —
+ * DOM 쪽은 2px/5px 45도인데 SVG 쪽만 3px/6px가 되는 식이다. `operating-visual.test.ts`가
+ * 위 문자열에서 숫자를 뽑아 이 값과 대조한다.
+ *
+ * `<pattern>` 요소 자체는 쓰는 화면의 `<defs>`가 이 값으로 그린다 — 설정 파일에 마크업을
+ * 두지 않는다(`code-organization.rule.md` §3).
+ */
+export const MISSING_HATCH_PATTERN = {
+  /** `fill="url(#…)"`가 가리키는 id. 한 문서에 한 번만 그린다 */
+  id: 'missing-hatch',
+  /** 빗금 한 줄기의 굵기(px) */
+  stripe: 2,
+  /** 줄기 사이 주기(px) — 타일 한 변의 길이가 된다 */
+  period: 5,
+  /** 기울기(도) — `patternTransform="rotate(45)"` */
+  angleDeg: 45,
+} as const;
+
+export const MISSING_HATCH_FILL = `url(#${MISSING_HATCH_PATTERN.id})`;

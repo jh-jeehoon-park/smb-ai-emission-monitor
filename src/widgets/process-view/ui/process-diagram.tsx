@@ -5,11 +5,10 @@ import type { LucideIcon } from 'lucide-react';
 import {
   PROVISIONAL_MEASUREMENT_GRADE_DASH,
   PROVISIONAL_MEASUREMENT_GRADE_LABELS,
-  type MeasurementGrade,
 } from '@/shared/config/provisional';
 import { MEASUREMENT_ITEMS } from '@/shared/config/measurement';
 import type { MeasurementPoint } from '@/entities/measurement';
-import { ACTUAL_HEX, AI_HEX, MISSING_HEX } from '@/shared/config/status-visual';
+import { ACTUAL_HEX, AI_HEX, MEASUREMENT_GRADE_HEX } from '@/shared/config/status-visual';
 import { formatValue } from '@/shared/lib/format';
 import type { ProcessStage } from '@/entities/process';
 import type { ResolvedStage } from '@/features/process-settings';
@@ -24,16 +23,6 @@ import {
   nodeX,
 } from '../config/layout';
 import { stageReadings, type StageReading } from '../lib/stage-readings';
-
-/**
- * 계측 등급 색. **상태 등급 색이 아니다** — `status-visual.ts`가 실측·추정·결측을 가르는
- * 계열색을 이미 갖고 있고, E3가 "실측과 추정을 구분하라"고 요구한다.
- */
-const GRADE_HEX: Record<MeasurementGrade, string> = {
-  actual: ACTUAL_HEX,
-  estimated: AI_HEX,
-  none: MISSING_HEX,
-};
 
 const TYPE_LABELS: Record<ProcessStage['type'], string> = {
   physical: '물리',
@@ -166,7 +155,7 @@ function BasinNode({
   onSelect: (id: string) => void;
 }) {
   const x = nodeX(index);
-  const hex = GRADE_HEX[stage.grade];
+  const hex = MEASUREMENT_GRADE_HEX[stage.grade];
   const floorY = NODE_TOP + NODE_HEIGHT - BASIN_FLOOR;
   const Icon = STAGE_ICONS[stage.id] ?? FALLBACK_ICON;
   /* 설정된 항목이 있으면 그것이 곧 계측 지점이다 — 등급 상수보다 사용자 설정이 먼저다 */

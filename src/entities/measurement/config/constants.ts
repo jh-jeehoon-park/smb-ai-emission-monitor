@@ -101,6 +101,29 @@ export const DISCHARGE_SERIES_CODES: SeriesCode[] = ['level'];
 export const ESTIMATE_SERIES_CODES: SeriesCode[] = ['TN', 'TP'];
 
 /**
+ * 유입 수질 8종 — **유출 8종과 짝을 이룬다** `[회의 2026-09-08]`.
+ *
+ * 순서는 `WATER_SERIES_CODES`와 같다. 격자와 대조 줄이 다른 순서로 읽으면 같은 화면 안에서
+ * 항목이 두 번 다르게 늘어선다.
+ *
+ * **`WATER_SERIES_CODES`에 넣지 않는다.** 그 배열이 `dashboard`·`admin-overview`·
+ * `jurisdiction`·`timeseries` 네 화면의 «수질 8종» 격자와 필터를 만들므로, 넣으면 **요청하지
+ * 않은 화면 넷이 16칸으로 부푼다**(**A2**). `DISCHARGE_SERIES_CODES`·`ESTIMATE_SERIES_CODES`가
+ * 같은 이유로 따로 서 있고 여기가 그 선례를 따른다 — 계열의 **존재**만 아래 `SERIES_CODES`에
+ * 합류시킨다.
+ */
+export const INLET_WATER_SERIES_CODES: SeriesCode[] = [
+  'inletPH',
+  'inletDO',
+  'inletEC',
+  'inletTurbidity',
+  'inletTOC',
+  'inletNO3N',
+  'inletTemperature',
+  'inletChromaticity',
+];
+
+/**
  * 계열이 실제로 있는 항목 전부. **긍정 목록이다.**
  *
  * 한때 `code !== 'vibration' && code !== 'TN' && code !== 'TP'`처럼 부정 목록이었는데,
@@ -115,6 +138,7 @@ export const SERIES_CODES: SeriesCode[] = [
   ...EQUIPMENT_SERIES_CODES,
   ...DISCHARGE_SERIES_CODES,
   ...ESTIMATE_SERIES_CODES,
+  ...INLET_WATER_SERIES_CODES,
 ];
 
 /**
@@ -168,6 +192,26 @@ export const TB_CHANNEL_BY_CODE: Partial<Record<SeriesCode, string>> = {
  * (`telemetry.mapper.test.ts`).
  */
 export const UNRECEIVED_SERIES_CODES: SeriesCode[] = [];
+
+/**
+ * **우리가 만들고, 화면이 그 사실을 밝히는 계열** `[TBD-59]` `[PROVISIONAL]`.
+ *
+ * 원천이 두 갈래(`RECEIVED` ↔ `UNRECEIVED`)로는 유입 수질을 담을 수 없었다. 서버에 채널이
+ * 없는데 `RECEIVED`에 넣으면 **유령 표본**이 오고(명세 §7.1), `UNRECEIVED`에 넣으면 화면이
+ * 통째로 빈다 — 둘 다 «유입과 유출을 견준다»는 요청을 만족하지 못한다 `[사용자 요청 2026-09-10]`.
+ *
+ * **E4가 막는 것은 섞는 것이 아니라 «섞고도 말하지 않는 것»이다.** 위 `UNRECEIVED` 주석이
+ * *"서버가 준 값과 내장 값을 한 행에 섞으면 어느 칸이 어디서 왔는지 알 수 없다"* 로 적은 그
+ * 위험은, **갈래를 나누고 화면이 항목마다 `시연값`이라 적으면** 사라진다.
+ * `PROVISIONAL_DEMO_LIMITS`가 같은 자리에서 먼저 쓴 방식이다 — *"화면이 스스로 밝힌다"*.
+ *
+ * **불변식: `RECEIVED ∪ UNRECEIVED ∪ DEMO === SERIES_CODES`.** 셋 중 어디에도 없는 계열은
+ * 매퍼가 손대지 않아 `MeasurementPoint`의 그 칸이 `undefined`로 남는데, 타입은 `number | null`
+ * 이라 소비처가 `=== null`로 걸러도 통과한다. 산문이 아니라 `telemetry.mapper.test.ts`가 지킨다.
+ *
+ * 채널이 생기면 여기서 `RECEIVED_SERIES_CODES`로 옮기고 배지를 걷는다.
+ */
+export const DEMO_SERIES_CODES: SeriesCode[] = [...INLET_WATER_SERIES_CODES];
 
 /** 방류 여부는 계열이 아니라 플래그다. 서버가 채널로 준다 — 파생하지 않는다 */
 export const DISCHARGING_KEY = 'discharging';

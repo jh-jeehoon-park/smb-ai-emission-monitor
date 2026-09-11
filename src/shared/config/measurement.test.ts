@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
   EQUIPMENT_CODES,
+  INLET_BY_OUTLET_CODE,
   MEASUREMENT_ITEMS,
   WATER_QUALITY_CODES,
   type MeasurementItem,
+  type MeasurementItemCode,
 } from './measurement';
 
 const items = Object.values(MEASUREMENT_ITEMS) as MeasurementItem[];
@@ -32,10 +34,12 @@ describe('단위 한글 병기 — 항목마다 있다', () => {
   /**
    * 단위가 없는 항목(pH·진동)은 **그 사실을 적는다.** 빈 칸으로 두면 값을 못 받은 것으로
    * 읽히고, 툴팁이 `단위 없음` 뒤에 아무 말도 없이 끝난다.
+   *
+   * `inletPH`는 유입 쪽 같은 항목이라 함께 무차원이다 `[회의 2026-09-08]` — 같은 프로브다.
    */
   it('단위가 없는 항목도 무엇인지 말한다', () => {
     const unitless = items.filter((i) => i.unit === '');
-    expect(unitless.map((i) => i.code)).toEqual(['pH', 'vibration']);
+    expect(unitless.map((i) => i.code)).toEqual(['pH', 'vibration', 'inletPH']);
     unitless.forEach((item) => {
       expect(item.unitKo).toContain('무차원');
     });
@@ -50,6 +54,29 @@ describe('단위 한글 병기 — 항목마다 있다', () => {
     const outflow = MEASUREMENT_ITEMS.flow;
     expect(inflow.unit).toBe(outflow.unit);
     expect(inflow.decimals).toBe(outflow.decimals);
+  });
+
+  /**
+   * **유입 수질 8종은 유출 8종의 사양을 그대로 쓴다** `[회의 2026-09-08]` — 같은 프로브를
+   * 양 끝에 단다. 값이 갈리면 «같은 센서가 지점마다 다른 정확도를 갖는다»는 주장이 되고,
+   * 자릿수가 갈리면 대조 줄의 두 숫자가 다른 정밀도로 보인다(**E1**).
+   */
+  it('유입 수질은 짝이 되는 유출 항목과 사양이 같다', () => {
+    for (const [outletCode, inletCode] of Object.entries(INLET_BY_OUTLET_CODE)) {
+      const outlet = MEASUREMENT_ITEMS[outletCode as MeasurementItemCode];
+      const inlet = MEASUREMENT_ITEMS[inletCode];
+
+      expect(inlet.unit, outletCode).toBe(outlet.unit);
+      expect(inlet.unitKo, outletCode).toBe(outlet.unitKo);
+      expect(inlet.range, outletCode).toEqual(outlet.range);
+      expect(inlet.accuracy, outletCode).toBe(outlet.accuracy);
+      expect(inlet.decimals, outletCode).toBe(outlet.decimals);
+    }
+  });
+
+  /** 짝이 수질 8종 전부를 덮는다 — 하나라도 빠지면 그 항목의 대조 줄이 조용히 사라진다 */
+  it('수질 8종 전부에 유입 짝이 있다', () => {
+    expect(Object.keys(INLET_BY_OUTLET_CODE).sort()).toEqual([...WATER_QUALITY_CODES].sort());
   });
 
   /** 같은 단위 기호는 같은 한글로 풀린다 — 화면마다 다르게 풀리면 병기가 소음이 된다 */

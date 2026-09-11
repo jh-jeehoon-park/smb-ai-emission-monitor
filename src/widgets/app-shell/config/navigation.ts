@@ -11,10 +11,20 @@ import {
   SlidersHorizontal,
   Workflow,
   FileText,
+  ArrowLeftRight,
   LayoutDashboard,
   LineChart,
+  MonitorPlay,
   type LucideIcon,
 } from 'lucide-react';
+
+/**
+ * 현황판의 화면 ID — **셸이 이 값으로 그 화면을 알아본다.**
+ *
+ * `AppShell`이 이 경로에서만 사이드바·헤더를 그리지 않는다. 경로 문자열을 셸에 또 적으면
+ * 둘이 갈릴 수 있어, 아래 `WALLBOARD_HREF`가 배열에서 끌어온다.
+ */
+export const WALLBOARD_SCREEN_ID = 'SCR-AD-006';
 
 export interface NavItem {
   href: string;
@@ -59,14 +69,25 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     label: '관제',
     items: [
-      /* **맨 앞이어야 한다.** 라우트 가드가 메뉴에 보이는 첫 항목을 폴백으로 쓴다 — 사업장의
-         첫 화면이 손익(SCR-AD-001)이 아니라 현황이 되게 하는 것이 이 순서의 목적이다.
-         통합 관제가 사업장에 닫혀 있어(회의 2026-08-20) 역할을 바꾸면 여기로 온다.
-
-         **접근은 세 역할, 메뉴는 사업장뿐이다** `[사용자 요청 2026-08-28]` — 나머지 둘은
-         통합 관제·관내 감독에서 사업장을 고른 뒤 `상세 보기`로 들어온다. `menuRoles`를
-         생략하면 접근 권한을 따라가는데, 그러면 맨 앞이라는 이유만으로 세 역할의 홈이
-         전부 여기가 된다. 수처리 공정(SCR-AD-002)이 같은 방식이다 */
+      /*
+       * **맨 앞이어야 한다 — 여기가 사업장의 첫 화면이다.** 라우트 가드와 `homeHrefFor`가
+       * 메뉴에 보이는 첫 항목을 폴백으로 쓴다.
+       *
+       * 하루 동안 그 자리를 `유입·유출 비교`(SCR-AD-005)에게 내줬다가 되받았다
+       * `[사용자 요청 2026-09-10]`. 내준 근거는 *"첫 화면이 손익이 아니라 현황이 되게"* 를
+       * 그 화면도 만족한다는 것이었고 그 판단 자체는 틀리지 않았다 — 다만 사용자가 그 화면을
+       * **4번째**로 지정하면서 순서가 곧 첫 화면이라는 이 규칙이 자리를 되돌렸다. 규칙을
+       * 예외로 우회하지 않고 순서를 그대로 따른 것이다.
+       *
+       * **접근은 세 역할, 메뉴는 사업장뿐이다** `[사용자 요청 2026-08-28]` — 나머지 둘은
+       * 통합 관제·관내 감독에서 사업장을 고른 뒤 `상세 보기`로 들어온다. 수처리 공정
+       * (SCR-AD-002)이 같은 방식이다.
+       *
+       * **그래서 `menuRoles: ['site']`가 유일한 방어선이다.** 이 항목은 맨 앞이면서 접근은
+       * 세 역할이라, 이 줄을 지우면 `menuRolesOf`가 접근 권한을 따라가 **세 역할의 홈이 전부
+       * `/overview`가 된다.** 실제로 2026-08-28에 그렇게 깨져 `navigation.test.ts`가 3건으로
+       * 잡았다(아래 `homeHrefFor` 주석).
+       */
       {
         screenId: 'SCR-AD-003',
         href: '/overview',
@@ -85,14 +106,54 @@ export const NAV_GROUPS: NavGroup[] = [
       /* 계측값 그대로를 보는 화면이라 AI 묶음이 아니라 관제에 둔다 */
       { screenId: 'SCR-OP-003', href: '/timeseries', label: '시계열 변화', icon: LineChart },
       /*
-       * **맨 뒤여야 한다.** `homeHrefFor`가 메뉴에 보이는 첫 항목을 그 역할의 첫 화면으로
-       * 쓰므로, 이 항목을 묶음 앞쪽에 두면 세 역할의 홈이 여기로 딸려 온다 —
-       * `navigation.test.ts`가 그 값을 못박고 있고, 앞으로 옮겨 실제로 4건이 깨지는 것을
-       * 확인했다.
+       * **묶음 앞쪽으로 옮기지 않는다.** 접근이 세 역할이라 `homeHrefFor`가 세 역할의 홈으로
+       * 집어 간다 — 앞으로 옮겨 실제로 4건이 깨지는 것을 확인했다. 한때 «맨 뒤여야 한다»고
+       * 적었는데 지금은 아래 `유입·유출 비교`가 뒤에 있다 `[사용자 요청 2026-09-10]`. 근거가
+       * 뒤집힌 것이 아니라 조건이 정확해진 것이다 — 막아야 하는 것은 «맨 뒤가 아닌 것»이
+       * 아니라 **사업장 전용 항목보다 앞서는 것**이고, 뒤에 오는 항목은 `menuRoles: ['site']`라
+       * 다른 역할의 홈을 건드리지 않는다.
        *
        * 계측값을 그대로 보는 화면이라 시계열 변화와 같은 자리(관제)에 둔다.
        */
       { screenId: 'SCR-OP-011', href: '/discharge', label: '금일 배출 현황', icon: Waves },
+      /*
+       * **사업장에게 4번째로 보인다** `[사용자 요청 2026-09-10]` — 사업장에게 보이는 관제
+       * 항목이 `사업장 상세 · 시계열 변화 · 금일 배출 현황 · 유입·유출 비교` 넷이라 이 자리가
+       * 곧 그 순서다. 하루 동안 맨 앞이었고 그때는 이 화면이 사업장의 첫 화면이었다.
+       *
+       * **`menuRoles`를 생략하면 안 된다.** 사업장 전용 화면이라 결과가 같아 보이지만,
+       * 생략하면 접근 권한을 따라가 나중에 다른 역할을 열 때 이 항목이 그 역할의 메뉴에
+       * 딸려 나온다.
+       */
+      {
+        screenId: 'SCR-AD-005',
+        href: '/inout',
+        label: '유입·유출 비교',
+        icon: ArrowLeftRight,
+        menuRoles: ['site'],
+      },
+      /*
+       * **현황판은 관제 묶음 맨 끝이다** `[사용자 요청 2026-09-10]`.
+       *
+       * 앞으로 옮기면 안 된다 — `homeHrefFor`가 **메뉴에 보이는 첫 항목**을 그 역할의 첫
+       * 화면으로 쓰므로, 사업장에게 보이는 항목을 `사업장 상세`보다 앞에 두면 로그인 직후
+       * 벽 화면이 열린다. `[사용자 결정 2026-09-10: 사업장 상세는 그대로]`가 그것을 막는다.
+       *
+       * **`menuRoles`를 생략하면 안 된다** — 위 `유입·유출 비교`와 같은 이유다.
+       *
+       * 이 화면만 셸 크롬을 그리지 않는다(`app-shell.tsx`가 `WALLBOARD_HREF`를 본다).
+       * 그래도 **메뉴와 가드는 다른 화면과 똑같이 걸린다** — 셸 밖 route group으로 나가면
+       * 가드를 따로 만들어야 하고 `verify:docs` 검사 3의 «셸 라우트 수 = 메뉴 수»가 깨진다.
+       */
+      {
+        screenId: WALLBOARD_SCREEN_ID,
+        /* 경로는 **문자열 그대로** 적는다 — `verify-docs` 검사 3이 이 배열의 경로 리터럴을
+           정규식으로 세어 셸 라우트 수와 맞춘다. 상수로 바꾸면 세지 못해 수가 어긋난다 */
+        href: '/wallboard',
+        label: '현황판',
+        icon: MonitorPlay,
+        menuRoles: ['site'],
+      },
     ],
   },
   {
@@ -162,6 +223,17 @@ export const NAV_GROUPS: NavGroup[] = [
 export const NAV_ITEMS: NavItem[] = NAV_GROUPS.flatMap((group) => group.items);
 
 /**
+ * 현황판 경로 — **배열에서 끌어온다.**
+ *
+ * 셸이 이 경로에서만 크롬을 그리지 않는다. 문자열을 셸에 다시 적으면 경로를 바꿀 때 한쪽만
+ * 고쳐져 **크롬이 사라지지 않거나 엉뚱한 화면에서 사라진다.** 항목이 사라지면 즉시 터지는
+ * 편이 조용히 어긋나는 것보다 낫다.
+ */
+export const WALLBOARD_HREF: string = NAV_ITEMS.find(
+  (item) => item.screenId === WALLBOARD_SCREEN_ID,
+)!.href;
+
+/**
  * 그 항목이 **메뉴에 보이는** 역할. 접근 권한과 다른 축이다(`NavItem.menuRoles`).
  * 화면이 아니라 여기 있는 이유는 테스트가 닿아야 해서다.
  */
@@ -201,3 +273,4 @@ export function homeHrefFor(role: Role): string {
 export function navLabelOf(pathname: string): string {
   return NAV_ITEMS.find((item) => item.href === pathname)?.label ?? '통합 관제';
 }
+

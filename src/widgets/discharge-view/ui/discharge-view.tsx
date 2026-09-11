@@ -35,6 +35,7 @@ import {
   TILE_VALUE,
 } from '@/shared/ui/stat-tile';
 import { InfoTip } from '@/shared/ui/tooltip';
+import { VOLUME_UNIT, VOLUME_UNIT_KO } from '@/shared/config/constants';
 import { useChartHover } from '@/shared/lib/use-chart-hover';
 import { getSite } from '@/entities/site';
 import {
@@ -197,7 +198,7 @@ export function DischargeView() {
               note={
                 volume.volumeM3 === null
                   ? '센 표본이 없습니다 — 0이 아니라 모릅니다'
-                  : `m³ · 세제곱미터${volume.missing > 0 ? ` · 결측 ${volume.missing}건 제외` : ''}`
+                  : `${VOLUME_UNIT} · ${VOLUME_UNIT_KO}${volume.missing > 0 ? ` · 결측 ${volume.missing}건 제외` : ''}`
               }
             />
           </>

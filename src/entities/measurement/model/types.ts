@@ -30,6 +30,26 @@ export interface MeasurementPoint {
    */
   TN: Reading;
   TP: Reading;
+  /**
+   * 유입 수질 8종 — **같은 프로브를 유입에도 단다** `[회의 2026-09-08]`.
+   *
+   * 위 8종(`pH`~`TOC`)은 이제 **유출(방류구)** 을 뜻한다. 두 지점의 차이가 «처리가 됐는가»의
+   * 증거이고, 그것이 `SCR-AD-005`의 질문이다.
+   *
+   * **계측 서버에 채널이 없다** `[TBD-59]` — 10개소 전부 16채널이 같고 수질은 방류구
+   * 한 지점뿐이다(2026-09-10 실측). 그래서 이 여덟은 `DEMO_SERIES_CODES`에 들어가 유출
+   * 실측에서 역산되며, **화면이 항목마다 `시연값`이라 밝힌다.** `RECEIVED`(서버가 준다)와
+   * `UNRECEIVED`(서버에 없어 전 구간 결측) 어느 쪽에도 넣지 않는 이유가 이것이다 —
+   * 앞쪽은 유령 표본을 부르고 뒤쪽은 화면을 비운다.
+   */
+  inletPH: Reading;
+  inletEC: Reading;
+  inletTurbidity: Reading;
+  inletDO: Reading;
+  inletTemperature: Reading;
+  inletChromaticity: Reading;
+  inletNO3N: Reading;
+  inletTOC: Reading;
 }
 
 /**

@@ -107,6 +107,23 @@ export function formatKstWallClock(date: Date): string {
   return `${p.month}월 ${p.day}일 (${p.weekday}) ${p.dayPeriod} ${p.hour}:${p.minute}:${p.second}`;
 }
 
+/**
+ * 같은 표기에서 **초만 뺀다** — `9월 11일 (금) 오전 10:17`.
+ *
+ * 위 `formatKstWallClock`은 *"초는 남긴다 — 시계가 살아 있다는 것을 초가 보여 준다"* 가
+ * 근거인데, **벽에 걸어 두는 화면에서는 그 근거가 뒤집힌다**(`SCR-AD-006 현황판`): 아무도
+ * 보고 있지 않은 화면에서 종일 흐르는 초침은 «살아 있다»가 아니라 **눈에 남는 움직임**이다.
+ *
+ * 같은 `Intl` 설정을 쓰되 조각만 덜 이어 붙인다 — 포맷터를 따로 만들면 월·일·요일 표기가
+ * 두 화면에서 갈릴 수 있다.
+ */
+export function formatKstWallMinute(date: Date): string {
+  const p = Object.fromEntries(
+    KST_WALL_CLOCK.formatToParts(date).map((part) => [part.type, part.value]),
+  );
+  return `${p.month}월 ${p.day}일 (${p.weekday}) ${p.dayPeriod} ${p.hour}:${p.minute}`;
+}
+
 export function formatRelative(iso: string, nowIso: string): string {
   const diffMin = Math.round((new Date(nowIso).getTime() - new Date(iso).getTime()) / 60000);
   if (diffMin < 1) return '방금';

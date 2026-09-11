@@ -23,6 +23,15 @@ function point(t: string, flow: Reading): MeasurementPoint {
     level: null,
     TN: null,
     TP: null,
+    /* 유입 수질 8종 — 이 테스트와 무관하다. 타입이 요구하므로 자리만 둔다 */
+    inletPH: null,
+    inletEC: null,
+    inletTurbidity: null,
+    inletDO: null,
+    inletTemperature: null,
+    inletChromaticity: null,
+    inletNO3N: null,
+    inletTOC: null,
   };
 }
 

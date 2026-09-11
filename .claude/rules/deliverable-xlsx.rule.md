@@ -310,12 +310,12 @@ README §3.1이 이미 못박은 것을 잇는다. 이 둘은 **어떤 태그를
 
 | 항목 집합 | 단일 출처 | 개수 |
 |---|---|---|
-| 계측 항목 | `src/shared/config/measurement.ts` `MEASUREMENT_ITEMS` | 13 (수질 8 · 설비 3 · AI 추정 2) |
-| 화면별 계측 부분집합 | `src/entities/measurement/config/constants.ts` `WATER_SERIES_CODES` · `EQUIPMENT_SERIES_CODES` | 8 · 3 |
+| 계측 항목 | `src/shared/config/measurement.ts` `MEASUREMENT_ITEMS` | **24** (유출 수질 8 · **유입 수질 8** · 설비 5 · AI 추정 2 · 진동 1) — 유입 8종은 서버 채널이 없어 유출에서 역산한 시연값이다 `[TBD-59]` |
+| 화면별 계측 부분집합 | `src/entities/measurement/config/constants.ts` `WATER_SERIES_CODES` · `EQUIPMENT_SERIES_CODES` · `INLET_WATER_SERIES_CODES` | 8 · 4 · 8 — **유입 8종을 `WATER_SERIES_CODES`에 넣지 않는다**: 그 배열이 화면 넷의 «수질 8종» 격자를 만들어 넣으면 요청하지 않은 화면이 함께 바뀐다(**A2**) |
 | 설비 | `src/entities/equipment/api/fixtures.ts` `EQUIPMENT_TEMPLATE` | 4 — **시연값** `[TBD-48]` |
 | 예측 대상 | `src/entities/prediction/config/constants.ts` `FORECAST_TARGETS` · `FLOW_FORECAST` | 3 + 1 |
 | 상태 등급 · 이상 점수 구간 | `src/shared/config/provisional.ts` `PROVISIONAL_STATUS_LEVELS` · `PROVISIONAL_ANOMALY_BANDS` | 4 · 4 |
-| 알람 우선순위 · 조건 · 상태 | `src/entities/alarm/model/types.ts` 라벨 맵 3종 | 3 · 4 · 3 |
+| 알람 우선순위 · 조건 · 상태 | `src/entities/alarm/model/types.ts` 라벨 맵 3종 | 3 · **5** · 3 — 조건 5번째는 `treatmentStall`(처리 미흡 의심) `[회의 2026-09-08]`. 원문 4종 `[원문 p.32]`이 *"… 설비 이상 **등**"* 으로 열어 둔 여지다 |
 | 공정 단계 | `src/entities/process/config/constants.ts` `PROCESS_STAGES` | 6 |
 | 수분석 항목 | `src/entities/water-analysis/config/constants.ts` `ANALYSIS_ITEMS` | 5 |
 | 사업장 | `src/shared/config/demo-scenario.ts` `SITE_SCENARIOS` | 10 |

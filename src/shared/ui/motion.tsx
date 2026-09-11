@@ -1,6 +1,6 @@
 'use client';
 
-import { MotionConfig, motion, type Variants } from 'framer-motion';
+import { MotionConfig, motion, useReducedMotion, type Variants } from 'framer-motion';
 import { useEffect, useState, type ReactNode } from 'react';
 import { cn } from '@/shared/lib/cn';
 
@@ -102,4 +102,28 @@ export function CountUp({ value, decimals = 0, className, durationMs = 1200 }: C
   return <span className={cn('num', className)}>{(value * progress).toFixed(decimals)}</span>;
 }
 
+/**
+ * **framer-motion을 import하는 파일은 이것 하나다.** 애니메이션 라이브러리가 화면마다 직접
+ * 불려 들어오면 `MotionPreferences`를 우회하는 모션이 생기고, 갈아 끼울 때 소비처를 셀 수 없다.
+ *
+ * 한때 스크롤 구동 값 파이프라인(`useScroll`·`useTransform`·`useMotionValueEvent`·
+ * `useReducedMotion`)도 여기서 함께 내보냈다 — `SCR-AD-005`의 카메라가 유일한 소비처였고,
+ * 그 화면이 2026-09-10에 값 중심 보드로 다시 세워지며 카메라와 함께 걷었다. 쓰는 곳이 없는
+ * 재export를 남기면 다음 사람이 «이 저장소는 스크롤 모션을 쓴다»로 읽는다.
+ */
 export { motion };
+
+/**
+ * **`MotionConfig reducedMotion="user"`가 끝내지 못하는 것이 있다.**
+ *
+ * 그 설정은 **위치·크기 계열**(transform·width·height 등)만 즉시 끝낸다. `pathLength`처럼
+ * SVG 경로를 자라게 하는 값은 그 목록에 없어 **감속을 켠 사용자에게도 그대로 움직인다** —
+ * `SCR-AD-005`의 반원 게이지가 카드 여덟 장 × 호 셋을 그렇게 그린다.
+ *
+ * 그래서 그런 자리만 이 훅으로 **전이 시간을 0으로 만든다.** 렌더 결과(마크업)는 바뀌지
+ * 않고 전이 시간만 달라지므로 hydration이 어긋나지 않는다 — 서버는 `null`을 주고 그때도
+ * `initial`은 같은 값이다. `CountUp`이 effect 안에서 `matchMedia`를 읽는 것과 같은 규약이다.
+ */
+export function useInstantWhenReduced(): boolean {
+  return useReducedMotion() === true;
+}

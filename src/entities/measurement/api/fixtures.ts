@@ -1,6 +1,7 @@
 import { PROVISIONAL_IDLE_INFLOW_RATIO } from '@/shared/config/provisional';
 import { getScenario, siteSeed } from '@/shared/config/demo-scenario';
-import { MEASUREMENT_ITEMS } from '@/shared/config/measurement';
+import { MEASUREMENT_ITEMS, type InletSeriesCode } from '@/shared/config/measurement';
+import { fillInletQuality } from '../lib/inlet-quality';
 import { clamp, createRng, roundTo } from '@/shared/lib/prng';
 import {
   EVENT_LENGTH_SAMPLES,
@@ -14,8 +15,18 @@ import {
 } from '@/shared/lib/timeline';
 import type { MeasurementPoint, SeriesCode } from '../model/types';
 
-/** 주기는 **분**이다. 표본 수로 적으면 수집 주기를 좁힐 때 파형이 그만큼 빨라진다 */
-const BASELINE: Record<SeriesCode, { mid: number; swing: number; periodMinutes: number }> = {
+/**
+ * 주기는 **분**이다. 표본 수로 적으면 수집 주기를 좁힐 때 파형이 그만큼 빨라진다.
+ *
+ * **유입 수질 8종은 여기 없다** — 파도로 따로 만들면 유출과 무관하게 움직여 «두 지점의 차»가
+ * 뜻을 잃는다. 아래 `fillInletQuality`가 유출값에서 역산한다. `Exclude`로 타입에서 빼 두는
+ * 이유는 이 `Record`가 **새 계열을 컴파일 에러로 강제하는 자리**라서다 — 유입만 빼고 그
+ * 강제를 그대로 남긴다.
+ */
+const BASELINE: Record<
+  Exclude<SeriesCode, InletSeriesCode>,
+  { mid: number; swing: number; periodMinutes: number }
+> = {
   pH: { mid: 7.15, swing: 0.32, periodMinutes: 305 },
   EC: { mid: 1840, swing: 210, periodMinutes: 415 },
   turbidity: { mid: 34, swing: 11, periodMinutes: 235 },
@@ -44,7 +55,14 @@ const BASELINE: Record<SeriesCode, { mid: number; swing: number; periodMinutes: 
   TP: { mid: 1.5, swing: 0.3, periodMinutes: 295 },
 };
 
-const SERIES_CODES: SeriesCode[] = [
+/**
+ * **파도로 만드는 계열**. 위 `BASELINE`과 같은 목록이어야 하는데 **동기화 검사가 없다** —
+ * 빠뜨리면 그 계열의 칸이 통째로 비고 컴파일은 통과한다.
+ *
+ * 유입 수질 8종은 여기 없다(`Exclude`가 그것을 타입으로 못박는다). 그 여덟은 `fillLevel`과
+ * 같은 층의 두 번째 패스에서 유출값에서 역산된다.
+ */
+const SERIES_CODES: Exclude<SeriesCode, InletSeriesCode>[] = [
   'pH',
   'EC',
   'turbidity',
@@ -137,7 +155,7 @@ function buildSeries(siteId: string): MeasurementPoint[] {
   const offsetRng = createRng(siteSeed(siteId, 4242));
   const offsets = Object.fromEntries(
     SERIES_CODES.map((code) => [code, 1 + (offsetRng() - 0.5) * 0.24]),
-  ) as Record<SeriesCode, number>;
+  ) as Record<Exclude<SeriesCode, InletSeriesCode>, number>;
 
   const points = Array.from({ length: TIMELINE_POINT_COUNT }, (_, i) => {
     const point = { t: timelineIsoAt(i) } as MeasurementPoint;
@@ -208,7 +226,13 @@ function buildSeries(siteId: string): MeasurementPoint[] {
     return point;
   });
 
-  return fillLevel(points, siteId);
+  /*
+   * **수위를 채운 뒤에 유입을 만든다.** 유입은 유출값에서 역산되므로 유출 계열이 전부 자리에
+   * 앉은 다음이어야 한다 — 순서가 뒤집히면 아직 없는 값에서 나눈다.
+   */
+  const withLevel = fillLevel(points, siteId);
+  for (const point of withLevel) fillInletQuality(point, siteId);
+  return withLevel;
 }
 
 /**

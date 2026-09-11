@@ -13,6 +13,8 @@ export {
   FLOW_SERIES_CODES,
   DISCHARGE_SERIES_CODES,
   ESTIMATE_SERIES_CODES,
+  INLET_WATER_SERIES_CODES,
+  DEMO_SERIES_CODES,
   BUCKET_UNITS,
   BUCKET_MINUTES,
   BUCKET_OPTIONS,
@@ -42,5 +44,6 @@ export { isReceptionStalled } from './lib/reception';
 export { buildBucketReport, bucketReportToCsv, type BucketRow } from './lib/bucket-report';
 export { countOverLimit } from './lib/limit';
 export { isSeriesCode } from './lib/series-code';
+export { changeRatePercent, isSimilar, isTreatmentJudged } from './lib/inlet-quality';
 export type { SeriesBucket, SeriesStats } from './lib/series-stats';
 export type { MeasurementPoint, SeriesCode, Reading, TelemetryStatus } from './model/types';

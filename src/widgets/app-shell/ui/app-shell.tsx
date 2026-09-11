@@ -32,6 +32,7 @@ import {
   homeHrefFor,
   menuRolesOf,
   navLabelOf,
+  WALLBOARD_HREF,
   type NavGroup,
   type NavItem,
 } from '../config/navigation';
@@ -59,6 +60,23 @@ export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
   useRoleRouteGuard();
+
+  /*
+   * **현황판만 셸을 그리지 않는다** `[사용자 결정 2026-09-10: TV 상시 표출 — 전체화면 고정]`.
+   *
+   * 사이드바 280px과 헤더가 빠져 1920px을 다 쓴다. 그 화면은 벽에 걸어 두고 아무도 누르지
+   * 않으므로 메뉴·시계·알림이 자리를 차지할 이유가 없고, 셸이 하던 일(사업장 이름·원천·
+   * 시각)은 그 화면의 머리줄이 직접 맡는다.
+   *
+   * **`(shell)` 밖으로 내보내지 않은 이유가 있다.** route group을 따로 두면 ① 메뉴 항목이
+   * 성립하지 않고 ② `useRoleRouteGuard`가 `NAV_ITEMS`에 있는 경로만 보므로 전용 가드를 또
+   * 만들어야 하며 ③ `verify:docs` 검사 3의 «셸 라우트 수 = 사이드바 메뉴 수»가 깨진다.
+   * 여기서 한 줄로 분기하면 셋 다 그대로 두고 크롬만 걷을 수 있다.
+   *
+   * **훅보다 아래에 둔다** — 훅은 조건부로 부를 수 없다. 가드·헤더 관측은 그대로 돌고
+   * 그리는 것만 달라진다.
+   */
+  if (pathname === WALLBOARD_HREF) return <>{children}</>;
 
   return (
     <div className="flex min-h-screen bg-bg">

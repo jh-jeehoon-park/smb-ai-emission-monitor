@@ -22,7 +22,25 @@ export type MeasurementItemCode =
   | 'level'
   | 'vibration'
   | 'TN'
-  | 'TP';
+  | 'TP'
+  /*
+   * **유입 수질 8종** — 같은 프로브를 유입에도 단다 `[회의 2026-09-08]`.
+   *
+   * 위 8종은 이제 **유출(방류구) 수질**을 뜻한다. 이름을 바꾸지 않는 이유는 그 이름이
+   * 화면·문서·CSV·서버 채널에 전부 박혀 있어서이고, 유입 쪽만 접두사를 갖는다.
+   *
+   * **계측 서버에 채널이 없다** `[TBD-59]` — 10개소 전부 16채널이 같고 수질은 방류구
+   * 한 지점뿐이다(2026-09-10 실측). 그래서 이 여덟은 `DEMO_SERIES_CODES`로 들어가
+   * **우리가 만들고 화면이 항목마다 그 사실을 밝힌다.**
+   */
+  | 'inletPH'
+  | 'inletEC'
+  | 'inletTurbidity'
+  | 'inletDO'
+  | 'inletTemperature'
+  | 'inletChromaticity'
+  | 'inletNO3N'
+  | 'inletTOC';
 
 export interface MeasurementItem {
   code: MeasurementItemCode;
@@ -277,7 +295,131 @@ export const MEASUREMENT_ITEMS: Record<MeasurementItemCode, MeasurementItem> = {
     category: 'estimated',
     decimals: PROVISIONAL_DECIMALS.TP,
   },
+  /*
+   * **유입 수질 8종 — 아래는 위 8종의 사양을 그대로 복사한 것이다.**
+   *
+   * 같은 프로브가 양 끝에 달리므로 `unit`·`unitKo`·`range`·`accuracy`가 같아야 한다
+   * `[회의 2026-09-08]` `[원문 p.55]`. 값을 바꾸면 **같은 센서가 지점마다 다른 정확도를
+   * 갖는다**고 주장하게 되고, 그 전에 `measurement.test.ts`의 «같은 기호는 한 가지로만
+   * 풀린다»가 먼저 걸린다.
+   *
+   * 라벨만 `유입 …`을 앞에 붙인다 — 대조 줄에서 두 값이 나란히 서므로 어느 쪽인지를
+   * 라벨이 혼자 말할 수 있어야 한다.
+   */
+  inletPH: {
+    code: 'inletPH',
+    label: '유입 수소이온농도',
+    symbol: 'pH(유입)',
+    unit: '',
+    unitKo: '무차원 (0~14)',
+    range: [0, 14],
+    accuracy: '±0.1',
+    category: 'water',
+    decimals: PROVISIONAL_DECIMALS.inletPH,
+  },
+  inletEC: {
+    code: 'inletEC',
+    label: '유입 전기전도도',
+    symbol: 'EC(유입)',
+    unit: 'μS/cm',
+    unitKo: '마이크로지멘스/센티미터',
+    range: [0, 20000],
+    accuracy: '±2%',
+    category: 'water',
+    decimals: PROVISIONAL_DECIMALS.inletEC,
+  },
+  inletTurbidity: {
+    code: 'inletTurbidity',
+    label: '유입 탁도',
+    symbol: 'Turb(유입)',
+    unit: 'NTU',
+    unitKo: '탁도 단위',
+    range: [0, 4000],
+    accuracy: '±5%',
+    category: 'water',
+    decimals: PROVISIONAL_DECIMALS.inletTurbidity,
+  },
+  inletDO: {
+    code: 'inletDO',
+    label: '유입 용존산소',
+    symbol: 'DO(유입)',
+    unit: 'mg/L',
+    unitKo: '밀리그램/리터',
+    range: [0, 20],
+    accuracy: '±0.2 mg/L',
+    category: 'water',
+    decimals: PROVISIONAL_DECIMALS.inletDO,
+  },
+  inletTemperature: {
+    code: 'inletTemperature',
+    label: '유입 수온',
+    symbol: 'Temp(유입)',
+    unit: '℃',
+    unitKo: '섭씨온도',
+    range: [0, 50],
+    accuracy: '±0.5℃',
+    category: 'water',
+    decimals: PROVISIONAL_DECIMALS.inletTemperature,
+  },
+  inletChromaticity: {
+    code: 'inletChromaticity',
+    label: '유입 색도',
+    symbol: 'Color(유입)',
+    unit: 'Pt-Co',
+    unitKo: '백금-코발트 색도 단위',
+    range: [0, 500],
+    accuracy: '±10 Pt-Co',
+    category: 'water',
+    decimals: PROVISIONAL_DECIMALS.inletChromaticity,
+  },
+  inletNO3N: {
+    code: 'inletNO3N',
+    label: '유입 질산성질소',
+    symbol: 'NO₃-N(유입)',
+    unit: 'mg/L',
+    unitKo: '밀리그램/리터',
+    range: [0, 100],
+    accuracy: '±5%',
+    category: 'water',
+    decimals: PROVISIONAL_DECIMALS.inletNO3N,
+  },
+  inletTOC: {
+    code: 'inletTOC',
+    label: '유입 총유기탄소',
+    symbol: 'TOC(유입)',
+    unit: 'mg/L',
+    unitKo: '밀리그램/리터',
+    range: [0, 500],
+    accuracy: '±10%',
+    category: 'water',
+    decimals: PROVISIONAL_DECIMALS.inletTOC,
+  },
 };
+
+/**
+ * 유입 ↔ 유출 짝. **한 곳에서 짝지어 둔다** — 화면이 대조 줄을 만들고 매퍼가 역산할 때
+ * 같은 표를 읽어야 어긋나지 않는다.
+ *
+ * 순서는 `WATER_QUALITY_CODES`를 따른다. 격자와 대조 줄의 항목 순서가 갈리면 같은 화면
+ * 안에서 두 번 다르게 읽힌다.
+ */
+export const INLET_BY_OUTLET_CODE = {
+  pH: 'inletPH',
+  EC: 'inletEC',
+  turbidity: 'inletTurbidity',
+  DO: 'inletDO',
+  temperature: 'inletTemperature',
+  chromaticity: 'inletChromaticity',
+  NO3N: 'inletNO3N',
+  TOC: 'inletTOC',
+} as const satisfies Record<string, MeasurementItemCode>;
+
+/**
+ * 유입 8종만 좁힌 유니온. **`INLET_BY_OUTLET_CODE`에서 파생시킨다** — 목록을 두 번 적으면
+ * 한쪽만 늘어난다. 이 이름이 있어야 «유입을 뺀 나머지»를 타입으로 말할 수 있다(fixture의
+ * `BASELINE`이 그것을 쓴다).
+ */
+export type InletSeriesCode = (typeof INLET_BY_OUTLET_CODE)[keyof typeof INLET_BY_OUTLET_CODE];
 
 export const WATER_QUALITY_CODES: MeasurementItemCode[] = [
   'pH',

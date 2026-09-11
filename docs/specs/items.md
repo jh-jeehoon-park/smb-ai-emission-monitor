@@ -5,7 +5,7 @@
 | 항목 | 내용 |
 |------|------|
 | 문서명 | 항목 사전 |
-| 버전 | v1.7.0 |
+| 버전 | v1.9.0 |
 | 작성일 | 2026-08-20 |
 | 기반 문서 | /.claude/rules/deliverable-xlsx.rule.md, /docs/specs/README.md, /docs/specs/data-definition.md, /docs/applications/HSKorea_AI_Application_Proposal.pdf, /docs/applications/AIoT_Emission_Control_System.pdf |
 
@@ -13,6 +13,8 @@
 
 | 버전 | 날짜 | 작성자 | 변경 내용 |
 |------|------|--------|-----------|
+| v1.9.0 | 2026-09-10 | Claude | **용어 셋을 바꿨다 — 값·규칙·데이터는 하나도 바뀌지 않았다** `[사용자 요청 2026-09-10: 처리 미흡 의심 → 처리 상태 확인 · 들어온 물 → 유입수 · 나간 물 → 유출수]`. `ALC-treatmentStall`의 라벨 한 칸. **낱말만 바뀌었다** — 판정 규칙·유사 임계·알람 발생 조건·조건 키(`treatmentStall`)·`kind: 'stall'`은 그대로다. `[사용자 …]` 인용 안의 옛 낱말은 **그때 사용자가 실제로 쓴 말이라 고치지 않았다** — 인용을 새 용어로 바꾸면 근거가 아니라 우리가 지은 말이 된다. |
+| v1.8.0 | 2026-09-10 | Claude | **계측 항목 16 → 24 · 알람 조건 4 → 5 · 합계 77 → 86** `[사용자 요청 2026-09-10]`. ① 유입 수질 8종 등재 — 회의가 프로브를 유입·유출 양 끝에 달기로 정했고 `[회의 2026-09-08]` 두 지점의 **수질 차이**가 «처리가 됐는가»의 증거다. 위 8종(`MEAS-pH`~`MEAS-TOC`)은 이제 **유출**을 뜻하며 이름은 바꾸지 않는다(화면·문서·CSV·서버 채널에 박혀 있다). **계측 서버에 유입 수질 채널이 없어**(2026-09-10 실측) 유출 실측에서 역산한 시연값이고 화면이 항목마다 밝힌다 `[TBD-59]` ② `ALC-treatmentStall` 등재 — 원문 4종 밖이지만 `[원문 p.32]`가 «등»으로 열어 두었다 |
 | v1.7.0 | 2026-09-08 | Claude | **`MEAS-TN`·`MEAS-TP`에 단서 추가** `[사용자 요청 2026-09-08]` — 계측 서버가 두 채널을 보내 주어 프로토타입 화면이 그 값을 그린다. `계측 방식` 칸은 `AI 추정` 그대로 둔다: 실증의 사실이 바뀐 것이 아니라 **모델이 붙기 전의 임시 원천**이다. 화면 라벨(`preModel`)과 `ESTIMATE_SERIES_CODES`가 그 구분을 지킨다 |
 | v1.4.0 | 2026-08-24 | Claude | §11에 `SCR-GU-001`의 화면별 집계 4종(관할 이름·관내 개소 수·수신 개소 수·조치 필요 개소)을 **등재하지 않는 이유**와 함께 적었다 — 도메인 항목이 아니라 그 화면에서만 계산되는 값이라 근거를 화면 문서의 `항목 목록` `근거` 열이 갖는다. 집합 개수는 바뀌지 않았다 |
 | v1.3.0 | 2026-08-24 | Claude | **단위 한글 병기 등재** `[회의 피드백 2026-08-24]` — `unitKo`를 계측 항목 사전에 더했다. 단위가 없는 항목(pH·진동)은 **빈 칸이 아니라 그 사실을 적는다**(`무차원 (0~14)` · `무차원 (신호 여부만)`) — 빈 칸으로 두면 값을 못 받은 것으로 읽힌다. 표기 위치는 표 형태(리포트 `단위` 열 · 시계열 `항목별 요약`)에 인라인, 수질 격자는 카드 8장이 붙어 있어 **툴팁**으로 낸다 |
@@ -48,19 +50,19 @@
 
 | 집합코드 | 집합 | 개수 | 단일 출처 |
 |---|---|---|---|
-| `MEAS` | 계측 항목 | 16 | `src/shared/config/measurement.ts` `MEASUREMENT_ITEMS` |
+| `MEAS` | 계측 항목 | 24 | `src/shared/config/measurement.ts` `MEASUREMENT_ITEMS` |
 | `EQ` | 설비 | 4 — **시연값** `[TBD-48]` | `src/entities/equipment/api/fixtures.ts` `EQUIPMENT_TEMPLATE` |
 | `EQM` | 설비 지표 | 5 | `src/entities/equipment/model/types.ts` |
 | `FCST` | 예측·추정 대상 | 4 | `src/entities/prediction/config/constants.ts` |
 | `LV` | 상태 등급 | 4 | `src/shared/config/provisional.ts` `PROVISIONAL_STATUS_LEVELS` |
 | `BAND` | 이상 점수 구간 | 4 | 같은 파일 `PROVISIONAL_ANOMALY_BANDS` |
-| `ALP` · `ALC` · `ALS` | 알람 우선순위·조건·상태 | 3 · 4 · 3 | `src/entities/alarm/model/types.ts` |
+| `ALP` · `ALC` · `ALS` | 알람 우선순위·조건·상태 | 3 · 5 · 3 | `src/entities/alarm/model/types.ts` |
 | `PS` | 공정 단계 | 5 | `src/entities/process/config/constants.ts` `PROCESS_STAGES` |
 | `ANA` | 수분석 항목 | 5 | `src/entities/water-analysis/config/constants.ts` `ANALYSIS_ITEMS` |
 | `LGL` | 법정 점검 항목 | 5 | `src/shared/config/discharge-limits.ts` `LEGAL_CHECK_ITEMS` |
 | `XAI` | XAI 기여 변수 | 5 | `src/entities/anomaly/api/fixtures.ts` |
 | `SITE` | 실증 사업장 | 10 | `src/shared/config/demo-scenario.ts` `SITE_SCENARIOS` |
-| | **합계** | **77** (집합 14종) | |
+| | **합계** | **86** (집합 14종) | |
 
 ---
 
@@ -86,6 +88,14 @@
 | `MEAS-vibration` | 진동 | Vib | **원문 미규정** | 무차원 (신호 여부만) | **원문 미규정** | 원문 미규정 | — | `[회의 2026-08-20]` 설비 이상 탐지의 주 입력 · **사양이 없다** `[TBD-49]` — 계측 사양표 `[원문 p.55]`에 없고 목표시스템 그림·출력 화면 예시에만 나온다 `[원문 발표 p.11·18 그림]` `[INC-96]`. **값을 표시하지 않고 이상 여부만 낸다** |
 | `MEAS-TN` | 총질소 | TN | mg/L | 밀리그램/리터 | 0~100 | AI 추정 | 1 | `[원문 발표 p.17]` Soft Sensing · **계측기 없이 AI로만 추정** `[사용자 확인 2026-08-19]` |
 | `MEAS-TP` | 총인 | TP | mg/L | 밀리그램/리터 | 0~20 | AI 추정 | 2 | 같음 |
+| `MEAS-inletPH` | 유입 수소이온농도 | pH(유입) | — | 무차원 (0~14) | 0~14 | ±0.1 | 2 | `[회의 2026-09-08]` `[사용자 요청 2026-09-10]` **계측 서버에 채널이 없다** `[TBD-59]` — 10개소 전부 16채널이 같고 수질은 방류구 한 지점뿐이다(2026-09-10 실측). 유출 실측에서 역산한 **시연값**이고 화면이 항목마다 그 사실을 밝힌다. 프로브는 같은 것을 양 끝에 다므로 단위·범위·정확도는 짝이 되는 유출 항목과 같다 |
+| `MEAS-inletEC` | 유입 전기전도도 | EC(유입) | μS/cm | 마이크로지멘스/센티미터 | 0~20,000 | ±2% | 0 | 같음 |
+| `MEAS-inletTurbidity` | 유입 탁도 | Turb(유입) | NTU | 탁도 단위 | 0~4,000 | ±5% | 1 | 같음 |
+| `MEAS-inletDO` | 유입 용존산소 | DO(유입) | mg/L | 밀리그램/리터 | 0~20 | ±0.2 mg/L | 2 | 같음 |
+| `MEAS-inletTemperature` | 유입 수온 | Temp(유입) | ℃ | 섭씨온도 | 0~50 | ±0.5℃ | 1 | 같음 |
+| `MEAS-inletChromaticity` | 유입 색도 | Color(유입) | Pt-Co | 백금-코발트 색도 단위 | 0~500 | ±10 Pt-Co | 0 | 같음 |
+| `MEAS-inletNO3N` | 유입 질산성질소 | NO₃-N(유입) | mg/L | 밀리그램/리터 | 0~100 | ±5% | 2 | 같음 |
+| `MEAS-inletTOC` | 유입 총유기탄소 | TOC(유입) | mg/L | 밀리그램/리터 | 0~500 | ±10% | 1 | 같음 |
 
 **수질 8종** = `pH · EC · turbidity · DO · temperature · chromaticity · NO3N · TOC` (`WATER_SERIES_CODES`)
 **설비 4종** = `current · power · inflow · flow` (`EQUIPMENT_SERIES_CODES`)
@@ -175,6 +185,7 @@
 | `ALC-pollutionSurge` | 오염도 급변 | `[원문 p.32]` |
 | `ALC-qualityShift` | 수질 변화 이상 | `[원문 p.32]` |
 | `ALC-equipment` | 설비 이상 | `[원문 p.32]` |
+| `ALC-treatmentStall` | 처리 상태 확인 | `[회의 2026-09-08: 유입·유출 센서값이 동일할 경우 공정 처리 과정 중 문제가 있는 것]` `[사용자 요청 2026-09-10]` **라벨이 `처리 미흡 의심` → `처리 상태 확인`으로 바뀌었다** `[사용자 요청 2026-09-10: 용어 변경]` — 조건 키·판정 규칙·우선순위는 그대로다. **원문 4종 밖이다** — `[원문 p.32]`가 *"… 설비 이상 **등**"* 으로 열어 둔 여지에서 더했다. `ALC-qualityShift`(방류 수질이 튀었다)와 다른 사실이라 합치지 않는다: 사용자가 해야 할 행동이 다르다. 유사 임계는 `[TBD-59]` |
 
 | 항목ID | 라벨 | 근거 |
 |---|---|---|

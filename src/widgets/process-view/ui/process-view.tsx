@@ -5,7 +5,7 @@ import {
   PROVISIONAL_MEASUREMENT_GRADE_LABELS,
   type MeasurementGrade,
 } from '@/shared/config/provisional';
-import { ACTUAL_HEX, AI_HEX, MISSING_HEX } from '@/shared/config/status-visual';
+import { AI_HEX, MEASUREMENT_GRADE_HEX } from '@/shared/config/status-visual';
 import { useQueryState } from '@/shared/lib/use-query-state';
 import { Panel } from '@/shared/ui/panel';
 import { Skeleton } from '@/shared/ui/skeleton';
@@ -29,12 +29,6 @@ import { formatValue } from '@/shared/lib/format';
 import { stageReadings } from '../lib/stage-readings';
 import { ProcessDiagram } from './process-diagram';
 import { InfoTip } from '@/shared/ui/tooltip';
-
-const GRADE_HEX: Record<MeasurementGrade, string> = {
-  actual: ACTUAL_HEX,
-  estimated: AI_HEX,
-  none: MISSING_HEX,
-};
 
 /**
  * 이 시스템의 핵심 주장은 TMS 대체다 — 기존 방식은 공정 단계마다 분석기를 놓아 2~3억이
@@ -190,7 +184,7 @@ function GradeLegend() {
           <span
             className="inline-block h-0 w-4 border-t-2"
             style={{
-              borderColor: GRADE_HEX[grade],
+              borderColor: MEASUREMENT_GRADE_HEX[grade],
               borderStyle: grade === 'actual' ? 'solid' : grade === 'estimated' ? 'dashed' : 'dotted',
             }}
           />
@@ -274,7 +268,7 @@ function StageDetail({
 
       <p
         className="mt-3 border-t border-border pt-2.5 text-[12px] leading-relaxed"
-        style={{ color: GRADE_HEX[stage.grade] }}
+        style={{ color: MEASUREMENT_GRADE_HEX[stage.grade] }}
       >
         {stage.measurementNote}
       </p>

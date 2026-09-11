@@ -1,4 +1,4 @@
-import type { StatusLevel } from './provisional';
+import type { MeasurementGrade, StatusLevel } from './provisional';
 
 /**
  * 등급의 라벨·색·정렬 순서를 한 세트로 묶는다.
@@ -89,8 +89,27 @@ export const CELL_NORMAL = 'var(--cell-normal)';
 
 /** AI 산출값 전용 색. 상태 색과 섞지 않는다 — 실측과 추정을 구분해야 한다(E3) */
 export const AI_HEX = 'var(--ai)';
+
 /** 실측 계열 색. 짙은 남색이라 상태 색과 색상이 겹치지 않는다 */
 export const ACTUAL_HEX = 'var(--actual)';
 export const MISSING_HEX = 'var(--missing)';
 export const GRID_HEX = 'var(--grid)';
 export const AXIS_TEXT_HEX = 'var(--axis-text)';
+
+/**
+ * **계측 등급의 색.** `MeasurementGrade`(실측·추정·없음)를 계열색으로 옮긴다.
+ *
+ * **상태 등급 색이 아니다** — E3가 "실측과 추정을 구분하라"고 요구하고, 그 축은 정상·주의·
+ * 경고·위험과 직교한다. 실측인 값이 위험일 수 있고 추정인 값이 정상일 수 있다.
+ *
+ * `provisional.ts`에 두지 않는 이유: 등급 **라벨**은 임시값이지만(`PROVISIONAL_MEASUREMENT_
+ * GRADE_LABELS`) 그 색은 이미 확정된 계열색 셋을 가리키는 것뿐이라 확정될 값이 없다.
+ *
+ * 공정도(SCR-AD-002)가 사적으로 갖고 있던 것을 두 번째 소비처(SCR-AD-005 물의 단면)가
+ * 생기면서 올렸다 — 같은 축을 두 화면이 다른 색으로 칠하면 같은 사실로 보이지 않는다.
+ */
+export const MEASUREMENT_GRADE_HEX: Record<MeasurementGrade, string> = {
+  actual: ACTUAL_HEX,
+  estimated: AI_HEX,
+  none: MISSING_HEX,
+};

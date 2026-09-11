@@ -47,7 +47,7 @@ export async function fetchSiteTelemetry(siteId: string, endMs: number): Promise
 
   return {
     siteId,
-    ...toTelemetryWindow(raw, grid, TB_TIMESERIES_LIMIT),
+    ...toTelemetryWindow(raw, grid, TB_TIMESERIES_LIMIT, siteId),
     unreceived: unreceivedCodes(raw),
   };
 }

@@ -3,6 +3,7 @@ import type { TbTimeseries } from '@/shared/api/thingsboard';
 import { COLLECTION_INTERVAL_MINUTES } from '@/shared/config/measurement';
 import { formatClock, formatDateTime } from '@/shared/lib/format';
 import {
+  DEMO_SERIES_CODES,
   EQUIPMENT_SERIES_CODES,
   ESTIMATE_SERIES_CODES,
   RECEIVED_SERIES_CODES,
@@ -21,6 +22,9 @@ import {
 
 const LIMIT = 1500;
 const POINTS = 5;
+
+/** 매퍼가 유입 수질을 역산할 때 «정체를 심은 사업장인가»를 묻는다 — 여기서는 평범한 곳 */
+const SITE = 'S-01';
 
 /** 격자에 정확히 얹히는 시각 하나를 기준으로 잡는다 */
 const END_MS = Math.floor(Date.UTC(2026, 7, 27, 5, 20) / COLLECTION_INTERVAL_MS) * COLLECTION_INTERVAL_MS;
@@ -52,7 +56,7 @@ describe('buildGrid — 격자를 먼저 만들고 채운다', () => {
 
 describe('toTelemetryWindow — 결측 규약(E4)', () => {
   it('값이 없는 칸은 null이다 — 0으로 채우지 않는다', () => {
-    const { points } = toTelemetryWindow(raw({ pH: [{ ts: at(2), value: '7.11' }] }), grid, LIMIT);
+    const { points } = toTelemetryWindow(raw({ pH: [{ ts: at(2), value: '7.11' }] }), grid, LIMIT, SITE);
 
     expect(points.map((p) => p.pH)).toEqual([null, null, 7.11, null, null]);
   });
@@ -66,6 +70,7 @@ describe('toTelemetryWindow — 결측 규약(E4)', () => {
       raw({ current: [{ ts: at(0), value: '0' }] }),
       grid,
       LIMIT,
+      SITE,
     );
 
     expect(points[0]!.current).toBe(0);
@@ -81,6 +86,7 @@ describe('toTelemetryWindow — 결측 규약(E4)', () => {
       }),
       grid,
       LIMIT,
+      SITE,
     );
 
     expect(points[0]!.pH).toBe(7.0);
@@ -94,6 +100,7 @@ describe('toTelemetryWindow — 결측 규약(E4)', () => {
       raw({ pH: [{ ts: at(0), value: '' }, { ts: at(1), value: null }] }),
       grid,
       LIMIT,
+      SITE,
     );
 
     expect(points[0]!.pH).toBeNull();
@@ -109,6 +116,7 @@ describe('toTelemetryWindow — 결측 규약(E4)', () => {
       raw({ flowIn: [{ ts: at(0), value: '430' }], flowOut: [{ ts: at(0), value: '412' }] }),
       grid,
       LIMIT,
+      SITE,
     );
 
     expect(points[0]!.inflow).toBe(430);
@@ -117,7 +125,7 @@ describe('toTelemetryWindow — 결측 규약(E4)', () => {
 
   /** 옛 5분 채널이다. 1분 백필과 섞여 5분 배수 시각에만 옛 값이 남아 있어 쓰지 않는다 */
   it('옛 flow 채널은 읽지 않는다', () => {
-    const { points } = toTelemetryWindow(raw({ flow: [{ ts: at(0), value: '999' }] }), grid, LIMIT);
+    const { points } = toTelemetryWindow(raw({ flow: [{ ts: at(0), value: '999' }] }), grid, LIMIT, SITE);
 
     expect(points[0]!.flow).toBeNull();
   });
@@ -129,6 +137,7 @@ describe('toTelemetryWindow — 방류는 서버가 주는 채널이다', () => 
       raw({ discharging: [{ ts: at(0), value: '1' }, { ts: at(1), value: '0' }] }),
       grid,
       LIMIT,
+      SITE,
     );
 
     expect(discharging.slice(0, 3)).toEqual([true, false, null]);
@@ -140,8 +149,8 @@ describe('toTelemetryWindow — 잘림 방어', () => {
   it('응답 개수가 limit과 같으면 잘린 것으로 본다', () => {
     const full = grid.map((ts) => ({ ts, value: '7' }));
 
-    expect(toTelemetryWindow(raw({ pH: full }), grid, POINTS).truncated).toBe(true);
-    expect(toTelemetryWindow(raw({ pH: full }), grid, POINTS + 1).truncated).toBe(false);
+    expect(toTelemetryWindow(raw({ pH: full }), grid, POINTS, SITE).truncated).toBe(true);
+    expect(toTelemetryWindow(raw({ pH: full }), grid, POINTS + 1, SITE).truncated).toBe(false);
   });
 });
 
@@ -151,7 +160,7 @@ describe('시각 표기 — 화면 포맷터가 KST로 읽는다', () => {
    * `toISOString()`하면 화면이 9시간 어긋난 값에 KST 라벨을 붙인다.
    */
   it('실 epoch이 KST 벽시계로 찍힌다', () => {
-    const { points } = toTelemetryWindow(raw({}), grid, LIMIT);
+    const { points } = toTelemetryWindow(raw({}), grid, LIMIT, SITE);
     const kst = new Intl.DateTimeFormat('en-CA', {
       timeZone: 'Asia/Seoul',
       hour: '2-digit',
@@ -186,21 +195,55 @@ describe('요청 키는 사전에서만 만든다', () => {
 });
 
 /**
- * **두 목록의 합이 곧 계열 전부여야 한다.**
+ * **세 목록의 합이 곧 계열 전부여야 한다.**
  *
  * 어느 쪽에도 없는 계열은 매퍼가 손대지 않아 `MeasurementPoint`의 그 칸이 `undefined`로 남는다 —
  * 타입은 `number | null`이라 소비처가 `=== null`로 걸러도 통과하고, 병합 뒤 실제로 그 상태였다.
  * 그동안 이 불변식은 `constants.ts`의 산문뿐이었다. `UNRECEIVED_SERIES_CODES`가 비면서
  * (수위 채널이 도착했다 `[사용자 확인 2026-09-07]`) 그 산문이 가리키던 예시도 사라져,
  * 여기서 값으로 못박는다.
+ *
+ * **한때 둘이었다.** 2026-09-10에 `DEMO_SERIES_CODES`가 셋째 갈래로 들어왔다 — 유입 수질은
+ * 서버에 채널이 없는데(`[TBD-59]`) 화면은 값을 내야 해서, «우리가 만들고 화면이 밝히는»
+ * 원천이 필요했다. 갈래가 늘어도 **덮이지 않은 계열이 없어야 한다**는 이 단정은 그대로다.
  */
 describe('계열이 빠짐없이 갈린다', () => {
-  it('수신 목록과 미수신 목록의 합이 SERIES_CODES와 같다', () => {
-    const covered = [...RECEIVED_SERIES_CODES, ...UNRECEIVED_SERIES_CODES];
+  it('수신·미수신·시연 목록의 합이 SERIES_CODES와 같다', () => {
+    const covered = [...RECEIVED_SERIES_CODES, ...UNRECEIVED_SERIES_CODES, ...DEMO_SERIES_CODES];
 
     expect([...covered].sort()).toEqual([...SERIES_CODES].sort());
-    /* 양쪽에 겹쳐 있으면 매퍼가 null로 덮은 뒤 값을 얹거나 그 반대가 된다 */
+    /* 둘 이상에 겹쳐 있으면 매퍼가 null로 덮은 뒤 값을 얹거나 그 반대가 된다 */
     expect(new Set(covered).size).toBe(covered.length);
+  });
+
+  /**
+   * **시연 계열은 서버에 묻지 않는다.** 없는 키를 물으면 에러가 아니라 유령 표본이 온다
+   * (명세 §7.1) — 그 한 점이 «서버가 유입 수질을 줬다»로 읽힌다.
+   */
+  it('시연 계열이 요청 키에 없다', () => {
+    const keys = TELEMETRY_KEYS.split(',');
+    for (const code of DEMO_SERIES_CODES) expect(keys).not.toContain(code);
+  });
+
+  /**
+   * 시연 계열은 **유출 실측에서 역산된 값**이라 «한 점도 오지 않았다»가 아니다. 미수신으로
+   * 세면 화면이 그 여덟을 `미수신 항목`으로 적고, 값이 그려지는 채로 «안 온다»고 말하게 된다.
+   */
+  it('시연 계열을 미수신으로 세지 않는다', () => {
+    const unreceived = unreceivedCodes(raw({ pH: [{ ts: at(0), value: '7' }] }));
+    for (const code of DEMO_SERIES_CODES) expect(unreceived).not.toContain(code);
+  });
+
+  /** 유출이 결측인 시각은 유입도 결측이다 — 없는 값에서 나누면 두절이 정상으로 이어진다(E4) */
+  it('유출이 결측이면 유입도 결측이다', () => {
+    const { points } = toTelemetryWindow(
+      raw({ pH: [{ ts: at(2), value: '7.20' }] }),
+      grid,
+      LIMIT,
+      SITE,
+    );
+
+    expect(points.map((p) => p.inletPH)).toEqual([null, null, 9, null, null]);
   });
 
   /** 수위는 백엔드 요청이 반영되어 서버에서 온다 — fixture로 메우던 자리가 아니다 */

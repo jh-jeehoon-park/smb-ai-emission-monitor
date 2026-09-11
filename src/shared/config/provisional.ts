@@ -178,6 +178,22 @@ export const PROVISIONAL_DECIMALS: Record<string, number> = {
   // TN은 TOC와 값 크기가 비슷해(십 단위 mg/L) 같은 자릿수를 쓴다. TP는 한 자릿수라 두 자리가 필요하다.
   TN: 1,
   TP: 2,
+  /*
+   * **유입 수질은 유출과 같은 자릿수를 쓴다.** 나란히 놓고 빼는 값이라 갈리면 그 차가
+   * 어긋나 보인다 — `inflow`/`flow`가 같은 이유로 짝을 맞춘다.
+   *
+   * **여덟 줄을 여기 적는 것이 유일한 방어선이다.** 이 상수는 `Record<string, number>`라
+   * 타입이 누락을 막지 못하고, 빠뜨리면 `undefined`가 `number`로 통과해 화면에 `NaN`이
+   * 조용히 흐른다(`vibration` 주석이 같은 함정을 적는다).
+   */
+  inletPH: 2,
+  inletEC: 0,
+  inletTurbidity: 1,
+  inletDO: 2,
+  inletTemperature: 1,
+  inletChromaticity: 0,
+  inletNO3N: 2,
+  inletTOC: 1,
 };
 
 /**
@@ -192,6 +208,11 @@ export const PROVISIONAL_DISPLAY_DECIMALS = {
    * 센싱 추정이라 그만한 정밀도가 없다. 겹침 차트의 눈금·툴팁·표가 이 값을 함께 쓴다.
    */
   limitPercent: 0,
+  /**
+   * 유입 대비 변화율. **정수다** — 원값의 한쪽(유입)이 우리가 역산한 시연값이라(`[TBD-59]`)
+   * 소수를 붙이면 없는 정밀도를 주장하게 된다. `limitPercent`가 같은 이유로 정수다.
+   */
+  treatmentChangePercent: 0,
   /** 이상 점수는 정수로 산출되므로 최신·최대는 자릿수가 없다. 평균에만 소수가 필요하다 */
   anomalyScoreAverage: 1,
   dataThroughput: 1,
@@ -328,3 +349,79 @@ export const PROVISIONAL_DEMO_LIMITS: Record<string, { min: number | null; max: 
   TN: { min: null, max: 20 },
   TP: { min: null, max: 2 },
 };
+
+/**
+ * **처리 잔존율 — 유출 ÷ 유입** `[TBD-59]` `[PROVISIONAL]`.
+ *
+ * 회의가 판정 방법을 정했다 `[회의 2026-09-08: 유입·유출에 동일한 센서를 달아 … 동일할 시
+ * 공정 처리 과정 중 문제]`. 그런데 **무엇이 얼마나 줄어야 정상인지는 어디에도 없다** —
+ * 원문은 처리 효율을 KPI로만 적고 수질 항목별 제거율을 주지 않는다.
+ *
+ * 이 표는 두 가지 일을 한다.
+ * 1. **유입값을 만든다** — 계측 서버에 유입 수질 채널이 없으므로(`[TBD-59]`) 유출 실측에서
+ *    `유입 = 유출 ÷ retention`으로 역산한다. 따로 난수로 만들면 유출과 무관하게 움직여
+ *    **대조가 뜻을 잃는다.**
+ * 2. **어느 항목에 «유사=문제»가 성립하는지 가른다**(`judged`).
+ *
+ * **`judged: false`가 이 표의 알맹이다.** 회의의 판정은 *처리가 바꾸기로 되어 있는 항목*에만
+ * 성립한다 — 수온은 공정이 바꾸려는 값이 아니고, EC는 응집제 투입으로 **오히려 오를 수
+ * 있어** 방향이 정해지지 않으며, pH는 중화 목표가 중성이라 **유입이 이미 중성이면 같은 것이
+ * 정상**이다. 그 셋을 알람에 넣으면 정상 사업장이 상시로 울려 **진짜 정체가 묻힌다.**
+ * 화면은 여덟을 다 보이고 판정만 다섯에 건다.
+ *
+ * `retention > 1`은 처리가 **올리는** 항목이다 — 폭기가 DO를 올린다.
+ */
+export const PROVISIONAL_TREATMENT_RETENTION: Record<
+  string,
+  { retention: number; judged: boolean }
+> = {
+  TOC: { retention: 0.3, judged: true },
+  turbidity: { retention: 0.15, judged: true },
+  chromaticity: { retention: 0.3, judged: true },
+  NO3N: { retention: 0.55, judged: true },
+  DO: { retention: 2.6, judged: true },
+  /** 염색·도금 폐수는 알칼리로 들어와 중화를 거친다 — 방향은 있으나 판정 축은 아니다 */
+  pH: { retention: 0.8, judged: false },
+  /** 응집제가 이온을 더해 오를 수도 줄 수도 있다 — 방향이 정해지지 않아 판정하지 않는다 */
+  EC: { retention: 1.05, judged: false },
+  /** 체류 중 자연 냉각뿐이다. 공정이 바꾸려는 값이 아니다 */
+  temperature: { retention: 0.94, judged: false },
+};
+
+/**
+ * **몇 %부터 «유입과 거의 같다»인가** `[TBD-59]` `[PROVISIONAL]`.
+ *
+ * `|유입 − 유출| ÷ 유입`이 이 값 미만이면 유사로 본다. `[TBD-01]`(항목별 알람 임계값)과 같은
+ * 종류의 공백이라 현업 기준이 정할 값이고, 확정되면 이 한 줄만 바꾼다.
+ *
+ * 15%로 잡은 이유: 위 잔존율에서 정상 항목의 차이가 가장 작은 것이 `NO3N`의 45%다.
+ * 그 절반보다 낮게 두면 계측 잡음이 경계를 스쳐도 판정이 뒤집히지 않는다.
+ */
+export const PROVISIONAL_TREATMENT_SIMILAR_PERCENT = 15;
+
+/**
+ * **시연에서 처리 정체를 심는 사업장** `[PROVISIONAL]`.
+ *
+ * 여기 있는 사업장은 잔존율을 1에 가깝게 밀어 유입≈유출이 되고, 그 결과 `처리 상태 확인`
+ * 알람이 실제로 뜬다. `PROVISIONAL_DEMO_LIMITS`가 *"넘지 않으면 초과 판정이 시연에서 한 번도
+ * 안 보인다"* 로 같은 판단을 이미 했다 — **없는 사건을 만드는 것이 아니라, 만들어 둔 판정이
+ * 화면에서 보이게 하는 것**이다.
+ *
+ * 전 사업장에 심지 않는 이유는 정상과 대비되어야 판정이 읽히기 때문이다.
+ *
+ * **고른 두 곳이 임의가 아니다.** `SCR-AD-005`는 사업장 전용이라 **시연 계정이 보는 사업장에
+ * 심지 않으면 그 화면에서 판정이 한 번도 보이지 않는다** — 처음 `S-03`에 심었다가 브라우저
+ * 실측에서 그 사실이 드러났다(사업장 계정은 `S-02`·`S-09`만 연다, `accounts.ts`).
+ *
+ * | 사업장 | 왜 |
+ * |---|---|
+ * | `S-02` | 사업장1 계정이 여는 곳 — *"값이 가득한 화면"* 이 그 계정의 목적이라 사건이 하나 더 붙는다 |
+ * | `S-07` | 계정이 열지 않는 곳 — **시스템 관리자의 알람 이력·통합 관제**에서 여러 사업장에 걸친 것이 보이게 한다 |
+ *
+ * **`S-09`에는 심지 않는다.** 사업장2 계정의 목적이 *"이상 14 정상 · 알람 0건 — 빈 상태 처리를
+ * 확인한다"* 라, 사건을 심으면 그 계정이 확인하려던 것이 사라지고 **정상과의 대비도 함께 사라진다.**
+ */
+export const PROVISIONAL_TREATMENT_STALL_SITES: readonly string[] = ['S-02', 'S-07'];
+
+/** 정체를 심은 사업장의 잔존율 — 1에 가까울수록 «처리가 안 됐다»에 가깝다 */
+export const PROVISIONAL_TREATMENT_STALL_RETENTION = 0.93;
