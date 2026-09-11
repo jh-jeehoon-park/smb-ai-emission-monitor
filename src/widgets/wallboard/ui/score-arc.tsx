@@ -52,8 +52,12 @@ export function ScoreArc({ score, level }: { score: number | null; level: Status
   return (
     <svg
       viewBox={`0 0 ${G.width} ${G.height}`}
-      className="w-full"
-      style={{ maxWidth: G.width }}
+      /*
+       * **고정 상한(300px)을 걷었다** `[사용자 결정 2026-09-11: 유동 치수]`. 그 값이 있으면
+       * 큰 화면에서 계기만 작게 남아 옆의 글자와 어긋난다. 지금은 칸의 폭과 높이 중 **작은
+       * 쪽에 맞춰** 들어간다 — `preserveAspectRatio` 기본값이 그 일을 한다.
+       */
+      className="h-full max-h-full w-full"
       aria-hidden
     >
       {/* 네 등급 구간. 사이를 살짝 벌려 경계가 «끊긴 자리»로 읽힌다 */}

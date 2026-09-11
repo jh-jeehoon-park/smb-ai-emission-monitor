@@ -32,12 +32,6 @@ export {
 } from './config/constants';
 export { bucketByMinutes, sliceRecentHours, summarizeSeries } from './lib/series-stats';
 export { energyGap, energyIntensity, type EnergyGap } from './lib/energy';
-export {
-  dailyDischargeVolume,
-  dailyDischargeSeries,
-  type DailyDischargeVolume,
-  type CumulativePoint,
-} from './lib/discharge-volume';
 export { windowChange, type WindowChange } from './lib/window-change';
 export { outageNotice } from './lib/outage-notice';
 export { isReceptionStalled } from './lib/reception';

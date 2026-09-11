@@ -3,14 +3,21 @@
 import { useId } from 'react';
 import { COLLECTION_INTERVAL_MINUTES } from '@/shared/config/measurement';
 import { ACTUAL_HEX } from '@/shared/config/status-visual';
+import { cn } from '@/shared/lib/cn';
 import {
   SVG_COORD_PRECISION,
   WALL_SPARK_BUCKET_MINUTES,
   WALL_SPARK_H,
 } from '../config/constants';
 
+/** 라벨이 없을 때의 격자 — 값을 뜻하지 않는 질감이라 4등분이다 */
+const DEFAULT_GRID_AT = [0.25, 0.5, 0.75] as const;
+
 /**
- * 누적 추이선 — **`Sparkline`을 쓰지 않고 새로 만든다** `[사용자 요청 2026-09-11]`.
+ * 추이선 — **`Sparkline`을 쓰지 않고 새로 만든다** `[사용자 요청 2026-09-11]`.
+ *
+ * 바닥 띠의 유출 유량과 계측 칸의 24시간 흐름이 같은 부품을 쓴다. **한때 바닥 띠는 누적
+ * 배출량이었고** 그때는 단조 증가라 선이 매끈했다 — `[회의 2026-09-08]`로 걷혔다.
  *
  * 레퍼런스의 추이 패널을 따라 **바닥을 채우고 격자선을 깐다.** 그쪽과 갈리는 곳:
  * 공용 `Sparkline`은 «카드 한 칸의 작은 표현»이라 격자도 축도 없고 굵기가 1.25px이다 —
@@ -28,10 +35,30 @@ import {
 export function WallSpark({
   values,
   height = WALL_SPARK_H,
+  className,
+  domain,
+  gridAt = DEFAULT_GRID_AT,
 }: {
   values: (number | null)[];
-  /** 누적 추이는 크게, 계측 칸 안의 것은 작게 — 같은 그림을 두 크기로 쓴다 */
+  /**
+   * **viewBox 좌표계의 높이다 — 화면에 보이는 높이가 아니다.**
+   *
+   * `preserveAspectRatio="none"`이라 실제 높이는 `className`이 정하고 그림은 세로로 늘어나
+   * 채운다. 선 굵기는 `vectorEffect="non-scaling-stroke"`가 지켜 준다.
+   */
   height?: number;
+  /** 화면에서 차지할 높이. 화면 높이에 비례하는 값이 들어온다 */
+  className?: string;
+  /**
+   * 세로 범위를 **밖에서 정한다.** 주지 않으면 그 계열의 최소~최대에 맞춘다.
+   *
+   * **주는 쪽과 주지 않는 쪽이 뜻하는 바가 다르다.** 주지 않으면 바닥이 «그 계열의 최솟값»
+   * 이라 **모양만** 읽히고, 주면 바닥이 그 값이라 **높이가 값을 뜻한다.** 축 눈금을 글자로
+   * 다는 자리는 반드시 줘야 한다 — 눈금이 가리키는 자리와 선이 앉는 자리가 같아야 하기 때문이다.
+   */
+  domain?: [number, number];
+  /** 가로 격자선의 자리(위에서부터의 비율). 축 라벨과 같은 자리를 받는다 */
+  gridAt?: readonly number[];
 }) {
   /* 그라데이션 id는 문서 전역이라 고유값을 받는다. SVG 참조로 쓰이므로 기호를 걷어낸다 */
   const gradientId = `wall-spark-${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
@@ -44,14 +71,18 @@ export function WallSpark({
   const h = height;
 
   if (known.length < 2) {
-    return <div style={{ height: h }} aria-hidden />;
+    return <div className={className} aria-hidden />;
   }
 
-  const min = Math.min(...known);
-  const max = Math.max(...known);
-  const span = max - min || 1;
+  /*
+   * 범위를 밖에서 받으면 **여백을 두지 않는다** — 눈금이 «0»이라 적은 자리에 선이 정확히
+   * 앉아야 한다. 스스로 정할 때는 위아래 4px을 비워 선이 모서리에 붙지 않게 한다.
+   */
+  const [lo, hi] = domain ?? [Math.min(...known), Math.max(...known)];
+  const span = hi - lo || 1;
+  const inset = domain ? 0 : 4;
   const stepX = w / Math.max(1, thinned.length - 1);
-  const yOf = (v: number) => h - ((v - min) / span) * (h - 8) - 4;
+  const yOf = (v: number) => h - ((v - lo) / span) * (h - inset * 2) - inset;
 
   /* 결측을 만나면 조각을 끊는다 — 조각마다 따로 이어 빈 구간을 건너뛰지 않는다 */
   const segments: { x: number; y: number }[][] = [];
@@ -79,8 +110,11 @@ export function WallSpark({
     <svg
       viewBox={`0 0 ${w} ${h}`}
       preserveAspectRatio="none"
-      className="w-full"
-      style={{ height: h }}
+      /*
+       * `overflow-visible` — 바닥이 `0`인 축에서는 선이 **맨 아래에 닿는다.** 기본값이면
+       * 굵기의 절반이 잘려 «방류를 멈춘 구간»의 선이 가늘어 보인다.
+       */
+      className={cn('w-full overflow-visible', className)}
       /* 값은 곁의 큰 숫자가 글자로 갖는다 — 이 그림은 그것의 흐름을 되풀이한다 */
       aria-hidden
     >
@@ -91,8 +125,11 @@ export function WallSpark({
         </linearGradient>
       </defs>
 
-      {/* 가로 격자 — 레퍼런스의 추이 패널 질감. 값을 뜻하지 않으므로 아주 옅다 */}
-      {[0.25, 0.5, 0.75].map((t) => (
+      {/*
+       * 가로 격자. **축 라벨이 붙으면 그 눈금 자리를 그대로 받는다** — 라벨이 가리키는 높이와
+       * 선이 다른 자리에 있으면 눈금이 거짓이 된다. 라벨이 없으면 질감으로만 쓰여 4등분이다.
+       */}
+      {gridAt.map((t) => (
         <line
           key={t}
           x1="0"

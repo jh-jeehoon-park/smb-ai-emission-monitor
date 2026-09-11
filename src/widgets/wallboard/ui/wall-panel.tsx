@@ -42,7 +42,7 @@ export function WallPanel({
         className,
       )}
     >
-      <div className="flex shrink-0 items-center gap-2.5 border-b border-border px-4 py-2.5">
+      <div className="wall-head-pad flex shrink-0 items-center gap-2.5 border-b border-border">
         <span aria-hidden className="h-[18px] w-[3px] shrink-0 rounded-full bg-accent" />
         <h2 className={cn('min-w-0 truncate', WALL_TITLE)}>{title}</h2>
         {aside !== undefined && (
@@ -50,7 +50,7 @@ export function WallPanel({
         )}
       </div>
 
-      <div className={cn('flex min-h-0 flex-1 flex-col p-4', bodyClassName)}>{children}</div>
+      <div className={cn('wall-pad-md flex min-h-0 flex-1 flex-col', bodyClassName)}>{children}</div>
     </section>
   );
 }

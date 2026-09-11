@@ -8,7 +8,13 @@ import {
 } from '@/entities/alarm';
 import { STATUS_VISUAL, statusInk } from '@/shared/config/status-visual';
 import { cn } from '@/shared/lib/cn';
-import { WALL_LABEL, WALL_META, WALL_VALUE_MD, WALL_VALUE_XL } from '../config/constants';
+import {
+  WALL_LABEL,
+  WALL_META,
+  WALL_UNIT,
+  WALL_VALUE_MD,
+  WALL_VALUE_XL,
+} from '../config/constants';
 import { useCountUp } from '../lib/use-count-up';
 import { useValueFlash } from '../lib/use-value-flash';
 
@@ -55,7 +61,7 @@ export function AlarmTally({
     <div className="flex min-h-0 flex-1 flex-col gap-3">
     <div
       className={cn(
-        'flex shrink-0 items-center gap-5 rounded-nested border border-border bg-surface-2 p-4 transition-colors duration-500',
+        'wall-pad-md flex shrink-0 items-center gap-5 rounded-nested border border-border bg-surface-2 transition-colors duration-500',
         flashing && 'bg-accent-weak',
       )}
     >
@@ -63,17 +69,17 @@ export function AlarmTally({
         <p className={cn('text-fg-subtle', WALL_META)}>미확인</p>
         <p className="mt-1.5 flex items-baseline gap-1.5">
           <span className={cn('num text-fg', WALL_VALUE_XL)}>{shown}</span>
-          <span className="text-[16px] font-medium text-fg-muted">건</span>
+          <span className={WALL_UNIT}>건</span>
         </p>
       </div>
 
-      <ul className="flex min-w-0 flex-1 flex-col gap-1.5">
+      <ul className="wall-gap-xs flex min-w-0 flex-1 flex-col">
         {PRIORITIES.map((priority) => {
           const visual = STATUS_VISUAL[PRIORITY_TONE[priority]];
           return (
             <li
               key={priority}
-              className="flex items-center justify-between gap-3 rounded-chip bg-surface px-3 py-1.5"
+              className="wall-chip-pad flex items-center justify-between gap-3 rounded-chip bg-surface"
             >
               <span className="flex min-w-0 items-center gap-2">
                 {/* 색 옆에 늘 이름이 있다 — 색만으로 등급을 전달하지 않는다(E2) */}
@@ -103,13 +109,18 @@ export function AlarmTally({
        *
        * **목록을 다 싣지 않는다** — 정본은 `/alarms`이고 여기는 «지금 무엇이 밀려 있나»까지다.
        */}
-      <ul className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden">
+      {/*
+       * 줄을 **고르게 펼친다** — 곁의 기여 변수·설비 목록과 같은 짜임이다. 위로 몰면 3840×2160
+       * 에서 목록 아래에 빈 덩어리가 남아 «여기서 끊겼다»가 아니라 «덜 그려졌다»로 보였다.
+       */}
+      <ul className="wall-gap-sm flex min-h-0 flex-1 flex-col justify-between overflow-hidden">
         {recent.map((alarm) => {
           const visual = STATUS_VISUAL[PRIORITY_TONE[alarm.priority]];
           return (
             <li
               key={alarm.id}
-              className="min-w-0 rounded-nested border border-border bg-surface-2 px-3.5 py-2.5"
+              /* `wall-alarm-row` — 세로가 낮은 화면에서 뒤쪽 줄을 감춘다(globals.css) */
+              className="wall-alarm-row wall-row-pad min-w-0 rounded-nested border border-border bg-surface-2"
             >
               <p className="flex min-w-0 items-baseline gap-2">
                 <span
@@ -119,7 +130,8 @@ export function AlarmTally({
                 />
                 <span className={cn('min-w-0 flex-1 truncate', WALL_LABEL)}>{alarm.title}</span>
               </p>
-              <p className={cn('mt-1 truncate text-fg-subtle', WALL_META)}>
+              {/* `wall-alarm-cond` — 아주 낮은 화면에서 이 곁줄만 접는다(globals.css) */}
+              <p className={cn('wall-alarm-cond mt-1 truncate text-fg-subtle', WALL_META)}>
                 {ALARM_CONDITION_LABELS[alarm.condition]}
               </p>
             </li>

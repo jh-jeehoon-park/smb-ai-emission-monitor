@@ -31,27 +31,45 @@ export const WALL_FLASH_MS = 900;
 export const WALL_COUNT_MS = 1200;
 
 /**
- * **벽 치수** — 이 화면만의 단.
+ * **벽 치수 — 화면 높이에 비례한다** `[사용자 결정 2026-09-11: 유동 치수 — 화면을 꽉 채움]`.
  *
- * `shared/ui/type-scale.ts`는 «카드 안 값»을 두 단(`VALUE_LG` 22 · `VALUE_MD` 18)으로
- * 못박았고 그 규칙은 그대로다. 그쪽은 **60cm 앞의 화면**을 전제한 크기이고, 여기는 **2~3m
- * 밖**이라 같은 자리에 다른 숫자가 필요하다.
+ * 고정 px이던 판본은 **1920×1080에서만 의도대로 보였다.** 1366×768에서는 기여 변수 5줄 중
+ * 1줄만 남고 알람 패널이 통째로 잘렸으며, 3840×2160에서는 값 글자가 화면 높이의 2.4%까지
+ * 작아져(1080에서는 4.8%) 2~3m 판독이 무너졌다. 열 비중도 좌우 합이 57% ↔ 20%로 갈렸다 —
+ * 전부 브라우저 실측이다.
  *
- * **`shared`에 올리지 않는다.** 소비처가 이 화면 하나뿐이고, 공용으로 올리면 다른 화면이
- * 큰 값을 쓰기 시작해 §8이 억제해 온 «어휘 확산»이 된다 — `inout-compare`의 `HERO_VALUE`가
- * 같은 이유로 같은 자리에 있다.
+ * **세로는 `vh`, 가로는 비율이다.** 이 화면은 «스크롤 없는 한 화면»이라 **세로가 제약**이고,
+ * 세로 치수를 화면 높이에 매면 어느 모니터에서도 정확히 맞는다. 가로는 `%`·`fr`이라 남는
+ * 띠 없이 채운다.
  *
- * **§8 `글자 최소`(12px)는 그대로다** — 여기서는 위로만 벗어난다.
+ * **비율이 다른 모니터에서는 칸 모양이 달라진다** — 16:9가 아니면 가로가 늘거나 줄기 때문이고,
+ * 그것이 «꽉 채움»을 고른 대가다(고정 캔버스를 골랐다면 빈 띠가 생기는 대신 모양이 같았다).
+ *
+ * **하한과 상한을 둔다.** 하한은 §8 `글자 최소`(12px)를 지키고, 상한은 세로가 아주 긴
+ * 모니터에서 글자만 커져 칸을 밀어내는 것을 막는다.
+ *
+ * 값은 **1080을 기준으로 환산**했다 — 52px ÷ 1080 = 4.81vh 식이다. 그래서 1920×1080에서는
+ * 지금까지의 화면과 **픽셀 단위로 같다.**
+ *
+ * **실제 `clamp()` 값은 `globals.css`의 `.wall-*` 클래스가 갖는다.** Tailwind의 arbitrary
+ * 임의 속성 문법으로 CSS 변수를 넣으면 값이 `var(...)`로 잘못 생성돼 CSS 파싱을 깨뜨렸다(실제로
+ * 밟았다). 여기는 그 클래스에 굵기·자간을 얹은 조합만 갖는다.
  */
-export const WALL_VALUE_XL = 'text-[52px] font-bold leading-none tracking-tight';
-export const WALL_VALUE_LG = 'text-[34px] font-bold leading-none tracking-tight';
-export const WALL_VALUE_MD = 'text-[24px] font-bold leading-none tracking-tight';
+export const WALL_VALUE_XL = 'wall-xl font-bold leading-none tracking-tight';
+export const WALL_VALUE_LG = 'wall-lg font-bold leading-none tracking-tight';
+export const WALL_VALUE_MD = 'wall-md font-bold leading-none tracking-tight';
 /** 패널 제목. 레퍼런스의 머리줄 글자 크기다 */
-export const WALL_TITLE = 'text-[17px] font-bold leading-tight tracking-tight text-fg';
+export const WALL_TITLE = 'wall-title font-bold leading-tight tracking-tight text-fg';
 /** 항목 이름 */
-export const WALL_LABEL = 'text-[15px] font-semibold leading-tight text-fg';
+export const WALL_LABEL = 'wall-label font-semibold leading-tight text-fg';
 /** 곁의 사실(단위·기준·시각). 이 화면의 **최소 글자**이며 §8 `글자 최소`(12px)를 넘는다 */
-export const WALL_META = 'text-[13px] leading-tight';
+export const WALL_META = 'wall-meta leading-tight';
+/** 큰 수에 붙는 단위(`m³`·`건`). 값과 함께 커져야 «붙어 있는 글자»로 읽힌다 */
+export const WALL_UNIT = 'wall-unit font-medium text-fg-muted';
+/** 값 곁의 등급 이름. 색만으로 말하지 않게 늘 함께 선다(**E2**) */
+export const WALL_GRADE = 'wall-grade font-bold';
+/** 설비 줄 끝의 등급. 한 줄 안이라 계기 곁의 것보다 한 단 낮다 */
+export const WALL_GRADE_SM = 'wall-grade-sm font-bold leading-none';
 
 /**
  * **이상 점수 반원 게이지의 치수.**
@@ -76,7 +94,7 @@ export const WALL_ARC = {
 } as const;
 
 /**
- * 누적 추이선의 높이(px) — **상수로 두는 이유가 있다.**
+ * 바닥 띠 추이선의 높이(px) — **상수로 두는 이유가 있다.**
  *
  * 선 그래프는 `preserveAspectRatio="none"`이라 **높이가 확정되지 않으면 viewBox의 비율로
  * 되돌아간다.** 폭이 1,000px을 넘는 칸에서 그 비율은 높이도 1,000px이 넘는다는 뜻이라,
@@ -87,6 +105,15 @@ export const WALL_ARC = {
 export const WALL_SPARK_H = 150;
 
 /**
+ * 추이선이 **화면에서 실제로 차지하는 높이.**
+ *
+ * 위 `WALL_SPARK_H`는 **viewBox 좌표계**의 값이라 그대로 둔다 — `preserveAspectRatio="none"`
+ * 이라 좌표계와 렌더 높이가 달라도 세로로 늘어나 채우고, 선 굵기는
+ * `vectorEffect="non-scaling-stroke"`가 지켜 준다. 화면 높이에 매야 하는 것은 **바깥 상자**다.
+ */
+export const WALL_SPARK_CLASS = 'wall-spark-h';
+
+/**
  * 추이선의 솎기 간격 — **표본 수가 아니라 분으로 적는다**(§8 `솎기`).
  *
  * 1,440점을 900px에 그리면 픽셀당 1.6점이라 선이 «털»이 된다. 수집 주기가 바뀌어도 이 값은
@@ -95,8 +122,37 @@ export const WALL_SPARK_H = 150;
  */
 export const WALL_SPARK_BUCKET_MINUTES = 6;
 
-/** 계측 칸 안의 작은 추이선 높이(px). 누적 추이(`WALL_SPARK_H`)보다 낮다 */
+/**
+ * 바닥 띠 추이의 **가로 격자·세로 눈금 자리**(위에서부터의 비율).
+ *
+ * 셋이 아니라 둘인 이유 — 맨 아래(`0`)는 격자선이 아니라 **축선**이라 hairline이 맡고,
+ * 라벨도 그 자리에 따로 선다. 파선 격자와 실선 축을 갈라 두면 «바닥이 0»이 눈에 먼저 든다.
+ */
+export const WALL_TREND_GRID_AT = [0, 0.5] as const;
+
+/**
+ * 가로축 눈금 간격(시간). 24시간 창에 **6개**가 서고 맨 끝의 «지금»이 하나 더 붙는다.
+ *
+ * 더 촘촘하면 1366×768에서 글자가 붙고, 더 성기면 «몇 시쯤»을 짚을 자리가 모자란다.
+ */
+export const WALL_TREND_TICK_HOURS = 4;
+
+/**
+ * 맨 끝 눈금과 이만큼(계열 길이의 비율) 안에 든 정시 눈금은 뺀다 — 글자가 겹친다.
+ *
+ * **표본 수가 아니라 비율이다** — 수집 주기가 바뀌어 표본 수가 달라져도 «화면에서 겹치는
+ * 거리»는 그대로다(`[INC-111]`이 남긴 교훈의 같은 갈래다).
+ *
+ * `0.05`였다 — 1920×1080 캡처에서 `12:00`과 맨 끝이 **실제로 겹쳤다.** 라벨 반쪽(`HH:MM`)에
+ * 맨 끝 라벨 한 장을 더한 폭이 좁은 화면에서 7%쯤이라 그만큼 띄운다.
+ */
+export const WALL_TREND_TICK_MIN_GAP = 0.07;
+
+/** 계측 칸 안의 작은 추이선 높이(px). 바닥 띠의 추이(`WALL_SPARK_H`)보다 낮다 */
 export const WALL_CELL_SPARK_H = 64;
+
+/** 계측 칸 안 추이선의 실제 높이. 위 값은 viewBox 좌표계다 */
+export const WALL_CELL_SPARK_CLASS = 'wall-cell-spark-h';
 
 /**
  * SVG 경로 좌표를 몇 자리까지 적는가.

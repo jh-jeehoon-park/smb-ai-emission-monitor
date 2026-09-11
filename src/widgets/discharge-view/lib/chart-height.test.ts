@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { FLOW_CHART_HEIGHT, SIDE_CHART_HEIGHT, TILE_LABELS } from '../config/constants';
+import { TILE_LABELS } from '../config/constants';
 import { MEASUREMENT_ITEMS } from '@/shared/config/measurement';
 
 /**
@@ -21,24 +21,39 @@ describe('금일 배출 차트 높이', () => {
     expect(code).not.toMatch(/height=\{\d+\}/);
   });
 
-  it('두 상수를 쓴다', () => {
-    expect(code).toContain('FLOW_CHART_HEIGHT');
-    expect(code).toContain('SIDE_CHART_HEIGHT');
+  /**
+   * **상수가 하나다** `[회의 2026-09-08]`. 누적 차트가 빠지며 유량과 수위가 위아래로 겹쳐
+   * 섰고, 둘은 같은 시간축을 보는 한 쌍이라 **높이가 같아야 같은 구간의 변화폭이 견줘진다.**
+   * 전에는 전폭 240·반폭 200 두 값이었다.
+   */
+  it('한 상수를 쓴다', () => {
+    expect(code).toContain('CHART_HEIGHT');
+    expect(code).not.toContain('FLOW_CHART_HEIGHT');
+    expect(code).not.toContain('SIDE_CHART_HEIGHT');
   });
 
-  /** 전폭 차트가 반폭 둘보다 높다 — 뒤집히면 나란한 카드가 더 커진다 */
-  it('전폭이 더 높다', () => {
-    expect(SIDE_CHART_HEIGHT).toBeLessThan(FLOW_CHART_HEIGHT);
+  it('두 차트와 스켈레톤·빈 상태가 모두 그 상수를 본다', () => {
+    /* 실제 둘 + 스켈레톤 둘 + 빈 상태 셋(유량 1 · 수위 2) */
+    expect(code.match(/CHART_HEIGHT/g)?.length).toBeGreaterThanOrEqual(6);
   });
 });
 
 /**
- * 타일 넷의 제목은 스켈레톤과 실제가 **같은 순서**여야 한다. 순서는 읽는 차례이고
- * (내보내고 있나 → 얼마나 → 수조는 → 오늘 합쳐서) 값이 도착할 때 자리가 바뀌면 안 된다.
+ * 타일 셋의 제목은 스켈레톤과 실제가 **같은 순서**여야 한다. 순서는 읽는 차례이고
+ * (내보내고 있나 → 얼마나 → 수조는) 값이 도착할 때 자리가 바뀌면 안 된다.
  */
 describe('대기 타일 제목', () => {
-  it('넷이다', () => {
-    expect(TILE_LABELS).toHaveLength(4);
+  /**
+   * **넷이었다.** `금일 누적 배출량`이 `[회의 2026-09-08]`로 빠지며 셋이 됐고, 남은 셋이
+   * `[원문 p.1]`의 «배출 데이터» 3종(유량·수위·방류 여부)과 정확히 같다.
+   */
+  it('셋이다', () => {
+    expect(TILE_LABELS).toHaveLength(3);
+  });
+
+  it('걷어낸 값을 화면이 다시 적지 않는다', () => {
+    expect(TILE_LABELS).not.toContain('금일 누적 배출량');
+    expect(code).not.toContain('금일 누적');
   });
 
   it('수위는 항목 사전에서 온다 — 글자로 박지 않는다', () => {

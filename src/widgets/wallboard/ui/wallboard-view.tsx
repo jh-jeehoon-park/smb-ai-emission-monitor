@@ -1,20 +1,17 @@
 'use client';
 
 import { useMemo } from 'react';
-import { VOLUME_DECIMALS, VOLUME_UNIT } from '@/shared/config/constants';
 import { MEASUREMENT_ITEMS } from '@/shared/config/measurement';
 import { PROVISIONAL_STATUS_LABELS } from '@/shared/config/provisional';
 import { STATUS_VISUAL, statusInk } from '@/shared/config/status-visual';
 import { cn } from '@/shared/lib/cn';
-import { formatValue } from '@/shared/lib/format';
+import { DISPLAY_TIMEZONE } from '@/shared/lib/format';
 import { isDischargingAt } from '@/shared/lib/timeline';
 import { countByPriorityIn, countOpen } from '@/entities/alarm';
 import { getAnomalySummary } from '@/entities/anomaly';
 import { getEquipment } from '@/entities/equipment';
 import {
   WATER_SERIES_CODES,
-  dailyDischargeSeries,
-  dailyDischargeVolume,
   telemetrySourceLabel,
   useSiteSeries,
   type MeasurementPoint,
@@ -25,7 +22,9 @@ import { useDischargeLimits } from '@/features/discharge-limit-settings';
 import { useSelectedSiteId } from '@/features/site-selection';
 import {
   WALL_ALARM_ROWS,
+  WALL_GRADE,
   WALL_META,
+  WALL_UNIT,
   WALL_VALUE_LG,
   WALL_VALUE_XL,
 } from '../config/constants';
@@ -38,7 +37,7 @@ import { QualityCell } from './quality-cell';
 import { ScoreArc } from './score-arc';
 import { WallHeader } from './wall-header';
 import { WallPanel } from './wall-panel';
-import { WallSpark } from './wall-spark';
+import { WallTrend } from './wall-trend';
 
 /**
  * **현황판**(`SCR-AD-006`) — 사업장 사무실 벽의 TV에 띄워 두는 화면 `[사용자 요청 2026-09-10]`.
@@ -84,8 +83,10 @@ export function WallboardView() {
 
   const anomaly = useMemo(() => getAnomalySummary(siteId), [siteId]);
   const equipment = useMemo(() => getEquipment(siteId), [siteId]);
-  const volume = useMemo(() => dailyDischargeVolume(points), [points]);
-  const cumulative = useMemo(() => dailyDischargeSeries(points), [points]);
+  const flowMissing = useMemo(
+    () => points.filter((point) => point.flow === null).length,
+    [points],
+  );
 
   /*
    * 벽에 올리는 알람은 **미확인 맨 위 몇 건**이다. 확인·조치된 것은 «지금 밀려 있는 것»이
@@ -118,7 +119,7 @@ export function WallboardView() {
      * **화면 하나에 딱 맞춘다.** `h-screen` + `overflow-hidden`이라 넘치는 것이 **잘려서 눈에
      * 띈다** — 스크롤로 흘려 보내면 «스크롤 없이 한 눈에»라는 요구가 조용히 깨진 채로 남는다.
      */
-    <div className="flex h-screen flex-col gap-4 overflow-hidden bg-bg p-5">
+    <div className="wall-gap wall-pad flex h-screen flex-col overflow-hidden bg-bg">
       <WallHeader
         siteName={site.name}
         region={site.region}
@@ -131,12 +132,17 @@ export function WallboardView() {
        * 세 열 — 레퍼런스의 짜임이다. 왼쪽이 «지금 어떤 상태인가»(계기와 그 근거), 가운데가
        * 계측 격자, 오른쪽이 «무엇을 해야 하나»(알람·설비)다.
        */}
-      <div className="grid min-h-0 flex-1 grid-cols-[360px_minmax(0,1fr)_420px] gap-4">
-        <div className="flex min-h-0 flex-col gap-4">
+      {/*
+       * 열 폭이 **고정 px에서 비율로** 바뀌었다 `[사용자 결정 2026-09-11]`. 360·420px이던
+       * 판본은 화면이 좁아질수록 좌우가 비대해져(1366에서 좌우 합 57%) 가운데 주인공이
+       * 눌렸고, 넓어지면 반대로 20%까지 쪼그라들었다. 비율은 어디서나 같다.
+       */}
+      <div className="grid min-h-0 flex-1 grid-cols-[18.75%_minmax(0,1fr)_21.875%] wall-gap">
+        <div className="flex min-h-0 flex-col wall-gap">
           <WallPanel
             title="이상 점수"
             aside={anomaly.modelLabel}
-            bodyClassName="flex min-h-0 flex-col items-center justify-center p-3"
+            bodyClassName="flex min-h-0 flex-col items-center justify-center wall-pad-sm"
           >
             <ScoreArc score={anomaly.score} level={anomaly.level} />
             {/*
@@ -154,10 +160,7 @@ export function WallboardView() {
                   >
                     {anomaly.score}
                   </span>
-                  <span
-                    className="text-[22px] font-bold"
-                    style={{ color: statusInk(scoreVisual) }}
-                  >
+                  <span className={WALL_GRADE} style={{ color: statusInk(scoreVisual) }}>
                     {anomaly.level && PROVISIONAL_STATUS_LABELS[anomaly.level]}
                   </span>
                 </>
@@ -173,7 +176,7 @@ export function WallboardView() {
         <WallPanel
           title={`수질 ${WATER_SERIES_CODES.length}종`}
           aside="지금 값과 기준"
-          bodyClassName="grid min-h-0 grid-cols-4 grid-rows-2 gap-3 p-3"
+          bodyClassName="grid min-h-0 grid-cols-4 grid-rows-2 wall-gap wall-pad-sm"
         >
           {WATER_SERIES_CODES.map((code) => (
             <QualityCell
@@ -185,8 +188,8 @@ export function WallboardView() {
           ))}
         </WallPanel>
 
-        <div className="flex min-h-0 flex-col gap-4">
-          <WallPanel title="알람" aside="확인 필요" className="flex-1" bodyClassName="p-3">
+        <div className="flex min-h-0 flex-col wall-gap">
+          <WallPanel title="알람" aside="확인 필요" className="flex-1" bodyClassName="wall-pad-sm">
             <AlarmTally
               open={countOpen(alarms)}
               byPriority={countByPriorityIn(alarms, 'open', siteId)}
@@ -200,31 +203,38 @@ export function WallboardView() {
         </div>
       </div>
 
-      {/* 아래 띠 — 배출 축. 누적이 넓게 눕고 그 곁에 지금 값 셋이 선다 */}
-      <div className="grid shrink-0 grid-cols-[minmax(0,1fr)_260px_260px_260px] gap-4">
+      {/*
+       * 아래 띠 — **배출 축.** 추이가 넓게 눕고 그 곁에 지금 값 셋이 선다.
+       *
+       * **누적이 아니라 유량이 눕는다** `[회의 2026-09-08: 금일 누적 배출량은 필요 없다]`.
+       * 이 자리는 `금일 누적 배출량 추이`였고 곁의 첫 칸이 `금일 누적`이었다. 그 값이 빠지자
+       * 남은 셋(유량·수위·방류 여부)이 `[원문 p.1]`의 **배출 데이터 3종**과 정확히 겹쳐,
+       * 눕는 계열도 그 셋 중 하나인 **유량**으로 맞췄다 — `/discharge`가 같은 계열을 같은
+       * 짜임으로 그린다.
+       *
+       * **새 데이터가 아니다.** 이 계열은 이 화면의 오른쪽 칸이 이미 «지금 값»으로 적고 있던
+       * 것이고, 추이는 그 값이 하루를 어떻게 지나왔는지일 뿐이다.
+       */}
+      <div className="grid shrink-0 grid-cols-[minmax(0,1fr)_13.5%_13.5%_13.5%] wall-gap">
         <WallPanel
-          title="금일 누적 배출량 추이"
-          aside="자정부터"
-          bodyClassName="flex flex-col gap-2 px-4 pb-3 pt-2"
+          title="유출 유량 추이"
+          aside={`${MEASUREMENT_ITEMS.flow.unit} · 최근 24시간 · ${DISPLAY_TIMEZONE}`}
+          bodyClassName="wall-pad-sm"
         >
-          <WallSpark values={cumulative.map((row) => row.m3)} />
-          <p className={cn('flex justify-between text-fg-subtle', WALL_META)}>
-            {/* 몇 개를 뺐는지 적는다 — 빼기만 하면 얼마나 비었는지 알 수 없다(E4) */}
-            <span>{volume.missing > 0 ? `결측 ${volume.missing}건 제외` : '결측 없음'}</span>
-            <span className="num">
-              {flow === null
-                ? '유량 수신 없음'
-                : `${formatValue('flow', flow)} ${MEASUREMENT_ITEMS.flow.unit}`}
-            </span>
-          </p>
+          <WallTrend
+            code="flow"
+            values={points.map((point) => point.flow)}
+            times={points.map((point) => point.t)}
+            missing={flowMissing}
+          />
         </WallPanel>
 
         <BigCell
-          title="금일 누적"
-          value={volume.volumeM3}
-          unit={VOLUME_UNIT}
-          decimals={VOLUME_DECIMALS}
-          note="자정부터"
+          title="실시간 유출 유량"
+          value={flow}
+          unit={MEASUREMENT_ITEMS.flow.unit}
+          decimals={MEASUREMENT_ITEMS.flow.decimals}
+          note="지금"
         />
 
         <BigCell
@@ -235,7 +245,7 @@ export function WallboardView() {
           note={unreceived.includes('level') ? '채널 없음 [TBD-57]' : '지금'}
         />
 
-        <WallPanel title="방류 상태" bodyClassName="flex flex-col justify-center p-4">
+        <WallPanel title="방류 상태" bodyClassName="flex flex-col justify-center wall-pad">
           {/* 방류 여부는 셋이다 — 하고 있다 · 안 하고 있다 · 모른다. 셋째를 둘째와 섞지 않는다(E4) */}
           <p
             className={cn(
@@ -291,7 +301,7 @@ function BigCell({
     <WallPanel
       title={title}
       bodyClassName={cn(
-        'flex flex-col justify-center p-4 transition-colors duration-500',
+        'flex flex-col justify-center wall-pad transition-colors duration-500',
         flashing && 'bg-accent-weak',
       )}
     >
@@ -301,7 +311,7 @@ function BigCell({
       ) : (
         <p className="flex items-baseline gap-1.5">
           <span className={cn('num text-fg', WALL_VALUE_XL)}>{shown}</span>
-          <span className="text-[16px] font-medium text-fg-muted">{unit}</span>
+          <span className={WALL_UNIT}>{unit}</span>
         </p>
       )}
       <p className={cn('mt-2 text-fg-subtle', WALL_META)}>{note}</p>

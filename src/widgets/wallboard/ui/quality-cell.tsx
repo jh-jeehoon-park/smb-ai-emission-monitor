@@ -12,9 +12,11 @@ import { cn } from '@/shared/lib/cn';
 import { formatValue } from '@/shared/lib/format';
 import type { Reading } from '@/entities/measurement';
 import {
+  WALL_CELL_SPARK_CLASS,
   WALL_CELL_SPARK_H,
   WALL_LABEL,
   WALL_META,
+  WALL_UNIT,
   WALL_VALUE_LG,
 } from '../config/constants';
 import { useValueFlash } from '../lib/use-value-flash';
@@ -85,7 +87,7 @@ export function QualityCell({
          * 이름·값·막대가 위아래 끝으로 흩어졌다(캡처에서 드러났다) — 2~3m에서는 한 덩어리로
          * 보여야 한 항목으로 읽힌다.
          */
-        'flex min-w-0 flex-col justify-center rounded-nested border border-border bg-surface-2 px-3.5 py-3 transition-colors duration-500',
+        'flex min-w-0 flex-col justify-center rounded-nested border border-border bg-surface-2 wall-pad-sm transition-colors duration-500',
         flashing && 'bg-accent-weak',
       )}
     >
@@ -100,7 +102,7 @@ export function QualityCell({
           {latest === null ? '수신 없음' : formatValue(code, latest)}
         </span>
         {latest !== null && item.unit !== '' && (
-          <span className="text-[15px] font-medium text-fg-muted">{item.unit}</span>
+          <span className={WALL_UNIT}>{item.unit}</span>
         )}
       </p>
 
@@ -114,7 +116,7 @@ export function QualityCell({
        * 값을 새로 만들지 않는다 — 위의 `latest`와 같은 계열을 그대로 그린다.
        */}
       <div className="mt-2">
-        <WallSpark values={values} height={WALL_CELL_SPARK_H} />
+        <WallSpark values={values} height={WALL_CELL_SPARK_H} className={WALL_CELL_SPARK_CLASS} />
       </div>
 
       <WallBar percent={positionIn(track, latest)} color={color} className="mt-2.5 h-2" />

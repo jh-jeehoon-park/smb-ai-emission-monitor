@@ -3,7 +3,7 @@
 import { PROVISIONAL_DISPLAY_DECIMALS } from '@/shared/config/provisional';
 import { cn } from '@/shared/lib/cn';
 import type { Contribution } from '@/entities/anomaly';
-import { WALL_LABEL, WALL_META } from '../config/constants';
+import { WALL_LABEL, WALL_META, WALL_UNIT } from '../config/constants';
 import { WallBar } from './wall-bar';
 
 /**
@@ -49,9 +49,10 @@ export function ContributionBars({ rows }: { rows: readonly Contribution[] }) {
   const top = Math.max(...rows.map((row) => row.weight));
 
   return (
-    <ul className="flex min-h-0 flex-1 flex-col justify-between gap-2">
+    <ul className="wall-gap-sm flex min-h-0 flex-1 flex-col justify-between">
       {rows.map((row) => (
-        <li key={row.code}>
+        /* `wall-contrib-row` — 세로가 낮은 화면에서 아래 순위를 감춘다(globals.css) */
+        <li key={row.code} className="wall-contrib-row">
           <p className="flex items-baseline justify-between gap-2">
             <span className="flex min-w-0 items-baseline gap-1.5">
               <span aria-hidden className={cn('shrink-0 text-fg-subtle', WALL_META)}>
@@ -59,7 +60,7 @@ export function ContributionBars({ rows }: { rows: readonly Contribution[] }) {
               </span>
               <span className={cn('min-w-0 truncate', WALL_LABEL)}>{row.label}</span>
             </span>
-            <span className="num shrink-0 text-[16px] font-bold text-fg-muted">
+            <span className={cn('num shrink-0 font-bold text-fg-muted', WALL_UNIT)}>
               {percentOf(row.weight)}%
             </span>
           </p>
