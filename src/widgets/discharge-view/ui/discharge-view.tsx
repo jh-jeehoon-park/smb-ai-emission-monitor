@@ -22,7 +22,7 @@ import {
 } from '@/shared/config/status-visual';
 import { cn } from '@/shared/lib/cn';
 import { DISPLAY_TIMEZONE, formatClock, formatDateTime, formatValue } from '@/shared/lib/format';
-import { getOutageWindow, isDischargingAt } from '@/shared/lib/timeline';
+import { getOutageWindow } from '@/shared/lib/timeline';
 import { CHART_SURFACE, ChartFigure } from '@/shared/ui/chart-figure';
 import { ChartTooltipRow, ChartTooltipShell } from '@/shared/ui/chart-tooltip';
 import { Panel } from '@/shared/ui/panel';
@@ -39,6 +39,7 @@ import { useChartHover } from '@/shared/lib/use-chart-hover';
 import { getSite } from '@/entities/site';
 import {
   TELEMETRY_PENDING_NOTE,
+  dischargingAt,
   useSiteSeries,
   type MeasurementPoint,
 } from '@/entities/measurement';
@@ -94,20 +95,25 @@ export function DischargeView() {
    */
   const pending = seriesStatus === 'pending';
   /*
-   * **채널이 없는 것과 통신이 끊긴 것은 다른 사실이다.** 둘 다 `null`로 오지만 화면이
-   * 같은 말을 하면 안 된다 — 수위는 서버에 채널 자체가 없어서 비고(`[TBD-57]`, 추가 요청
-   * 중), 두절은 있던 값이 끊긴 것이다. `수신 없음` 하나로 뭉치면 없는 두절을 주장한다(E4).
+   * **한 점도 오지 않은 것과 통신이 끊긴 것은 다른 사실이다.** 둘 다 `null`로 오지만 화면이
+   * 같은 말을 하면 안 된다 — 두절은 사업장 전체가 끊긴 것이고 이쪽은 그 계열만 비어 있다.
+   * `수신 없음` 하나로 뭉치면 없는 두절을 주장한다(**E4**).
+   *
+   * **«채널이 없다»가 아니다** `[사용자 확인 2026-09-07]` — 요청해 둔 수위 채널이 도착해
+   * 10개소 전부에서 값이 온다. 그 문구는 상시 제약처럼 읽혀 그때 걷혔는데 **타일만 옛 말을
+   * 달고 있었다**(차트는 바뀌어 있었다).
    */
   const levelUnreceived = unreceived.includes('level');
 
   const detail = useMemo(() => {
     /*
-     * 방류 여부는 **서버에 닿으면 서버 값**, fixture면 시뮬레이션이다. 훅의 계약이 그렇다 —
-     * `discharging`은 서버에서 받을 때만 값이 있고 fixture 경로에서는 `null`이다.
+     * 방류 여부는 **서버에 닿으면 서버 값**, fixture면 시뮬레이션이다. 그 고르기를 이 화면이
+     * 직접 하고 있었는데, **다른 화면들은 실측 중에도 시나리오만 읽고 있었다** — 규칙을
+     * `dischargingAt` 한 곳으로 옮겼다 `[사용자 지적 2026-09-15]`.
      */
     const samples: DischargeSample[] = series.map((point, i) => ({
       t: point.t,
-      discharging: liveDischarging ? (liveDischarging[i] ?? null) : isDischargingAt(siteId, i),
+      discharging: dischargingAt(siteId, liveDischarging, i),
     }));
 
     /*
@@ -133,6 +139,12 @@ export function DischargeView() {
       outage: getOutageWindow(siteId),
       latestFlow: [...series].reverse().find((p) => p.flow !== null)?.flow ?? null,
       latestLevel: [...series].reverse().find((p) => p.level !== null)?.level ?? null,
+      /*
+       * **오늘 관측 범위.** 「만수위」를 대신해 이 칸이 «그래서 이 값이 어디쯤인가»를 맡는다
+       * `[사용자 결정 2026-09-15]` — 지어낸 기준이 아니라 **오늘 실제로 오간 폭**이라 원천이
+       * 바뀌어도 거짓이 되지 않는다(§7.6).
+       */
+      observedLevel: observedRange(today),
     };
   }, [siteId, series, liveDischarging, observedAtIso]);
 
@@ -186,11 +198,20 @@ export function DischargeView() {
               value={
                 detail.latestLevel === null ? '수신 없음' : formatValue('level', detail.latestLevel)
               }
+              /*
+               * **「만수위」를 적지 않는다** `[사용자 결정 2026-09-15]` — 그 값은 우리가 정한
+               * 것인데(`[TBD-57]`) 판정 기준처럼 인쇄됐고, **계측 서버 실측이 이미 그것을
+               * 넘었다**(3.41~3.89m, 2026-09-11). 자리를 대신하는 것은 오늘 관측 범위다(§7.6).
+               *
+               * 미수신 문구도 여기서 맞췄다 — 차트는 2026-09-07에 «값이 한 점도 오지
+               * 않았습니다»로 바뀌었는데 **타일만 «채널이 없습니다»로 남아** 한 화면이 두
+               * 말을 하고 있었다(문서 §6은 둘 다 앞 문구라 적는다).
+               */
               note={
                 detail.latestLevel !== null
-                  ? `${LEVEL.unit} · 만수위 ${LEVEL.range[1]}${LEVEL.unit} [PROVISIONAL]`
+                  ? `${LEVEL.unit} · ${LEVEL.unitKo}${observedNote(detail.observedLevel)}`
                   : levelUnreceived
-                    ? '계측 서버에 수위 채널이 없습니다 [TBD-57]'
+                    ? '수위 값이 한 점도 오지 않았습니다'
                     : '마지막 수신 없음'
               }
             />
@@ -234,7 +255,7 @@ export function DischargeView() {
         titleAside={
           <InfoTip
             label="이 값의 출처"
-            content={`수위는 원문의 «배출 데이터» 3종 중 하나입니다 [원문 p.1]. 다만 단위·범위·측정 방식이 원문에 없어 [TBD-57] 시연에서는 미터로 표기하고 만수위를 ${LEVEL.range[1]}${LEVEL.unit}로 두었습니다 — 확정되면 이 값만 바뀝니다. 방류를 멈추면 처리수가 계속 들어와 차오르고, 재개하면 빠집니다. 위 유량 차트와 같은 시간축이라 옅은 띠가 두 그림에서 같은 자리에 섭니다.`}
+            content={`수위는 원문의 «배출 데이터» 3종 중 하나입니다 [원문 p.1]. 다만 단위·범위·측정 방식이 원문에 없습니다 [TBD-57] — 그래서 이 화면은 만수위를 주장하지 않습니다. 세로축은 0에서 그날 최댓값까지이고, 곁의 «오늘 …»이 실제로 오간 폭입니다. 방류를 멈추면 처리수가 계속 들어와 차오르고, 재개하면 빠집니다. 위 유량 차트와 같은 시간축이라 옅은 띠가 두 그림에서 같은 자리에 섭니다.`}
           />
         }
       >
@@ -289,6 +310,23 @@ function ChartSkeleton({ height }: { height: number }) {
       <Skeleton style={{ height }} />
     </SkeletonRegion>
   );
+}
+
+/**
+ * 오늘 계열이 오간 폭. **「만수위」를 대신하는 자리다** `[사용자 결정 2026-09-15]`.
+ *
+ * 지어낸 기준이 아니라 **받은 값 그 자체**라, 원천이 fixture에서 계측 서버로 바뀌어도
+ * (1.12~2.60 → 3.41~3.89) 이 문장은 거짓이 되지 않는다. 그것이 만수위와 갈리는 점이다.
+ */
+function observedRange(points: MeasurementPoint[]): [number, number] | null {
+  const known = points.map((point) => point.level).filter((v): v is number => v !== null);
+  return known.length > 0 ? [Math.min(...known), Math.max(...known)] : null;
+}
+
+/** 값이 하나뿐이면 폭이 없다 — `1.30–1.30`은 범위가 아니라 소음이라 적지 않는다 */
+function observedNote(range: [number, number] | null): string {
+  if (range === null || range[0] === range[1]) return '';
+  return ` · 오늘 ${formatValue('level', range[0])}–${formatValue('level', range[1])}`;
 }
 
 /** `120분째`보다 `2시간째`가 읽힌다. 한 시간 미만은 분으로 둔다 */
@@ -508,9 +546,19 @@ function LevelChart({ input, unreceived }: { input: ChartInput; unreceived: bool
                 tickLine={false}
                 axisLine={{ stroke: GRID_HEX }}
               />
-              {/* 축을 만수위로 고정한다 — 사업장이 달라도 «얼마나 찼나»가 같은 눈금에서 읽힌다 */}
+              {/*
+               * **만수위 고정을 걷었다** `[사용자 결정 2026-09-15]`.
+               *
+               * 한때 *"축을 만수위로 고정한다 — 사업장이 달라도 «얼마나 찼나»가 같은 눈금에서
+               * 읽힌다"* 였다. 그 비교는 **만수위가 사업장마다 같다는 전제** 위에 섰는데 그
+               * 값은 우리가 정한 것이고(`[TBD-57]`), **계측 서버가 이미 그것을 넘겨 보낸다** —
+               * 고정 축은 넘는 값을 담지 못해 Recharts가 스스로 늘렸고, 결국 «고정»이 아니었다.
+               *
+               * 0을 바닥에 두는 것은 그대로다 — 비어 가는 방향이 바닥으로 읽혀야 한다.
+               * 위 유량 차트와 같은 문법이 된다.
+               */}
               <YAxis
-                domain={LEVEL.range}
+                domain={[0, 'dataMax']}
                 width={44}
                 tick={{ fill: AXIS_TEXT_HEX, fontSize: 11 }}
                 tickLine={false}

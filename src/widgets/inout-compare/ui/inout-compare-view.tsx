@@ -1,11 +1,10 @@
 'use client';
 
 import { useMemo } from 'react';
-import { isDischargingAt } from '@/shared/lib/timeline';
 import { RiseItem, StaggerGroup } from '@/shared/ui/motion';
 import { countOpen } from '@/entities/alarm';
 import { getAnomalySummary } from '@/entities/anomaly';
-import { telemetrySourceLabel, useSiteSeries } from '@/entities/measurement';
+import { dischargingAt, telemetrySourceLabel, useSiteSeries } from '@/entities/measurement';
 import { getSite } from '@/entities/site';
 import { allAlarmsForSite, useAlarmStates } from '@/features/alarm-ack';
 import { useDischargeLimits } from '@/features/discharge-limit-settings';
@@ -56,7 +55,8 @@ export function InOutCompareView() {
   /* 사용자가 설정한 기준치가 정적 표를 덮어쓴다 — 같은 항목이 화면마다 다르게 판정되지 않게 */
   const limits = useDischargeLimits();
 
-  const { points, status, failure, unreceived, observedAtIso } = useSiteSeries(siteId);
+  const { points, discharging: liveDischarging, status, failure, unreceived, observedAtIso } =
+    useSiteSeries(siteId);
   const pending = status === 'pending';
 
   const compare = useMemo(
@@ -108,8 +108,8 @@ export function InOutCompareView() {
         <FlowAside
           compare={compare}
           pending={pending}
-          /* 서버가 `discharging`을 주지만 이상 탐지와 원천이 갈리지 않게 시나리오를 따른다 */
-          dischargingNow={isDischargingAt(siteId, points.length - 1)}
+          /* 실측이면 서버 값, 폴백이면 시나리오 — 규칙은 `dischargingAt` 한 곳이다 */
+          dischargingNow={dischargingAt(siteId, liveDischarging, points.length - 1)}
         />
       </RiseItem>
 

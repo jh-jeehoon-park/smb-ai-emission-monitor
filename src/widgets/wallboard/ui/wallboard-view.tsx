@@ -6,12 +6,12 @@ import { PROVISIONAL_STATUS_LABELS } from '@/shared/config/provisional';
 import { STATUS_VISUAL, statusInk } from '@/shared/config/status-visual';
 import { cn } from '@/shared/lib/cn';
 import { DISPLAY_TIMEZONE } from '@/shared/lib/format';
-import { isDischargingAt } from '@/shared/lib/timeline';
 import { countByPriorityIn, countOpen } from '@/entities/alarm';
 import { getAnomalySummary } from '@/entities/anomaly';
 import { getEquipment } from '@/entities/equipment';
 import {
   WATER_SERIES_CODES,
+  dischargingAt,
   telemetrySourceLabel,
   useSiteSeries,
   type MeasurementPoint,
@@ -65,7 +65,7 @@ import { WallTrend } from './wall-trend';
  * 현재 시스템의 톤앤매너로 어떻게 보여줄 수 있을 것에 대한 것이 중심이 됨]`.
  *
  * 여기 있는 값은 전부 다른 화면이 이미 보여 주는 것이다 — 이상 점수와 기여 변수(`/anomaly`) ·
- * 알람 집계(`/alarms`) · 누적 배출량(`/discharge`) · 수질 8종 · 설비 4대.
+ * 알람 집계(`/alarms`) · 유출 유량과 수위(`/discharge`) · 수질 8종 · 설비 4대.
  *
  * ## 셸을 그리지 않는다
  *
@@ -78,7 +78,8 @@ export function WallboardView() {
   const site = getSite(siteId);
   const limits = useDischargeLimits();
 
-  const { points, status, failure, unreceived, observedAtIso } = useSiteSeries(siteId);
+  const { points, discharging: liveDischarging, status, failure, unreceived, observedAtIso } =
+    useSiteSeries(siteId);
   const { alarms } = useAlarmStates(useMemo(() => allAlarmsForSite(siteId), [siteId]));
 
   const anomaly = useMemo(() => getAnomalySummary(siteId), [siteId]);
@@ -97,8 +98,16 @@ export function WallboardView() {
     [alarms],
   );
 
-  /* 서버가 `discharging`을 주지만 이상 탐지와 원천이 갈리지 않게 시나리오를 따른다 */
-  const discharging = isDischargingAt(siteId, points.length - 1);
+  /*
+   * **실측이면 서버 값, 폴백이면 시나리오** `[사용자 지적 2026-09-15: 방류 여부를 두
+   * 원천에서 읽는다]`.
+   *
+   * 한때 *"서버가 `discharging`을 주지만 이상 탐지와 원천이 갈리지 않게 시나리오를 따른다"*
+   * 였다. 그 대가가 더 컸다 — 머리줄이 «계측 서버 수신 중»이라 적는 동안 **이 값 하나만
+   * 내장 데이터**여서, 서버가 «방류 중단»을 보내도 벽에는 «방류 중»이 걸릴 수 있었다(**E3**).
+   * 이상 탐지와의 정합은 폴백에서 그대로다 — 그때는 두 원천이 같은 값을 돌려준다.
+   */
+  const discharging = dischargingAt(siteId, liveDischarging, points.length - 1);
 
   /*
    * **맨 끝 표본이 아니라 «마지막으로 받은 값»을 쓴다.**
