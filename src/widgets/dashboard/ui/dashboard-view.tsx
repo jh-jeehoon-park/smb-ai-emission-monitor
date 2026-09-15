@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { DEMO_NOW_ISO } from '@/shared/config/demo';
 import { isOverLimit } from '@/shared/config/discharge-limits';
 import { STATUS_VISUAL, statusInk } from '@/shared/config/status-visual';
@@ -8,19 +8,12 @@ import { DISPLAY_TIMEZONE, formatDateTime } from '@/shared/lib/format';
 import { COLLECTION_INTERVAL_MINUTES } from '@/shared/config/measurement';
 import { getOutageWindow } from '@/shared/lib/timeline';
 import { AnomalyBandLegend } from '@/shared/ui/anomaly-band-legend';
-import { Modal } from '@/shared/ui/modal';
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
 import { Panel } from '@/shared/ui/panel';
 import { StickyBar } from '@/shared/ui/sticky-bar';
 import { InfoTip } from '@/shared/ui/tooltip';
-import {
-  countByPriorityIn,
-  countOpen,
-  openAlarms,
-  openCountBySite,
-  type Alarm,
-} from '@/entities/alarm';
+import { countByPriorityIn, countOpen, openCountBySite } from '@/entities/alarm';
 import { ALARM_PRIORITY_LABELS, type AlarmPriority } from '@/entities/alarm';
 import { getAnomalySeries, getAnomalySummary } from '@/entities/anomaly';
 import { getEquipment } from '@/entities/equipment';
@@ -43,7 +36,6 @@ import {
 import { SITES, getSite } from '@/entities/site';
 import { ALL_ALARMS, useAlarmStates } from '@/features/alarm-ack';
 import { SiteTabs, useSelectedSiteId, useSiteHref } from '@/features/site-selection';
-import { AlarmList } from '@/widgets/alarm-list';
 import { AnomalyPanel } from '@/widgets/anomaly-panel';
 import { AnomalyTimeline } from '@/widgets/anomaly-timeline';
 import { EquipmentPanel } from '@/widgets/equipment-panel';
@@ -52,10 +44,6 @@ import { SiteMapLegend, SiteMapPanel } from '@/widgets/site-map';
 import { SiteWallboard } from '@/widgets/site-wallboard';
 import { useDischargeLimits } from '@/features/discharge-limit-settings';
 import { WaterQualityGrid } from '@/widgets/water-quality-grid';
-import { BADGE_BASE } from '@/shared/ui/badge';
-import { Eyebrow } from '@/shared/ui/eyebrow';
-import { StatusBadge } from '@/shared/ui/status-badge';
-import { VALUE_LG } from '@/shared/ui/type-scale';
 
 export function DashboardView() {
   const {
@@ -64,9 +52,6 @@ export function DashboardView() {
     chosen: siteChosen,
   } = useSelectedSiteId();
   const withSite = useSiteHref();
-  /* 선택(상세 대상)과 다른 축이다 — 알람만 열고 닫는다 */
-  const [alarmSiteId, setAlarmSiteId] = useState<string | null>(null);
-
   const site = getSite(selectedSiteId);
   const limits = useDischargeLimits();
   /* 헤더 알림·사이드바와 같은 상태를 읽는다 — 정적 fixture면 확인해도 줄지 않는다 */
@@ -112,7 +97,7 @@ export function DashboardView() {
         titleAside={
           <InfoTip
             label="이 카드를 읽는 법"
-            content="카드를 누르면 그 사업장의 미확인 알람이 열립니다. 아래 탭에서 고른 한 개소는 이 카드가 아니라 그 아래 구역이 다룹니다."
+            content="카드를 누르면 그 사업장의 상세 화면으로 이동합니다. 아래 탭에서 고른 한 개소는 이 카드가 아니라 그 아래 구역이 다룹니다."
           />
         }
         /* 전 사업장 합계는 여기에만 둔다 — 아래 카드는 전부 선택 사업장 축이다 */
@@ -135,22 +120,24 @@ export function DashboardView() {
           </div>
         }
       >
+        {/*
+         * **카드를 누르면 그 사업장 상세로 간다** `[사용자 요청 2026-09-15]`.
+         *
+         * 한때는 미확인 알람 모달이 열렸다 — 카드가 «훑는 개요»이고 화면을 옮기는 것은
+         * 구역 머리의 링크뿐이라는 짜임이었다. 그 사이 «카드에서 한 번에 상세로»가
+         * 한 번 세워졌다 걷혔는데(`b884b1b` · 2026-09-15 되돌림), 그때는 카드 안에
+         * **상세 칸을 따로 내는** 방식이라 한 카드에 목적지가 둘이었다. 지금은 카드
+         * 전체가 하나의 목적지다 — 칸도 없고 고를 것도 없다.
+         *
+         * 알람은 카드 아래 줄의 건수가 말하고, 목록은 `전체 보기`가 여는 알람 이력이 맡는다.
+         */}
         <SiteWallboard
           sites={SITES}
-          onCardClick={setAlarmSiteId}
-          hasPopup
-          /*
-           * **훑다가 한 곳으로 바로 들어가는 길** `[사용자 요청 2026-08-31]`.
-           *
-           * 여기까지는 사업장 상세로 가려면 두 번 눌러야 했다 — 핀·탭으로 고르고, 구역 머리의
-           * `상세 보기`를 다시 누른다. 그 링크는 이 화면에 여섯 개인 같은 모양의 칩 중 하나라
-           * 눈에도 띄지 않았다. 카드에서 한 번에 가면 월보드가 원래 하겠다고 적어 둔 일
-           * (**전체를 훑고 이상한 곳으로 바로 들어간다**)이 실제로 된다.
-           *
-           * **카드 본체는 그대로 알람 모달이다** — 여기서 뺏으면 요청하지 않은 것이 바뀐다(A2).
-           */
-          detailHref={(s) => withSite('/overview', s.id)}
-          cardLabel={(s) => `${s.name} 미확인 알람 ${alarmCounts[s.id] ?? 0}건 보기`}
+          action="link"
+          /* 누른 카드의 사업장이다 — 탭에서 고른 사업장과 다르므로 id를 넘긴다.
+             손으로 `?site=`를 이어 붙이면 `scope`·`municipality`가 함께 날아간다 */
+          cardHref={(s) => withSite('/overview', s.id)}
+          cardLabel={(s) => `${s.name} 사업장 상세로 이동`}
           renderFooter={(s) => (
             <span className="text-[12px] text-fg-subtle">
               미확인 알람 <span className="num font-bold text-fg">{alarmCounts[s.id] ?? 0}</span>건
@@ -161,14 +148,6 @@ export function DashboardView() {
 
       <section className="space-y-3 rounded-panel border border-card-border bg-section-bg p-4 lg:p-5">
         <StickyBar>
-          {/*
-           * **여기 있던 `상세 보기`를 걷었다** `[사용자 요청 2026-08-31]`.
-           *
-           * 2026-08-28에 넣은 «사업장 축의 입구»였다 — 다른 `상세 보기` 다섯이 주제별로 흩어
-           * 보내는데(계측→시계열…) 고른 사업장 하나를 통째로 볼 곳이 없어서였다. 그 자리를
-           * **월보드 카드의 상세 칸**이 물려받았고(위 `detailHref`), 카드에서는 고르지 않고
-           * 한 번에 간다 — 두 입구를 남기면 같은 목적지가 화면에 둘이 된다.
-           */}
           <div className="flex items-center gap-1.5">
             <h2 className="text-[16px] font-bold leading-tight tracking-tight text-fg">
               선택 사업장 현황
@@ -177,6 +156,21 @@ export function DashboardView() {
               label="이 구역의 범위"
               content="탭으로 고른 한 개소의 이상 판정·계측·예측·설비 상태를 모아 봅니다."
             />
+            {/*
+             * **사업장 축의 입구다** `[사용자 요청 2026-08-28]`. 이 화면의 다른 `상세 보기`
+             * 다섯은 주제별로 흩어 보내는데(계측→시계열, 예측→오염도…), 고른 사업장 하나를
+             * 통째로 볼 곳이 없었다. 선택은 탭·핀이 그대로 맡고 이 링크는 화면을 옮긴다.
+             *
+             * **한때 월보드 카드의 상세 칸이 이 일을 물려받았다** `[사용자 요청 2026-08-31]` —
+             * 2026-09-15에 그 판본을 되돌리며 이 입구가 돌아왔다.
+             *
+             * **«이 링크만»은 더 이상 아니다** `[사용자 요청 2026-09-15]` — 같은 날 월보드
+             * 카드도 옮기는 쪽이 됐다. 둘을 함께 두는 이유는 **대상이 다르기 때문**이다:
+             * 이 링크는 «탭에서 고른 사업장», 카드는 «그 카드의 사업장»이다. `b884b1b`가
+             * 이 링크를 걷었던 근거(같은 목적지가 화면에 둘)는 그때 **카드 하나 안에**
+             * 목적지가 둘이던 것과 겹쳐 있었고, 지금은 카드에 목적지가 하나뿐이다.
+             */}
+            <DetailLink href={withSite('/overview')} label={`${site.name} 사업장 상세로 이동`} />
           </div>
           <SiteTabs sites={SITES} selectedId={selectedSiteId} onSelect={setSelectedSiteId} />
         </StickyBar>
@@ -319,113 +313,9 @@ export function DashboardView() {
           </div>
         </div>
       </section>
-
-      <SiteAlarmsModal
-        siteId={alarmSiteId}
-        alarms={allAlarms}
-        onClose={() => setAlarmSiteId(null)}
-      />
     </div>
   );
 }
-
-/**
- * 사업장 카드를 눌렀을 때 열리는 **미확인** 알람 모음. 확인·조치 전이는 이력 화면의 몫이다.
- *
- * **`siteId`가 `null`이어도 언마운트하지 않는다** — Modal이 닫힐 때 포커스를 열기 전
- * 자리로 되돌리는데, 언마운트하면 그 대상을 잃는다.
- */
-function SiteAlarmsModal({
-  siteId,
-  alarms,
-  onClose,
-}: {
-  siteId: string | null;
-  alarms: Alarm[];
-  onClose: () => void;
-}) {
-  const withSite = useSiteHref();
-  const site = siteId ? getSite(siteId) : null;
-  const open = siteId ? openAlarms(alarms, siteId) : [];
-  const counts = countByPriorityIn(open);
-
-  return (
-    <Modal
-      open={siteId !== null}
-      onOpenChange={(next) => {
-        if (!next) onClose();
-      }}
-      title={site ? `${site.name} 미확인 알람` : '미확인 알람'}
-    >
-      {site && (
-        <div className="space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 rounded-nested bg-surface-2 p-4">
-            <div className="flex items-baseline gap-2">
-              <span
-                className={`num ${VALUE_LG}`}
-                style={{
-                  color: open.length > 0 ? statusInk(STATUS_VISUAL.critical) : 'var(--color-fg)',
-                }}
-              >
-                {open.length}
-              </span>
-              <span className="text-[12px] text-fg-muted">건 미확인</span>
-            </div>
-
-            {/* 0건인 우선순위는 적지 않는다 — 있는 것이 아니라 없는 것을 읽게 된다 */}
-            <div className="flex flex-wrap items-center gap-1.5">
-              {(Object.keys(ALARM_PRIORITY_LABELS) as AlarmPriority[])
-                .filter((priority) => counts[priority] > 0)
-                .map((priority) => (
-                  <span
-                    key={priority}
-                    className={`${BADGE_BASE} font-medium ${MODAL_PRIORITY_CHIP[priority]}`}
-                  >
-                    {ALARM_PRIORITY_LABELS[priority]} {counts[priority]}
-                  </span>
-                ))}
-              {site.status ? (
-                <StatusBadge level={site.status} />
-              ) : (
-                <span className={`${BADGE_BASE} bg-surface-3 text-fg-muted`}>통신 두절</span>
-              )}
-
-              {/* 누른 카드의 사업장이다 — 탭에서 고른 사업장과 다를 수 있어 id를 넘긴다.
-                  손으로 `?site=`를 이어 붙이면 `scope`·`municipality`가 함께 날아간다 */}
-              <Link
-                href={withSite('/alarms', site.id)}
-                className="ml-auto flex items-center gap-0.5 rounded-chip py-0.5 pl-1.5 pr-0.5 text-[12px] text-fg-subtle transition-colors duration-200 hover:bg-accent-weak hover:text-accent"
-              >
-                이력 전체 보기
-                <ChevronRight aria-hidden size={16} strokeWidth={2} />
-              </Link>
-            </div>
-          </div>
-
-          {/* 알람이 없는 것이 아니라 못 받는 것이다(E4) */}
-          {!site.online && (
-            <p className="text-[12px] leading-relaxed text-fg-subtle">
-              통신이 두절되어 마지막 수신 이후의 알람은 받지 못했습니다. 아래 목록은 두절 전까지
-              받은 것입니다.
-            </p>
-          )}
-
-          <div>
-            <Eyebrow className="mb-2">알람 목록</Eyebrow>
-            <AlarmList alarms={open} nowIso={DEMO_NOW_ISO} selectedSiteId={site.id} />
-          </div>
-        </div>
-      )}
-    </Modal>
-  );
-}
-
-/** 목록 행과 같은 색을 쓴다 — 갈리면 같은 알람이 달라 보인다 */
-const MODAL_PRIORITY_CHIP: Record<AlarmPriority, string> = {
-  urgent: 'bg-chip-critical text-critical-ink',
-  caution: 'bg-chip-warning text-warning-ink',
-  info: 'bg-chip-info text-info-ink',
-};
 
 /**
  * 카드 머리의 이동 링크. 목적지는 `aria-label`이 적는다 — 짧은 글자·아이콘만으로는

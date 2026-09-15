@@ -180,9 +180,12 @@ export function JurisdictionView() {
         <div className="space-y-4">
           <SiteWallboard
             sites={sites}
+            /* 카드는 **선택**이다. 화면을 옮기는 것은 표의 `상세` 버튼뿐이다 —
+               통합 관제는 2026-09-15에 카드가 옮기는 쪽으로 갔지만 이 화면은 그대로다
+               `[사용자 요청 2026-09-15: 영역은 «통합 관제 > 사업장 현황 요약»]` */
+            action="select"
             selectedId={siteId}
             onCardClick={setSiteId}
-            /* 카드는 **선택**이다. 화면을 옮기는 것은 표의 `상세` 버튼뿐이다 */
             cardLabel={(s) => `${s.name} 선택`}
             renderFooter={(s) => (
               <span className="text-[12px] text-fg-subtle">
