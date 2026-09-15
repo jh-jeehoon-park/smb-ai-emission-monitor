@@ -169,7 +169,7 @@ function NoChannel({ code }: { code: MeasurementItemCode }) {
 
       <p className={`mt-1 ${VALUE_MD} text-fg-subtle`}>계측 없음</p>
       <p className="mt-0.5 truncate text-[12px] text-fg-muted">{item.label}</p>
-      <p className="mt-1 truncate text-[12px] text-fg-subtle">채널 미확정 [TBD-52]</p>
+      <p className="mt-1 truncate text-[12px] text-fg-subtle">채널 미확정</p>
     </div>
   );
 }

@@ -79,11 +79,10 @@ export function EquipmentDetailModal({
        */}
       <p className="mt-3 max-w-[62ch] border-t border-border pt-3 text-[12px] leading-relaxed text-fg-subtle">
         <strong className="text-fg-muted">고장 확률·잔여 수명(RUL)·MPI는 표시하지 않는다</strong> —
-        예지보전으로 그 값을 내기는 어렵다는 판단이다 [회의 2026-08-20]. 현실적으로 가능한 것은
+        예지보전으로 그 값을 내기는 어렵다는 판단이다. 현실적으로 가능한 것은
         진동 센서 기반 이상 탐지와 가동 상태 확인이며, 진동 센서의 단위·측정 범위는 아직
-        정해지지 않아 [TBD-49] <strong className="text-fg-muted">값이 아니라 이상 여부만</strong>
-        낸다. 원문 성과지표(설비 고장 예측 정확도 ≥85% [원문 p.30·31·80])와 어긋나는 사실은
-        [INC-107]에 남겼다.
+        정해지지 않아 <strong className="text-fg-muted">값이 아니라 이상 여부만</strong>
+        낸다.
       </p>
 
       <div className="mt-4 border-t border-border pt-3">

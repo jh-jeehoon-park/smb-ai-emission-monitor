@@ -178,8 +178,7 @@ export function OptimizationView() {
             /* 신호가 없으면 제안을 만들지 않는다 — 무엇이 없어서인지를 적는다(R19·E4) */
             <p className="py-3 text-[12px] leading-relaxed text-fg-subtle">
               최근 {OPERATING_WINDOW.recentHours}시간의 DO·유량 변화가 조정 문턱 아래이거나 표본이
-              없어 조정을 권하지 않습니다. 값을 지어내 `0%`로 적으면 &ldquo;조정할 필요가 없다고
-              판단했다&rdquo;는 말이 됩니다.
+              없어 조정을 권하지 않습니다.
             </p>
           ) : (
             <ul className="divide-y divide-border">
@@ -203,7 +202,7 @@ export function OptimizationView() {
         titleAside={
           <InfoTip
             label="원문이 정하지 않은 것"
-            content="약품 주입량의 단위·범위는 원문에 없어(계측 사양 p.55에 없고 AI 입력으로만 언급됨) 시연에서 L/h로 표기했습니다. 설비 수명 증가 목표는 같은 페이지 안에서 ≥15%와 ≥10%로 갈려 있어(INC-18) 화면에 넣지 않았습니다."
+            content="약품 주입량의 단위·범위는 원문에 없어(계측 사양 p.55에 없고 AI 입력으로만 언급됨) 시연에서 L/h로 표기했습니다. 설비 수명 증가 목표는 같은 페이지 안에서 ≥15%와 ≥10%로 갈려 있어 화면에 넣지 않았습니다."
           />
         }
       >

@@ -251,7 +251,7 @@ function OverlayLegend({ drawable }: { drawable: ForecastSummary[] }) {
           label={`${s.code} · ${SERIES_ORIGIN_LABELS[s.origin]}`}
         />
       ))}
-      <LegendItem swatch color={AXIS_TEXT_HEX} label="예측 미정 [TBD-52]" />
+      <LegendItem swatch color={AXIS_TEXT_HEX} label="예측 미정" />
     </ul>
   );
 }

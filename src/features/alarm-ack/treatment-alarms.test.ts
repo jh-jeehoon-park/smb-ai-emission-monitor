@@ -89,9 +89,15 @@ describe('처리 미흡 알람', () => {
   });
 
   /** 임시 임계임을 상세가 스스로 밝힌다 — 우리가 정한 값이 확정 기준으로 읽히면 안 된다 */
+  /**
+   * **임시값이라는 사실은 남고 번호만 걷혔다** `[사용자 요청 2026-09-15]`. `[TBD-59]`는
+   * 문서 규약이라 화면에서 뺐다 — 사용자에게 그 숫자는 뜻이 없고 값처럼 보인다.
+   * 다만 «우리가 정한 기준»이라는 고지는 판정의 한계라 남는다(**E3**).
+   */
   it('상세가 임시값임을 적는다', () => {
     const alarm = buildTreatmentAlarms('S-01', '가', [row('TOC', 2, true)], null)[0]!;
-    expect(alarm.detail).toContain('TBD-59');
+    expect(alarm.detail).toContain('우리가 정한 임시값');
+    expect(alarm.detail).not.toContain('TBD-');
   });
 });
 

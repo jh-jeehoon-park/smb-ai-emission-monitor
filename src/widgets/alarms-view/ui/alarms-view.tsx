@@ -9,6 +9,7 @@ import { STATUS_VISUAL, statusInk } from '@/shared/config/status-visual';
 import { Panel } from '@/shared/ui/panel';
 import { SegmentedControl } from '@/shared/ui/segmented-control';
 import { StatTile } from '@/shared/ui/stat-tile';
+import { InfoTip } from '@/shared/ui/tooltip';
 import type { Alarm } from '@/entities/alarm';
 import { getSite, scopeLabelOf, siteIdsInScope, withinScope } from '@/entities/site';
 import { ALL_ALARMS, useAlarmStates } from '@/features/alarm-ack';
@@ -104,8 +105,15 @@ export function AlarmsView() {
         <StatTile label="조치 완료" value={`${tally.resolved}건`} note="이번 세션 기준" />
       </div>
 
+      {/* 줄마다 되풀이되던 설비 이상 사유를 여기 한 곳으로 올렸다 — §8 `보조 설명`(제목 옆 툴팁) */}
       <Panel
         title={`알람 이력 ${visible.length}건`}
+        titleAside={
+          <InfoTip
+            label="설비 이상 줄을 읽는 법"
+            content="설비 이상은 값의 크기를 내지 않고 이상 여부만 냅니다 — 진동 센서의 측정 범위·정확도가 원문에 없어, 숫자를 적으면 재지 않은 값을 주장하게 됩니다. 줄에는 이상이 얼마나 이어졌는지만 적습니다."
+          />
+        }
         action={
           <div className="flex flex-wrap items-center gap-2">
             {/* 사업장은 자사 1개소뿐이라 고를 것이 없다. 가드가 scope=site로 고정한다 */}
@@ -181,7 +189,7 @@ export function AlarmsView() {
           <p className="max-w-[68ch] text-[12px] leading-relaxed text-fg-muted">
             확인·조치 버튼은 <strong className="text-fg">이 브라우저 안에서만</strong> 상태를
             바꿉니다. 서버가 없어 처리 이력이 저장되지 않으며 새로고침하면 되돌아갑니다. 알람 발송
-            채널(SMS·이메일·푸시)과 우선순위–등급 대응 관계는 원문에 정의가 없어(TBD-21) 화면에
+            채널(SMS·이메일·푸시)과 우선순위–등급 대응 관계는 원문에 정의가 없어 화면에
             임의로 만들지 않았습니다.
           </p>
           {changedCount > 0 && (

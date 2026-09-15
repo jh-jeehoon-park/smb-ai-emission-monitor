@@ -95,7 +95,7 @@ export function TreatmentScale({
       <p className="mt-3 text-[12px] leading-relaxed text-fg-subtle">
         유입 수질은 계측 서버에 채널이 없어 유출 실측에서 역산한 <b className="font-semibold">시연값</b>
         입니다. 잔존율과 유사 판정 기준({PROVISIONAL_TREATMENT_SIMILAR_PERCENT}%)은 원문에 없어
-        우리가 정했습니다 [TBD-59].
+        우리가 정했습니다.
       </p>
     </div>
   );

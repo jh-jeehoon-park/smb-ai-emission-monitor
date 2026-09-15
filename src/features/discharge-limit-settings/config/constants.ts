@@ -12,10 +12,10 @@ export const CLASSIFICATION_STORAGE_KEY = STORAGE_KEYS.siteClassification;
  */
 export const UNRESOLVED_REASONS = {
   noClassification:
-    '사업장의 지역구분·배출량 규모가 설정되지 않았습니다 — 사업장 설정에서 고르면 기준표를 적용합니다 [TBD-45]',
+    '사업장의 지역구분·배출량 규모가 설정되지 않았습니다 — 사업장 설정에서 고르면 기준표를 적용합니다',
   noSheet:
-    '이 지역구분·규모 조합의 기준치가 입력되지 않았습니다 — 사업장 설정에서 입력하면 초과를 판정합니다 [TBD-45]',
-  noItem: '이 항목의 기준치가 입력되지 않았습니다 [TBD-45]',
+    '이 지역구분·규모 조합의 기준치가 입력되지 않았습니다 — 사업장 설정에서 입력하면 초과를 판정합니다',
+  noItem: '이 항목의 기준치가 입력되지 않았습니다',
 } as const;
 
 /**

@@ -42,7 +42,7 @@ export const PROCESS_STAGES: readonly ProcessStage[] = [
      * 계열이 없어(`[TBD-52]`) 이 단계의 값이 통째로 사라지고 **계측하지 않는 단계**로
      * 읽히기 때문이다.
      */
-    measurementNote: '유량과 유입펌프 전류 — 들어오는 양과 펌프 부하를 본다. 유량계 지점은 미확정이다 [TBD-43]',
+    measurementNote: '유량과 유입펌프 전류 — 들어오는 양과 펌프 부하를 본다. 유량계 지점은 미확정이다',
     equipmentIds: ['EQ-02'],
     optional: false,
     /* 유량은 회의 예시 `[회의 2026-08-20]`, 전류는 데이터셋 `전류계위치 = 유입펌프` */
@@ -99,7 +99,7 @@ export const PROCESS_STAGES: readonly ProcessStage[] = [
     units: ['모래 여과', '염소·UV·오존 소독', '방류수조'],
     grade: 'actual',
     /* 위 `유입 및 전처리`와 같은 계열이다 — 어느 쪽이 방류 유량인지는 `[TBD-43]`이 정한다 */
-    measurementNote: '방류구 프로브 6종 + 광학 2종 + 유량(지점 미확정 [TBD-43]). TN·TP는 여기서 AI가 추정한다',
+    measurementNote: '방류구 프로브 6종 + 광학 2종 + 유량(지점 미확정). TN·TP는 여기서 AI가 추정한다',
     equipmentIds: ['EQ-04'],
     optional: false,
     /*

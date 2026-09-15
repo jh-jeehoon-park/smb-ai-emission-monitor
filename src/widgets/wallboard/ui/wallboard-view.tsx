@@ -251,7 +251,7 @@ export function WallboardView() {
           value={unreceived.includes('level') ? null : level}
           unit={MEASUREMENT_ITEMS.level.unit}
           decimals={MEASUREMENT_ITEMS.level.decimals}
-          note={unreceived.includes('level') ? '채널 없음 [TBD-57]' : '지금'}
+          note={unreceived.includes('level') ? '채널 없음' : '지금'}
         />
 
         <WallPanel title="방류 상태" bodyClassName="flex flex-col justify-center wall-pad">

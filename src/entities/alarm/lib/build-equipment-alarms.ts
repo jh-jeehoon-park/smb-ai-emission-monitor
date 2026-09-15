@@ -67,7 +67,13 @@ export function buildEquipmentAlarms(
       priority: PRIORITY_BY_LEVEL[item.status],
       condition: 'equipment',
       title: `${item.name} ${signals}`,
-      detail: `${duration}. 값의 크기는 내지 않는다 — 진동 센서 사양이 원문에 없다 [TBD-49].`,
+      /*
+       * **줄마다 같은 문장을 되풀이하지 않는다** `[사용자 요청 2026-09-15: 화면 설명문 일괄
+       * 제거]`. 한때 여기에 «값의 크기는 내지 않는다 — 진동 센서 사양이 원문에 없다»가 붙어
+       * **`/alarms`에서 행마다 44자씩 열 번**(그 화면 설명 글자의 40%) 반복됐다. 그 사유는
+       * 설비마다 다르지 않으므로 **목록 패널 각주 한 곳**이 맡는다.
+       */
+      detail: duration,
       /* 언제부터인가를 알람 시각으로 쓴다 — 지금 시각을 쓰면 이상이 방금 시작된 것처럼 읽힌다 */
       raisedAtIso: item.anomalySinceIso ?? DETECTION_TIME_UNKNOWN,
       /* 상태 이력 저장소가 없어 확인·조치 이력을 만들 수 없다(REQ-AD-019 미구현) */

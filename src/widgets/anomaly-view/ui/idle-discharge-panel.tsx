@@ -34,10 +34,10 @@ const MINUTES_PER_HOUR = 60;
 /** 이 패널을 담는 카드의 제목 옆 툴팁에 쓴다 — 판정 방법은 값과 같은 파일에 있어야 한다 */
 export const IDLE_DISCHARGE_NOTE = (
   <>
-    방류(유량) 발생 시각과 방지시설 가동(유입펌프 전류) 시각을 비교한다 [원문 발표 p.13]. 연속{' '}
-    {minutesLabel(PROVISIONAL_IDLE_DISCHARGE_MIN_MINUTES)} 미만은 세지 않는다 [PROVISIONAL].{' '}
+    방류(유량) 발생 시각과 방지시설 가동(유입펌프 전류) 시각을 비교한다. 연속{' '}
+    {minutesLabel(PROVISIONAL_IDLE_DISCHARGE_MIN_MINUTES)} 미만은 세지 않는다.{' '}
     <strong className="text-fg-muted">체류시간 보정은 적용하지 않았다</strong> — 원문이 값을 주지
-    않았다 [TBD-46]. 무단 여부는 신고 정보 없이 판정하지 않는다.
+    않았다. 무단 여부는 신고 정보 없이 판정하지 않는다.
   </>
 );
 

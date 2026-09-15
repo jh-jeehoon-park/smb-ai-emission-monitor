@@ -85,8 +85,8 @@ function buildOperating(signals: OperatingSignals, dosing: DosingAdvice): Operat
       observed: `${show(dissolvedOxygen, 'DO')} (최근 ${OPERATING_WINDOW.recentHours}시간 vs 직전 ${OPERATING_WINDOW.baselineHours}시간)`,
       reason:
         aeration > 0
-          ? '폭기 감소는 질산화를 저해해 TN을 올린다 [원문 p.24·62]'
-          : 'DO 여유가 늘어 폭기에 쓰는 전력을 줄일 수 있다 [원문 p.67 에너지 효율]',
+          ? '폭기 감소는 질산화를 저해해 TN을 올린다'
+          : 'DO 여유가 늘어 폭기에 쓰는 전력을 줄일 수 있다',
     });
   }
 
@@ -107,8 +107,8 @@ function buildOperating(signals: OperatingSignals, dosing: DosingAdvice): Operat
       observed: `${show(flow, 'flow')} (같은 창)`,
       reason:
         pump > 0
-          ? '유량이 늘었다 — 정격을 넘기지 않는 범위에서 올린다 [설계] · 계측 지점 미확정 [TBD-43]'
-          : '유량이 낮은데 정격으로 돌고 있다 [설계] · 계측 지점 미확정 [TBD-43]',
+          ? '유량이 늘었다 — 정격을 넘기지 않는 범위에서 올린다 · 계측 지점 미확정'
+          : '유량이 낮은데 정격으로 돌고 있다 · 계측 지점 미확정',
     });
   }
 
@@ -125,7 +125,7 @@ function buildOperating(signals: OperatingSignals, dosing: DosingAdvice): Operat
       /* 상한을 걸지 않는다 — 우리 배율이 아니라 원문 절감률 20~30%를 따라간다 `[원문 p.27·31]` */
       deltaPercent: -Math.round(dosing.savingRate),
       observed: `권장 주입량 ${dosing.recommendedDose} ${dosing.unit} · 현재 ${dosing.currentDose} ${dosing.unit}`,
-      reason: '권장 주입량에 맞춘다 — 산정 공식은 미확보 [TBD-51]',
+      reason: '권장 주입량에 맞춘다 — 산정 공식은 미확보',
     });
   }
 
@@ -143,7 +143,7 @@ export function getOptimization(
   /**
    * 운전 조건 제안이 볼 계측 신호. **넘기지 않으면 운전 조건을 만들지 않는다.**
    *
-   * 비용 절감 현황·사업장 요약은 약품·에너지만 쓴다 — 그 화면들에 계측 신호 계산을 강제하면
+   * 사업장 요약은 약품·에너지만 쓴다 — 그 화면에 계측 신호 계산을 강제하면
    * 쓰지도 않을 값을 만들게 된다. 신호가 없다는 것은 **방향을 낼 근거가 없다**는 뜻이라
    * 빈 목록이 정확한 답이다(E4).
    */

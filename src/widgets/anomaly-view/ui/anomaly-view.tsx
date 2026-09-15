@@ -220,7 +220,7 @@ export function AnomalyView() {
           titleAside={
             <InfoTip
               label="구간을 세는 방법과 한계"
-              content={`이상 점수가 ${PROVISIONAL_STATUS_LABELS.caution} 경계(${ANOMALY_RUN_MIN_SCORE}점) 위로 연속 ${PROVISIONAL_ANOMALY_RUN_MIN_MINUTES}분 이상 이어진 구간을 셉니다 [PROVISIONAL] — 점수 구간 경계는 원문에 없어 잠정값입니다 [TBD-02]. 수신이 끊긴 표본에서 구간을 닫습니다: 모르는 시간을 이어 붙이면 없는 이상을 만듭니다. 판독은 구간의 최고점 시각을 열며, 기여 변수의 %는 모델 산출이고 그 옆의 값·분포는 같은 시각의 계측입니다 — 둘이 어긋나면 어긋난 대로가 검증 결과입니다. 백분위는 관측 분포 안에서의 자리이지 기준 초과 판정이 아닙니다 [TBD-45].`}
+              content={`이상 점수가 ${PROVISIONAL_STATUS_LABELS.caution} 경계(${ANOMALY_RUN_MIN_SCORE}점) 위로 연속 ${PROVISIONAL_ANOMALY_RUN_MIN_MINUTES}분 이상 이어진 구간을 셉니다 — 점수 구간 경계는 원문에 없어 잠정값입니다. 수신이 끊긴 표본에서 구간을 닫습니다: 모르는 시간을 이어 붙이면 없는 이상을 만듭니다. 판독은 구간의 최고점 시각을 열며, 기여 변수의 %는 모델 산출이고 그 옆의 값·분포는 같은 시각의 계측입니다 — 둘이 어긋나면 어긋난 대로가 검증 결과입니다. 백분위는 관측 분포 안에서의 자리이지 기준 초과 판정이 아닙니다.`}
             />
           }
           action={

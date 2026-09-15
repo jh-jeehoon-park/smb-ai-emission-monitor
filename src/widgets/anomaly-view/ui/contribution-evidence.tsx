@@ -105,8 +105,7 @@ export function ContributionEvidenceList({
       <p className="mt-3 border-t border-border pt-2 text-[12px] leading-relaxed text-fg-subtle">
         가로 트랙은 <strong className="text-fg-muted">조회 구간의 관측 범위</strong>, 가운데 상자는
         중앙 50%(사분위), 세로선은 중앙값입니다. 점은 <strong className="text-fg-muted">그 시각의
-        실측값</strong>입니다 — 백분위는 관측 분포 안에서의 자리이지 기준 초과 판정이 아닙니다
-        [TBD-45].
+        실측값</strong>입니다 — 백분위는 관측 분포 안에서의 자리이지 기준 초과 판정이 아닙니다.
       </p>
     </div>
   );

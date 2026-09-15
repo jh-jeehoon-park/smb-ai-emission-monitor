@@ -76,7 +76,7 @@ export function buildTreatmentAlarms(
       title: `${similar.map((row) => row.label).join(' · ')} 유입과 거의 같음`,
       detail:
         `판정 대상 ${judged.length}개 항목 중 ${similar.length}개가 유입값과 거의 같습니다. ` +
-        `공정 처리 단계를 확인해 주십시오. 유사 판정 기준은 우리가 정한 임시값입니다 [TBD-59].`,
+        `공정 처리 단계를 확인해 주십시오. 유사 판정 기준은 우리가 정한 임시값입니다.`,
       /* 언제부터인가를 모르면 지금 시각을 쓰지 않는다 — 방금 시작된 것으로 읽힌다 */
       raisedAtIso: raisedAtIso ?? DETECTION_TIME_UNKNOWN,
       /* 상태 이력 저장소가 없어 확인·조치 이력을 만들 수 없다(REQ-AD-019 미구현) */

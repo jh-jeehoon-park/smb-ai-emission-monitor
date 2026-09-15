@@ -151,13 +151,12 @@ export function TimeseriesView() {
         <div className="max-w-[80ch] space-y-2 border-t border-border py-2.5 text-[12px] leading-relaxed text-fg-subtle">
           <p>
             pH 기준 5.80–8.60은 통상 적용 범위이며, 정확한 구간은 사업장 폐수배출시설
-            설치허가(신고)증에서 확인한다 [공정자료 p.11]. 나머지 항목은 아래 두 축이 정해져야
+            설치허가(신고)증에서 확인한다. 나머지 항목은 아래 두 축이 정해져야
             기준표를 고를 수 있다 —{' '}
             <span className="text-fg-muted">
               지역구분 {limits.classification.regionGrade ?? '미확인'} · 배출량 규모{' '}
               {limits.classification.dischargeScale ?? '미확인'}
-            </span>{' '}
-            [TBD-45].
+            </span>{' '}.
           </p>
 
           {/*
@@ -165,7 +164,7 @@ export function TimeseriesView() {
            * **SS를 못 본다는 사실이 화면에서 사라진다** — 탁도는 물리 지표일 뿐 SS가 아니다.
            */}
           <p>
-            법정 방류기준 점검 대상 [공정자료 p.5·19] —{' '}
+            법정 방류기준 점검 대상 —{' '}
             {LEGAL_CHECK_ITEMS.map((item, i) => (
               <span key={item.label}>
                 {i > 0 && ' · '}

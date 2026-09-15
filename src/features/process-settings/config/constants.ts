@@ -10,4 +10,4 @@ export const PROCESS_STAGES_STORAGE_KEY = STORAGE_KEYS.processStages;
  * 지어내면 없는 계측을 주장한다. 무엇을 해야 하는지를 적는다.
  */
 export const NO_STAGE_CODES_REASON =
-  '이 단계의 계측 항목이 설정되지 않았습니다 — 사업장 설정에서 고르면 값을 표시합니다 [TBD-53]';
+  '이 단계의 계측 항목이 설정되지 않았습니다 — 사업장 설정에서 고르면 값을 표시합니다';

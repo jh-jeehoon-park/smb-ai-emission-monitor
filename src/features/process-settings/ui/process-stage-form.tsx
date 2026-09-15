@@ -17,7 +17,7 @@ const SELECTABLE: readonly MeasurementItemCode[] = [...WATER_QUALITY_CODES, ...E
  * 제목이 없어 붙일 자리가 없다.
  */
 export const PROCESS_STAGE_ITEMS_NOTE =
-  '단계별 계측 항목은 원문에 없습니다 [TBD-53]. 프로브를 각 공정에 부착한다는 것까지가 회의 결과이고 [회의 2026-08-20], 어느 단계에서 무엇을 재는지는 여기서 정합니다.';
+  '단계별 계측 항목은 원문에 없습니다. 프로브를 각 공정에 부착한다는 것까지가 회의 결과이고, 어느 단계에서 무엇을 재는지는 여기서 정합니다.';
 
 /**
  * 사업장의 공정 구성을 고른다 (SCR-OP-010).

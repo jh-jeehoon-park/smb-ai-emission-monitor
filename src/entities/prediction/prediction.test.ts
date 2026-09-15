@@ -278,9 +278,15 @@ describe('판정 문구', () => {
     expect(verdict.text).not.toContain('시간');
   });
 
+  /**
+   * 마지막 줄이 `[TBD-45]`를 단정하던 자리다 `[사용자 요청 2026-09-15: 화면 설명문 일괄
+   * 제거]`. 번호는 문서 규약이라 걷었고, **근거 자리가 비지 않는다**는 것이 요점이라
+   * 그쪽을 단정한다 — 빈 칸이면 값이 없는 것으로 읽힌다.
+   */
   it('무엇을 해야 하는지가 근거 자리에 온다 — 빈 칸이면 값이 없는 것으로 읽힌다', () => {
     expect(trendVerdict(of('S-01'), true).basis).toContain('기준치');
     expect(trendVerdict(of('S-01'), null, '지역구분을 고르세요').basis).toBe('지역구분을 고르세요');
-    expect(trendVerdict(of('S-01'), null).basis).toContain('[TBD-45]');
+    expect(trendVerdict(of('S-01'), null).basis).toContain('입력되지 않았습니다');
+    expect(trendVerdict(of('S-01'), null).basis).not.toContain('TBD-');
   });
 });

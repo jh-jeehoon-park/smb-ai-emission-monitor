@@ -234,7 +234,7 @@ export function ReportsView() {
        */}
       <Panel
         title="오염도 판정"
-        titleAside={<InfoTip label="농도를 적지 않는 이유" content="소프트 센싱으로는 절대값의 정확도를 맞추기 어려워 높낮이만 냅니다 [회의 2026-08-20]. 숫자를 그대로 찍으면 계측된 농도로 읽힙니다." />}
+        titleAside={<InfoTip label="농도를 적지 않는 이유" content="소프트 센싱으로는 절대값의 정확도를 맞추기 어려워 높낮이만 냅니다. 숫자를 그대로 찍으면 계측된 농도로 읽힙니다." />}
       >
         <EstimateTable rows={estimates} />
       </Panel>

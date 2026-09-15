@@ -79,7 +79,7 @@ export function EquipmentView() {
         <Panel
           title="설비 상세"
           titleAside={
-            <InfoTip label="센서 사양" content="진동 센서 사양은 원문에 없습니다(TBD-49)." />
+            <InfoTip label="센서 사양" content="진동 센서 사양은 원문에 없습니다." />
           }
         >
           {site.online ? (

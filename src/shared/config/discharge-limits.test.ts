@@ -16,9 +16,15 @@ describe('기준값 보유 여부', () => {
    * 원문이 "규모·지역별 별도 기준표가 있으며"라고만 적었다. 값을 지어내면
    * 없는 초과 판정을 만든다 — 선을 긋지 않는 것이 옳다.
    */
+  /**
+   * **문구가 근거 태그를 달던 자리다** `[사용자 요청 2026-09-15: 화면 설명문 일괄 제거]`.
+   * `[TBD-45]`는 문서 규약이라 화면에서 걷었다 — 대신 **왜 판정하지 않는지**를 단정한다.
+   * 사유가 비면 화면이 «기준 안»이라 읽히므로 이 단정은 남는다(**E4**).
+   */
   it('TOC는 기준표가 없어 판정하지 않는다', () => {
     expect(hasLimit('TOC')).toBe(false);
-    expect(DISCHARGE_LIMITS.TOC?.unavailableReason).toContain('TBD-45');
+    expect(DISCHARGE_LIMITS.TOC?.unavailableReason).toContain('기준표');
+    expect(DISCHARGE_LIMITS.TOC?.unavailableReason).not.toContain('TBD-');
   });
 
   it('계측하지 않는 항목은 아예 등록되지 않는다 — BOD·SS·COD', () => {
@@ -27,10 +33,15 @@ describe('기준값 보유 여부', () => {
     }
   });
 
-  it('기준이 있는 항목에는 근거 표기가 붙는다', () => {
-    expect(DISCHARGE_LIMITS.pH?.source).toContain('공정자료 p.11');
-    /* "통상"이므로 확정 기준처럼 보이면 안 된다 */
+  /**
+   * **출처는 남고 근거 태그만 걷혔다** `[사용자 요청 2026-09-15]`. `[공정자료 p.11]`은
+   * 문서 규약이라 화면에서 뺐지만, **이 값이 확정 기준이 아니라는 사실**은 남아야 한다 —
+   * 법정 판정값을 우리가 정하지 않는다는 규약이다(`README` §3.1).
+   */
+  it('기준이 있는 항목의 출처가 «확정 기준이 아님»을 말한다', () => {
+    expect(DISCHARGE_LIMITS.pH?.source).toContain('통상');
     expect(DISCHARGE_LIMITS.pH?.source).toContain('허가증');
+    expect(DISCHARGE_LIMITS.pH?.source).not.toContain('공정자료');
   });
 });
 

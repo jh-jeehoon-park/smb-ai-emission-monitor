@@ -26,8 +26,7 @@ export const SITE_CLASSIFICATION_NOTE = (
   <>
     두 축이 정해지면 <strong className="text-fg">방류 기준치</strong> 탭에서 그 조합의 값을 읽어
     초과를 판정합니다. 정확한 적용 구간은{' '}
-    <strong className="text-fg">사업장 폐수배출시설 설치허가(신고)증</strong>에서 확인합니다
-    [공정자료 p.11] — 우리가 정하는 값이 아닙니다.
+    <strong className="text-fg">사업장 폐수배출시설 설치허가(신고)증</strong>에서 확인합니다 — 우리가 정하는 값이 아닙니다.
   </>
 );
 
@@ -39,7 +38,7 @@ export function SiteClassificationForm({ siteId }: { siteId: string }) {
     <div className="space-y-4">
       <Row
         label="지역구분"
-        note="배출허용기준표의 첫 번째 축 [공정자료 p.11]"
+        note="배출허용기준표의 첫 번째 축"
         options={REGION_GRADES}
         value={current.regionGrade}
         onChange={(next) =>
@@ -48,7 +47,7 @@ export function SiteClassificationForm({ siteId }: { siteId: string }) {
       />
       <Row
         label="1일 폐수배출량 규모"
-        note="두 번째 축. 종별이 배출량으로 갈린다 [공정자료 p.11]"
+        note="두 번째 축. 종별이 배출량으로 갈린다"
         options={DISCHARGE_SCALES}
         value={current.dischargeScale}
         onChange={(next) =>

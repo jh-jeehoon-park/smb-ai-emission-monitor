@@ -73,7 +73,7 @@ export function ProcessView() {
       <Panel title="폐수처리 공정">
         <p className="max-w-[64ch] py-8 text-center text-[12px] leading-relaxed text-fg-subtle">
           활성화된 공정 단계가 없습니다. 사업장 설정 &gt; 공정 구성에서 이 사업장의 단계를
-          켜면 공정도를 그립니다 [회의 2026-08-20].
+          켜면 공정도를 그립니다.
         </p>
       </Panel>
     );
@@ -91,9 +91,9 @@ export function ProcessView() {
           titleAside={
             <InfoTip
               label="이 공정도를 읽는 법"
-              content={`표준 공정은 5단계입니다 [회의 2026-08-20]. 사업장마다 공정이 달라 최대 공정을 두고 필요한 단계만 켭니다 — 사업장 설정 > 공정 구성에서 바꿉니다.${
+              content={`표준 공정은 5단계입니다. 사업장마다 공정이 달라 최대 공정을 두고 필요한 단계만 켭니다 — 사업장 설정 > 공정 구성에서 바꿉니다.${
                 disabled.length > 0 ? ` 지금 ${disabled.length}단계를 껐습니다.` : ''
-              } 단계별 계측 항목은 원문에 없어 설정으로 받습니다 [TBD-53].`}
+              } 단계별 계측 항목은 원문에 없어 설정으로 받습니다.`}
             />
           }
           action={<GradeLegend />}
@@ -342,14 +342,14 @@ function NotMeasured() {
     <Panel title="이 화면이 재지 않는 것">
       <dl className="grid gap-2 sm:grid-cols-2">
         <div className="rounded-nested bg-surface-2 px-2.5 py-2">
-          <dt className="text-[12px] text-fg-subtle">송풍기 (폭기장치) · TBD-42</dt>
+          <dt className="text-[12px] text-fg-subtle">송풍기 (폭기장치)</dt>
           <dd className="mt-0.5 text-[12px] leading-relaxed text-fg-muted">
             예지보전 대상으로 원문이 다섯 번 언급하지만 무엇으로 재는지 규정이 없습니다. 개별
             신호가 규정된 설비는 약품주입펌프뿐입니다.
           </dd>
         </div>
         <div className="rounded-nested bg-surface-2 px-2.5 py-2">
-          <dt className="text-[12px] text-fg-subtle">프로브 설치 지점 · TBD-43</dt>
+          <dt className="text-[12px] text-fg-subtle">프로브 설치 지점</dt>
           <dd className="mt-0.5 text-[12px] leading-relaxed text-fg-muted">
             원문에 설치 위치 서술이 없습니다. 실증 데이터가 방류구 기준이라 6단계에 그렸습니다.
           </dd>

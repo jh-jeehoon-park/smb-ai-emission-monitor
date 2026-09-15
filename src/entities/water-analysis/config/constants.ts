@@ -28,8 +28,8 @@ export const ANALYSIS_ITEMS: Record<
 
 /** AI 추정 대상이 아닌 항목과 그 이유. 화면이 이 문장을 그대로 보여 준다 */
 export const NOT_ESTIMATED_REASON: Partial<Record<AnalysisItemCode, string>> = {
-  SS: '계측·추정 대상이 아니다 — 탁도는 물리 지표일 뿐 SS가 아니다 [공정자료 p.5·19]',
-  COD: 'TOC로 대체되어 현재 폐지된 기준이다 [공정자료 p.12·16]',
+  SS: '계측·추정 대상이 아니다 — 탁도는 물리 지표일 뿐 SS가 아니다',
+  COD: 'TOC로 대체되어 현재 폐지된 기준이다',
 };
 
 export const ANALYSIS_SOURCE_LABELS: Record<AnalysisSource, string> = {
@@ -44,8 +44,8 @@ export const ANALYSIS_SOURCE_LABELS: Record<AnalysisSource, string> = {
  * 월 1회~분기 1회다 `[공정자료 p.13]` — 둘을 같은 것으로 적으면 규제 요건을 잘못 전한다.
  */
 export const ANALYSIS_SOURCE_CYCLES: Record<AnalysisSource, string> = {
-  lab: '월 2회 (본 과제 검증 계획) [원문 p.38]',
-  analyzer: '연속 측정 · 대표 실증사업장 1개소 [원문 발표 p.17]',
+  lab: '월 2회 (본 과제 검증 계획)',
+  analyzer: '연속 측정 · 대표 실증사업장 1개소',
 };
 
 /**

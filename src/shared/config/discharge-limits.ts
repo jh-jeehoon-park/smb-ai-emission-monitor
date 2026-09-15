@@ -41,7 +41,7 @@ export interface DischargeLimit {
 }
 
 const NO_LIMIT_TABLE =
-  '규모·지역별 기준표가 필요합니다 — 사업장 지역구분·배출량 규모 미확정 [TBD-45]';
+  '규모·지역별 기준표가 필요합니다 — 사업장 지역구분·배출량 규모 미확정';
 
 /**
  * **pH만 지금 판정할 수 있다.**
@@ -69,7 +69,7 @@ export const DISCHARGE_LIMITS: DischargeLimitTable = {
   pH: {
     min: 5.8,
     max: 8.6,
-    source: '[공정자료 p.11·16] 통상 적용 범위 · 사업장 허가증 확인 필요',
+    source: '통상 적용 범위 · 사업장 허가증 확인 필요',
     unavailableReason: null,
   },
   TOC: { min: null, max: null, source: '[공정자료 p.12·19]', unavailableReason: NO_LIMIT_TABLE },
@@ -101,7 +101,7 @@ export const LEGAL_CHECK_ITEMS = [
  * 있었다. 같은 사실을 네 가지로 적으면 읽는 사람이 서로 다른 상태로 읽는다. 설정 화면이
  * 사용자에게 "이 문구로 남습니다"라고 **약속**하고 있어 문구가 갈리면 그 약속이 거짓이 된다.
  */
-export const UNRESOLVED_LIMIT_TEXT = '기준값 미확정 [TBD-45]';
+export const UNRESOLVED_LIMIT_TEXT = '기준값 미확정';
 
 /**
  * 사업장 분류를 사람이 읽는 한 줄로. `가지역 · 200㎥ 미만` 꼴.

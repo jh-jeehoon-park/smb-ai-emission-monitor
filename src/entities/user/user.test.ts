@@ -85,7 +85,6 @@ describe('역할 — 문서와 코드가 갈리지 않는다', () => {
    */
   it('사업장으로 바꾸면 사업장 상세로 옮겨 간다 — 라우트 가드의 대체 화면', () => {
     expect(homeHrefFor('site')).toBe('/overview');
-    expect(homeHrefFor('site')).not.toBe('/cost-savings');
   });
 
   it('시스템 관리자의 대체 화면은 통합 관제다', () => {

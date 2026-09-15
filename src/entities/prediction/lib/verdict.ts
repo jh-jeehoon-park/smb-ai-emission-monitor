@@ -52,6 +52,6 @@ export function trendVerdict(
     text: '기준 미설정',
     ink: undefined,
     /* 무엇을 해야 하는지가 근거 자리에 온다 — 빈 칸으로 두면 값이 없는 것으로 읽힌다 */
-    basis: unresolvedReason ?? '이 항목의 기준치가 입력되지 않았습니다 [TBD-45]',
+    basis: unresolvedReason ?? '이 항목의 기준치가 입력되지 않았습니다',
   };
 }

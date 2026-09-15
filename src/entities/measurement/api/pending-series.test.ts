@@ -100,10 +100,19 @@ describe('계측을 읽는 화면은 status를 함께 받는다', () => {
    * 값을 그리지 않아 대기를 가릴 필요가 없는 소비처. **이유를 함께 적는다** — 이유 없이
    * 목록만 늘면 검사가 통과 도장이 된다.
    */
-  const EXEMPT: Record<string, string> = {
-    'src/widgets/cost-savings-view/ui/cost-savings-view.tsx':
-      '계측에서 나온 값을 화면에 적지 않는다 — 절감률은 상수(ENERGY_SAVING_TARGET)와 시나리오에서 온다',
-  };
+  const EXEMPT: Record<string, string> = {};
+
+  /**
+   * **면제가 하나 있었고 그 화면이 사라졌다** `[사용자 요청 2026-09-15]` —
+   * `cost-savings-view`(비용 절감 현황)는 계측에서 나온 값을 적지 않아 면제였는데,
+   * 화면이 통째로 걷히며 이 항목이 **아무 파일도 가리키지 않는 죽은 줄**이 됐다.
+   * 위 주석이 경계한 «통과 도장»이 바로 그것이라 함께 지웠다.
+   */
+  it('면제 목록에 죽은 줄이 없다', () => {
+    for (const path of Object.keys(EXEMPT)) {
+      expect(consumers, `면제 목록이 없는 파일을 가리킨다: ${path}`).toContain(path);
+    }
+  });
 
   /** 한 사업장 훅에서 `status`를 뽑았는가 */
   const DESTRUCTURED = /\{[^{}]*\bstatus\b[^{}]*\}\s*=\s*useSiteSeries\(/;

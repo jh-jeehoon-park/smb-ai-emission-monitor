@@ -99,27 +99,26 @@ describe('역할별 첫 화면', () => {
 });
 
 /**
- * 화면을 **지우지 않고 감춘다** `[회의 2026-08-20]`.
+ * **비용 절감 현황은 통째로 걷혔다** `[사용자 요청 2026-09-15: 페이지만 살려 놓고 사용하지
+ * 않으면 관련 파일 전체 제거]`.
  *
- * `menuRoles: []`가 그 수단이다 — 빈 배열은 `??`를 통과해 전 역할에서 감춰지고, 항목이
- * 배열에 남아 있어 **라우트 가드가 계속 돈다.** 배열에서 지우면 가드가 그 경로를 못 찾아
- * 주소를 직접 입력하면 열린다. 두 성질을 함께 못박는다.
+ * 한때 *"지우지 않고 감춘다"* 였다 `[회의 2026-08-20: 검증이 힘든 페이지라 빼는 것이 맞다]` —
+ * `menuRoles: []`로 전 역할에서 감추되 **항목은 남겨** 라우트 가드가 그 경로를 계속 지키게
+ * 했다. **화면을 지우면 그 이유가 사라진다**: 라우트가 없으니 열릴 경로 자체가 없다.
+ *
+ * 되살아나면 «감췄는데 왜 있지»가 아니라 **지운 것이 돌아온 것**이라 여기서 잡는다.
  */
-describe('비용 절감 현황 — 감췄지만 없앤 것은 아니다', () => {
-  const item = NAV_ITEMS.find((nav) => nav.screenId === 'SCR-AD-001');
-
-  it('메뉴 항목이 배열에 남아 있다 — 가드가 이 경로를 찾을 수 있어야 한다', () => {
-    expect(item, 'SCR-AD-001 항목이 사라졌다 — 라우트 가드가 무력해진다').toBeDefined();
-    expect(item!.href).toBe('/cost-savings');
+describe('비용 절감 현황 — 통째로 걷혔다', () => {
+  it('메뉴 항목이 없다', () => {
+    expect(NAV_ITEMS.find((nav) => nav.screenId === 'SCR-AD-001')).toBeUndefined();
+    expect(NAV_ITEMS.some((nav) => nav.href === '/cost-savings')).toBe(false);
   });
 
-  it('어느 역할에도 노출되지 않는다', () => {
-    expect(item!.menuRoles).toEqual([]);
-  });
-
-  /** 접근 권한은 그대로다 — 감춘 것이 인가는 아니다(E6 예외) */
-  it('접근 권한은 사업장에 남아 있다', () => {
-    expect(canRoleSee('SCR-AD-001', 'site')).toBe(true);
+  /** 접근 판정도 없다 — 미등재는 전 역할 차단으로 읽힌다 */
+  it('어느 역할도 접근할 수 없다', () => {
+    for (const role of ['site', 'gov', 'system'] as const) {
+      expect(canRoleSee('SCR-AD-001', role), role).toBe(false);
+    }
   });
 });
 
