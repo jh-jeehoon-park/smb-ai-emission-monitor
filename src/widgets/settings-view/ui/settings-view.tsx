@@ -1,9 +1,11 @@
 'use client';
 
+import type { ReactNode } from 'react';
+import { cn } from '@/shared/lib/cn';
 import { useQueryState } from '@/shared/lib/use-query-state';
 import { Panel } from '@/shared/ui/panel';
 import { SegmentedControl } from '@/shared/ui/segmented-control';
-import { useRole } from '@/entities/user';
+import { ROLES, type Role } from '@/entities/user';
 import {
   DISCHARGE_LIMIT_NOTE,
   SITE_CLASSIFICATION_NOTE,
@@ -22,6 +24,7 @@ import {
   SETTINGS_TAB_KEY,
   SETTINGS_TAB_OPTIONS,
   SETTINGS_TAB_ROLES,
+  type SettingsTab,
 } from '../config/constants';
 import { InfoTip } from '@/shared/ui/tooltip';
 
@@ -40,17 +43,64 @@ import { InfoTip } from '@/shared/ui/tooltip';
  * 있고 사업장은 라우트 가드가 자사로 박아 둔다. 새 쿼리 키를 만들면 가드와 싸운다.
  */
 export function SettingsView() {
-  const { siteId } = useSelectedSiteId();
-  const { role } = useRole();
+  const siteId = useSelectedSiteId().siteId;
   /*
-   * 역할이 다루는 탭만 남긴다. **URL 기본값도 그중 첫 탭이어야 한다** — 사업장이 `?tab=`
-   * 없이 들어오면 관리자 전용 탭이 열려 빈 화면을 본다.
+   * **역할로 분기하지 않는다** `[설계 2026-09-16: 하이드레이션 불일치 수정]`.
+   *
+   * 한때 `useRole()`로 탭을 거르고 그 첫 탭을 URL 기본값으로 삼았다. 서버는 localStorage를
+   * 모르므로 **기본 역할(시스템 관리자)로 세 탭과 «사업장 분류» 패널을 그렸고**, 사업장
+   * 사용자의 클라이언트는 «방류 기준치» 하나를 그렸다 — 트리가 달라 **하이드레이션이
+   * 깨졌고**(실측: `/settings`에서만 예외가 났다) React가 트리를 통째로 다시 그리면서
+   * 루트의 `<script>`까지 건드려 경고를 하나 더 냈다.
+   *
+   * 이 저장소가 주석마다 경고하던 바로 그 패턴이고 **세 번째 사례**다. 해법도 같다 —
+   * 세 역할분을 다 그리고 `data-role`을 보는 CSS가 고른다(사이드바 메뉴·인사말과 같은 방식).
+   * 그래서 `tab`은 역할과 무관하고 서버·클라이언트가 같은 값을 본다.
    */
-  const tabs = SETTINGS_TABS.filter((value) => SETTINGS_TAB_ROLES[value].includes(role));
-  const options = SETTINGS_TAB_OPTIONS.filter((option) => tabs.includes(option.value));
-  const [tab, setTab] = useQueryState(SETTINGS_TAB_KEY, tabs, tabs[0] ?? SETTINGS_TABS[1]);
+  const [tab, setTab] = useQueryState(SETTINGS_TAB_KEY, SETTINGS_TABS, SETTINGS_TABS[0]);
   const { unresolvedReason, isUserSet, classification } = useDischargeLimits();
   const process = useProcess();
+
+  /*
+   * 그 역할이 **실제로 보게 되는** 탭. 주소가 그 역할에 닫힌 탭을 가리키면 그가 다루는 첫 탭으로
+   * 떨어진다 — 한때 `useQueryState`의 허용 목록이 하던 일이고, 역할 판단만 이리로 옮겼다.
+   */
+  const effectiveTab = (forRole: Role): SettingsTab => {
+    if (SETTINGS_TAB_ROLES[tab].includes(forRole)) return tab;
+    return SETTINGS_TABS.find((value) => SETTINGS_TAB_ROLES[value].includes(forRole)) ?? SETTINGS_TABS[1];
+  };
+
+  const PANELS: Record<SettingsTab, ReactNode> = {
+    classification: (
+      <Panel
+        title="사업장 분류"
+        titleAside={<InfoTip label="입력 안내" content={SITE_CLASSIFICATION_NOTE} />}
+      >
+        <SiteClassificationForm siteId={siteId} />
+      </Panel>
+    ),
+    limits: (
+      <Panel
+        title="방류 기준치"
+        titleAside={<InfoTip label="빈 칸의 뜻" content={DISCHARGE_LIMIT_NOTE} />}
+      >
+        <DischargeLimitEditor siteId={siteId} />
+      </Panel>
+    ),
+    process: (
+      <Panel
+        title="공정 구성"
+        titleAside={<InfoTip label="단계별 계측 항목의 출처" content={PROCESS_STAGE_ITEMS_NOTE} />}
+        action={
+          <span className="text-[12px] text-fg-subtle">
+            켠 단계 {process.stages.length} · 끈 단계 {process.disabled.length}
+          </span>
+        }
+      >
+        <ProcessStageForm siteId={siteId} />
+      </Panel>
+    ),
+  };
 
   return (
     <div className="space-y-6">
@@ -63,12 +113,21 @@ export function SettingsView() {
           />
         }
         action={
-          <SegmentedControl
-            ariaLabel="설정 항목"
-            value={tab}
-            onChange={setTab}
-            options={options}
-          />
+          /* 역할마다 한 벌. 보이는 것은 CSS가 고른다 — 서버는 어느 것이 보일지 모른다 */
+          <>
+            {ROLES.map((forRole) => (
+              <SegmentedControl
+                key={forRole}
+                className={`role-only-${forRole}`}
+                ariaLabel="설정 항목"
+                value={effectiveTab(forRole)}
+                onChange={setTab}
+                options={SETTINGS_TAB_OPTIONS.filter((option) =>
+                  SETTINGS_TAB_ROLES[option.value].includes(forRole),
+                )}
+              />
+            ))}
+          </>
         }
       >
         {/*
@@ -91,37 +150,29 @@ export function SettingsView() {
 
       </Panel>
 
-      {tab === 'classification' && (
-        <Panel
-          title="사업장 분류"
-          titleAside={<InfoTip label="입력 안내" content={SITE_CLASSIFICATION_NOTE} />}
-        >
-          <SiteClassificationForm siteId={siteId} />
-        </Panel>
-      )}
+      {SETTINGS_TABS.map((value) => {
+        /*
+         * 그 탭을 보게 되는 역할들. 하나도 없으면 아예 그리지 않는다 — 대개 한둘이다.
+         * `contents`는 레이아웃에 투명하고, 가려야 할 때 `role-hide-*`가 특이도로 이겨 `none`이
+         * 된다(`RoleGate`가 쓰는 짜임 그대로다).
+         */
+        const seenBy = ROLES.filter((forRole) => effectiveTab(forRole) === value);
+        if (seenBy.length === 0) return null;
 
-      {tab === 'limits' && (
-        <Panel
-          title="방류 기준치"
-          titleAside={<InfoTip label="빈 칸의 뜻" content={DISCHARGE_LIMIT_NOTE} />}
-        >
-          <DischargeLimitEditor siteId={siteId} />
-        </Panel>
-      )}
-
-      {tab === 'process' && (
-        <Panel
-          title="공정 구성"
-          titleAside={<InfoTip label="단계별 계측 항목의 출처" content={PROCESS_STAGE_ITEMS_NOTE} />}
-          action={
-            <span className="text-[12px] text-fg-subtle">
-              켠 단계 {process.stages.length} · 끈 단계 {process.disabled.length}
-            </span>
-          }
-        >
-          <ProcessStageForm siteId={siteId} />
-        </Panel>
-      )}
+        return (
+          <div
+            key={value}
+            className={cn(
+              'contents',
+              ROLES.filter((forRole) => !seenBy.includes(forRole)).map(
+                (forRole) => `role-hide-${forRole}`,
+              ),
+            )}
+          >
+            {PANELS[value]}
+          </div>
+        );
+      })}
     </div>
   );
 }
