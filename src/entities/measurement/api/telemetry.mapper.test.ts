@@ -56,7 +56,7 @@ describe('buildGrid — 격자를 먼저 만들고 채운다', () => {
 
 describe('toTelemetryWindow — 결측 규약(E4)', () => {
   it('값이 없는 칸은 null이다 — 0으로 채우지 않는다', () => {
-    const { points } = toTelemetryWindow(raw({ pH: [{ ts: at(2), value: '7.11' }] }), grid, LIMIT, SITE);
+    const { points } = toTelemetryWindow(raw({ pHOut: [{ ts: at(2), value: '7.11' }] }), grid, LIMIT, SITE);
 
     expect(points.map((p) => p.pH)).toEqual([null, null, 7.11, null, null]);
   });
@@ -81,8 +81,8 @@ describe('toTelemetryWindow — 결측 규약(E4)', () => {
   it('키마다 다른 시각에 값이 와도 각자 제 칸에 얹힌다', () => {
     const { points } = toTelemetryWindow(
       raw({
-        pH: [{ ts: at(0), value: '7.0' }],
-        TOC: [{ ts: at(3), value: '3.5' }],
+        pHOut: [{ ts: at(0), value: '7.0' }],
+        TOCOut: [{ ts: at(3), value: '3.5' }],
       }),
       grid,
       LIMIT,
@@ -108,12 +108,22 @@ describe('toTelemetryWindow — 결측 규약(E4)', () => {
   });
 
   /**
-   * 유량 둘만 서버 이름이 다르다(`flowIn`·`flowOut`). 우리 이름을 서버에 맞춰 바꾸지 않고
-   * 매퍼가 잇는다 — 서버 채널 이름이 화면 계약이 되면 저쪽이 바꿀 때마다 전 화면이 깨진다.
+   * 서버 이름이 다른 계열을 매퍼가 잇는다 — 우리 이름을 서버에 맞춰 바꾸지 않는다: 서버 채널
+   * 이름이 화면 계약이 되면 저쪽이 바꿀 때마다 전 화면이 깨진다.
+   *
+   * **실제로 깨졌다** `[사용자 확인 2026-09-15]` — 에뮬레이터가 유입 계측을 내면서 유출
+   * 채널이 `Out` 접미사를 얻었고(`pH` → `pHOut`), 옛 이름으로 묻던 수질 8종과 TN·TP가
+   * 한 점도 오지 않았다. 그래서 유량만이 아니라 **이름이 갈리는 계열 전부**를 잠근다.
    */
-  it('flowIn·flowOut이 우리 이름으로 얹힌다', () => {
+  it('서버 이름이 다른 계열이 우리 이름으로 얹힌다', () => {
     const { points } = toTelemetryWindow(
-      raw({ flowIn: [{ ts: at(0), value: '430' }], flowOut: [{ ts: at(0), value: '412' }] }),
+      raw({
+        flowIn: [{ ts: at(0), value: '430' }],
+        flowOut: [{ ts: at(0), value: '412' }],
+        pHOut: [{ ts: at(0), value: '8.35' }],
+        turbidityOut: [{ ts: at(0), value: '18.9' }],
+        TNOut: [{ ts: at(0), value: '1.6' }],
+      }),
       grid,
       LIMIT,
       SITE,
@@ -121,6 +131,22 @@ describe('toTelemetryWindow — 결측 규약(E4)', () => {
 
     expect(points[0]!.inflow).toBe(430);
     expect(points[0]!.flow).toBe(412);
+    expect(points[0]!.pH).toBe(8.35);
+    expect(points[0]!.turbidity).toBe(18.9);
+    expect(points[0]!.TN).toBe(1.6);
+  });
+
+  /** 옛 이름은 서버 키 목록에 없다. 읽으면 그때의 값이 되살아난 것처럼 보인다 */
+  it('접미사 없는 옛 수질 채널은 읽지 않는다', () => {
+    const { points } = toTelemetryWindow(
+      raw({ pH: [{ ts: at(0), value: '9.99' }], TN: [{ ts: at(0), value: '9.99' }] }),
+      grid,
+      LIMIT,
+      SITE,
+    );
+
+    expect(points[0]!.pH).toBeNull();
+    expect(points[0]!.TN).toBeNull();
   });
 
   /** 옛 5분 채널이다. 1분 백필과 섞여 5분 배수 시각에만 옛 값이 남아 있어 쓰지 않는다 */
@@ -149,8 +175,8 @@ describe('toTelemetryWindow — 잘림 방어', () => {
   it('응답 개수가 limit과 같으면 잘린 것으로 본다', () => {
     const full = grid.map((ts) => ({ ts, value: '7' }));
 
-    expect(toTelemetryWindow(raw({ pH: full }), grid, POINTS, SITE).truncated).toBe(true);
-    expect(toTelemetryWindow(raw({ pH: full }), grid, POINTS + 1, SITE).truncated).toBe(false);
+    expect(toTelemetryWindow(raw({ pHOut: full }), grid, POINTS, SITE).truncated).toBe(true);
+    expect(toTelemetryWindow(raw({ pHOut: full }), grid, POINTS + 1, SITE).truncated).toBe(false);
   });
 });
 
@@ -185,12 +211,28 @@ describe('요청 키는 사전에서만 만든다', () => {
     expect(keys).not.toContain('flow');
     expect(keys).not.toContain('vibration');
     expect(keys).toContain('discharging');
+
+    /*
+     * **유출 수질은 `Out` 접미사를 쓴다** `[사용자 확인 2026-09-15]`. 접미사 없는 이름을
+     * 물으면 에러가 아니라 유령 표본이 오고, 화면은 «서버 수신 중»이라 적으면서 값을
+     * `수신 없음`으로 그린다 — 실제로 그렇게 반나절을 돌았다.
+     */
+    for (const code of ['pH', 'DO', 'EC', 'turbidity', 'TOC', 'NO3N', 'temperature', 'chromaticity', 'TN', 'TP']) {
+      expect(keys).toContain(`${code}Out`);
+      expect(keys).not.toContain(code);
+    }
+
+    /* 이름이 그대로인 여섯. 여기에 접미사를 붙이면 반대 방향으로 같은 결함이 난다 */
+    for (const key of ['current', 'power', 'level', 'discharging']) {
+      expect(keys).toContain(key);
+      expect(keys).not.toContain(`${key}Out`);
+    }
   });
 
   it('한 점도 오지 않은 계열을 미수신으로 센다', () => {
-    expect(unreceivedCodes(raw({ pH: [{ ts: at(0), value: '7' }] }))).toContain('TOC');
-    expect(unreceivedCodes(raw({ pH: [{ ts: at(0), value: '7' }] }))).toContain('inflow');
-    expect(unreceivedCodes(raw({ pH: [{ ts: at(0), value: '7' }] }))).not.toContain('pH');
+    expect(unreceivedCodes(raw({ pHOut: [{ ts: at(0), value: '7' }] }))).toContain('TOC');
+    expect(unreceivedCodes(raw({ pHOut: [{ ts: at(0), value: '7' }] }))).toContain('inflow');
+    expect(unreceivedCodes(raw({ pHOut: [{ ts: at(0), value: '7' }] }))).not.toContain('pH');
   });
 });
 
@@ -230,14 +272,14 @@ describe('계열이 빠짐없이 갈린다', () => {
    * 세면 화면이 그 여덟을 `미수신 항목`으로 적고, 값이 그려지는 채로 «안 온다»고 말하게 된다.
    */
   it('시연 계열을 미수신으로 세지 않는다', () => {
-    const unreceived = unreceivedCodes(raw({ pH: [{ ts: at(0), value: '7' }] }));
+    const unreceived = unreceivedCodes(raw({ pHOut: [{ ts: at(0), value: '7' }] }));
     for (const code of DEMO_SERIES_CODES) expect(unreceived).not.toContain(code);
   });
 
   /** 유출이 결측인 시각은 유입도 결측이다 — 없는 값에서 나누면 두절이 정상으로 이어진다(E4) */
   it('유출이 결측이면 유입도 결측이다', () => {
     const { points } = toTelemetryWindow(
-      raw({ pH: [{ ts: at(2), value: '7.20' }] }),
+      raw({ pHOut: [{ ts: at(2), value: '7.20' }] }),
       grid,
       LIMIT,
       SITE,
@@ -271,8 +313,9 @@ describe('계열이 빠짐없이 갈린다', () => {
   it('TN·TP를 서버에 물어본다', () => {
     const keys = TELEMETRY_KEYS.split(',');
 
-    expect(keys).toContain('TN');
-    expect(keys).toContain('TP');
+    /* 이름은 서버의 것이다 — 유입이 생기면서 `Out`이 붙었다 `[사용자 확인 2026-09-15]` */
+    expect(keys).toContain('TNOut');
+    expect(keys).toContain('TPOut');
   });
 
   /**
