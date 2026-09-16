@@ -6,6 +6,7 @@ export {
   useSitesSeries,
   type SiteSeries,
 } from './api/use-site-series';
+export { useRetryTelemetry } from './api/use-retry-telemetry';
 export {
   WATER_SERIES_CODES,
   EQUIPMENT_SERIES_CODES,

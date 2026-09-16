@@ -14,13 +14,12 @@ import { firstSiteIn, sitesIn } from '@/entities/site';
 import {
   GOV_MUNICIPALITY,
   adminSiteId,
-  canRoleSee,
   scopeOf,
   useRole,
   type Role,
   type RoleScope,
 } from '@/entities/user';
-import { NAV_ITEMS, homeHrefFor } from '../config/navigation';
+import { FORBIDDEN_PATH, homeHrefFor, isBlockedFor } from '../config/navigation';
 
 /**
  * 역할을 바꿨을 때 지금 보고 있는 화면이 그 역할에 닫혀 있으면 볼 수 있는 첫 화면으로 옮긴다.
@@ -88,17 +87,26 @@ export function useRoleRouteGuard() {
       return;
     }
 
-    const current = NAV_ITEMS.find((item) => item.href === pathname);
-
-    if (current && !canRoleSee(current.screenId, role)) {
-      /*
-       * 로고 클릭과 같은 목적지를 쓴다 — 정의가 갈리면 앱이 '메인'을 두 개 갖는다.
-       *
-       * **위 분기와 달리 범위를 리셋하지 않는다.** 이 길은 역할 전환 없이도 돈다(닫힌 화면
-       * 주소를 직접 열었을 때), 그리고 `resetScopeToAllSites`는 «역할 전환에서만» 쓰는 것이다
-       * — 여기서 부르면 사용자가 알람·리포트에서 고른 `scope=site`를 조용히 걷는다.
-       */
-      router.replace(withScope(home, role, adminAccount, params));
+    /*
+     * **닫힌 화면은 `/403`으로 보낸다** `[사용자 요청 2026-09-15]`.
+     *
+     * 한때 이 자리가 `router.replace(home)`이었다 — 말없이 홈으로 튕겼고, effect가 화면이
+     * 그려진 **뒤** 돌아 권한 없는 본문이 **1.61~11.75초** 그대로 보였다(실측).
+     *
+     * **그리지 않는 일은 `RoleGate`가 맡는다** — 보내는 것만으로는 옛 상태와 같다(이동하는
+     * 동안 본문이 보인다). 판단은 `isBlockedFor` 하나를 함께 써 갈리지 않는다.
+     *
+     * **이동을 여기 한 곳에 모은 이유가 있다** `[설계 2026-09-16: 리다이렉트 검토]`. 한때 `RoleGate`가 직접
+     * 보냈는데, 역할을 바꿔 지금 화면이 닫히는 순간 **위 «역할 전환» 갈래와 동시에** 이동을
+     * 걸어 마지막 `replace`가 이기는 경쟁이 됐다 — 실측에서는 홈이 이겼지만 그것은 자식
+     * effect가 부모보다 먼저 도는 **우연**이라, 부품을 옮기면 조용히 뒤집힌다. 지금은 한
+     * effect 안의 순서라 «전환은 홈, 직접 열면 403»이 코드로 읽힌다.
+     *
+     * **아래 범위 교정은 건너뛴다** — `withScope(pathname, …)`이 막힌 주소로 다시 보내
+     * 이 이동을 덮어쓴다(실측에서 셋이 그렇게 되돌아왔다). 떠날 화면이라 잃는 것도 없다.
+     */
+    if (isBlockedFor(pathname, role)) {
+      router.replace(`${FORBIDDEN_PATH}?from=${encodeURIComponent(pathname)}`);
       return;
     }
 

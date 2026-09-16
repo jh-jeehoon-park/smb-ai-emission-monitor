@@ -38,6 +38,20 @@ export interface NavItem {
    * 생략하면 접근 권한을 그대로 따른다. 접근은 `entities/user`가, 노출은 여기가 정한다.
    */
   menuRoles?: readonly Role[];
+  /**
+   * **이 화면이 계측 서버를 읽는가.** 생략하면 읽는다(15개 중 13개가 그렇다).
+   *
+   * 셸의 계측 고지 띠가 이 값을 본다. 읽지 않는 화면에 «계측 서버에 닿지 못했습니다»를
+   * 띄우면 **일어나지 않은 장애를 주장하는 것**이다 — 설비·알람·이상 점수·예측은 애초에
+   * API가 없는 fixture라 «실패»라는 상태가 성립하지 않는다(**E4**).
+   *
+   * 실제로 그렇게 만들었다가 잡았다: 셸에 띠를 한 번 두면 «계측을 쓰지 않는 도메인은 저절로
+   * 빠진다»고 적었는데, 셸은 **모든 화면 위**에 있으므로 정반대였다.
+   *
+   * **값이 코드와 갈리지 않게 검사가 대조한다**(`navigation.test.ts`) — 라우트의 위젯을 열어
+   * `useSiteSeries`를 실제로 쓰는지 보고 이 표식과 맞춘다.
+   */
+  readsTelemetry?: false;
 }
 
 export interface NavGroup {
@@ -161,7 +175,14 @@ export const NAV_GROUPS: NavGroup[] = [
       { screenId: 'SCR-OP-002', href: '/anomaly', label: '이상 탐지', icon: Activity },
       { screenId: 'SCR-OP-004', href: '/prediction', label: '오염도 추정', icon: Droplets },
       /* 회의가 예지보전을 이상 탐지로 정리했다 `[회의 2026-08-20]` `[INC-107]` */
-      { screenId: 'SCR-OP-005', href: '/equipment', label: '설비 이상 탐지', icon: Cog },
+      {
+        screenId: 'SCR-OP-005',
+        href: '/equipment',
+        label: '설비 이상 탐지',
+        icon: Cog,
+        /* 설비 상태는 `getEquipment` fixture다 — 계측 서버에 채널이 없다 */
+        readsTelemetry: false,
+      },
       {
         screenId: 'SCR-OP-006',
         href: '/optimization',
@@ -206,7 +227,14 @@ export const NAV_GROUPS: NavGroup[] = [
        * 뜻하는 이름인데 정작 그 역할이 막혀 있었고, 세 탭 모두 사업장 축이었다. 지금은 관리자가
        * 사업장을 등록·설정하는 화면이라 이름도 그것을 말한다.
        */
-      { screenId: 'SCR-OP-010', href: '/settings', label: '사업장 설정', icon: Settings },
+      {
+        screenId: 'SCR-OP-010',
+        href: '/settings',
+        label: '사업장 설정',
+        icon: Settings,
+        /* 기준치·분류·공정 설정 화면이라 계측을 읽지 않는다 */
+        readsTelemetry: false,
+      },
     ],
   },
 ];
@@ -242,6 +270,51 @@ export function groupMenuRoles(group: NavGroup): readonly Role[] {
 }
 
 export const ALARM_NAV_HREF = '/alarms';
+
+/**
+ * 오류 화면의 주소 `[사용자 요청 2026-09-15]`.
+ *
+ * **메뉴에 넣지 않는다** — 사람이 골라 들어가는 곳이 아니다. `NAV_ITEMS` 밖이므로
+ * `verify:docs` 검사 3의 «셸 라우트 수 = 사이드바 메뉴 수»(③)도 건드리지 않는다.
+ *
+ * 문자열을 여기 한 곳에 두는 이유는 보내는 쪽(`RoleGate`·`error.tsx`)과 받는 쪽(라우트)이
+ * 갈리면 **조용히 404가 되기** 때문이다 — 오류를 알리려다 오류를 하나 더 만든다.
+ */
+export const FORBIDDEN_PATH = '/403';
+export const SERVER_ERROR_PATH = '/500';
+
+/**
+ * 이 역할에게 **닫힌 화면인가.**
+ *
+ * 메뉴에 없는 경로는 가르지 않는다 — `canRoleSee`가 미등재를 전 역할 차단으로 읽어서, 그대로
+ * 쓰면 목록 밖의 주소가 전부 403이 된다. 없는 주소는 404가 받을 일이다.
+ *
+ * **가드와 `RoleGate`가 같은 답을 써야 한다** — 한쪽은 보내고 한쪽은 그리지 않는 일을 하는데,
+ * 판단이 갈리면 «보내지 않고 그리지도 않는» 빈 화면이나 그 반대가 생긴다.
+ */
+export function isBlockedFor(pathname: string, role: Role): boolean {
+  const item = NAV_ITEMS.find((nav) => nav.href === pathname);
+  return item ? !canRoleSee(item.screenId, role) : false;
+}
+
+/**
+ * `?from=`이 가리키는 **우리 화면**. 모르는 값이면 `null`이다.
+ *
+ * **바깥 주소를 걸러 내는 자리다.** 이것이 없으면 `/500?from=https://…`을 연 사람이
+ * 「다시 시도」를 눌렀을 때 그 주소로 나간다 — 열린 리다이렉트이고 **실측으로 확인했다**
+ * `[설계 2026-09-16: 리다이렉트 검토]`. `//example.com`도 같은 길이다: 프로토콜만 생략한 절대 주소다.
+ *
+ * 문자열 모양을 검사하지 않고 **아는 경로인지** 묻는다 — `시작이 /인가` 같은 규칙은 예외를
+ * 하나 만들 때마다 다시 뚫린다. 오류가 난 화면·막힌 화면은 **늘 메뉴에 있는 경로**다.
+ */
+export function knownRoute(value: string | null | undefined): string | null {
+  return value && NAV_ITEMS.some((item) => item.href === value) ? value : null;
+}
+
+/** 이 경로의 화면이 계측 서버를 읽는가. 메뉴에 없는 경로는 셸이 띠를 띄울 일이 없다 */
+export function readsTelemetry(pathname: string): boolean {
+  return NAV_ITEMS.find((item) => item.href === pathname)?.readsTelemetry !== false;
+}
 
 /**
  * 역할별 **첫 화면**. 로고 클릭과 라우트 가드의 폴백이 같은 값을 쓴다.

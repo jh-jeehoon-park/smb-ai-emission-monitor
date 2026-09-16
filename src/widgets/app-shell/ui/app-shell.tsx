@@ -39,6 +39,8 @@ import {
 import { useRoleRouteGuard } from '../lib/use-role-route-guard';
 import { AlarmMenu } from './alarm-menu';
 import { LiveClock } from './live-clock';
+import { RoleGate } from './role-gate';
+import { TelemetryNotice } from './telemetry-notice';
 import { WallboardExit } from './wallboard-exit';
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -84,7 +86,12 @@ export function AppShell({ children }: { children: ReactNode }) {
   if (pathname === WALLBOARD_HREF) {
     return (
       <>
-        {children}
+        {/*
+         * **여기에도 `RoleGate`가 붙는다** `[사용자 결정 2026-09-15]`. 이 조기 리턴은 아래
+         * 본문보다 **먼저** 돌아, 아래에만 얹으면 현황판은 하나도 고쳐지지 않는다 — 노출을
+         * 실측한 세 경우 중 **둘이 이 경로였다**(기초지자체 1.61초 · 시스템 관리자 6.05초).
+         */}
+        <RoleGate>{children}</RoleGate>
         <WallboardExit />
       </>
     );
@@ -169,7 +176,18 @@ export function AppShell({ children }: { children: ReactNode }) {
           <h1 className="mb-4 text-[20px] font-bold leading-tight tracking-tight text-fg lg:mb-5">
             {navLabelOf(pathname)}
           </h1>
-          {children}
+          {/*
+           * 값이 어디서 왔는지는 헤더 배지 하나만 말하고 있었다 — 12px 우측 상단이라 차트를
+           * 읽는 사람 눈에 들어오지 않는다. 화면당 한 줄을 제목 바로 아래 둔다.
+           *
+           * **`RoleGate` 안에 둔다** — 막힌 화면에서는 값이 그려지지 않으므로 그 값의 출처를
+           * 말할 일도 없다. 밖에 두면 403 위에 «계측 서버에 닿지 못했습니다»가 함께 떠,
+           * 볼 수도 없는 화면의 데이터 사정을 알리게 된다.
+           */}
+          <RoleGate>
+            <TelemetryNotice />
+            {children}
+          </RoleGate>
         </main>
       </div>
     </div>

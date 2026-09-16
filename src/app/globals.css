@@ -466,6 +466,18 @@
    *
    * 기본이 «감춤»인 것은 그대로다 — `data-role`이 아직 없으면 셋 다 어긋나 전부 감춰진다.
    */
+  /*
+   * **역할을 모르는 동안에는 «막혔다»고 말하지 않는다** `[사용자 결정 2026-09-15]`.
+   *
+   * 위 `role-hide-*`는 «어긋날 때 감추는» 규칙이라 `data-role`이 아예 없으면 아무것도 감추지
+   * 않는다 — 403 안내 세 장이 본문 위에 그대로 쌓인다. `<head>` 스크립트가 늘 값을 넣지만
+   * 그 스크립트가 막힌 순간(JS 차단)이 있고, 그때 «당신은 볼 수 없습니다»라고 적는 것은
+   * **모르는 것을 주장하는 것**이다(**E4**). 모르면 안내를 내리고 지금까지처럼 본문을 둔다.
+   */
+  :root:not([data-role]) .role-hide-unknown {
+    display: none;
+  }
+
   :root:not([data-role='site']) .role-only-site,
   :root:not([data-role='system']) .role-only-system,
   :root:not([data-role='gov']) .role-only-gov {

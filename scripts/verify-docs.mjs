@@ -167,14 +167,52 @@ check('화면 수', () => {
   const fails = [];
   if (rows !== files.length) fails.push(`screens.md ${rows}행 ≠ screens/ ${files.length}파일`);
 
-  // 화면 문서의 `| 구현 |` 행이 **미구현**이면 라우트가 없어야 한다
-  const implemented = files.filter(
-    (f) => !/\|\s*구현\s*\|\s*\*\*미구현\*\*/.test(readText(join(SCREENS, f))),
-  );
+  /*
+   * **«화면 문서 1개 = page.tsx 1개»는 한 화면이 한 라우트일 때만 맞는 전제였다.**
+   *
+   * `SCR-CO-002 안내·오류`가 그 전제를 깼다 — 한 화면이 **라우트 둘**(`/403`·`/500`)과
+   * **Next 특수 파일 셋**(`not-found.tsx`·`error.tsx`·`global-error.tsx`)으로 열린다.
+   * 그냥 두면 **정상인 상태가 «구현 표기 16 ≠ 라우트 18»로 실패한다.**
+   *
+   * 수를 맞추려고 문서를 셋으로 쪼개는 것은 **검사를 위해 설계를 비트는 것**이다 — 세 갈래는
+   * 같은 부품으로 같은 말을 하는 한 화면이고, 쪼개면 그 사실이 문서에서 사라진다.
+   *
+   * 그래서 문서가 **자기가 가진 라우트 수를 선언한다**: `| 구현 | **라우트 N개** — 경로들 …`.
+   * 선언이 검사를 끄는 말이 되지 않게 **그 경로가 실제로 있는지** 함께 본다 — 세는 데서 빼기만
+   * 하면 그 화면은 아무 검사도 받지 않는다.
+   */
+  const text = new Map(files.map((f) => [f, readText(join(SCREENS, f))]));
+  const unbuilt = (f) => /\|\s*구현\s*\|\s*\*\*미구현\*\*/.test(text.get(f));
+  /** 선언한 라우트 수. 적지 않았으면 1이다(화면 하나가 라우트 하나인 보통의 경우) */
+  const routeCount = (f) => {
+    const m = text.get(f).match(/\|\s*구현\s*\|[^|\n]*\*\*라우트 (\d+)개\*\*/);
+    return m ? Number(m[1]) : 1;
+  };
+
+  const appFiles = walk(join(ROOT, 'src/app'), '.tsx').map((p) => p.replace(/\\/g, '/'));
+  const exists = (suffix) => appFiles.some((p) => p.endsWith(suffix));
+
+  for (const f of files.filter((f) => !unbuilt(f) && routeCount(f) !== 1)) {
+    // 선언한 라우트가 실제로 있는가
+    const routes = [...new Set(text.get(f).match(/src\/app\/[\w()[\]./-]*page\.tsx/g) ?? [])];
+    if (routes.length !== routeCount(f))
+      fails.push(`${f} — 라우트 ${routeCount(f)}개라 적고 경로는 ${routes.length}개만 댄다`);
+    for (const r of routes.filter((r) => !exists(r.replace(/^src\/app/, '')))) {
+      fails.push(`${f} — ${r}가 없다`);
+    }
+    // 함께 대는 Next 특수 파일도 실존해야 한다
+    for (const n of new Set(text.get(f).match(/\b(?:global-error|not-found|error)\.tsx\b/g) ?? [])) {
+      if (!exists(`/${n}`)) fails.push(`${f} — ${n}가 src/app에 없다`);
+    }
+  }
+
   // 라우트는 nav 설정이 아니라 실제 page.tsx로 센다 — 로그인처럼 메뉴에 없는 화면이 있다
+  const implemented = files
+    .filter((f) => !unbuilt(f))
+    .reduce((sum, f) => sum + routeCount(f), 0);
   const pages = walk(join(ROOT, 'src/app'), 'page.tsx');
-  if (implemented.length !== pages.length)
-    fails.push(`구현 표기 ${implemented.length}개 ≠ 라우트 ${pages.length}개`);
+  if (implemented !== pages.length)
+    fails.push(`구현 표기 ${implemented}개 ≠ 라우트 ${pages.length}개`);
 
   // 셸 안의 화면만 사이드바에 오른다. 화면을 (shell)에 넣고 메뉴에 안 넣으면 갈 길이 없다
   const shellPages = pages.filter((p) => p.includes('(shell)')).length;

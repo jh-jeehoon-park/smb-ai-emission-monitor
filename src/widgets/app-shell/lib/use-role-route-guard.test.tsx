@@ -139,3 +139,65 @@ describe('역할 전환 — 그 역할의 첫 화면으로 옮긴다', () => {
     expect(movedTo()).toBeNull();
   });
 });
+
+
+/**
+ * **닫힌 주소를 직접 열면 `/403`으로 보낸다** `[사용자 요청 2026-09-15]`.
+ *
+ * 한때 이 자리가 `replace(home)`이었고 말없이 튕겼다. 그리지 않는 일은 `RoleGate`가 맡고
+ * **보내는 일은 여기 하나로 모았다** — 두 곳이 보내면 역할 전환과 겹쳐 경쟁이 된다.
+ */
+describe('닫힌 화면 — 403으로 보낸다', () => {
+  it.each([
+    ['site', '/jurisdiction'],
+    ['gov', '/wallboard'],
+    ['system', '/wallboard'],
+  ] as const)('%s 역할로 %s를 직접 열면 403으로 간다', (role, pathname) => {
+    stub.pathname = pathname;
+    stub.search = '';
+    stub.role = role;
+
+    render(<Probe />);
+
+    expect(movedTo()).toBe(`/403?from=${encodeURIComponent(pathname)}`);
+  });
+
+  /**
+   * **범위 교정이 그 이동을 덮어쓰면 안 된다.** 실측에서 셋 중 셋이 그렇게 막힌 주소로
+   * 되돌아왔다 — `withScope(pathname, …)`이 같은 자리로 다시 보내기 때문이다.
+   */
+  it('범위 교정이 뒤따라 막힌 주소로 되돌리지 않는다', () => {
+    stub.pathname = '/jurisdiction';
+    stub.search = '';
+    stub.role = 'site';
+
+    render(<Probe />);
+
+    expect(stub.replace).toHaveBeenCalledTimes(1);
+    expect(movedTo()?.startsWith('/403')).toBe(true);
+  });
+});
+
+/**
+ * **역할 전환이 403보다 먼저다** `[설계 2026-09-16: 리다이렉트 검토]`.
+ *
+ * 역할을 바꿔 지금 화면이 닫히는 순간, 두 갈래가 같은 effect 안에서 부딪힌다. 순서가
+ * 뒤집히면 «전환했더니 403»이 되어 사용자가 무엇을 눌렀는지 알 수 없다.
+ */
+describe('역할 전환과 닫힌 화면이 겹칠 때 — 홈이 이긴다', () => {
+  it('사업장 전용 화면에서 시스템 관리자로 바꾸면 403이 아니라 홈으로 간다', () => {
+    /* 사업장 범위가 이미 박힌 주소로 시작한다 — 그래야 마운트 때 범위 교정이 돌지 않는다 */
+    stub.pathname = '/inout';
+    stub.search = 'site=S-02&scope=site';
+    stub.role = 'site';
+
+    const view = render(<Probe />);
+    expect(movedTo(), '마운트만으로는 옮기지 않는다').toBeNull();
+
+    stub.role = 'system';
+    view.rerender(<Probe />);
+
+    expect(movedTo()?.startsWith('/403')).toBe(false);
+    expect(movedTo()?.startsWith('/')).toBe(true);
+  });
+});

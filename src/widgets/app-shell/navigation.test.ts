@@ -1,3 +1,5 @@
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { ROLES, canRoleSee } from '@/entities/user';
 import {
@@ -5,7 +7,10 @@ import {
   NAV_ITEMS,
   groupMenuRoles,
   homeHrefFor,
+  isBlockedFor,
+  knownRoute,
   menuRolesOf,
+  readsTelemetry,
 } from './config/navigation';
 
 /**
@@ -163,5 +168,114 @@ describe('사이드바 묶음', () => {
     const manage = NAV_GROUPS.find((group) => group.label === '관리');
     expect(manage).toBeDefined();
     expect(groupMenuRoles(manage!)).toEqual(expect.arrayContaining(['system', 'site', 'gov']));
+  });
+});
+
+/**
+ * **계측 고지 띠가 뜰 화면을 표식이 정한다** `[사용자 요청 2026-09-15]`.
+ *
+ * 셸에 띠를 한 번 두면 «계측을 쓰지 않는 도메인은 저절로 빠진다»고 적었다가 잡혔다 — 셸은
+ * **모든 화면 위**에 있으므로 정반대였고, 설비·설정에까지 «계측 서버에 닿지 못했습니다»가
+ * 떴다. 읽지도 않는 값의 장애를 주장하는 것은 없는 사실을 말하는 것이다(**E4**).
+ *
+ * 표식은 손으로 적으므로 **코드와 갈릴 수 있다.** 여기서 라우트의 위젯을 실제로 열어
+ * `useSiteSeries`를 쓰는지 보고 대조한다 — 새 화면이 생겨도 저절로 걸린다.
+ */
+describe('계측 고지 범위 — 표식이 실제 코드와 같다', () => {
+  const ROOT = join(import.meta.dirname, '../../..');
+
+  /** 이 라우트의 위젯 트리 어딘가가 계측 훅을 부르는가 */
+  const usesTelemetry = (href: string): boolean => {
+    const dir = href === '/' ? '' : href;
+    const page = join(ROOT, 'src/app/(shell)', dir, 'page.tsx');
+    if (!existsSync(page)) return false;
+
+    const widgets = [...readFileSync(page, 'utf8').matchAll(/@\/widgets\/([a-z-]+)/g)].map(
+      (m) => m[1]!,
+    );
+    return widgets.some((w) => grepDir(join(ROOT, 'src/widgets', w)));
+  };
+
+  const grepDir = (dir: string): boolean => {
+    if (!existsSync(dir)) return false;
+    return readdirSync(dir, { withFileTypes: true }).some((entry) => {
+      const path = join(dir, entry.name);
+      if (entry.isDirectory()) return grepDir(path);
+      if (!entry.name.endsWith('.tsx') && !entry.name.endsWith('.ts')) return false;
+      if (entry.name.includes('.test.')) return false;
+      return /useSiteSeries|useSitesSeries/.test(readFileSync(path, 'utf8'));
+    });
+  };
+
+  it.each(NAV_ITEMS.map((item) => item.href))('%s', (href) => {
+    expect(readsTelemetry(href), `${href}의 readsTelemetry 표식이 실제 코드와 다르다`).toBe(
+      usesTelemetry(href),
+    );
+  });
+
+  /** 지금 계측을 읽지 않는 화면은 둘뿐이다 — 늘어나면 그 사실을 여기서 보고 판단한다 */
+  it('계측을 읽지 않는 화면은 설비·설정 둘이다', () => {
+    const quiet = NAV_ITEMS.filter((item) => !readsTelemetry(item.href)).map((i) => i.href);
+    expect(quiet.sort()).toEqual(['/equipment', '/settings']);
+  });
+});
+
+
+/**
+ * **`?from=`으로 바깥에 나가지 않는다** `[설계 2026-09-16: 리다이렉트 검토]`.
+ *
+ * `/500`의 「다시 시도」는 그 값으로 이동한다. 그대로 믿으면 `/500?from=https://…`을 연
+ * 사람이 그 주소로 나간다 — **열린 리다이렉트**이고 실측으로 확인했다(`//example.com`도
+ * 프로토콜만 생략한 절대 주소라 같은 길이다).
+ *
+ * 모양이 아니라 **아는 경로인지**로 가른다 — «시작이 `/`인가» 같은 규칙은 예외를 하나
+ * 만들 때마다 다시 뚫린다.
+ */
+describe('knownRoute — 바깥 주소를 걸러 낸다', () => {
+  it.each([
+    'https://example.com/',
+    '//example.com/',
+    'http://localhost:3000/overview',
+    'javascript:alert(1)',
+    '/overview?site=S-01',
+    '/nosuchpage',
+    '',
+  ])('%s 는 받지 않는다', (value) => {
+    expect(knownRoute(value)).toBeNull();
+  });
+
+  it('아는 경로만 그대로 돌려준다', () => {
+    for (const item of NAV_ITEMS) {
+      expect(knownRoute(item.href), item.href).toBe(item.href);
+    }
+  });
+
+  it('값이 없으면 null이다', () => {
+    expect(knownRoute(null)).toBeNull();
+    expect(knownRoute(undefined)).toBeNull();
+  });
+});
+
+/**
+ * 가드와 `RoleGate`가 **같은 답**을 써야 한다 — 한쪽은 보내고 한쪽은 그리지 않는 일을
+ * 하는데, 판단이 갈리면 «보내지도 그리지도 않는» 빈 화면이나 그 반대가 생긴다.
+ */
+describe('isBlockedFor', () => {
+  it('메뉴에 없는 경로는 가르지 않는다 — 없는 주소는 404가 받는다', () => {
+    for (const role of ROLES) {
+      expect(isBlockedFor('/nosuchpage', role), role).toBe(false);
+      expect(isBlockedFor('/403', role), role).toBe(false);
+      expect(isBlockedFor('/500', role), role).toBe(false);
+    }
+  });
+
+  it('권한 매트릭스와 같은 답을 낸다', () => {
+    for (const item of NAV_ITEMS) {
+      for (const role of ROLES) {
+        expect(isBlockedFor(item.href, role), `${item.href} × ${role}`).toBe(
+          !canRoleSee(item.screenId, role),
+        );
+      }
+    }
   });
 });
