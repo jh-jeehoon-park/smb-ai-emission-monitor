@@ -502,8 +502,10 @@
    */
   :root:not([data-role='site']) .admin-only-1,
   :root:not([data-role='site']) .admin-only-2,
+  :root:not([data-role='site']) .admin-only-3,
   :root:not([data-admin='admin-1']) .admin-only-1,
-  :root:not([data-admin='admin-2']) .admin-only-2 {
+  :root:not([data-admin='admin-2']) .admin-only-2,
+  :root:not([data-admin='admin-3']) .admin-only-3 {
     display: none;
   }
 
@@ -515,6 +517,7 @@
    */
   :root[data-admin='admin-1'] .admin-pick-1,
   :root[data-admin='admin-2'] .admin-pick-2,
+  :root[data-admin='admin-3'] .admin-pick-3,
   :root[data-role='site'] .role-pick-site,
   :root[data-role='system'] .role-pick-system,
   :root[data-role='gov'] .role-pick-gov {
@@ -562,6 +565,43 @@
   @keyframes process-flow {
     to {
       stroke-dashoffset: -14;
+    }
+  }
+
+  /**
+   * **값이 새로 들어올 때의 전환** `[사용자 요청 2026-09-16: 데이터가 새로 들어오는 순간
+   * 데이터가 바로 바뀌어서 어색함이 있음]`.
+   *
+   * **값을 보간하지 않는다.** 8.35에서 8.47로 흘러가게 하면 그 사이에 **계측된 적 없는**
+   * 8.39·8.42가 화면에 뜨고, 그 순간 읽은 사람은 없는 수치를 적는다. 현황판의 `useCountUp`은
+   * 그것을 감수했지만 근거가 «TV·2~3m»이고, 여기는 값을 정확히 읽으려고 가까이서 보는 화면이다.
+   *
+   * 그래서 **바뀐 숫자를 그대로 두고 나타나는 방식만** 부드럽게 한다 — 지어낸 숫자를 한 번도
+   * 보이지 않는다.
+   *
+   * **JS를 쓰지 않는다.** 소비처가 값에 `key`를 걸면 값이 바뀔 때 노드가 새로 마운트되고
+   * 이 애니메이션이 저절로 다시 돈다. 그래서 상태도 effect도 없고, 서버와 클라이언트가
+   * 같은 마크업을 내보내 하이드레이션이 어긋나지 않는다.
+   *
+   * 감속 설정은 **CSS가 직접 받는다** — `matchMedia`를 렌더 중에 읽으면 서버가 모르는 값이
+   * 마크업에 섞인다(이 저장소가 세 번 밟은 함정이다).
+   */
+  .num-fade {
+    animation: num-fade 160ms ease-out;
+  }
+
+  @keyframes num-fade {
+    from {
+      opacity: 0.25;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .num-fade {
+      animation: none;
     }
   }
 

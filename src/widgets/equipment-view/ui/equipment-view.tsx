@@ -22,7 +22,7 @@ import { StatusHeatmap } from './status-heatmap';
 import { cn } from '@/shared/lib/cn';
 import { CROSS_SITE_RANK_LIMIT } from '../config/constants';
 import { rankAcrossSites } from '../lib/rank-across-sites';
-import { TABLE_HEAD_CELL, TABLE_HEAD_ROW, TABLE_ROOT, TABLE_ROW } from '@/shared/ui/table';
+import { TABLE_HEAD_CELL, TABLE_HEAD_ROW, TABLE_ROOT, TABLE_ROW, TABLE_SCROLL } from '@/shared/ui/table';
 import { InfoTip } from '@/shared/ui/tooltip';
 
 const OFFLINE_SITE_COUNT = SITES.filter((site) => !site.online).length;
@@ -179,7 +179,7 @@ function CrossSiteRanking({ selectedSiteId }: { selectedSiteId: string }) {
 
 function EquipmentTable({ items }: { items: Equipment[] }) {
   return (
-    <div className="overflow-x-auto">
+    <div className={TABLE_SCROLL}>
       <table className={`${TABLE_ROOT} min-w-[620px] text-[12px] text-center`}>
         <thead>
           <tr className={TABLE_HEAD_ROW}>

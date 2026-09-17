@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo } from 'react';
 import { Area, AreaChart, ResponsiveContainer, Tooltip, YAxis } from 'recharts';
 import {
   UNRESOLVED_LIMIT_TEXT,
@@ -15,6 +16,7 @@ import {
   statusInk,
 } from '@/shared/config/status-visual';
 import { formatClock, formatValue } from '@/shared/lib/format';
+import { LiveValue } from '@/shared/ui/live-value';
 import { BADGE_BASE } from '@/shared/ui/badge';
 import { VALUE_MD } from '@/shared/ui/type-scale';
 import { ChartFigure } from '@/shared/ui/chart-figure';
@@ -26,8 +28,10 @@ import {
   type MeasurementPoint,
   type SeriesCode,
   isReceptionStalled,
+  useSiteLatest,
 } from '@/entities/measurement';
 import { SPARK_MARGIN } from '../config/constants';
+import { thinForCode } from '../lib/thin-series';
 import { WaterQualityGridSkeleton } from './water-quality-grid-skeleton';
 import { limitZone, type LimitZone } from '../lib/limit-zone';
 import { useChartSurface } from '@/shared/lib/use-chart-hover';
@@ -51,6 +55,14 @@ export interface GridSection {
 
 interface WaterQualityGridProps {
   data: MeasurementPoint[];
+  /**
+   * **«지금 값»을 그 사업장 주기로 받을 때만 준다** `[사용자 지적 2026-09-16: 5초 주기마다
+   * 업데이트가 되지 않음]`.
+   *
+   * 주지 않으면 카드는 계열의 마지막 칸을 그대로 쓴다(1분 격자) — 여러 사업장을 한 화면에
+   * 그리는 자리는 그쪽이 맞다.
+   */
+  siteId?: string;
   /**
    * 그릴 묶음. **소절을 나누는 이유는 축이 다르기 때문이다** `[회의 피드백 2026-08-24]`.
    *
@@ -97,6 +109,7 @@ interface WaterQualityGridProps {
  */
 export function WaterQualityGrid({
   data,
+  siteId,
   sections,
   limits,
   windowHours,
@@ -129,7 +142,7 @@ export function WaterQualityGrid({
               {section.codes.map((code) => (
                 <RiseItem key={code}>
                   {isSeriesCode(code) ? (
-                    <MiniSeries code={code} data={data} table={limits} windowHours={windowHours} />
+                    <MiniSeries code={code} data={data} siteId={siteId} table={limits} windowHours={windowHours} />
                   ) : (
                     <NoChannel code={code} />
                   )}
@@ -243,14 +256,44 @@ function DiffCard({
   );
 }
 
+/**
+ * **«지금 값» 한 칸** `[사용자 지적 2026-09-16: 5초 주기마다 업데이트가 되지 않음]`.
+ *
+ * **구독이 이 칸 안에 있다.** 위쪽에서 `useSiteLatest`를 부르면 값이 올 때마다 격자 전체가
+ * 다시 그려진다 — 차트 여덟 장이 함께 돌아 화면이 멈춘다. 칸 안으로 내리면 이 글자만 바뀐다.
+ *
+ * 격자의 마지막 칸은 분 경계라 최대 2분 묵는다. 서버가 그보다 자주 보내는 사업장에서는
+ * 들은 것 중 가장 새것을 적고, 못 들었으면(주기가 1분 이상이거나 꼬리가 실패) 격자 값으로
+ * 떨어진다 — 그때는 이 부품이 없던 때와 똑같이 동작한다.
+ */
+function LiveReading({
+  siteId,
+  code,
+  fallback,
+}: {
+  siteId: string;
+  code: SeriesCode;
+  fallback: number | null;
+}) {
+  const live = useSiteLatest(siteId);
+  return (
+    <LiveValue
+      value={formatValue(code, live?.values[code] ?? fallback)}
+      className={`${VALUE_MD} text-fg`}
+    />
+  );
+}
+
 function MiniSeries({
   code,
   data,
+  siteId,
   table,
   windowHours,
 }: {
   code: SeriesCode;
   data: MeasurementPoint[];
+  siteId?: string;
   /** `undefined`면 기준을 그리지 않는다 — 방류 지점이 아닌 계열이다 */
   table?: DischargeLimitTable;
   windowHours: number;
@@ -263,11 +306,43 @@ function MiniSeries({
    */
   const { surfaceProps, chartRef, tooltipActive } = useChartSurface(SPARK_MARGIN);
   const item = MEASUREMENT_ITEMS[code];
-  const values = data.map((p) => p[code]);
-  const latest = [...values].reverse().find((v) => v !== null) ?? null;
-  const isMissingNow = isReceptionStalled(values);
-  const zone = table ? limitZone(code, values, table) : null;
-  const overCount = table ? countOverLimit(data, code, table) : null;
+
+  /*
+   * **1,440점을 네 번 훑던 것을 한 번으로 묶는다** `[사용자 지적 2026-09-16]`.
+   *
+   * 메모가 없어 카드가 다시 그려질 때마다 전부 다시 돌았다 — 카드 열한 장이 각자 1,440짜리
+   * 배열을 두 개씩 만들고 `data`를 한 번 더 훑었다(실측 약 288ms). 판정에 쓰는 값은
+   * **솎지 않은 원본**에서 낸다 — 초과 건수와 기준 구간은 그림이 아니라 사실이다.
+   */
+  const stats = useMemo(() => {
+    const values = data.map((point) => point[code]);
+
+    /*
+     * 뒤에서부터 찾는다. `[...values].reverse().find(...)`는 마지막 값 하나를 얻으려고
+     * **1,440개를 복사하고 뒤집었다** — 카드마다 그랬다.
+     */
+    let latest: number | null = null;
+    for (let i = values.length - 1; i >= 0; i -= 1) {
+      if (values[i] !== null) {
+        latest = values[i]!;
+        break;
+      }
+    }
+
+    return {
+      latest,
+      isMissingNow: isReceptionStalled(values),
+      zone: table ? limitZone(code, values, table) : null,
+      overCount: table ? countOverLimit(data, code, table) : null,
+    };
+  }, [data, code, table]);
+  const { latest, isMissingNow, zone, overCount } = stats;
+
+  /*
+   * **그리는 점만 솎는다**(`screens.md` §8 `솎기`). 판정·현재값은 위에서 원본으로 냈고,
+   * 여기서 줄이는 것은 실루엣뿐이다 — 실측으로 차트 비용이 990ms → 260ms 언저리로 준다.
+   */
+  const chartData = useMemo(() => thinForCode(data, code), [data, code]);
 
   /* `h-full`이 있어야 칸 높이가 서로 달라도 격자 한 행이 같은 높이로 선다 */
   return (
@@ -295,9 +370,15 @@ function MiniSeries({
       </div>
 
       <div className="mt-1 flex items-baseline gap-1">
-        <span className={`num ${VALUE_MD} text-fg`}>
-          {formatValue(code, latest)}
-        </span>
+        {/*
+          * **현재값은 수집 주기마다 갈린다** `[사용자 요청 2026-09-16]`. 5초로 보내는 사업장에서
+          * 툭툭 바뀌던 것을 전환으로 잇는다 — 숫자 자체는 보간하지 않는다.
+          */}
+        {siteId === undefined ? (
+          <LiveValue value={formatValue(code, latest)} className={`${VALUE_MD} text-fg`} />
+        ) : (
+          <LiveReading siteId={siteId} code={code} fallback={latest} />
+        )}
         {item.unit && <span className="text-[12px] text-fg-subtle">{item.unit}</span>}
       </div>
 
@@ -333,7 +414,7 @@ function MiniSeries({
              * 오히려 표보다 못하다.
              */}
             <AreaChart
-              data={data}
+              data={chartData}
               margin={SPARK_MARGIN}
               accessibilityLayer={false}
               /*
@@ -392,6 +473,19 @@ function MiniSeries({
                 strokeWidth={1.8}
                 fill={`url(#fill-${code})`}
                 connectNulls={false}
+                /*
+                 * **`dot`에 함수를 넘기지 않는다** `[사용자 지적 2026-09-16: 렌더링이 굉장히
+                 * 느려졌다]`.
+                 *
+                 * 2026-09-16에 «선의 끝에 지금 값 표식»을 넣으며 여기에 함수를 넘겼는데,
+                 * Recharts는 그 함수를 **점마다** 부른다 — 점 1,440개 × 차트 8장이라 **약
+                 * 11,500개 요소를 만들어 그중 8개만 썼다.** 계측이 도착할 때마다 화면이
+                 * 멈추는 시간이 **4.9초 → 11.1초**로 늘었다(실측).
+                 *
+                 * 표식 자체도 근거를 잃었다 — 그때는 꼬리를 계열 끝 칸에 합쳐 **선 끝이 5초마다
+                 * 움직였고** 그 움직임을 설명할 표식이 필요했다. 지금은 계열이 1분 격자 그대로라
+                 * 선이 떨지 않는다. 다시 필요해지면 **점마다 부르지 않는 방법**으로 만든다.
+                 */
                 dot={false}
                 activeDot={{ r: 3, strokeWidth: 1.5, stroke: 'var(--surface)', fill: ACTUAL_HEX }}
                 isAnimationActive={false}

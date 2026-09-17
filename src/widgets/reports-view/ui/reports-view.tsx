@@ -31,7 +31,7 @@ import {
   type BucketStat,
   type BucketUnit,
 } from '@/entities/measurement';
-import { TABLE_HEAD_CELL, TABLE_HEAD_ROW, TABLE_ROOT, TABLE_ROW } from '@/shared/ui/table';
+import { TABLE_HEAD_CELL, TABLE_HEAD_ROW, TABLE_ROOT, TABLE_ROW, TABLE_SCROLL } from '@/shared/ui/table';
 import { SERIES_ORIGIN_LABELS, TrendChip } from '@/entities/prediction';
 import { buildSiteReport, toCsv, type SiteReportRow } from '../lib/build-report';
 import {
@@ -280,7 +280,7 @@ function DischargeCell({ hours, windowHours }: { hours: number | null; windowHou
 
 function ReportTable({ rows }: { rows: SiteReportRow[] }) {
   return (
-    <div className="overflow-x-auto">
+    <div className={TABLE_SCROLL}>
       <table className={`${TABLE_ROOT} min-w-[860px] text-[12px] text-center`}>
         <thead>
           <tr className={TABLE_HEAD_ROW}>
@@ -362,7 +362,7 @@ const STAT_COLUMNS = ['최소', '평균', '최대', '최신', '결측'];
  */
 function SensorTable({ rows, pending }: { rows: SensorReportRow[]; pending: boolean }) {
   return (
-    <div className="overflow-x-auto">
+    <div className={TABLE_SCROLL}>
       <table className={`${TABLE_ROOT} min-w-[680px] text-[12px] text-center`}>
         {/* 대기 중임을 여기서 말한다 — `<td>` 사이에는 `role="status"`를 끼울 수 없다 */}
         <caption className="sr-only">
@@ -442,7 +442,7 @@ function SensorTable({ rows, pending }: { rows: SensorReportRow[]; pending: bool
 /** TOC·TN·TP의 기준 대비. 값이 아니라 판정만 싣는다 */
 function EstimateTable({ rows }: { rows: EstimateReportRow[] }) {
   return (
-    <div className="overflow-x-auto">
+    <div className={TABLE_SCROLL}>
       <table className={`${TABLE_ROOT} min-w-[420px] text-[12px] text-center`}>
         <thead>
           <tr className={TABLE_HEAD_ROW}>

@@ -283,6 +283,8 @@ export function AdminOverviewView() {
         <WaterQualityGrid
           pending={seriesPending}
           data={detail.series}
+          /* 이 화면은 한 사업장만 그린다 — 카드가 그 사업장 주기로 «지금 값»을 받는다 */
+          siteId={siteId}
           sections={[
             { title: '수질 8종', codes: WATER_SERIES_CODES },
             {

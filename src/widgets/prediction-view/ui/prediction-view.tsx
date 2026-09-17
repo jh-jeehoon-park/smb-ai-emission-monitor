@@ -49,7 +49,7 @@ import {
   ForecastOverlay,
 } from '@/widgets/forecast-chart';
 import { ALL_TARGETS, TARGET_QUERY_KEY, TARGET_VIEWS, type TargetView } from '../config/constants';
-import { TABLE_HEAD_CELL, TABLE_HEAD_ROW, TABLE_ROOT, TABLE_ROW } from '@/shared/ui/table';
+import { TABLE_HEAD_CELL, TABLE_HEAD_ROW, TABLE_ROOT, TABLE_ROW, TABLE_SCROLL } from '@/shared/ui/table';
 
 const TARGET_OPTIONS: { value: TargetView; label: string }[] = [
   { value: ALL_TARGETS, label: '전체' },
@@ -329,7 +329,7 @@ function LimitMonitor({
         </span>
       }
     >
-      <div className="overflow-x-auto">
+      <div className={TABLE_SCROLL}>
         <table className={`${TABLE_ROOT} min-w-[520px] text-[12px] text-center`}>
           <thead>
             <tr className={TABLE_HEAD_ROW}>

@@ -29,6 +29,7 @@ import { formatValue } from '@/shared/lib/format';
 import { stageReadings } from '../lib/stage-readings';
 import { ProcessDiagram } from './process-diagram';
 import { InfoTip } from '@/shared/ui/tooltip';
+import { TABLE_SCROLL } from '@/shared/ui/table';
 
 /**
  * 이 시스템의 핵심 주장은 TMS 대체다 — 기존 방식은 공정 단계마다 분석기를 놓아 2~3억이
@@ -97,7 +98,7 @@ export function ProcessView() {
             />
           }
           action={<GradeLegend />}
-          bodyClassName="overflow-x-auto"
+          bodyClassName={TABLE_SCROLL}
         >
           <ProcessDiagram
             stages={stages}

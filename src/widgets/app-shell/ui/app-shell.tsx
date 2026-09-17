@@ -9,14 +9,15 @@ import { BRAND_NAME } from '@/shared/config/constants';
 import { DEMO_NOTICE, DEMO_NOW_ISO } from '@/shared/config/demo';
 import {
   TELEMETRY_STATUS_LABELS,
+  intervalLabel,
   telemetrySourceLabel,
   useSiteSeries,
 } from '@/entities/measurement';
-import { COLLECTION_INTERVAL_MINUTES } from '@/shared/config/measurement';
 import { cn } from '@/shared/lib/cn';
 import { BADGE_BASE } from '@/shared/ui/badge';
 import { DISPLAY_TIMEZONE, formatDateTime } from '@/shared/lib/format';
 import { BrandMark } from '@/shared/ui/brand-mark';
+import { AnimatePresence, drawerPanel, drawerScrim, motion } from '@/shared/ui/motion';
 import { TopButton } from '@/shared/ui/top-button';
 import { ThemeToggle } from '@/shared/ui/theme';
 import { InfoTip } from '@/shared/ui/tooltip';
@@ -259,7 +260,7 @@ function DemoNotice() {
 function ReceiveIndicator() {
   const { siteId } = useSelectedSiteId();
   const online = getSite(siteId).online;
-  const { status, failure } = useSiteSeries(siteId);
+  const { status, failure, intervalSeconds } = useSiteSeries(siteId);
 
   if (!online) {
     return (
@@ -293,7 +294,12 @@ function ReceiveIndicator() {
         <span className="live-pulse absolute inset-0 rounded-full" />
         <span className="relative size-1.5 rounded-full bg-normal" />
       </span>
-      {TELEMETRY_STATUS_LABELS.live} · {COLLECTION_INTERVAL_MINUTES}분 주기
+      {/*
+       * **주기는 사업장이 정한다** `[사용자 요청 2026-09-16]`. 한때 전 사업장에 `1분 주기`라
+       * 박혀 있었는데 서버가 사업장마다 다른 주기로 보낸다 — 5초로 보내는 곳이 있었고 화면은
+       * 그 사업장에서도 `1분`이라 적었다. 값은 서버의 `intervalSeconds` 채널에서 온다.
+       */}
+      {TELEMETRY_STATUS_LABELS.live} · {intervalLabel(intervalSeconds)} 주기
     </span>
   );
 }
@@ -353,24 +359,50 @@ function NavDrawer({ pathname }: { pathname: string }) {
         <Menu aria-hidden size={20} strokeWidth={1.9} />
       </Dialog.Trigger>
 
-      <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-40 bg-black/40 lg:hidden" />
-        <Dialog.Content
-          aria-describedby={undefined}
-          className="fixed left-0 top-0 z-50 flex h-full w-[min(280px,calc(100vw-3rem))] flex-col border-r border-border bg-surface lg:hidden"
-        >
-          <Dialog.Title className="sr-only">메뉴</Dialog.Title>
-          <Dialog.Close
-            aria-label="메뉴 닫기"
-            className="absolute right-3 top-3 cursor-pointer rounded-chip p-1.5 text-fg-subtle transition-colors duration-200 hover:bg-surface-2 hover:text-fg"
-          >
-            <X aria-hidden size={16} strokeWidth={1.9} />
-          </Dialog.Close>
+      {/*
+       * **서랍이 밀려 들어오고 밀려 나간다** `[사용자 요청 2026-09-16]`.
+       *
+       * Radix는 닫는 순간 내용을 걷어내므로 그대로 두면 나가는 모습을 그릴 수 없다 —
+       * `forceMount`로 마운트를 `AnimatePresence`에게 넘겨, 나가는 전이가 끝난 뒤에 걷힌다.
+       * `asChild`라 Radix의 동작(초점 가둠·ESC·스크롤 잠금)은 그대로 있고 겉껍데기만 `motion`이다.
+       *
+       * 값과 감속 설정 처리는 `shared/ui/motion.tsx`가 갖는다 — framer-motion을 직접 부르는
+       * 파일을 늘리지 않는다는 규약이고, 그래야 `MotionPreferences`를 우회하는 모션이 생기지 않는다.
+       */}
+      <AnimatePresence>
+        {open && (
+          <Dialog.Portal forceMount>
+            <Dialog.Overlay asChild forceMount>
+              <motion.div
+                variants={drawerScrim}
+                initial="hidden"
+                animate="show"
+                exit="hidden"
+                className="fixed inset-0 z-40 bg-black/40 lg:hidden"
+              />
+            </Dialog.Overlay>
+            <Dialog.Content
+              asChild
+              forceMount
+              aria-describedby={undefined}
+              className="fixed left-0 top-0 z-50 flex h-full w-[min(280px,calc(100vw-3rem))] flex-col border-r border-border bg-surface lg:hidden"
+            >
+              <motion.div variants={drawerPanel} initial="hidden" animate="show" exit="hidden">
+                <Dialog.Title className="sr-only">메뉴</Dialog.Title>
+                <Dialog.Close
+                  aria-label="메뉴 닫기"
+                  className="absolute right-3 top-3 cursor-pointer rounded-chip p-1.5 text-fg-subtle transition-colors duration-200 hover:bg-surface-2 hover:text-fg"
+                >
+                  <X aria-hidden size={16} strokeWidth={1.9} />
+                </Dialog.Close>
 
-          <BrandHome />
-          <SiteNav pathname={pathname} onNavigate={() => setOpen(false)} />
-        </Dialog.Content>
-      </Dialog.Portal>
+                <BrandHome />
+                <SiteNav pathname={pathname} onNavigate={() => setOpen(false)} />
+              </motion.div>
+            </Dialog.Content>
+          </Dialog.Portal>
+        )}
+      </AnimatePresence>
     </Dialog.Root>
   );
 }

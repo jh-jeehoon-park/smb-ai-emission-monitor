@@ -15,7 +15,7 @@ import { NumberField } from '@/shared/ui/number-field';
 import { SegmentedControl } from '@/shared/ui/segmented-control';
 import { classificationOf, useLimitSettingsStore } from '../model/limit-settings-context';
 import { validEntry, type LimitEntry, type LimitSheets } from '../lib/storage';
-import { TABLE_HEAD_CELL, TABLE_HEAD_ROW, TABLE_ROOT, TABLE_ROW } from '@/shared/ui/table';
+import { TABLE_HEAD_CELL, TABLE_HEAD_ROW, TABLE_ROOT, TABLE_ROW, TABLE_SCROLL } from '@/shared/ui/table';
 
 const EMPTY: LimitEntry = { min: null, max: null };
 
@@ -79,7 +79,7 @@ export function DischargeLimitEditor({ siteId }: { siteId: string }) {
         ) : null}
       </div>
 
-      <div className="overflow-x-auto">
+      <div className={TABLE_SCROLL}>
         <table className={`${TABLE_ROOT} min-w-[720px] text-[12px] text-center`}>
           <caption className="sr-only">
             지역구분별 방류 기준치. 행은 지역구분, 열은 법정 점검 항목이다. 값을 지우면 미설정으로

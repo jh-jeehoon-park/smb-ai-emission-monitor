@@ -14,10 +14,12 @@ import { COLLECTION_INTERVAL_MINUTES, MEASUREMENT_ITEMS } from '@/shared/config/
 import { DISPLAY_TIMEZONE, formatValue } from '@/shared/lib/format';
 import { useQueryState } from '@/shared/lib/use-query-state';
 import { getOutageWindow } from '@/shared/lib/timeline';
+import { LiveValue } from '@/shared/ui/live-value';
 import { Panel } from '@/shared/ui/panel';
 import { SkeletonCells } from '@/shared/ui/skeleton';
 import { InfoTip } from '@/shared/ui/tooltip';
 import {
+  useSiteLatest,
   useSiteSeries,
   sliceRecentHours,
   summarizeSeries,
@@ -38,7 +40,7 @@ import { WaterQualityGrid } from '@/widgets/water-quality-grid';
 import { BucketReportPanel } from '@/widgets/bucket-report';
 import { BUCKET_QUERY_KEY, STAT_QUERY_KEY } from '../config/constants';
 import { statsToCsv } from '../lib/stats-csv';
-import { TABLE_HEAD_CELL, TABLE_HEAD_ROW, TABLE_ROOT, TABLE_ROW } from '@/shared/ui/table';
+import { TABLE_HEAD_CELL, TABLE_HEAD_ROW, TABLE_ROOT, TABLE_ROW, TABLE_SCROLL } from '@/shared/ui/table';
 import { ACTION_BUTTON_QUIET } from '@/shared/ui/action-button';
 
 export function TimeseriesView() {
@@ -142,7 +144,7 @@ export function TimeseriesView() {
           </div>
         }
       >
-        <StatsTable rows={view.stats} limits={limits.table} pending={seriesPending} />
+        <StatsTable rows={view.stats} limits={limits.table} pending={seriesPending} siteId={siteId} />
         {/*
          * 기준값을 화면이 확정 기준처럼 보이게 하면 안 된다 — `[공정자료 p.11]`이 통상 범위라고
          * 적었고, 적용 구간은 사업장마다 허가증으로 갈린다. 나머지 항목은 표를 고를 2축
@@ -203,10 +205,34 @@ function limitText(code: SeriesCode, decimals: number, table: DischargeLimitTabl
   return formatLimitRange(limit, decimals) ?? UNRESOLVED_LIMIT_TEXT;
 }
 
+/**
+ * **«최신» 한 칸** `[사용자 요청 2026-09-16: 수집 주기에 맞춰 데이터가 갱신되어야 함]`.
+ *
+ * **구독이 이 칸 안에 있다.** 페이지 상단에서 `useSiteLatest`를 부르면 5초마다 화면 전체가
+ * 다시 그려진다 — 실측으로 `/timeseries`가 갱신마다 **0.6초씩 멈췄다**(차트 여덟 장이 함께
+ * 다시 그려진다). 구독을 값이 쓰이는 자리로 내리면 이 칸 하나만 다시 그린다.
+ *
+ * 격자의 마지막 칸은 분 경계라 최대 2분 묵는다. 이 열의 이름이 «최신»이므로 들은 것 중 가장
+ * 새것을 적고, 못 들었으면(주기가 1분 이상이거나 꼬리가 실패) 격자 값으로 떨어진다.
+ */
+function LatestCell({
+  siteId,
+  code,
+  fallback,
+}: {
+  siteId: string;
+  code: SeriesCode;
+  fallback: number | null;
+}) {
+  const live = useSiteLatest(siteId);
+  return <LiveValue value={formatValue(code, live?.values[code] ?? fallback)} />;
+}
+
 function StatsTable({
   rows,
   limits,
   pending,
+  siteId,
 }: {
   rows: { code: SeriesCode; stats: SeriesStats }[];
   /** 기준표는 사업장 설정에서 온다 — 화면이 자기 값을 갖지 않는다 */
@@ -222,9 +248,10 @@ function StatsTable({
    * «전부 받았다»로 읽혔다(**E4**).
    */
   pending: boolean;
+  siteId: string;
 }) {
   return (
-    <div className="overflow-x-auto">
+    <div className={TABLE_SCROLL}>
       <table className={`${TABLE_ROOT} min-w-[560px] text-[12px] text-center`}>
         {/* 대기 중임을 여기서 말한다 — `<td>` 사이에는 `role="status"`를 끼울 수 없다 */}
         <caption className="sr-only">
@@ -268,20 +295,36 @@ function StatsTable({
                   <SkeletonCells count={STAT_COLUMNS.length} />
                 ) : (
                   <>
-                    <td className="num px-3 py-3.5 text-center text-fg-muted">
-                      {formatValue(code, stats.min)}
+                    {/*
+                      * **값이 바뀔 때 전환만 부드럽게 한다** `[사용자 요청 2026-09-16]`.
+                      * 숫자는 그대로 갈아 끼우고 나타나는 방식만 다루므로, 계측된 적 없는
+                      * 중간값이 뜨지 않는다(`shared/ui/live-value.tsx`).
+                      */}
+                    <td className="px-3 py-3.5 text-center text-fg-muted">
+                      <LiveValue value={formatValue(code, stats.min)} />
                     </td>
-                    <td className="num px-3 py-3.5 text-center text-fg">
-                      {formatValue(code, stats.avg)}
+                    <td className="px-3 py-3.5 text-center text-fg">
+                      <LiveValue value={formatValue(code, stats.avg)} />
                     </td>
-                    <td className="num px-3 py-3.5 text-center text-fg-muted">
-                      {formatValue(code, stats.max)}
+                    <td className="px-3 py-3.5 text-center text-fg-muted">
+                      <LiveValue value={formatValue(code, stats.max)} />
                     </td>
-                    <td className="num px-3 py-3.5 text-center text-fg">
-                      {formatValue(code, stats.latest)}
+                    <td className="px-3 py-3.5 text-center text-fg">
+                      {/*
+                        * **«최신»은 서버의 가장 새로운 표본이다.** 격자의 마지막 칸은 분
+                        * 경계라 최대 2분 묵는데, 이 열의 이름이 «최신»이므로 들은 것 중
+                        * 가장 새것을 적는다. 못 들었으면 격자 값으로 떨어진다.
+                        */}
+                      <LatestCell siteId={siteId} code={code} fallback={stats.latest} />
                     </td>
-                    <td className="num px-3 py-3.5 text-center text-fg-subtle">
-                      {stats.missingCount > 0 ? `${stats.missingCount}/${stats.totalCount}` : '없음'}
+                    <td className="px-3 py-3.5 text-center text-fg-subtle">
+                      <LiveValue
+                        value={
+                          stats.missingCount > 0
+                            ? `${stats.missingCount}/${stats.totalCount}`
+                            : '없음'
+                        }
+                      />
                     </td>
                   </>
                 )}

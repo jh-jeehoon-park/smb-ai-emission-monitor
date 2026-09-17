@@ -7,6 +7,7 @@ export {
   type SiteSeries,
 } from './api/use-site-series';
 export { useRetryTelemetry } from './api/use-retry-telemetry';
+export { pollIntervalMs, useSiteLatest } from './api/use-site-series';
 export {
   WATER_SERIES_CODES,
   EQUIPMENT_SERIES_CODES,
@@ -35,6 +36,7 @@ export { bucketByMinutes, sliceRecentHours, summarizeSeries } from './lib/series
 export { energyGap, energyIntensity, type EnergyGap } from './lib/energy';
 export { dischargingAt } from './lib/discharging';
 export { windowChange, type WindowChange } from './lib/window-change';
+export { intervalLabel } from './lib/interval-label';
 export { outageNotice } from './lib/outage-notice';
 export { isReceptionStalled } from './lib/reception';
 export { buildBucketReport, bucketReportToCsv, type BucketRow } from './lib/bucket-report';
@@ -42,4 +44,5 @@ export { countOverLimit } from './lib/limit';
 export { isSeriesCode } from './lib/series-code';
 export { changeRatePercent, isSimilar, isTreatmentJudged } from './lib/inlet-quality';
 export type { SeriesBucket, SeriesStats } from './lib/series-stats';
+export type { TailSample } from './api/telemetry.mapper';
 export type { MeasurementPoint, SeriesCode, Reading, TelemetryStatus } from './model/types';

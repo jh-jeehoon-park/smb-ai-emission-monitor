@@ -31,3 +31,20 @@ export const TABLE_HEAD_ROW =
 export const TABLE_HEAD_CELL = 'px-3 py-3 text-center';
 
 export const TABLE_ROW = '[&>*]:border-b [&>*]:border-border';
+
+/**
+ * 고정 폭 표를 담는 가로 스크롤 상자 `[사용자 지시 2026-08-24]`(`screens.md` §8 `반응형`).
+ *
+ * **`relative`가 장식이 아니다.** 상자가 `position: static`이면 안쪽의 **절대배치 요소가
+ * 이 상자를 기준면으로 삼지 않아 잘리지 않는다** — 표의 오른쪽 끝 칸에 있는 `sr-only`가
+ * 720px·640px 자리에 그대로 앉아 **문서 전체를 그만큼 넓힌다.** 눈에는 아무것도 보이지
+ * 않고 증상은 «모바일에서 화면이 가로로 밀린다» 하나뿐이라 원인을 찾기 어렵다.
+ *
+ * 실측으로 두 곳이 그렇게 깨져 있었다 — `/equipment` 390px에서 문서가 675px(가동 격자의
+ * 시각 `sr-only` 75개), `/jurisdiction` 360px에서 719px(마지막 열의 `상세` 한 개).
+ * `screens.md` §8이 *"390px에서 가로 스크롤 없음"* 이라 못박은 바로 그 약속을 어기고 있었다.
+ *
+ * 상자마다 손으로 적지 않고 이름을 붙이는 이유가 그것이다 — 클래스 하나가 빠진 것을
+ * 화면을 열어서는 알 수 없다(이 파일이 만들어진 것과 같은 이유다).
+ */
+export const TABLE_SCROLL = 'relative overflow-x-auto';

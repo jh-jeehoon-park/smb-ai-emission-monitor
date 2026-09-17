@@ -2,10 +2,7 @@
 
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
-import { forgetSettled } from './use-site-series';
-
-/** 계측 쿼리의 접두 키. 사업장별 키(`['telemetry', siteId]`)를 전부 덮는다 */
-const TELEMETRY_KEY = ['telemetry'] as const;
+import { TELEMETRY_KEY_PREFIX, forgetSettled } from './use-site-series';
 
 /**
  * 「다시 시도」 `[사용자 결정 2026-09-15]`.
@@ -38,7 +35,7 @@ export function useRetryTelemetry(): { retry: () => void; retrying: boolean } {
     setRetrying(true);
     /* 무효화가 돌려주는 약속은 **다시 받기가 끝날 때** 풀린다 — 실패해도 풀린다 */
     void queryClient
-      .invalidateQueries({ queryKey: TELEMETRY_KEY })
+      .invalidateQueries({ queryKey: [...TELEMETRY_KEY_PREFIX] })
       .finally(() => setRetrying(false));
   }, [queryClient]);
 

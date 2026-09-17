@@ -2,7 +2,7 @@ import { UNRESOLVED_LIMIT_TEXT } from '@/shared/config/discharge-limits';
 import { PROVISIONAL_MEASUREMENT_GRADE_LABELS } from '@/shared/config/provisional';
 import { ACTUAL_HEX, MEASUREMENT_GRADE_HEX } from '@/shared/config/status-visual';
 import { cn } from '@/shared/lib/cn';
-import { TABLE_HEAD_CELL, TABLE_HEAD_ROW, TABLE_ROOT, TABLE_ROW } from '@/shared/ui/table';
+import { TABLE_HEAD_CELL, TABLE_HEAD_ROW, TABLE_ROOT, TABLE_ROW, TABLE_SCROLL } from '@/shared/ui/table';
 import { INLET_MARK_COLOR, WINDOW_HOURS } from '../config/constants';
 import {
   verdictText,
@@ -140,7 +140,7 @@ export function CompareTable({ compare }: { compare: InOutCompare }) {
      * 맨 아래 구역의 제목이 그 위 넷보다 크게 읽히고 있었다 — 지금은 넷이 같은 머리 띠를 쓴다.
      */
     <SectionPanel title="값 전체">
-      <div className="overflow-x-auto">
+      <div className={TABLE_SCROLL}>
         <table className={TABLE_ROOT}>
           <caption className="sr-only">
             {`항목별 유입값과 유출값, 변화율, 유출수의 최근 ${WINDOW_HOURS}시간 평균과 단위·계측 등급·기준·판정`}

@@ -1,6 +1,12 @@
 'use client';
 
-import { MotionConfig, motion, useReducedMotion, type Variants } from 'framer-motion';
+import {
+  AnimatePresence,
+  MotionConfig,
+  motion,
+  useReducedMotion,
+  type Variants,
+} from 'framer-motion';
 import { useEffect, useState, type ReactNode } from 'react';
 import { cn } from '@/shared/lib/cn';
 
@@ -21,6 +27,30 @@ export const staggerGroup: Variants = {
 export const riseItem: Variants = {
   hidden: { opacity: 0, y: RISE_DISTANCE_PX },
   show: { opacity: 1, y: 0, transition: { duration: 0.34, ease: [0.16, 1, 0.3, 1] } },
+};
+
+/**
+ * 좁은 화면의 메뉴 서랍 `[사용자 요청 2026-09-16]`.
+ *
+ * 왼쪽에서 밀려 들어오고 바탕이 함께 어두워진다. **여는 것보다 닫는 것을 빠르게** 한다 —
+ * 닫을 때는 이미 목적지를 정한 뒤라 기다림이 지연으로 읽힌다.
+ *
+ * **감속 설정을 여기서 따로 처리하지 않는다.** `MotionPreferences`의 `reducedMotion="user"`가
+ * 위치 계열(`x`)을 첫 프레임에 끝내므로 서랍은 제자리에 즉시 나타나고 **바탕의 페이드만 남는다** —
+ * 그것이 감속 설정이 없애려는 «움직임»이 아니라 상태 전환의 신호라 남겨 둔다.
+ */
+const DRAWER_OPEN_SECONDS = 0.28;
+const DRAWER_CLOSE_SECONDS = 0.2;
+const DRAWER_EASE = [0.16, 1, 0.3, 1] as const;
+
+export const drawerPanel: Variants = {
+  hidden: { x: '-100%', transition: { duration: DRAWER_CLOSE_SECONDS, ease: DRAWER_EASE } },
+  show: { x: 0, transition: { duration: DRAWER_OPEN_SECONDS, ease: DRAWER_EASE } },
+};
+
+export const drawerScrim: Variants = {
+  hidden: { opacity: 0, transition: { duration: DRAWER_CLOSE_SECONDS } },
+  show: { opacity: 1, transition: { duration: DRAWER_OPEN_SECONDS } },
 };
 
 /**
@@ -111,7 +141,7 @@ export function CountUp({ value, decimals = 0, className, durationMs = 1200 }: C
  * 그 화면이 2026-09-10에 값 중심 보드로 다시 세워지며 카메라와 함께 걷었다. 쓰는 곳이 없는
  * 재export를 남기면 다음 사람이 «이 저장소는 스크롤 모션을 쓴다»로 읽는다.
  */
-export { motion };
+export { AnimatePresence, motion };
 
 /**
  * **`MotionConfig reducedMotion="user"`가 끝내지 못하는 것이 있다.**

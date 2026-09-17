@@ -11,13 +11,32 @@
 export const TB_PROXY_PATH = '/api/tb';
 
 /**
- * 한 번에 받을 표본 수 상한.
+ * 한 번에 받을 표본 수 상한 — **사업장 주기에서 계산한다** `[사용자 요청 2026-09-16]`.
  *
- * 명세 §4.4 — **넘으면 에러가 아니라 200으로 조용히 잘린다.** 24시간을 1분 주기로 받으면
- * 1,440표본이라 여유가 있고, 상한은 관측되지 않았다(`limit=100000`도 200).
- * 그래도 응답 개수가 이 값과 같으면 잘린 것으로 보고 화면에 알린다.
+ * 명세 §4.4 — **넘으면 에러가 아니라 200으로 조용히 잘린다.** 그래서 이 값이 모자라면
+ * 화면이 비는 것이 아니라 **조용히 일부만 그린다.**
+ *
+ * 한때 `1500` 고정이었다. *"24시간을 1분 주기로 받으면 1,440표본이라 여유가 있다"* 는
+ * 근거였는데, **주기가 사업장마다 다르다는 것을 몰랐다** — 5초로 보내는 사업장은 24시간이
+ * 17,280표본이라 `orderBy=ASC`와 맞물려 **가장 오래된 2.1시간만** 오고 나머지 22시간이
+ * 통째로 비었다(실측: 1,440칸 중 235칸만 찼다).
+ *
+ * 그래서 고정값이 아니라 «창 ÷ 주기»에 여유를 얹어 만든다. `TB_TIMESERIES_MAX`는 주기가
+ * 터무니없이 작게 올 때(또는 0으로 올 때) 요청이 폭주하지 않게 막는 울타리다.
  */
-export const TB_TIMESERIES_LIMIT = 1500;
+export function tbTimeseriesLimit(windowMs: number, intervalMs: number): number {
+  const needed = Math.ceil(windowMs / Math.max(intervalMs, 1)) + TB_TIMESERIES_HEADROOM;
+  return Math.min(needed, TB_TIMESERIES_MAX);
+}
+
+/** 경계에서 한두 점 더 오는 것을 흡수한다. 이만큼 여유가 있어야 «잘림» 판정이 오탐하지 않는다 */
+const TB_TIMESERIES_HEADROOM = 60;
+
+/**
+ * 울타리. 5초 × 24시간(17,280)의 두 배쯤이고, 주기가 잘못 와도 여기서 멈춘다.
+ * 실측으로 5초 사업장의 24시간이 **8.8MB · 300ms**였다 — 이 위로는 화면이 견디지 못한다.
+ */
+export const TB_TIMESERIES_MAX = 40_000;
 
 /** 재시도 간격. 폴링 주기(1분) 안에서 끝나야 요청이 겹치지 않는다(명세 §8) */
 export const TB_RETRY_BACKOFF_MS = [1_000, 2_000, 4_000] as const;

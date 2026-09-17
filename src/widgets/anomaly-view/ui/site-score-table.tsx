@@ -7,7 +7,7 @@ import { BADGE_BASE } from '@/shared/ui/badge';
 import { CountUp } from '@/shared/ui/motion';
 import { Sparkline } from '@/shared/ui/sparkline';
 import { StatusBadge } from '@/shared/ui/status-badge';
-import { TABLE_HEAD_CELL, TABLE_HEAD_ROW, TABLE_ROOT } from '@/shared/ui/table';
+import { TABLE_HEAD_CELL, TABLE_HEAD_ROW, TABLE_ROOT, TABLE_SCROLL } from '@/shared/ui/table';
 import type { Site } from '@/entities/site';
 
 interface SiteScoreTableProps {
@@ -49,7 +49,7 @@ export function SiteScoreTable({ sites, selectedId, onSelect, spark }: SiteScore
      * 에서 멈추고 가로 스크롤한다 — 열을 접으면 비교라는 목적이 사라진다. 880 = 고정 5열(756) +
      * 이름 최소 124px.
      */
-    <div className="overflow-x-auto">
+    <div className={TABLE_SCROLL}>
       <table className={`${TABLE_ROOT} min-w-[880px] table-fixed text-center text-[12px]`}>
         <caption className="sr-only">
           사업장별 이상 점수 — 점수 높은 순, 최근 24시간 추세 포함

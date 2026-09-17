@@ -25,6 +25,8 @@ import {
   HEATMAP_TOOLTIP_OFFSET_PX,
   HEATMAP_TOOLTIP_WIDTH_PX,
 } from '../config/constants';
+import { cn } from '@/shared/lib/cn';
+import { TABLE_SCROLL } from '@/shared/ui/table';
 
 /**
  * 값이 없는 시간을 여백과 구분해 드러낸다 — 빈 칸으로 두면 "여기 아무 일 없었다"로 읽힌다.
@@ -121,7 +123,7 @@ export function StatusHeatmap({ siteId, items }: { siteId: string; items: Equipm
          * (`--track-inset`, 막대·게이지 트랙과 같은 값)라 칸들이 파인 자리에 놓인 것으로 읽힌다.
          * 홈이 없던 판본은 120칸이 카드 면 위에 떠 있어 어디까지가 격자인지 경계가 없었다.
          */}
-        <div className="overflow-x-auto rounded-nested bg-surface-2 p-2.5 shadow-track">
+        <div className={cn(TABLE_SCROLL, 'rounded-nested bg-surface-2 p-2.5 shadow-track')}>
           <table
             className="w-full table-fixed border-separate border-spacing-[1px] text-center"
             style={{ minWidth: STATUS_TIMELINE_HOURS * HEATMAP_CELL_MIN_PX + HEATMAP_LABEL_PX }}

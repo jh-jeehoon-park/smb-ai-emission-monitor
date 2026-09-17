@@ -5,7 +5,7 @@ import { ChevronRight } from 'lucide-react';
 import { cn } from '@/shared/lib/cn';
 import { ACTION_BUTTON_QUIET } from '@/shared/ui/action-button';
 import { StatusBadge } from '@/shared/ui/status-badge';
-import { TABLE_HEAD_CELL, TABLE_HEAD_ROW, TABLE_ROOT, TABLE_ROW } from '@/shared/ui/table';
+import { TABLE_HEAD_CELL, TABLE_HEAD_ROW, TABLE_ROOT, TABLE_ROW, TABLE_SCROLL } from '@/shared/ui/table';
 import type { SupervisionRow } from '../lib/supervision-rows';
 
 /**
@@ -60,7 +60,7 @@ export function SupervisionTable({
   }
 
   return (
-    <div className="overflow-x-auto">
+    <div className={TABLE_SCROLL}>
       <table className={`${TABLE_ROOT} min-w-[720px] table-fixed text-center text-[12px]`}>
         <caption className="sr-only">
           관내 사업장 감독 현황 — 조치 필요한 순(두절 · 등급 높은 순 · 미확인 많은 순)

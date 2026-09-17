@@ -1,11 +1,11 @@
 import type { ScopeWithin } from '@/shared/config/scope';
 
 /**
- * **사업장 계정 2종.** 역할(`site`)은 하나이고 보는 사업장만 다르다 — 늘어난 것은
+ * **사업장 계정 3종.** 역할(`site`)은 하나이고 보는 사업장만 다르다 — 늘어난 것은
  * 역할이 아니라 범위다(docs/specs/README §4.4).
  *
  * 소속 사업장은 `[설계]`다. 원문에 계정↔사업장 매핑이 없다(TBD-08) — 계약 구조가
- * 정해져야 확정된다. 두 곳을 고른 기준은 **상태 대비**이며, 확정 시 이 배열만 고친다.
+ * 정해져야 확정된다. 고른 기준은 **대비**이며, 확정 시 이 배열만 고친다.
  *
  * **식별자에 `admin`이 남아 있는 것은 역사다.** 2026-08-20 회의가 `관리자`를 `사업장`으로
  * 바꿨지만 이 이름은 localStorage 키(`aquasense-admin`)와 CSS 클래스(`admin-only-N`·
@@ -16,7 +16,7 @@ import type { ScopeWithin } from '@/shared/config/scope';
  * 않았다** — 관할이 한 곳이라 상수 하나면 된다(아래 `GOV_MUNICIPALITY`). 이름을 고칠
  * 계기는 여전히 오지 않았고, 그때가 오면 저장값 마이그레이션이 함께 필요하다.
  */
-export type AdminAccountKey = 'admin-1' | 'admin-2';
+export type AdminAccountKey = 'admin-1' | 'admin-2' | 'admin-3';
 
 export interface AdminAccount {
   key: AdminAccountKey;
@@ -29,6 +29,18 @@ export const ADMIN_ACCOUNTS: readonly AdminAccount[] = [
   { key: 'admin-1', label: '사업장1', siteId: 'S-02' },
   /** 이상 14 정상 · 알람 0건 — **빈 상태 처리**를 확인한다 */
   { key: 'admin-2', label: '사업장2', siteId: 'S-09' },
+  /**
+   * 광주 전자부품 세정(S-10) `[사용자 요청 2026-09-16]`.
+   *
+   * **앞의 둘과 가르는 축이 다르다.** 그쪽은 값이 가득한 화면과 빈 화면을 대비하고,
+   * 이 계정은 **수집 주기가 다른 사업장**을 연다 — 계측 서버가 이 한 곳만 5초로 보내고
+   * 나머지 아홉은 60초다. 헤더의 `5초 주기` 표기와 수집 주기에 맞춰 움직이는 화면을
+   * 이 계정으로 확인한다(`docs/integration/README.md` §4.3·§4.4).
+   *
+   * 관할도 갈린다 — 앞의 둘은 경북이고 이곳은 **경기 광주시**라, 기초지자체(안동시)의
+   * 관할 밖에 있는 사업장을 사업장 계정으로 여는 유일한 자리다.
+   */
+  { key: 'admin-3', label: '사업장3', siteId: 'S-10' },
 ];
 
 export const DEFAULT_ADMIN_ACCOUNT: AdminAccountKey = 'admin-1';
