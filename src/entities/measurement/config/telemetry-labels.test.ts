@@ -34,9 +34,13 @@ describe('원천 배지 문구', () => {
    * 남았다. 상수를 읽는지 소스로 확인한다: 렌더 테스트로는 두 벌이 같은 값일 때 통과한다.
    */
   it('헤더가 문구를 다시 적지 않는다', () => {
-    const shell = readFileSync('src/widgets/app-shell/ui/app-shell.tsx', 'utf8');
-    expect(shell).toContain('TELEMETRY_STATUS_LABELS.live');
-    expect(shell.replace(/^\s*\*.*$/gm, '')).not.toMatch(/수신 중 ·/);
+    /*
+     * **2026-09-18에 `app-shell.tsx`에서 이 파일로 옮겨졌다** — 헤더를 한 줄로 줄이면서
+     * 수신 표시가 점 + 팝오버가 되어 자기 파일을 갖게 됐다. 경로만 보고 옛 자리로 되돌리지 않는다.
+     */
+    const indicator = readFileSync('src/widgets/app-shell/ui/receive-indicator.tsx', 'utf8');
+    expect(indicator).toContain('TELEMETRY_STATUS_LABELS.live');
+    expect(indicator.replace(/^\s*\*.*$/gm, '')).not.toMatch(/수신 중 ·/);
   });
 });
 

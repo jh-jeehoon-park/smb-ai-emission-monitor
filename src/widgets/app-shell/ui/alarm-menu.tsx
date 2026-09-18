@@ -2,10 +2,12 @@
 
 import { Bell } from 'lucide-react';
 import Link from 'next/link';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { DEMO_NOW_ISO } from '@/shared/config/demo';
 import { STATUS_VISUAL } from '@/shared/config/status-visual';
 import { cn } from '@/shared/lib/cn';
+import { useDismiss } from '@/shared/lib/use-dismiss';
+import { ICON_BUTTON } from '@/shared/ui/action-button';
 import { BADGE_BASE } from '@/shared/ui/badge';
 import { formatRelative } from '@/shared/lib/format';
 import {
@@ -36,32 +38,10 @@ export function AlarmMenu() {
   const boxRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const { alarms, setState } = useAlarmStates(ALL_ALARMS);
+  const close = useCallback(() => setOpen(false), []);
 
-  useEffect(() => {
-    if (!open) return;
-
-    const onDown = (e: MouseEvent) => {
-      if (!boxRef.current?.contains(e.target as Node)) setOpen(false);
-    };
-    /*
-     * **Esc로 닫으면 초점을 열던 버튼으로 되돌린다.** 닫기만 하면 초점이 사라진 요소에
-     * 남아 `body`로 튀고, 키보드 사용자는 헤더 맨 앞부터 다시 Tab 해야 한다
-     * (모달에서 같은 것을 이미 고쳤다 — `shared/ui/modal.tsx`).
-     * 바깥을 눌러 닫을 때는 되돌리지 않는다 — 그 누름이 이미 초점을 옮겼다.
-     */
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return;
-      setOpen(false);
-      triggerRef.current?.focus();
-    };
-
-    document.addEventListener('mousedown', onDown);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('mousedown', onDown);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [open]);
+  /* 바깥 누름·Esc·초점 복원은 세 팝오버가 같은 규약을 쓴다 — `shared/lib/use-dismiss.ts` */
+  useDismiss({ open, onDismiss: close, boxRef, triggerRef });
 
   const acknowledge = (id: string) => setState(id, 'acknowledged');
   /* 관할은 셸이 손에 들고 있어야 한다 — 라우트 밖이라 URL을 읽지 못한다 */
@@ -76,7 +56,7 @@ export function AlarmMenu() {
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label="알림"
-        className="relative inline-flex size-7 cursor-pointer items-center justify-center rounded-chip text-fg-muted transition-colors duration-200 hover:bg-surface-2 hover:text-fg"
+        className={cn(ICON_BUTTON, 'text-fg-muted')}
       >
         <Bell aria-hidden size={16} strokeWidth={1.9} />
         {/*

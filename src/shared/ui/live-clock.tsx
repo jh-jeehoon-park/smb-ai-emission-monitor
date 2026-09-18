@@ -29,7 +29,16 @@ const getServerSnapshot = () => 0;
  * 표기에 시간대를 적지 않는다 `[사용자 요청 2026-08-20]`. 기준 시간대는 바로 아래 줄의
  * `데이터 기준 … KST`가 계속 밝히므로 화면에서 사라지지는 않는다(E5).
  *
- * 초까지 적으므로 **1초마다 리렌더된다.** 바뀌는 것은 이 `span`의 문자열 하나뿐이다.
+ * **둘이 나란히 놓이는 자리가 헤더에서 계정 메뉴로 옮겨졌다** `[사용자 요청 2026-09-18:
+ * 모바일 헤더 반응형]` — 헤더에서 이 시계가 146px을 차지해 좁은 화면에서 헤더가 3줄이 됐다.
+ * «바로 아래 줄»이라는 관계는 그대로다(계정 메뉴의 `시각` 묶음).
+ *
+ * **`widgets`가 아니라 `shared/ui`에 있는 이유**: 계정 메뉴가 `entities/user`에 있어
+ * widgets를 import할 수 없다(FSD §3). 이 부품은 도메인을 모르고 `formatKstWallClock`도
+ * 이미 `shared/lib`에 있다.
+ *
+ * 초까지 적으므로 **1초마다 리렌더된다.** 바뀌는 것은 이 `span`의 문자열 하나뿐이다 —
+ * 메뉴가 닫혀 있으면 아예 마운트되지 않아 그 리렌더도 없다.
  */
 export function LiveClock() {
   const second = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);

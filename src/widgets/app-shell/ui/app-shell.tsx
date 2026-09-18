@@ -6,26 +6,17 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { BRAND_NAME } from '@/shared/config/constants';
-import { DEMO_NOTICE, DEMO_NOW_ISO } from '@/shared/config/demo';
-import {
-  TELEMETRY_STATUS_LABELS,
-  intervalLabel,
-  telemetrySourceLabel,
-  useSiteSeries,
-} from '@/entities/measurement';
 import { cn } from '@/shared/lib/cn';
+import { ICON_BUTTON } from '@/shared/ui/action-button';
 import { BADGE_BASE } from '@/shared/ui/badge';
-import { DISPLAY_TIMEZONE, formatDateTime } from '@/shared/lib/format';
 import { BrandMark } from '@/shared/ui/brand-mark';
 import { AnimatePresence, drawerPanel, drawerScrim, motion } from '@/shared/ui/motion';
 import { TopButton } from '@/shared/ui/top-button';
-import { ThemeToggle } from '@/shared/ui/theme';
-import { InfoTip } from '@/shared/ui/tooltip';
 import { openAlarms } from '@/entities/alarm';
 import { ADMIN_ACCOUNTS, GOV_SCOPE, ProfileMenu, ROLES, ROLE_PROFILES } from '@/entities/user';
-import { getSite, siteIdsInScope, withinScope } from '@/entities/site';
+import { siteIdsInScope, withinScope } from '@/entities/site';
 import { ALL_ALARMS, useAlarmStates } from '@/features/alarm-ack';
-import { SiteSelector, useSelectedSiteId, useSiteHref } from '@/features/site-selection';
+import { SiteSelector, useSiteHref } from '@/features/site-selection';
 import {
   ALARM_NAV_HREF,
   NAV_GROUPS,
@@ -39,7 +30,7 @@ import {
 } from '../config/navigation';
 import { useRoleRouteGuard } from '../lib/use-role-route-guard';
 import { AlarmMenu } from './alarm-menu';
-import { LiveClock } from './live-clock';
+import { ReceiveIndicator } from './receive-indicator';
 import { RoleGate } from './role-gate';
 import { TelemetryNotice } from './telemetry-notice';
 import { WallboardExit } from './wallboard-exit';
@@ -109,8 +100,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </a>
 
       <aside className="sticky top-0 hidden h-screen w-[280px] shrink-0 flex-col border-r border-border bg-surface lg:flex">
-        <BrandHome />
-        <SiteNav pathname={pathname} />
+        <NavColumn pathname={pathname} />
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
@@ -122,7 +112,13 @@ export function AppShell({ children }: { children: ReactNode }) {
          * 적어 두었는데, **좁은 화면에서는 오른쪽 상태 묶음이 아래로 접혀 헤더가 두 줄(90px+)이
          * 된다** — 그때 탭 줄이 61px에 붙어 헤더 뒤로 들어갔다.
          *
-         * 재서 넣으면 그 가정이 사라진다. CSS의 61px은 서버가 보내는 첫 화면용 초기값으로 남는다.
+         * **접히는 일 자체가 2026-09-18에 없어졌다** — 우측을 108px로 줄여 어느 폭에서도 한
+         * 줄이다(바로 아래 주석). 그래도 관측기를 걷지 않는 이유는 남는다: `lg` 미만은 서랍
+         * 버튼이 4px 더 커 **65px**이고, 브라우저 글꼴 확대·사용자 지정 글꼴이면 한 줄의
+         * 높이 자체가 달라진다. 박아 둔 숫자로는 여전히 못 맞춘다.
+         *
+         * CSS의 61px은 서버가 보내는 첫 화면용 초기값으로 남고, 이제 `lg` 이상에서는 **실제로
+         * 맞는 값**이다.
          */}
         {/*
          * **겹침 순서** `[사용자 지시 2026-08-25]`:
@@ -139,28 +135,45 @@ export function AppShell({ children }: { children: ReactNode }) {
          * 스크롤하면 목록이 탭 줄 뒤로 들어가 잘렸다.
          */}
         <header ref={headerRef} className="sticky top-0 z-30 border-b border-border bg-surface">
-          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-4 lg:px-6">
+          {/*
+           * **어느 폭에서도 한 줄이다** `[사용자 요청 2026-09-18: 모바일 헤더 반응형]`.
+           *
+           * 한때 이 줄이 `flex-wrap`이었고 우측에 일곱이 있었다 — 전부 고정폭이라 폭이
+           * 모자라면 아래로 접혔다. 실측: **390px에서 3줄 167px**(화면의 20%) · 600px 141px ·
+           * **1024px에서도 2줄 94px**. `sticky`라 그 높이를 모든 화면에서 상시 가져갔다.
+           *
+           * 폭을 먹던 넷(사업장 선택 210 · 수신 문구 142 · 시계 146 · 시연 안내 16)을 내보내
+           * 우측이 **670px → 108px**이 됐다. 그러면 **접힐 일이 없으므로 `flex-wrap`이 필요
+           * 없다** — 그것을 걷은 것이 이 변경의 실체다. `justify-between`도 함께 걷었다:
+           * `ml-auto`가 이미 같은 일을 하고 있어 둘이 겹쳐 있었다.
+           *
+           * **넷 중 사업장 선택만 `lg` 이상에서 돌아왔다** `[사용자 요청 2026-09-18: PC는 헤더,
+           * Mobile은 사이드바]`. 3줄을 만든 것은 선택기 하나가 아니라 **일곱의 합**이었고,
+           * 108px 묶음에 210px를 더해도 330px이라 자리가 남는다 — **가장 빡빡한 1024px에서도
+           * 696px 중 541px만 쓴다**(실측: 1024~1920px 전 구간 한 줄 · 가로 스크롤 없음).
+           *
+           * `flex-wrap`이 없으므로 **넘치면 접히는 대신 가로로 밀린다.** 그래서 「자리가 있다」를
+           * 산술이 아니라 라이브 DOM 실험으로 먼저 쟀다.
+           *
+           * 높이는 `py-4`(32) + 가장 키 큰 자식 + 테두리 1이다 — 서랍 버튼과 선택기가 둘 다
+           * 32px이라 **어느 폭에서도 65px**이고, 선택기가 없는 사업장 역할의 `lg` 이상만 61px이다.
+           */}
+          <div className="flex items-center gap-x-4 px-4 py-4 lg:px-6">
             <NavDrawer pathname={pathname} />
             <Greeting />
 
-            <div className="ml-auto flex flex-wrap items-center justify-end gap-x-3 gap-y-2 text-[12px] font-medium text-fg-subtle">
+            <div className="ml-auto flex shrink-0 items-center gap-x-3 text-[12px] font-medium text-fg-subtle">
               {/*
-               * **헤더에서 사업장을 바꾼다** `[사용자 요청 2026-08-27]`. 걷어냈던 것을 되돌린
-               * 자리다 `[사용자 지시 2026-08-24]` — 상세 화면(시계열·오염도 추정·리포트)에서
-               * 사업장을 바꾸려면 통합 관제로 돌아갔다 와야 했고, 그 왕복이 되돌린 이유다.
+               * **헤더는 «지금 무엇을 보는가», 기둥은 «어디로 가는가»** `[사용자 요청 2026-09-18]`.
+               * 수신 점·알림·계정이 이미 전역 맥락이라 사업장도 같은 축이다. 좁은 화면에서는
+               * 그 자리가 없어 `NavColumn`이 받는다 — **한 자리에만 보이도록 CSS가 고른다.**
                *
-               * 걷어냈던 근거(헤더에 조작이 몰려 붐빈다)는 사라지지 않았으므로 자리는 하나만
-               * 쓰고 폭을 묶는다.
-               *
-               * **범위는 부품이 스스로 정한다** — 목록이 `useScopedSites()`라 URL의 `scope`를
-               * 따르고, 역할로 분기하지 않는다(서버는 역할을 모른다).
+               * 사업장 역할은 자사 1개소라 고를 것이 없어 `role-hide-site`가 여전히 감춘다 —
+               * 그 규칙이 `display:none`을 (0,3,0)으로 걸어 `lg:inline-flex`(0,1,0)를 이긴다.
                */}
-              <SiteSelector className="w-[210px] shrink-0" />
+              <SiteSelector className="hidden w-[210px] shrink-0 lg:inline-flex" />
               <ReceiveIndicator />
-              <LiveClock />
-              <DemoNotice />
               <AlarmMenu />
-              <ThemeToggle />
               <ProfileMenu />
             </div>
           </div>
@@ -227,84 +240,6 @@ function Greeting() {
 }
 
 /**
- * 시연 데이터임과 **데이터 기준 시각**을 알린다.
- *
- * 헤더 시계는 현재 시각이고 본문 값은 고정 시점의 것이다. 둘을 구분해 주지 않으면
- * 차트 날짜가 오늘이 아닌 이유를 알 수 없다 — 예전에는 헤더 아래 띠로 상시 노출했는데
- * 전 화면에서 한 줄을 차지해 아이콘 + 툴팁으로 옮겼다 `[사용자 지시 2026-08-24]`.
- *
- * `Demo` 뱃지가 옆에 남아 **시연 데이터라는 사실 자체는 호버 없이도 보인다** —
- * 툴팁에는 기준 시각처럼 필요할 때 확인하는 것만 담는다.
- */
-function DemoNotice() {
-  return (
-    <InfoTip
-      label="시연 데이터 안내"
-      content={
-        <>
-          {DEMO_NOTICE}
-          <br />
-          데이터 기준 <span className="num">{formatDateTime(DEMO_NOW_ISO)}</span> {DISPLAY_TIMEZONE}{' '}
-          · 헤더 시계는 현재 시각입니다
-        </>
-      }
-    />
-  );
-}
-
-/**
- * 선택 사업장의 수신 상태를 그대로 말한다. 두절된 사업장을 보는 동안에도 "수신 중"이라고
- * 적으면, 본문이 "통신이 두절되어 산출값이 없습니다"라고 말하는 것과 정면으로 어긋난다.
- * 결측을 0으로 그리지 않는 것과 같은 이유다(E4).
- */
-function ReceiveIndicator() {
-  const { siteId } = useSelectedSiteId();
-  const online = getSite(siteId).online;
-  const { status, failure, intervalSeconds } = useSiteSeries(siteId);
-
-  if (!online) {
-    return (
-      <span className="flex items-center gap-1.5 text-critical-ink">
-        <span className="size-1.5 rounded-full bg-critical" />
-        수신 두절
-      </span>
-    );
-  }
-
-  /**
-   * **어디서 온 값인지 숨기지 않는다.** 계측 서버에서 온 것과 앱에 내장된 것은 갱신 주기도
-   * 신선도도 다르다 — 같은 표기로 두면 어제 굳은 값을 지금 값으로 읽는다. `확인 중`을 따로
-   * 두는 이유도 같다: 아직 모르는 것을 `서버 미연결`로 적으면 없는 사실을 주장하게 된다(E4).
-   *
-   * **«진짜냐»로는 가르지 않는다.** 계측 서버가 주는 값도 센서에서 온 것이 아니라 에뮬레이터
-   * 출력이다 `[사용자 확인 2026-09-01]` — 문구의 근거는 `TELEMETRY_STATUS_LABELS`에 있다.
-   */
-  if (status !== 'live') {
-    return (
-      <span className="flex items-center gap-1.5 text-fg-subtle">
-        <span className="size-1.5 rounded-full bg-fg-subtle" />
-        {telemetrySourceLabel(status, failure)}
-      </span>
-    );
-  }
-
-  return (
-    <span className="flex items-center gap-1.5 text-normal-ink">
-      <span className="relative flex size-1.5">
-        <span className="live-pulse absolute inset-0 rounded-full" />
-        <span className="relative size-1.5 rounded-full bg-normal" />
-      </span>
-      {/*
-       * **주기는 사업장이 정한다** `[사용자 요청 2026-09-16]`. 한때 전 사업장에 `1분 주기`라
-       * 박혀 있었는데 서버가 사업장마다 다른 주기로 보낸다 — 5초로 보내는 곳이 있었고 화면은
-       * 그 사업장에서도 `1분`이라 적었다. 값은 서버의 `intervalSeconds` 채널에서 온다.
-       */}
-      {TELEMETRY_STATUS_LABELS.live} · {intervalLabel(intervalSeconds)} 주기
-    </span>
-  );
-}
-
-/**
  * 역할별 **노출**을 CSS로 정한다. 서버는 localStorage를 모르므로 렌더 중에 역할로
  * 분기하면 하이드레이션이 깨진다 — 메뉴를 전부 그리고 `data-role`이 가린다.
  * 숨은 항목이 DOM에 남지만 인가가 아니라 시연 표시다(E6 예외).
@@ -336,6 +271,11 @@ function NavDrawer({ pathname }: { pathname: string }) {
    * **넓어지면 스스로 닫는다.** 서랍은 `lg` 이상에서 `display:none`이 되는데, 열어 둔 채
    * 창을 넓히면 **보이지 않는 채로 초점이 갇히고 본문 스크롤이 잠긴다** — 화면이 멈춘 것처럼
    * 보이고 원인은 화면에 없다. 사이드바가 나타나는 바로 그 폭에서 닫는다.
+   *
+   * **공용 `useMediaQuery`를 쓰지 않는다.** 그쪽으로 바꾸면 «넓어졌으면 닫는다»가
+   * `useEffect` 본문의 `setOpen(false)`가 되는데, `react-hooks/set-state-in-effect`가
+   * 그것을 막는다(실제로 걸려 되돌렸다). 여기서는 값을 **읽는** 것이 아니라 변화에
+   * **반응**하는 것이라, 구독 콜백 안에서 닫는 지금 꼴이 그 규칙과도 맞는다.
    */
   useEffect(() => {
     if (!open) return;
@@ -354,7 +294,7 @@ function NavDrawer({ pathname }: { pathname: string }) {
       {/* 사이드바가 보이는 폭에서는 필요 없다 */}
       <Dialog.Trigger
         aria-label="메뉴 열기"
-        className="-ml-1 inline-flex size-8 cursor-pointer items-center justify-center rounded-chip text-fg-muted transition-colors duration-200 hover:bg-surface-2 hover:text-fg lg:hidden"
+        className={cn(ICON_BUTTON, '-ml-1 size-8 text-fg-muted lg:hidden')}
       >
         <Menu aria-hidden size={20} strokeWidth={1.9} />
       </Dialog.Trigger>
@@ -396,8 +336,7 @@ function NavDrawer({ pathname }: { pathname: string }) {
                   <X aria-hidden size={16} strokeWidth={1.9} />
                 </Dialog.Close>
 
-                <BrandHome />
-                <SiteNav pathname={pathname} onNavigate={() => setOpen(false)} />
+                <NavColumn pathname={pathname} onNavigate={() => setOpen(false)} />
               </motion.div>
             </Dialog.Content>
           </Dialog.Portal>
@@ -467,6 +406,60 @@ function Badge({ count, className }: { count: number; className: string }) {
     >
       {count}
     </span>
+  );
+}
+
+/**
+ * 왼쪽 기둥 — **사이드바와 서랍이 같은 것을 담는다.**
+ *
+ * 브랜드 · 사업장 선택 · 메뉴가 한 벌이다. 두 자리에 손으로 적으면 갈리고, 그러면 넓은
+ * 화면과 좁은 화면이 **다른 것을 담게 된다** — `SiteNav`를 둘이 공유하기로 한 애초의 근거가
+ * 그것이다.
+ *
+ * **사업장 선택이 헤더에서 여기로 왔다** `[사용자 결정 2026-09-18]`.
+ *
+ * 옛 자리의 근거는 이랬다 — *"헤더에서 사업장을 바꾼다"* `[사용자 요청 2026-08-27]`. 걷어냈던
+ * 것을 되돌린 자리였고(`[사용자 지시 2026-08-24]`), 상세 화면(시계열·오염도 추정·리포트)에서
+ * 사업장을 바꾸려면 통합 관제로 돌아갔다 와야 하는 왕복이 되돌린 이유였다. 그때 *"헤더에
+ * 조작이 몰려 붐빈다"* 는 걷어냈던 근거가 사라지지 않았다고 적어 두었는데, **그 붐빔이 결국
+ * 헤더를 3줄로 만들었다**(390px 실측 167px · 화면의 20%).
+ *
+ * **왕복은 여기서도 생기지 않는다** — 기둥은 어느 화면에서든 열려 있다(`lg` 이상은 상시,
+ * 그 아래는 헤더의 메뉴 버튼 한 번). 오히려 「어디로 갈지」와 「어느 사업장을 볼지」가 한
+ * 자리에 모인다. 280px 기둥이라 폭도 210px에서 **252px로 넓어진다.**
+ *
+ * **그 자리를 좁은 화면으로 좁혔다** `[사용자 요청 2026-09-18: PC는 헤더, Mobile 반응형은
+ * 사이드바]`. 바로 위 판단(기둥 한 자리)은 3줄 헤더를 전제로 한 것이었고, 실측으로 **`lg`
+ * 이상 헤더에 자리가 남는다**(1024px에서 696px 중 541px)는 것이 확인되면서 전제가 걷혔다.
+ *
+ * 남은 구분은 **역할이다** — 헤더는 「지금 무엇을 보는가」(수신·알림·계정과 같은 축),
+ * 기둥은 「어디로 가는가」. 이동 목록 맨 위에 폼 컨트롤이 끼면 메뉴 리듬이 끊기고 항목이
+ * 아래로 밀리는데, **`lg` 이상에서는 그럴 이유가 없어졌다.**
+ */
+function NavColumn({ pathname, onNavigate }: { pathname: string; onNavigate?: () => void }) {
+  return (
+    <>
+      <BrandHome />
+      {/*
+       * **래퍼에도 `role-hide-site`를 건다.** 부품만 감추면 이 블록의 여백이 빈 틈으로 남아
+       * 사업장 역할에서 브랜드와 메뉴 사이가 벌어진다.
+       *
+       * **`lg:hidden`이 이 부품을 서랍 전용으로 만든다.** 이 기둥은 사이드바(`lg` 이상)와
+       * 서랍(`lg` 미만) **둘이 함께 쓰는 한 벌**이라, 클래스 하나로 「사이드바에서는 숨고
+       * 서랍에서는 남는다」가 된다 — 헤더 쪽과 합쳐 **한 자리에만 보인다.** 두 곳에 따로
+       * 적지 않으므로 정의는 여전히 한 곳이다.
+       *
+       * `px-3.5`는 `SiteNav`와 같은 값이라 셀렉트의 왼쪽 끝이 메뉴 항목 hover 면과 맞는다.
+       */}
+      <div className="role-hide-site px-3.5 pb-3 lg:hidden">
+        {/*
+         * **범위는 부품이 스스로 정한다** — 목록이 `useScopedSites()`라 URL의 `scope`를
+         * 따르고, 역할로 분기하지 않는다(서버는 역할을 모른다).
+         */}
+        <SiteSelector className="w-full" />
+      </div>
+      <SiteNav pathname={pathname} onNavigate={onNavigate} />
+    </>
   );
 }
 
