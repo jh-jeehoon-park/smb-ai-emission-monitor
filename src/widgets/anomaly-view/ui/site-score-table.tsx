@@ -3,6 +3,7 @@
 import { ChevronRight } from 'lucide-react';
 import { STATUS_VISUAL, statusInk } from '@/shared/config/status-visual';
 import { cn } from '@/shared/lib/cn';
+import { ACTION_LINK } from '@/shared/ui/action-button';
 import { BADGE_BASE } from '@/shared/ui/badge';
 import { CountUp } from '@/shared/ui/motion';
 import { Sparkline } from '@/shared/ui/sparkline';
@@ -33,7 +34,39 @@ interface SiteScoreTableProps {
  * `<tr>`에는 "누를 수 있는 줄"이라는 역할이 없으므로 그것만으로는 마우스 밖에 길이 없다 —
  * 그래서 오른쪽 `상세` 버튼을 남긴다. **줄 클릭은 편의, 버튼이 정식 조작**이다.
  */
-export function SiteScoreTable({ sites, selectedId, onSelect, spark }: SiteScoreTableProps) {
+export function SiteScoreTable(props: SiteScoreTableProps) {
+  /*
+   * **폭으로 두 벌이 갈린다** `[사용자 요청 2026-09-21: 나머지 전체 화면 반응형]`.
+   *
+   * 표는 `min-w-[880px]`이라 좁은 화면에서 가로로 밀린다. 그 자체는 규약대로지만(§8
+   * `고정 폭은 스크롤 상자 안에`), **390px에서 보이는 것이 `순위 · 사업장 · 업종·지역`
+   * 세 열뿐이었다** — 이 표의 주어인 **점수와 등급이 564px 오른쪽에 숨어 있었다**(실측).
+   * 밀면 나오기는 하지만, 휴대폰의 겹침 스크롤바는 만지기 전까지 뜨지 않아 **그것이 있다는
+   * 사실 자체가 화면에 없다.**
+   *
+   * 그래서 좁은 화면에서는 **한 줄이 한 사업장인 목록**으로 낸다 — 순위·이름·업종·지역·점수·
+   * 등급이 모두 한 화면에 들어가고 줄 실높이가 손가락 최소를 채운다. 통합 관제·이상 탐지의
+   * 사업장 고르기가 이미 쓰는 짜임이다(두 벌을 그리고 CSS가 고른다 — 폭을 렌더 중에 물으면
+   * 하이드레이션이 깨진다).
+   *
+   * **추세선은 좁은 화면에서만 뺀다** — 200px가 있어야 뜻이 생기는 그림이고, 그 폭을 내주면
+   * 점수와 등급이 다시 밀린다. 값이 사라지는 것이 아니라 **이 폭에서 읽을 수 없는 것**이다.
+   *
+   * **넓은 화면은 한 픽셀도 달라지지 않는다** — 표 쪽 마크업을 그대로 두고 겹만 씌웠다.
+   */
+  return (
+    <>
+      <div className="hidden lg:block">
+        <SiteScoreTableWide {...props} />
+      </div>
+      <div className="lg:hidden">
+        <SiteScoreList {...props} />
+      </div>
+    </>
+  );
+}
+
+function SiteScoreTableWide({ sites, selectedId, onSelect, spark }: SiteScoreTableProps) {
   return (
     /*
      * **열마다 폭을 못박는다** `[사용자 지시 2026-08-24: 두 줄로 내려가지 않게]`.
@@ -172,8 +205,8 @@ export function SiteScoreTable({ sites, selectedId, onSelect, spark }: SiteScore
                     }}
                     aria-label={`${site.name} 상세 보기`}
                     className={cn(
-                      'mx-auto flex cursor-pointer items-center gap-0.5 rounded-chip py-0.5 pl-1.5 pr-0.5',
-                      'transition-colors duration-200 hover:bg-accent-weak hover:text-accent',
+                      ACTION_LINK,
+                      'mx-auto',
                       selected ? 'text-accent' : 'text-fg-subtle',
                     )}
                   >
@@ -187,5 +220,83 @@ export function SiteScoreTable({ sites, selectedId, onSelect, spark }: SiteScore
         </tbody>
       </table>
     </div>
+  );
+}
+
+/**
+ * 좁은 화면의 같은 순위 — **한 줄이 한 사업장이다.**
+ *
+ * 표와 **같은 props·같은 순서·같은 조작**을 쓴다. 순위 숫자는 표와 마찬가지로 배열 순서이고
+ * (`sites`가 이미 정렬되어 온다), 누르면 아래 구역이 그 사업장으로 바뀐다.
+ *
+ * **줄 전체가 버튼이다** — 표에서는 `<tr>` 클릭이 편의이고 `상세` 버튼이 정식 조작이었는데,
+ * 여기서는 줄 자체가 `<button>`이라 키보드·보조기술 경로가 그것 하나로 끝난다. 그래서 `상세`
+ * 칸을 따로 두지 않는다(두면 한 줄에 목적지가 둘이 된다).
+ */
+function SiteScoreList({ sites, selectedId, onSelect }: SiteScoreTableProps) {
+  return (
+    <ul role="list" className="divide-y divide-border">
+      {sites.map((site, index) => {
+        const selected = site.id === selectedId;
+        const visual = site.status ? STATUS_VISUAL[site.status] : null;
+
+        return (
+          <li key={site.id}>
+            <button
+              type="button"
+              onClick={() => onSelect(site.id)}
+              aria-label={`${site.name} 상세 보기`}
+              className={cn(
+                'flex w-full cursor-pointer items-center gap-3 px-1 py-2.5 text-left',
+                'transition-colors duration-200',
+                selected ? 'bg-accent-weak' : 'hover:bg-surface-2',
+              )}
+            >
+              {/* 순위는 이름 앞에 둔다 — 열이 없으니 숫자가 어느 축인지 자리로 말해야 한다 */}
+              <span className="num w-5 shrink-0 text-center text-[12px] text-fg-subtle">
+                {index + 1}
+              </span>
+
+              <span className="min-w-0 flex-1">
+                <span
+                  className={cn(
+                    'block truncate text-[14px]',
+                    selected ? 'font-bold text-accent' : 'font-semibold text-fg',
+                  )}
+                >
+                  {site.name}
+                </span>
+                <span className="block truncate text-[12px] text-fg-muted">
+                  {site.industry} · {site.region}
+                </span>
+              </span>
+
+              <span
+                className="num shrink-0 text-[15px] font-bold"
+                style={{ color: visual ? statusInk(visual) : 'var(--fg-subtle)' }}
+              >
+                {/* 값이 없으면 0으로 채우지 않는다(E4) */}
+                {site.anomalyScore === null ? '—' : site.anomalyScore}
+              </span>
+
+              {site.status ? (
+                <StatusBadge level={site.status} className="shrink-0" />
+              ) : (
+                <span className={`${BADGE_BASE} shrink-0 bg-surface-3 text-fg-muted`}>
+                  통신 두절
+                </span>
+              )}
+
+              <ChevronRight
+                aria-hidden
+                size={16}
+                strokeWidth={1.9}
+                className="shrink-0 text-fg-subtle"
+              />
+            </button>
+          </li>
+        );
+      })}
+    </ul>
   );
 }

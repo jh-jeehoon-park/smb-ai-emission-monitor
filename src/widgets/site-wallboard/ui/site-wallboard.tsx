@@ -156,13 +156,20 @@ export function SiteWallboard(props: SiteWallboardProps) {
               dir="prev"
               disabled={page <= 0}
               onClick={() => goTo(page - 1)}
-              className="left-0 -ml-5 -translate-x-1/2"
+              /*
+               * 히트 영역은 **판 안쪽으로만** 넓힌다 — 바깥으로 넓히면 페이지가 가로로 밀린다.
+               *
+               * **걸터앉는 깊이도 좁은 화면에서 얕다**(20 → 12px). 패널 여백이 좁은 화면에서
+               * 16px로 줄자 판 경계가 4px 밖으로 나왔고, 그만큼 화살표가 **뷰포트를 넘었다**
+               * (실측: 768px에서 문서가 2px 밀렸다). `lg` 이상은 20px 그대로다.
+               */
+              className="left-0 -ml-3 -translate-x-1/2 before:-right-2 lg:-ml-5 lg:before:right-0"
             />
             <PagerArrow
               dir="next"
               disabled={page >= pages - 1}
               onClick={() => goTo(page + 1)}
-              className="right-0 -mr-5 translate-x-1/2"
+              className="right-0 -mr-3 translate-x-1/2 before:-left-2 lg:-mr-5 lg:before:left-0"
             />
           </>
         )}
@@ -381,8 +388,15 @@ function CardPager({
           onClick={() => onMove(i)}
           aria-label={`${i + 1}번째 묶음 보기`}
           aria-current={i === page ? 'true' : undefined}
+          /*
+           * **점은 6px인데 누르는 자리는 그보다 넓다** `[사용자 요청 2026-09-21]`. 점을 키우면
+           * 인디케이터가 조작 버튼처럼 무거워진다 — `before`로 위아래·좌우만 넓혀 **보이는
+           * 크기는 그대로 두고** 손가락이 닿게 한다. 줄 간격(`gap-1.5`)보다 넓어도 겹치는
+           * 것은 투명한 히트 영역뿐이라 서로의 점을 가리지 않는다.
+           */
           className={cn(
-            'h-1.5 cursor-pointer rounded-full transition-[width,background-color] duration-200',
+            'relative h-1.5 cursor-pointer rounded-full transition-[width,background-color] duration-200',
+            'before:absolute before:-inset-x-1 before:-inset-y-[17px] before:content-[""] lg:before:content-none',
             i === page ? 'w-5 bg-accent' : 'w-1.5 bg-border-strong hover:bg-fg-subtle',
           )}
         />
@@ -424,6 +438,19 @@ function PagerArrow({
         /* 카드 줄의 세로 가운데. 인디케이터 줄은 이 상자 밖이라 카드 높이만 기준이 된다 */
         'absolute top-1/2 z-10 -translate-y-1/2',
         'inline-flex size-7 shrink-0 items-center justify-center rounded-chip border border-border bg-surface text-fg-muted shadow-panel',
+        /*
+         * 보이는 크기는 28px인데 누르는 자리는 44px 높이다 — 셸 헤더의 `ICON_BUTTON`과 같은 짜임.
+         *
+         * **위아래로만 넓힌다.** 이 버튼은 `-ml-5`/`-mr-5`로 **판 밖에 걸터앉아 있어서**,
+         * 사방으로 넓히면 그 8px이 페이지 밖으로 나간다 — 실측으로 768px에서 문서가 8px
+         * 밀렸다(§8이 못박은 «가로 스크롤 없음»을 어긴다). 좌우는 쓰는 쪽이 **안쪽으로만**
+         * 넓힌다(아래 `before:-right-2`·`before:-left-2`).
+         *
+         * **`relative`를 붙이지 않는다**: 이미 `absolute`라 스스로 기준면이고, 둘 다 적으면
+         * `twMerge`가 뒤엣것만 남겨 **버튼이 흐름 안으로 돌아온다**(실측: 그 상태로 넓은
+         * 화면의 통합 관제가 2,630 → 2,658px로 자랐다).
+         */
+        'before:absolute before:-inset-y-2 before:inset-x-0 before:content-[""] lg:before:content-none',
         'transition-colors duration-200',
         disabled
           ? 'cursor-not-allowed'

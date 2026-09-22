@@ -5,6 +5,7 @@ import { DEMO_NOW_ISO } from '@/shared/config/demo';
 import { STATUS_VISUAL, statusInk } from '@/shared/config/status-visual';
 import { cn } from '@/shared/lib/cn';
 import { DISPLAY_TIMEZONE, formatDateTime, formatRelative } from '@/shared/lib/format';
+import { ACTION_LINK } from '@/shared/ui/action-button';
 import { BADGE_BASE } from '@/shared/ui/badge';
 import { StatusBadge } from '@/shared/ui/status-badge';
 import {
@@ -153,7 +154,7 @@ export function AlarmRow({
           type="button"
           onClick={onOpen}
           aria-label={`${alarm.title} 상세 보기`}
-          className="flex cursor-pointer items-center gap-0.5 rounded-chip py-0.5 pl-1.5 pr-0.5 text-[12px] text-fg-subtle transition-colors duration-200 hover:bg-accent-weak hover:text-accent"
+          className={`${ACTION_LINK} text-fg-subtle`}
         >
           상세
           <ChevronRight aria-hidden size={14} strokeWidth={2} />

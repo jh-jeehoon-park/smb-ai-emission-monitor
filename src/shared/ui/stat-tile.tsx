@@ -9,8 +9,13 @@ import { VALUE_LG } from './type-scale';
  * **제목 왼쪽 · 값 오른쪽** 한 줄, hairline, 보조줄. 두 곳이 같은 역할에 다른 배치를 쓰면
  * 화면을 옮길 때마다 눈이 값을 다시 찾아야 한다.
  */
+/**
+ * 여백은 `Panel`과 **같은 단을 따라간다**(좁은 화면 16px · `lg` 이상 20px)
+ * `[사용자 요청 2026-09-21]`. 타일과 패널은 같은 리듬 위에 나란히 서므로, 한쪽만 좁히면
+ * 같은 화면 안에서 두 가지 여백 체계가 생긴다(§8 `화면마다 다른 spacing 체계를 만들지 않는다`).
+ */
 export const TILE_SHELL =
-  'flex h-full flex-col gap-3 rounded-panel border border-card-border bg-surface p-5 shadow-panel';
+  'flex h-full flex-col gap-3 rounded-panel border border-card-border bg-surface p-4 shadow-panel lg:p-5';
 /** 타일의 제목. 월보드 카드 제목과 같은 단이다 */
 export const TILE_LABEL = 'text-[14px] font-bold leading-tight text-fg';
 export const TILE_VALUE = `shrink-0 ${VALUE_LG}`;

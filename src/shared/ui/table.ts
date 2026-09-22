@@ -46,5 +46,13 @@ export const TABLE_ROW = '[&>*]:border-b [&>*]:border-border';
  *
  * 상자마다 손으로 적지 않고 이름을 붙이는 이유가 그것이다 — 클래스 하나가 빠진 것을
  * 화면을 열어서는 알 수 없다(이 파일이 만들어진 것과 같은 이유다).
+ *
+ * **`scroll-hint`는 «오른쪽에 더 있다»를 말한다** `[사용자 요청 2026-09-21]`. 상자가 화면을
+ * 넘기지는 않지만, 휴대폰의 겹침 스크롤바는 만지기 전까지 뜨지 않아 **숨은 내용이 있다는
+ * 사실 자체가 화면에 없었다**(390px 실측: 상자 10개가 104~584px을 숨겼고 `/anomaly`는
+ * 이상 점수·상태를 숨겼다). 규칙은 `globals.css`가 갖는다 — 끝까지 밀면 저절로 사라진다.
+ *
+ * **흰 면이 아닌 곳에 두면 `--scroll-hint-bg`를 함께 덮어쓴다.** 가리개가 상자 뒤 면과
+ * 같은 색이어야 하고, 어긋나면 가장자리에 색 띠가 남는다(`status-heatmap`이 그 경우다).
  */
-export const TABLE_SCROLL = 'relative overflow-x-auto';
+export const TABLE_SCROLL = 'relative overflow-x-auto scroll-hint';

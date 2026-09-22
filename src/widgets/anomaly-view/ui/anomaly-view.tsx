@@ -25,7 +25,13 @@ import {
 } from '@/entities/anomaly';
 import { useSiteSeries } from '@/entities/measurement';
 import { getSite } from '@/entities/site';
-import { SiteTabs, useScopedSites, useSelectedSiteId, useSiteHref } from '@/features/site-selection';
+import {
+  SiteList,
+  SiteTabs,
+  useScopedSites,
+  useSelectedSiteId,
+  useSiteHref,
+} from '@/features/site-selection';
 import { AlarmList } from '@/widgets/alarm-list';
 import { AnomalyTimeline } from '@/widgets/anomaly-timeline';
 import { NO_RUN, RUN_MIN_SAMPLES, RUN_QUERY_KEY } from '../config/constants';
@@ -196,7 +202,34 @@ export function AnomalyView() {
               content="탭으로 고른 한 개소를 되감아 봅니다 — 이상 점수가 경계 위로 이어진 구간을 고르면 그 시각의 판정·기여 변수·계측이 열립니다. 위 사업장별 점수는 전 사업장 기준입니다."
             />
           </div>
-          <SiteTabs sites={scopedSites} selectedId={siteId} onSelect={setSiteId} />
+          {/*
+           * **고르는 방법이 폭으로 갈린다** `[사용자 요청 2026-09-21: 나머지 전체 화면 반응형]`.
+           * 통합 관제가 2026-09-18에 세운 짜임을 그대로 쓴다 — 탭 줄은 `lg` 이상, 그 아래는
+           * 목록이다. 같은 `onSelect`로 같은 `?site=`를 쓰므로 고르는 일 자체는 달라지지 않는다.
+           *
+           * 여기서도 같은 값이 나왔다(390px 실측) — **탭 10개가 4행 132px**로 접히고 알약
+           * 실높이가 **26px**이라 손가락 최소를 크게 밑돌았다. 구성이 같으니(제목 + 탭 + 긴
+           * 격자) 고치는 방법도 같아야 한다 — 화면마다 다르게 풀면 같은 부품이 자리마다
+           * 다르게 행동한다.
+           *
+           * **한 겹으로 묶는다.** 띠(`StickyBar`)는 `space-y-3`이라 마지막 자식에게 아래
+           * 여백을 주지 않는다 — 형제로 두면 탭 줄이 «마지막»에서 밀려나며 없던 12px을 얻어
+           * 넓은 화면의 띠가 자란다(통합 관제에서 118 → 130px로 실측된 그 일이다).
+           */}
+          <div>
+            <SiteTabs
+              sites={scopedSites}
+              selectedId={siteId}
+              onSelect={setSiteId}
+              className="hidden lg:flex"
+            />
+            <SiteList
+              sites={scopedSites}
+              selectedId={siteId}
+              onSelect={setSiteId}
+              className="lg:hidden"
+            />
+          </div>
         </StickyBar>
 
         {/*

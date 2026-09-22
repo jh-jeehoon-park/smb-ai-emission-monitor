@@ -12,14 +12,36 @@
  * 두 단이다. `ACTION_BUTTON`은 그 줄에서 하려던 일(확인 처리·조치 완료·보는 중),
  * `ACTION_BUTTON_QUIET`는 곁들이는 조작(내보내기·바로가기)이다.
  */
+/**
+ * **좁은 화면에서는 40px을 채운다** `[사용자 요청 2026-09-21: 나머지 전체 화면 반응형]`.
+ *
+ * 글자 12px + `py-1` + 테두리면 실높이가 **28px**이다(실측). 이 껍데기가 `확인 처리`·
+ * `조치 완료`·`CSV 내보내기`·화면 바로가기를 전부 만드는데, 그중 알람 조치는 **현장에서
+ * 손가락으로 누르는 조작**이라 이 값이 그대로 결함이 된다.
+ *
+ * 높이만 키우고 글자·여백은 그대로다. `lg` 이상은 `min-h-0`으로 되돌려 **넓은 화면이
+ * 한 픽셀도 달라지지 않는다** — 세그먼트 알약이 쓰는 것과 같은 짜임이다.
+ */
 const BASE =
-  'inline-flex shrink-0 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-chip border px-2.5 py-1 text-[12px] transition-colors duration-200';
+  'inline-flex min-h-10 shrink-0 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-chip border px-2.5 py-1 text-[12px] transition-colors duration-200 lg:min-h-0';
 
 /** 흰 면 · 또렷한 테두리 · 얕은 그림자 — 눌리는 것으로 보인다. hover에서 포인트색으로 바뀐다 */
 export const ACTION_BUTTON = `${BASE} border-border-strong bg-surface font-medium text-fg shadow-panel hover:border-accent hover:bg-accent-weak hover:text-accent`;
 
 /** 곁들이는 조작 — 그림자 없이 테두리만. 본 동작과 무게가 갈린다 */
 export const ACTION_BUTTON_QUIET = `${BASE} border-border bg-surface text-fg-muted hover:border-accent/40 hover:bg-accent-weak hover:text-accent`;
+
+/**
+ * **면을 갖지 않는 셋째 단** — 화살표가 붙은 글자 버튼(`상세 ›`).
+ *
+ * 알람 줄과 사업장 점수표가 **같은 문자열을 각자 적고 있었다.** 둘 다 `확인 처리`·`상세`처럼
+ * 본 동작 옆에서 «읽으러 가는» 조작이라 면을 갖지 않는 것이 규약인데(§8 `조작 버튼`),
+ * 이름이 없으니 한쪽만 바뀌어도 알 수 없었다 — 실제로 둘 다 실높이 **22px**이었다(실측).
+ *
+ * 위 둘과 달리 테두리·면이 없으므로 `BASE`를 쓰지 않는다. 좁은 화면의 40px 규약만 같다.
+ */
+export const ACTION_LINK =
+  'inline-flex min-h-10 cursor-pointer items-center justify-center gap-0.5 rounded-chip py-0.5 pl-1.5 pr-0.5 text-[12px] transition-colors duration-200 hover:bg-accent-weak hover:text-accent lg:min-h-0';
 
 /**
  * **셸 헤더의 아이콘 버튼** — 수신 점 · 알림 · 계정이 같은 크기·모서리·hover를 쓴다

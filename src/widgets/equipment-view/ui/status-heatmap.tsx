@@ -123,7 +123,14 @@ export function StatusHeatmap({ siteId, items }: { siteId: string; items: Equipm
          * (`--track-inset`, 막대·게이지 트랙과 같은 값)라 칸들이 파인 자리에 놓인 것으로 읽힌다.
          * 홈이 없던 판본은 120칸이 카드 면 위에 떠 있어 어디까지가 격자인지 경계가 없었다.
          */}
-        <div className={cn(TABLE_SCROLL, 'rounded-nested bg-surface-2 p-2.5 shadow-track')}>
+        {/* 가리개는 상자 뒤 면과 같은 색이어야 한다 — 흰 면 기본값을 쓰면 홈 위에 흰 띠가 남는다 */}
+        <div
+          className={cn(
+            TABLE_SCROLL,
+            '[--scroll-hint-bg:var(--surface-2)]',
+            'rounded-nested bg-surface-2 p-2.5 shadow-track',
+          )}
+        >
           <table
             className="w-full table-fixed border-separate border-spacing-[1px] text-center"
             style={{ minWidth: STATUS_TIMELINE_HOURS * HEATMAP_CELL_MIN_PX + HEATMAP_LABEL_PX }}

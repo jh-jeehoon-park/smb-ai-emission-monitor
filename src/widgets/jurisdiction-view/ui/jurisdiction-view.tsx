@@ -27,7 +27,13 @@ import { GOV_MUNICIPALITY } from '@/entities/user';
 import { getSite } from '@/entities/site';
 import { useDischargeLimits } from '@/features/discharge-limit-settings';
 import { ALL_ALARMS, useAlarmStates } from '@/features/alarm-ack';
-import { SiteTabs, useScopedSites, useSelectedSiteId, useSiteHref } from '@/features/site-selection';
+import {
+  SiteList,
+  SiteTabs,
+  useScopedSites,
+  useSelectedSiteId,
+  useSiteHref,
+} from '@/features/site-selection';
 import { AlarmList } from '@/widgets/alarm-list';
 import { AnomalyPanel } from '@/widgets/anomaly-panel';
 import { AnomalyTimeline } from '@/widgets/anomaly-timeline';
@@ -229,7 +235,21 @@ export function JurisdictionView() {
               content="아래 카드는 전부 위에서 고른 한 개소의 값입니다. 관내 합계는 이 구역이 아니라 위 판의 머리에 있습니다."
             />
           </div>
-          <SiteTabs sites={sites} selectedId={siteId} onSelect={setSiteId} />
+          {/*
+           * 통합 관제·이상 탐지와 **같은 짜임**이다 `[사용자 요청 2026-09-21]` — 탭 줄은 `lg`
+           * 이상, 그 아래는 목록. 여기는 관할 2개소뿐이라 탭이 접히지는 않았지만 **알약 실높이가
+           * 26px**이라 손가락 최소를 밑돌았고(실측), 세 화면이 같은 구성이면 고치는 방법도 같아야
+           * 한다 — 화면마다 다르게 풀면 같은 부품이 자리마다 다르게 행동한다.
+           */}
+          <div>
+            <SiteTabs
+              sites={sites}
+              selectedId={siteId}
+              onSelect={setSiteId}
+              className="hidden lg:flex"
+            />
+            <SiteList sites={sites} selectedId={siteId} onSelect={setSiteId} className="lg:hidden" />
+          </div>
         </StickyBar>
 
         <div className="grid gap-6 xl:grid-cols-[420px_minmax(0,1fr)] 2xl:grid-cols-[470px_minmax(0,1fr)]">

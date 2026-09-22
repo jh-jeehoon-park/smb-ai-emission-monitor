@@ -10,6 +10,7 @@ import { getOutageWindow } from '@/shared/lib/timeline';
 import { AnomalyBandLegend } from '@/shared/ui/anomaly-band-legend';
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
+import { ACTION_LINK } from '@/shared/ui/action-button';
 import { Panel } from '@/shared/ui/panel';
 import { StickyBar } from '@/shared/ui/sticky-bar';
 import { InfoTip } from '@/shared/ui/tooltip';
@@ -35,7 +36,7 @@ import {
 } from '@/entities/prediction';
 import { SITES, getSite } from '@/entities/site';
 import { ALL_ALARMS, useAlarmStates } from '@/features/alarm-ack';
-import { SiteTabs, useSelectedSiteId, useSiteHref } from '@/features/site-selection';
+import { SiteList, SiteTabs, useSelectedSiteId, useSiteHref } from '@/features/site-selection';
 import { AnomalyPanel } from '@/widgets/anomaly-panel';
 import { AnomalyTimeline } from '@/widgets/anomaly-timeline';
 import { EquipmentPanel } from '@/widgets/equipment-panel';
@@ -172,7 +173,37 @@ export function DashboardView() {
              */}
             <DetailLink href={withSite('/overview')} label={`${site.name} 사업장 상세로 이동`} />
           </div>
-          <SiteTabs sites={SITES} selectedId={selectedSiteId} onSelect={setSelectedSiteId} />
+          {/*
+           * **고르는 방법이 폭으로 갈린다** `[사용자 요청 2026-09-18: 첨부 이미지]`.
+           * `lg` 이상은 탭 줄, 그 아래는 목록이다 — 같은 `onSelect`로 같은 `?site=`를 쓴다.
+           *
+           * 좁은 화면에서 탭 줄이 **4행 132px**로 접히고 알약 실높이가 **26px**(손가락 최소
+           * 44px 미만)이었다(실측). 목록은 한 줄이 한 사업장이라 그 둘이 함께 풀린다.
+           *
+           * **두 벌을 모두 그리고 CSS가 고른다** — 폭을 렌더 중에 물으면 서버가 모르는 값이라
+           * 하이드레이션이 깨진다(이 저장소가 역할 가림에 쓰는 것과 같은 짜임).
+           * `display:none`이라 접근성 트리에도 하나만 남는다.
+           *
+           * **둘을 한 겹으로 묶는다.** 띠(`StickyBar`)는 `space-y-3`이라 **마지막 자식에게는
+           * 아래 여백을 주지 않는다** — 목록을 형제로 두면 탭 줄이 «마지막»에서 밀려나며
+           * 없던 12px을 얻어 **PC 띠가 118 → 130px로 자랐다**(실측). 묶으면 띠의 자식이 둘
+           * 그대로여서 넓은 화면이 한 픽셀도 달라지지 않는다 — 띠 118px(붙으면 127px)과
+           * 구역 2,255px(붙으면 2,264px)을 변경 전후로 나란히 재서 확인했다.
+           */}
+          <div>
+            <SiteTabs
+              sites={SITES}
+              selectedId={selectedSiteId}
+              onSelect={setSelectedSiteId}
+              className="hidden lg:flex"
+            />
+            <SiteList
+              sites={SITES}
+              selectedId={selectedSiteId}
+              onSelect={setSelectedSiteId}
+              className="lg:hidden"
+            />
+          </div>
         </StickyBar>
 
         {/*
@@ -267,41 +298,56 @@ export function DashboardView() {
                 limits={limits.table}
               />
 
-              {/* 390px에서 세 칸을 나누면 한 칸이 106px이라 근거 줄이 접힌다 — 쌓는다 */}
-              <div className="mt-4 grid grid-cols-1 divide-y divide-border border-t border-border pt-3 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
-                {/*
-                 * **농도를 적지 않는다** `[회의 2026-08-20]` — 소프트 센싱 값을 숫자로 띄우면
-                 * 계측된 농도로 읽힌다(E3). 판정 문구·색은 `entities/prediction`이 낸다.
-                 */}
-                {detail.forecast.trends.map((t) => {
-                  const verdict = trendVerdict(
-                    t,
-                    isOverLimit(t.code, t.value, limits.table),
-                    limits.unresolvedReason,
-                  );
-                  return (
-                    <div
-                      key={t.code}
-                      className="py-2 first:pt-0 last:pb-0 sm:px-3 sm:py-0 sm:first:pl-0 sm:last:pr-0"
-                    >
-                      <div className="flex items-center justify-between gap-1">
-                        <span className="text-[12px] uppercase tracking-[0.1em] text-fg-subtle">
-                          {t.code}
-                        </span>
-                        <TrendChip trend={t.trend} />
-                      </div>
-                      <p
-                        className="mt-1.5 text-[14px] font-semibold leading-snug text-fg"
-                        style={{ color: verdict.ink }}
+              {/*
+               * 세 칸을 나누면 한 칸이 좁아져 근거 줄(`R² 0.87 · 계측`)이 접힌다 — 쌓는다.
+               * 파탄 지점은 실측으로 **106px**이었다(390px 뷰포트).
+               *
+               * **묻는 축을 뷰포트에서 컨테이너로 옮겼다** `[사용자 결정 2026-09-18]`.
+               * 한때 `sm:`(뷰포트 640px)이었는데, 이 칸들은 지도 레일 옆의 **오른쪽 열** 안에
+               * 있어 뷰포트와 실제 폭이 어긋난다 — 1280px에서 그 열의 카드 본문이 428px뿐인데
+               * `sm`이 켜져 **칸이 143px**이 됐다(위의 106px과 같은 부류다).
+               *
+               * `@[32rem]`(512px)은 **같은 열이 이미 쓰는 값**이다 — `AnomalyPanel`이 그
+               * 폭에서 2칸을 쌓고 `SCR-OP-001` §3.1이 「카드 본문 512px 미만」으로 적어 두었다.
+               * 지금 `sm`이 만드는 실질 임계(카드 본문 536px)의 24px 아래라 **되던 폭은
+               * 그대로 된다.** 그 임계에서 칸 170.7px · 안쪽 146.7px이다.
+               */}
+              <div className="@container mt-4">
+                <div className="grid grid-cols-1 divide-y divide-border border-t border-border pt-3 @[32rem]:grid-cols-3 @[32rem]:divide-x @[32rem]:divide-y-0">
+                  {/*
+                   * **농도를 적지 않는다** `[회의 2026-08-20]` — 소프트 센싱 값을 숫자로 띄우면
+                   * 계측된 농도로 읽힌다(E3). 판정 문구·색은 `entities/prediction`이 낸다.
+                   */}
+                  {detail.forecast.trends.map((t) => {
+                    const verdict = trendVerdict(
+                      t,
+                      isOverLimit(t.code, t.value, limits.table),
+                      limits.unresolvedReason,
+                    );
+                    return (
+                      <div
+                        key={t.code}
+                        className="py-2 first:pt-0 last:pb-0 @[32rem]:px-3 @[32rem]:py-0 @[32rem]:first:pl-0 @[32rem]:last:pr-0"
                       >
-                        {verdict.text}
-                      </p>
-                      <p className="num mt-1 text-[12px] text-fg-subtle">
-                        R² {formatR2(t.r2)} · {SERIES_ORIGIN_LABELS[t.origin]}
-                      </p>
-                    </div>
-                  );
-                })}
+                        <div className="flex items-center justify-between gap-1">
+                          <span className="text-[12px] uppercase tracking-[0.1em] text-fg-subtle">
+                            {t.code}
+                          </span>
+                          <TrendChip trend={t.trend} />
+                        </div>
+                        <p
+                          className="mt-1.5 text-[14px] font-semibold leading-snug text-fg"
+                          style={{ color: verdict.ink }}
+                        >
+                          {verdict.text}
+                        </p>
+                        <p className="num mt-1 text-[12px] text-fg-subtle">
+                          R² {formatR2(t.r2)} · {SERIES_ORIGIN_LABELS[t.origin]}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </Panel>
 
@@ -343,7 +389,8 @@ function DetailLink({
     <Link
       href={href}
       aria-label={label}
-      className="flex shrink-0 cursor-pointer items-center gap-0.5 rounded-chip py-0.5 pl-1.5 pr-0.5 text-[12px] text-fg-subtle transition-colors duration-200 hover:bg-accent-weak hover:text-accent"
+      /* 알람 줄·사업장 점수표의 `상세 ›`와 **같은 부품**이다 — 셋이 같은 문자열을 각자 적고 있었다 */
+      className={`${ACTION_LINK} shrink-0 text-fg-subtle`}
     >
       <span className="hidden sm:inline">{text}</span>
       <ChevronRight aria-hidden size={16} strokeWidth={2} />
