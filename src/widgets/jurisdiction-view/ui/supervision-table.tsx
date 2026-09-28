@@ -7,6 +7,7 @@ import { ACTION_BUTTON_QUIET } from '@/shared/ui/action-button';
 import { StatusBadge } from '@/shared/ui/status-badge';
 import { TABLE_HEAD_CELL, TABLE_HEAD_ROW, TABLE_ROOT, TABLE_ROW, TABLE_SCROLL } from '@/shared/ui/table';
 import type { SupervisionRow } from '../lib/supervision-rows';
+import { overLimitCell } from '../lib/over-limit-cell';
 
 /**
  * **판정할 수 없었다는 사실을 그대로 적는다.**
@@ -20,22 +21,30 @@ function CountCell({
   value,
   unit,
   note,
+  tone = 'critical',
 }: {
   value: number | null;
   unit: string;
-  /**
-   * 본 칸 아래 한 줄. **시연 임계값 초과가 여기 온다**
-   * `[사용자 요청 2026-09-28: 설정 재설계 검토]` — 법정 초과와 같은 숫자 자리에 두면
-   * 그 건수가 법령이 뒷받침하는 초과로 읽힌다.
-   */
+  /** 본 숫자 아래 한 줄. 무엇으로 센 숫자인지 */
   note?: string | null;
+  /** 0보다 클 때의 색. 법정 초과가 아니면 한 단 낮춘다 */
+  tone?: 'critical' | 'caution';
 }) {
   return (
     <>
       {value === null ? (
         <span className="text-fg-subtle">{UNJUDGED}</span>
       ) : (
-        <span className={value > 0 ? 'num font-semibold text-critical-ink' : 'num text-fg-muted'}>
+        <span
+          className={cn(
+            'num',
+            value > 0
+              ? tone === 'critical'
+                ? 'font-semibold text-critical-ink'
+                : 'font-semibold text-caution-ink'
+              : 'text-fg-muted',
+          )}
+        >
           {value}
           {unit}
         </span>
@@ -134,12 +143,7 @@ export function SupervisionTable({
                 )}
               </td>
               <td className="px-3 py-3.5">
-                <CountCell
-                  value={row.overLimit}
-                  unit="건"
-                  /* 0건이면 적지 않는다 — 대부분이 0이라 그 줄이 칸을 덮는다 */
-                  note={row.overProvisional ? `시연 임계 ${row.overProvisional}건` : null}
-                />
+                <CountCell unit="건" {...overLimitCell(row)} />
               </td>
               <td className="px-3 py-3.5">
                 <CountCell value={row.idleRuns} unit="구간" />
