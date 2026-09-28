@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
+import { TAP_AREA_Y } from '@/shared/ui/action-button';
 import { COLLECTION_INTERVAL_MINUTES } from '@/shared/config/measurement';
 import { MISSING_HATCH, OPERATING_GRADIENT } from '@/shared/config/operating-visual';
 import { STATUS_VISUAL } from '@/shared/config/status-visual';
@@ -92,7 +93,7 @@ export function DutyLanes({
         )}
         <Link
           href={anomalyHref}
-          className="inline-flex items-center gap-0.5 text-fg-subtle transition-colors duration-200 hover:text-accent"
+          className={`${TAP_AREA_Y} inline-flex items-center gap-0.5 text-fg-subtle transition-colors duration-200 hover:text-accent`}
         >
           이상 탐지에서 보기
           <ArrowRight aria-hidden size={14} strokeWidth={2} />

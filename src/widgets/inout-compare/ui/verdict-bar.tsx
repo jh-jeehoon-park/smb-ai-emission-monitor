@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
+import { TAP_AREA_Y } from '@/shared/ui/action-button';
 import { COLLECTION_INTERVAL_MINUTES } from '@/shared/config/measurement';
 import { PROVISIONAL_STATUS_LABELS, type StatusLevel } from '@/shared/config/provisional';
 import { STATUS_VISUAL, statusInk } from '@/shared/config/status-visual';
@@ -124,7 +125,7 @@ export function VerdictBar({
 
         <Link
           href={detailHref}
-          className="inline-flex shrink-0 items-center gap-0.5 text-[12px] text-fg-subtle transition-colors duration-200 hover:text-accent"
+          className={`${TAP_AREA_Y} inline-flex shrink-0 items-center gap-0.5 text-[12px] text-fg-subtle transition-colors duration-200 hover:text-accent`}
         >
           사업장 상세
           <ChevronRight aria-hidden size={16} strokeWidth={2} />

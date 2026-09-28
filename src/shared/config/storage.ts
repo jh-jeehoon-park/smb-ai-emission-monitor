@@ -22,6 +22,12 @@ export const STORAGE_KEYS = {
   siteClassification: 'aquasense-site-classification',
   /** 사업장별 활성 공정 단계 */
   processStages: 'aquasense-process-stages',
+  /**
+   * 사업장이 **무엇을 달았는가** — 보유 계측 항목. 현장조사가 사업장마다 7·8·9종으로
+   * 갈린 것을 보여 줬다 `[TBD-61]`. 공정 구성과 같은 갈래이나 축이 달라 키를 나눈다
+   * (한 키에 담으면 한쪽을 고칠 때 다른 쪽까지 다시 쓴다)
+   */
+  siteProvisioning: 'aquasense-site-provisioning',
 } as const;
 
 /**

@@ -97,3 +97,36 @@ describe('구간 리포트 CSV', () => {
     expect(offlineCsv.split('\n')[1]).toMatch(/,,/);
   });
 });
+
+/**
+ * **이 사업장에 장비가 없는 항목** `[사용자 요청 2026-09-28]` `[TBD-61]`.
+ *
+ * 열을 지우지 않는다 — 열 머리가 곧 항목이라, 빼면 «그 항목을 재지 않는다»는 사실이 파일에서
+ * 사라진다. 그리고 **화면의 표와 같은 말이어야 한다**(E1) — 표가 「미설치」인데 파일이 숫자를
+ * 적으면 둘이 갈린다.
+ */
+describe('CSV — 미설치 항목', () => {
+  const rows = buildBucketReport(ONLINE, CODES, '1h', 'avg');
+
+  it('열은 남고 칸에 미설치라 적는다', () => {
+    const csv = bucketReportToCsv(rows, CODES, 'avg', ['DO']);
+    const [head, first] = csv.split('\n');
+
+    expect(head).toContain('DO 평균(mg/L)');
+    expect(first).toContain('미설치');
+  });
+
+  it('보유한 항목은 값을 그대로 적는다', () => {
+    const csv = bucketReportToCsv(rows, CODES, 'avg', ['DO']);
+    const cells = csv.split('\n')[1].split(',');
+
+    /* `구간, pH값, 미설치, 결측, 전체` — pH 자리는 숫자다 */
+    expect(cells[1]).toMatch(/^\d/);
+    expect(cells[2]).toBe('미설치');
+  });
+
+  it('넘기지 않으면 예전 그대로다 — 기본값이 동작을 바꾸지 않는다', () => {
+    expect(bucketReportToCsv(rows, CODES, 'avg')).toBe(bucketReportToCsv(rows, CODES, 'avg', []));
+    expect(bucketReportToCsv(rows, CODES, 'avg')).not.toContain('미설치');
+  });
+});

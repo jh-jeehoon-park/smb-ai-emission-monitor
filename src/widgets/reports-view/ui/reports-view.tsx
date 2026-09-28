@@ -19,6 +19,7 @@ import { getSite } from '@/entities/site';
 import { SERIES_WINDOW_HOURS, toMeasuredSeries } from '@/entities/prediction';
 import { useDischargeLimits } from '@/features/discharge-limit-settings';
 import { useSelectedSiteId, useScopedSites } from '@/features/site-selection';
+import { useInstruments } from '@/features/site-provisioning';
 import { BucketReportPanel } from '@/widgets/bucket-report';
 import { PERIOD_HOURS, PERIOD_OPTIONS, PERIOD_QUERY_KEY } from '@/features/measurement-filter';
 import {
@@ -54,6 +55,7 @@ export function ReportsView() {
   const hours = Number(period);
   /* 기준표는 사업장 설정에서 온다 — 리포트가 정적 표를 직접 읽으면 설정이 반영되지 않는다 */
   const limits = useDischargeLimits();
+  const instruments = useInstruments();
 
   /**
    * 범위를 **URL로** 좁힌다. 역할로 행 수를 가르면 서버가 그린 표와 클라이언트가 그릴 표의
@@ -188,6 +190,7 @@ export function ReportsView() {
        * 수질 8종만 낸다 — 설비 계열(전류·전력·유량)은 배출 리포트의 축이 아니다.
        */}
       <BucketReportPanel
+        absentCodes={instruments.absent}
         pending={seriesPending}
         points={points}
         codes={WATER_SERIES_CODES}

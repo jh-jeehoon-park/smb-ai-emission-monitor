@@ -44,6 +44,24 @@ export const ACTION_LINK =
   'inline-flex min-h-10 cursor-pointer items-center justify-center gap-0.5 rounded-chip py-0.5 pl-1.5 pr-0.5 text-[12px] transition-colors duration-200 hover:bg-accent-weak hover:text-accent lg:min-h-0';
 
 /**
+ * **보이는 크기는 그대로 두고 누르는 자리만 위아래로 넓히는 겹**
+ * `[사용자 요청 2026-09-23: PC·모바일 QA]`.
+ *
+ * 본문 안의 글자 링크(`공정에서 보기`·`사업장 상세`·`이상 탐지에서 보기`·`…로 돌아가기`)와
+ * 설비 카드의 이름 버튼은 **한 줄 글자라 실높이가 14~18px**이다(실측). 높이를 키우면
+ * 문단의 줄 간격과 카드 높이가 함께 움직이므로 **`before`로 히트 영역만** 넓힌다.
+ *
+ * **좌우는 넓히지 않는다.** 글자 링크는 문장 안에 있어 옆으로 넓히면 앞뒤 글자를 덮는다 —
+ * 세로로만 늘려도 40px을 채운다(11 + 18 + 11). 위아래로 겹치는 것은 **투명한 히트 영역이고
+ * 그 자리에 다른 조작이 없는 것을 확인한 자리에만** 쓴다.
+ *
+ * **판 밖에 걸터앉은 것에는 쓰지 않는다** — 캐러셀 화살표처럼 경계에 걸친 요소는 사방
+ * 확장이 페이지를 가로로 민다(그쪽은 안쪽으로만 넓힌다).
+ */
+export const TAP_AREA_Y =
+  'relative before:absolute before:-inset-y-[11px] before:inset-x-0 before:content-[""] lg:before:content-none';
+
+/**
  * **셸 헤더의 아이콘 버튼** — 수신 점 · 알림 · 계정이 같은 크기·모서리·hover를 쓴다
  * `[사용자 요청 2026-09-18: 모바일 헤더 반응형]`.
  *

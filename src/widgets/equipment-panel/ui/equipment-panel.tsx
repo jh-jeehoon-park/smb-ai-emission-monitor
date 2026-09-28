@@ -5,6 +5,7 @@ import {
   OPERATING_LABELS,
   operatingStateOf,
 } from '@/shared/config/operating-visual';
+import { TAP_AREA_Y } from '@/shared/ui/action-button';
 import { RiseItem, StaggerGroup } from '@/shared/ui/motion';
 import { StatusBadge } from '@/shared/ui/status-badge';
 import { BADGE_BASE } from '@/shared/ui/badge';
@@ -16,11 +17,21 @@ export function EquipmentPanel({
   items,
   online,
   onSelect,
+  meteredIds = [],
 }: {
   items: Equipment[];
   online: boolean;
   /** 상세를 여는 화면에서만 넘긴다. 없으면 카드가 눌리지 않는다 */
   onSelect?: (equipment: Equipment) => void;
+  /**
+   * **전력을 재는 설비의 id** `[사용자 요청 2026-09-21]`. 카드에 그 사실을 적는다 —
+   * 어느 설비에 통신형 전력량계를 달지가 곧 설치 범위이고, 정해 두고도 화면에 없으면
+   * 검토할 수가 없다.
+   *
+   * **`limits`·`absentCodes`와 같이 prop으로 받는다** — 위젯이 사업장 훅을 부르면
+   * 라우터 없이는 렌더도 못 한다(계측 격자에서 한 번 밟았다).
+   */
+  meteredIds?: readonly string[];
 }) {
   /* ECP가 끊기면 설비 텔레메트리도 오지 않는다. 계측·이상 점수는 결측인데 설비만
      멀쩡한 숫자를 띄우면 한 화면이 서로 다른 말을 한다(E3·R19). */
@@ -90,13 +101,18 @@ export function EquipmentPanel({
                     /*
                      * **누르는 자리를 위아래로 넓힌다** `[사용자 요청 2026-09-21]`. 글자 한 줄이라
                      * 실높이가 **18px**이었다(실측) — 상세 모달을 여는 이 화면의 주 조작인데
-                     * 손가락 최소를 크게 밑돈다. `before`로 넓히므로 **카드 높이는 그대로다**
+                     * 손가락 최소를 크게 밑돈다. `TAP_AREA_Y`는 **카드 높이를 바꾸지 않는다**
                      * (여백을 키우면 한 행의 카드들이 함께 자라 격자가 움직인다).
                      */
                     <button
                       type="button"
                       onClick={() => onSelect(eq)}
-                      className='relative min-w-0 cursor-pointer truncate text-left text-[14px] font-bold leading-tight text-fg underline decoration-transparent underline-offset-2 transition-colors duration-200 before:absolute before:-inset-y-[11px] before:inset-x-0 before:content-[""] hover:text-accent hover:decoration-accent lg:before:content-none'
+                      className={cn(
+                        TAP_AREA_Y,
+                        'min-w-0 cursor-pointer truncate text-left text-[14px] font-bold leading-tight text-fg',
+                        'underline decoration-transparent underline-offset-2 transition-colors duration-200',
+                        'hover:text-accent hover:decoration-accent',
+                      )}
                     >
                       {eq.name}
                     </button>
@@ -138,6 +154,16 @@ export function EquipmentPanel({
                     <span className={`${BADGE_BASE} bg-surface-3 text-fg-muted`}>
                       <span className="num">{eq.anomalyHours}</span>시간 이어짐
                     </span>
+                  )}
+                  {/*
+                   * **전력 계측 대상임을 카드가 말한다** `[사용자 요청 2026-09-21]`.
+                   *
+                   * 고른 설비가 곧 **통신형 전력량계를 다는 대상**이라 설치 범위·비용이 된다 —
+                   * 정해 두고 화면에 없으면 검토할 수가 없다. 고르지 않은 설비에는 아무것도
+                   * 적지 않는다: 대부분이 미선정이라 «미계측»을 달면 그 말이 카드를 덮는다.
+                   */}
+                  {meteredIds.includes(eq.id) && (
+                    <span className={`${BADGE_BASE} bg-surface-3 text-fg-muted`}>전력 계측</span>
                   )}
                 </div>
               </div>

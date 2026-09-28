@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
+import { TAP_AREA_Y } from '@/shared/ui/action-button';
 import { DEMO_NOW_ISO } from '@/shared/config/demo';
 import { buildAnomalyScores, downsample } from '@/shared/lib/anomaly-score';
 import { HISTORY_WINDOW_HOURS } from '@/shared/config/measurement';
@@ -290,7 +291,7 @@ export function AnomalyView() {
                  판단 어려움". 어느 공정 단계인지 짚으려면 공정도로 갈 수 있어야 한다 */
               <Link
                 href={withSite('/process')}
-                className="text-[12px] text-accent underline decoration-accent/40 underline-offset-2 transition-colors duration-200 hover:decoration-accent"
+                className={`${TAP_AREA_Y} text-[12px] text-accent underline decoration-accent/40 underline-offset-2 transition-colors duration-200 hover:decoration-accent`}
               >
                 공정에서 보기
               </Link>

@@ -26,6 +26,7 @@ import { SERIES_WINDOW_HOURS, getForecast, toMeasuredSeries } from '@/entities/p
 import { GOV_MUNICIPALITY } from '@/entities/user';
 import { getSite } from '@/entities/site';
 import { useDischargeLimits } from '@/features/discharge-limit-settings';
+import { useInstruments , useMetering} from '@/features/site-provisioning';
 import { ALL_ALARMS, useAlarmStates } from '@/features/alarm-ack';
 import {
   SiteList,
@@ -62,6 +63,8 @@ export function JurisdictionView() {
   const sites = useScopedSites();
   const site = getSite(siteId);
   const limits = useDischargeLimits();
+  const instruments = useInstruments();
+  const metering = useMetering();
   const { alarms: allAlarms } = useAlarmStates(ALL_ALARMS);
 
   /* 관내 알람만 센다. 셈 함수는 그대로 두고 목록을 좁혀 넘긴다 */
@@ -291,6 +294,7 @@ export function JurisdictionView() {
               }
             >
               <WaterQualityGrid
+                absentCodes={instruments.absent}
                 pending={seriesPending}
                 data={detail.series}
                 sections={[
@@ -331,7 +335,11 @@ export function JurisdictionView() {
 
             {/* 판정 조건이 `방류 중 ∧ 방지시설 미가동`이라 근거가 옆에 있어야 읽힌다 */}
             <Panel title={`설비 상태 · ${site.name}`}>
-              <EquipmentPanel items={detail.equipment} online={site.online} />
+              <EquipmentPanel
+                items={detail.equipment}
+                online={site.online}
+                meteredIds={metering.ids}
+              />
             </Panel>
 
             <Panel

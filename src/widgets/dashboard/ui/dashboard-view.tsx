@@ -37,6 +37,7 @@ import {
 import { SITES, getSite } from '@/entities/site';
 import { ALL_ALARMS, useAlarmStates } from '@/features/alarm-ack';
 import { SiteList, SiteTabs, useSelectedSiteId, useSiteHref } from '@/features/site-selection';
+import { useInstruments , useMetering} from '@/features/site-provisioning';
 import { AnomalyPanel } from '@/widgets/anomaly-panel';
 import { AnomalyTimeline } from '@/widgets/anomaly-timeline';
 import { EquipmentPanel } from '@/widgets/equipment-panel';
@@ -55,6 +56,8 @@ export function DashboardView() {
   const withSite = useSiteHref();
   const site = getSite(selectedSiteId);
   const limits = useDischargeLimits();
+  const instruments = useInstruments();
+  const metering = useMetering();
   /* 헤더 알림·사이드바와 같은 상태를 읽는다 — 정적 fixture면 확인해도 줄지 않는다 */
   const { alarms: allAlarms } = useAlarmStates(ALL_ALARMS);
   const alarmCounts = openCountBySite(allAlarms);
@@ -260,6 +263,7 @@ export function DashboardView() {
                 * 두면 옆 칸과 비교된다는 잘못된 신호를 준다. 유입·유출은 서로 비교되어야 한다.
                 */}
               <WaterQualityGrid
+                absentCodes={instruments.absent}
                 pending={seriesPending}
                 data={detail.series}
                 /* 이 화면은 한 사업장만 그린다 — 카드가 그 사업장 주기로 «지금 값»을 받는다 */
@@ -356,7 +360,11 @@ export function DashboardView() {
               titleAside={<InfoTip label="정렬 기준" content="상태가 나쁜 설비부터 정렬합니다." />}
               action={<DetailLink href={withSite('/equipment')} label="설비 이상 탐지로 이동" />}
             >
-              <EquipmentPanel items={detail.equipment} online={site.online} />
+              <EquipmentPanel
+          items={detail.equipment}
+          online={site.online}
+          meteredIds={metering.ids}
+        />
             </Panel>
           </div>
         </div>

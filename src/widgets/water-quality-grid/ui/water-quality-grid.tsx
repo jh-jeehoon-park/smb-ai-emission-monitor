@@ -16,6 +16,7 @@ import {
   statusInk,
 } from '@/shared/config/status-visual';
 import { formatClock, formatValue } from '@/shared/lib/format';
+import { ABSENT_ITEM_LABEL, ABSENT_ITEM_REASON } from '@/features/site-provisioning';
 import { LiveValue } from '@/shared/ui/live-value';
 import { BADGE_BASE } from '@/shared/ui/badge';
 import { VALUE_MD } from '@/shared/ui/type-scale';
@@ -101,6 +102,16 @@ interface WaterQualityGridProps {
    * 아는 것이고, 쓰는 화면 넷이 같은 분기를 네 번 적을 이유가 없다.
    */
   pending?: boolean;
+  /**
+   * 이 사업장에 **장비가 없는** 항목 `[사용자 요청 2026-09-28]` `[TBD-61]`.
+   *
+   * 화면은 그 카드를 **지우지 않고** 「미설치」로 적는다(**A2**). 주지 않으면 전부 보유로
+   * 본다 — 설비 격자·유입 대조처럼 이 축이 없는 소비처가 있다.
+   *
+   * **`limits`와 같이 prop으로 받는다**: 위젯이 사업장 훅을 부르면 `useSelectedSiteId` →
+   * `useRouter`로 이어져 라우터 없이는 렌더도 못 한다.
+   */
+  absentCodes?: MeasurementItemCode[];
 }
 
 /**
@@ -114,8 +125,20 @@ export function WaterQualityGrid({
   limits,
   windowHours,
   pending = false,
+  absentCodes = [],
 }: WaterQualityGridProps) {
   if (pending) return <WaterQualityGridSkeleton sections={sections} />;
+
+  /*
+   * **이 사업장이 그 계측기를 달았는가** `[사용자 요청 2026-09-28]` `[TBD-61]`.
+   *
+   * **훅을 부르지 않고 prop으로 받는다** — `limits`와 같은 이유다. 이 위젯이 사업장 훅을
+   * 부르면 `useSelectedSiteId` → `useRouter`로 이어져 **라우터 없이는 렌더도 못 한다**
+   * (`unit-annotation.test.tsx`가 그 사실을 적어 두었고, 실제로 그렇게 깨뜨려 봤다).
+   *
+   * 넘기지 않으면 **전부 보유**다 — 설비 3종 격자나 유입 대조처럼 이 축이 없는 소비처가 있다.
+   */
+  const has = (code: MeasurementItemCode) => !absentCodes.includes(code);
 
   /**
    * 열 수는 뷰포트가 아니라 **이 그리드가 실제로 받은 폭**을 따라야 한다.
@@ -141,7 +164,15 @@ export function WaterQualityGrid({
             <StaggerGroup className="grid grid-cols-2 gap-2 @[560px]:grid-cols-4">
               {section.codes.map((code) => (
                 <RiseItem key={code}>
-                  {isSeriesCode(code) ? (
+                  {/*
+                   * **셋을 가려 말한다.** 「미설치」는 이 사업장에 장비가 없다는 뜻이고,
+                   * 「계측 없음」은 우리 시스템에 계열이 없다는 뜻이며, 카드 안의 「수신 없음」은
+                   * 채널은 있는데 값이 오지 않는다는 뜻이다. 한 말로 뭉치면 장비가 없는 곳에서
+                   * **있지도 않은 통신 장애를 찾게 된다.**
+                   */}
+                  {!has(code) ? (
+                    <NotInstalled code={code} />
+                  ) : isSeriesCode(code) ? (
                     <MiniSeries code={code} data={data} siteId={siteId} table={limits} windowHours={windowHours} />
                   ) : (
                     <NoChannel code={code} />
@@ -167,6 +198,39 @@ export function WaterQualityGrid({
  *
  * 선례가 있다 — `LEGAL_CHECK_ITEMS`의 SS가 `code: null`이고 화면이 `계측 없음`이라 적는다.
  */
+/**
+ * 그 **사업장에** 계측기가 없는 항목 `[사용자 요청 2026-09-28]`.
+ *
+ * **카드를 지우지 않는다**(**A2**). 8종은 어느 사업장에서나 자리를 지키고, 없는 것은 그 자리에
+ * 그렇게 적는다 — 카드가 사라지면 «그 항목을 재지 않는다»는 사실 자체가 화면에서 없어져
+ * 사용자가 물어볼 거리조차 잃는다 `[사용자 확인 2026-09-28: 8종 항목이 필수적이지만 사업장별
+ * 차이가 있을 수 있음]`.
+ *
+ * `NoChannel`(계측 없음)과 **다른 사실이다** — 그쪽은 우리 시스템에 계열이 아예 없는 항목이고
+ * 전 사업장이 같다. 이쪽은 사업장마다 갈린다(실증 현장조사에서 7·8·9종으로 갈렸다).
+ */
+function NotInstalled({ code }: { code: MeasurementItemCode }) {
+  const item = MEASUREMENT_ITEMS[code];
+  return (
+    <div className="h-full rounded-nested border border-dashed border-border bg-surface-2 p-3">
+      <div className="flex items-baseline justify-between gap-2">
+        <span
+          className="text-[12px] font-medium tracking-[0.08em] text-fg-subtle"
+          title={`${item.label} · ${item.unitKo}`}
+        >
+          {item.symbol}
+        </span>
+      </div>
+
+      <p className={`mt-1 ${VALUE_MD} text-fg-subtle`}>{ABSENT_ITEM_LABEL}</p>
+      <p className="mt-0.5 truncate text-[12px] text-fg-muted">{item.label}</p>
+      <p className="mt-1 truncate text-[12px] text-fg-subtle" title={ABSENT_ITEM_REASON}>
+        이 사업장에 없음
+      </p>
+    </div>
+  );
+}
+
 function NoChannel({ code }: { code: MeasurementItemCode }) {
   const item = MEASUREMENT_ITEMS[code];
   return (

@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { ChevronLeft } from 'lucide-react';
 import { useMemo } from 'react';
+import { TAP_AREA_Y } from '@/shared/ui/action-button';
 import { DEMO_NOW_ISO } from '@/shared/config/demo';
 import { COLLECTION_INTERVAL_MINUTES } from '@/shared/config/measurement';
 import { PROVISIONAL_DISPLAY_DECIMALS, PROVISIONAL_STATUS_LABELS } from '@/shared/config/provisional';
@@ -29,6 +30,7 @@ import { getSite } from '@/entities/site';
 import { ROLES } from '@/entities/user';
 import { allAlarmsForSite, useAlarmStates } from '@/features/alarm-ack';
 import { useSelectedSiteId, useSiteHref } from '@/features/site-selection';
+import { useInstruments , useMetering} from '@/features/site-provisioning';
 import { useDischargeLimits } from '@/features/discharge-limit-settings';
 import { AlarmList } from '@/widgets/alarm-list';
 import { AnomalyPanel } from '@/widgets/anomaly-panel';
@@ -77,6 +79,8 @@ export function AdminOverviewView() {
   const site = getSite(siteId);
   /* 사용자가 설정한 기준치 — `site`의 두 축을 직접 읽으면 설정 후에도 `미확인`이 남는다 */
   const limits = useDischargeLimits();
+  const instruments = useInstruments();
+  const metering = useMetering();
 
   /*
    * **`status`도 받는다** `[사용자 지적 2026-09-07]`. 첫 응답이 오기 전에는 값이 없고
@@ -151,7 +155,7 @@ export function AdminOverviewView() {
           <div key={each} className={`role-only-${each}`}>
             <Link
               href={withSite(target)}
-              className="inline-flex items-center gap-0.5 text-[12px] text-fg-subtle transition-colors duration-200 hover:text-accent"
+              className={`${TAP_AREA_Y} inline-flex items-center gap-0.5 text-[12px] text-fg-subtle transition-colors duration-200 hover:text-accent`}
             >
               <ChevronLeft aria-hidden size={16} strokeWidth={2} />
               {navLabelOf(target)}(으)로 돌아가기
@@ -281,6 +285,7 @@ export function AdminOverviewView() {
       >
         {/* 유량을 소절로 가른다 — 농도와 부피/시간을 한 격자에 두면 옆 칸과 비교된다는 신호를 준다 */}
         <WaterQualityGrid
+          absentCodes={instruments.absent}
           pending={seriesPending}
           data={detail.series}
           /* 이 화면은 한 사업장만 그린다 — 카드가 그 사업장 주기로 «지금 값»을 받는다 */
@@ -302,7 +307,11 @@ export function AdminOverviewView() {
         title="설비 상태"
         titleAside={<InfoTip label="정렬 기준" content="상태가 나쁜 설비부터 정렬합니다." />}
       >
-        <EquipmentPanel items={detail.equipment} online={site.online} />
+        <EquipmentPanel
+          items={detail.equipment}
+          online={site.online}
+          meteredIds={metering.ids}
+        />
       </Panel>
 
       <nav className="flex flex-wrap gap-2" aria-label="상세 화면 바로가기">

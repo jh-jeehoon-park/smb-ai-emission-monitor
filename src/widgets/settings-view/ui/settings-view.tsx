@@ -1,6 +1,6 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { cn } from '@/shared/lib/cn';
 import { useQueryState } from '@/shared/lib/use-query-state';
 import { Panel } from '@/shared/ui/panel';
@@ -18,7 +18,16 @@ import {
   ProcessStageForm,
   useProcess,
 } from '@/features/process-settings';
+import { getEquipment } from '@/entities/equipment';
 import { useSelectedSiteId } from '@/features/site-selection';
+import {
+  INSTRUMENT_FORM_NOTE,
+  InstrumentForm,
+  METERING_FORM_NOTE,
+  MeteringForm,
+  useInstruments,
+  useMetering,
+} from '@/features/site-provisioning';
 import {
   SETTINGS_TABS,
   SETTINGS_TAB_KEY,
@@ -60,6 +69,16 @@ export function SettingsView() {
   const [tab, setTab] = useQueryState(SETTINGS_TAB_KEY, SETTINGS_TABS, SETTINGS_TABS[0]);
   const { unresolvedReason, isUserSet, classification } = useDischargeLimits();
   const process = useProcess();
+  const instruments = useInstruments();
+  const metering = useMetering();
+  /*
+   * **설비 목록은 이 화면이 읽어 폼에 넘긴다.** `features/site-provisioning`은 설비 도메인을
+   * 모르고(FSD: feature끼리 못 본다), 설정이 정하는 것은 그 목록 위의 **계측 여부**뿐이다.
+   */
+  const meterableUnits = useMemo(
+    () => getEquipment(siteId).map((eq) => ({ id: eq.id, name: eq.name })),
+    [siteId],
+  );
 
   /*
    * 그 역할이 **실제로 보게 되는** 탭. 주소가 그 역할에 닫힌 탭을 가리키면 그가 다루는 첫 탭으로
@@ -98,6 +117,32 @@ export function SettingsView() {
         }
       >
         <ProcessStageForm siteId={siteId} />
+      </Panel>
+    ),
+    instruments: (
+      <Panel
+        title="계측 구성"
+        titleAside={<InfoTip label="끈 항목은 어떻게 되나" content={INSTRUMENT_FORM_NOTE} />}
+        action={
+          <span className="text-[12px] text-fg-subtle">
+            보유 {instruments.held.length} · 미설치 {instruments.absent.length}
+          </span>
+        }
+      >
+        <InstrumentForm siteId={siteId} />
+      </Panel>
+    ),
+    metering: (
+      <Panel
+        title="설비 전력 계측"
+        titleAside={<InfoTip label="무엇을 정하는 설정인가" content={METERING_FORM_NOTE} />}
+        action={
+          <span className="text-[12px] text-fg-subtle">
+            계측 {metering.ids.length} / 설비 {meterableUnits.length}
+          </span>
+        }
+      >
+        <MeteringForm siteId={siteId} units={meterableUnits} />
       </Panel>
     ),
   };

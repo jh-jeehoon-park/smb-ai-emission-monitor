@@ -83,6 +83,35 @@ describe('조작 버튼도 손가락 최소를 채운다', () => {
   });
 
   /**
+   * **본문 안 글자 링크는 높이를 키울 수 없다** — 문단의 줄 간격과 카드 높이가 함께 움직인다.
+   * `TAP_AREA_Y`가 `before`로 누르는 자리만 위아래로 넓힌다(실측 14~18px이었다).
+   *
+   * **좌우는 넓히지 않는다**: 문장 안에 있어 옆으로 넓히면 앞뒤 글자를 덮는다.
+   */
+  it('본문 글자 링크는 한 상수로 히트 영역을 얻는다', () => {
+    const action = read('src/shared/ui/action-button.ts');
+    expect(action).toContain('TAP_AREA_Y');
+    expect(action).toMatch(/TAP_AREA_Y[\s\S]{0,220}before:-inset-y-/);
+    /* 좌우를 함께 넓히면 문장 안의 이웃 글자를 덮는다 */
+    expect(action).not.toMatch(/TAP_AREA_Y[\s\S]{0,220}before:-inset-x-/);
+
+    for (const path of [
+      'src/widgets/anomaly-view/ui/anomaly-view.tsx',
+      'src/widgets/admin-overview/ui/admin-overview-view.tsx',
+      'src/widgets/inout-compare/ui/duty-lanes.tsx',
+      'src/widgets/inout-compare/ui/verdict-bar.tsx',
+      'src/widgets/equipment-panel/ui/equipment-panel.tsx',
+    ]) {
+      /* `import` 줄만 보면 «들여오고 쓰지 않는» 되돌림을 놓친다 — 쓰임을 센다 */
+      const body = read(path)
+        .split('\n')
+        .filter((line) => !line.trimStart().startsWith('import'))
+        .join('\n');
+      expect(body, path).toContain('TAP_AREA_Y');
+    }
+  });
+
+  /**
    * 기준치를 손으로 넣는 화면이라 잘못 짚으면 **옆 항목의 값을 고치게 된다.** `py-1.5` +
    * 13px 글자면 실높이가 34px이었다(실측).
    */
@@ -90,6 +119,25 @@ describe('조작 버튼도 손가락 최소를 채운다', () => {
     const field = read('src/shared/ui/number-field.tsx');
     expect(field).toContain('min-h-10');
     expect(field).toContain('lg:min-h-0');
+  });
+
+  /**
+   * **설정 폼의 «되돌리기»는 공용 껍데기를 쓰지 않는다** — 포인트색 hover를 갖지 않는
+   * 조용한 조작이라 `ACTION_BUTTON_QUIET`과 모양이 다르다. 그래서 세 폼이 같은 문자열을
+   * 각자 적고 있고, 셋 다 실높이 **28px**이었다(390px 실측).
+   *
+   * 되돌리기는 사용자가 넣은 설정을 지우는 조작이라 **잘못 눌리는 것도 결함**이다.
+   */
+  it('설정 폼의 되돌리기 셋이 40px을 채운다', () => {
+    for (const path of [
+      'src/features/process-settings/ui/process-stage-form.tsx',
+      'src/features/site-provisioning/ui/instrument-form.tsx',
+      'src/features/site-provisioning/ui/metering-form.tsx',
+    ]) {
+      const source = read(path);
+      expect(source, path).toMatch(/min-h-10[^"]*되돌리기|min-h-10[^"]*rounded-\[3px\]/);
+      expect(source, path).toContain('lg:min-h-0');
+    }
   });
 
   /**

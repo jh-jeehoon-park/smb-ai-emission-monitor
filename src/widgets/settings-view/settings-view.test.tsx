@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 import { ROLES } from '@/entities/user';
 import { LimitSettingsProvider } from '@/features/discharge-limit-settings';
 import { ProcessSettingsProvider } from '@/features/process-settings';
+import { ProvisioningProvider } from '@/features/site-provisioning';
 import { SETTINGS_TABS, SETTINGS_TAB_ROLES } from './config/constants';
 import { SettingsView } from './ui/settings-view';
 
@@ -32,7 +33,9 @@ const search = { current: '' };
 function Wrapped({ children }: { children: ReactNode }) {
   return (
     <LimitSettingsProvider>
-      <ProcessSettingsProvider>{children}</ProcessSettingsProvider>
+      <ProcessSettingsProvider>
+        <ProvisioningProvider>{children}</ProvisioningProvider>
+      </ProcessSettingsProvider>
     </LimitSettingsProvider>
   );
 }

@@ -15,6 +15,7 @@ import {
 import { SITES, getSite } from '@/entities/site';
 import { allAlarmsForSite } from '@/features/alarm-ack';
 import { useScopedSites, useSelectedSiteId } from '@/features/site-selection';
+import { useMetering } from '@/features/site-provisioning';
 import { AlarmList } from '@/widgets/alarm-list';
 import { EquipmentPanel } from '@/widgets/equipment-panel';
 import { EquipmentDetailModal } from './equipment-detail-modal';
@@ -30,6 +31,7 @@ const OFFLINE_SITE_COUNT = SITES.filter((site) => !site.online).length;
 export function EquipmentView() {
   const { siteId } = useSelectedSiteId();
   const site = getSite(siteId);
+  const metering = useMetering();
   const [openId, setOpenId] = useState<string | null>(null);
 
   const view = useMemo(
@@ -54,7 +56,12 @@ export function EquipmentView() {
         /* 순서를 고를 수 없게 됐으니 무슨 순서인지는 적어 둔다 — 통합 관제·사업장 상세와 같은 문구다 */
         titleAside={<InfoTip label="정렬 기준" content="상태가 나쁜 설비부터 정렬합니다." />}
       >
-        <EquipmentPanel items={view.items} online={site.online} onSelect={(eq) => setOpenId(eq.id)} />
+        <EquipmentPanel
+          items={view.items}
+          online={site.online}
+          onSelect={(eq) => setOpenId(eq.id)}
+          meteredIds={metering.ids}
+        />
 
         <EquipmentDetailModal
           equipment={view.items.find((eq) => eq.id === openId) ?? null}

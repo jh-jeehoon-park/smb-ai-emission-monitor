@@ -2,13 +2,15 @@ import type { Role } from '@/entities/user';
 
 export const SETTINGS_TAB_KEY = 'tab';
 
-export const SETTINGS_TABS = ['classification', 'limits', 'process'] as const;
+export const SETTINGS_TABS = ['classification', 'limits', 'process', 'instruments', 'metering'] as const;
 export type SettingsTab = (typeof SETTINGS_TABS)[number];
 
 export const SETTINGS_TAB_OPTIONS: { value: SettingsTab; label: string }[] = [
   { value: 'classification', label: '사업장 분류' },
   { value: 'limits', label: '방류 기준치' },
   { value: 'process', label: '공정 구성' },
+  { value: 'instruments', label: '계측 구성' },
+  { value: 'metering', label: '설비 전력 계측' },
 ];
 
 /**
@@ -40,4 +42,17 @@ export const SETTINGS_TAB_ROLES: Record<SettingsTab, readonly Role[]> = {
   classification: ['system'],
   limits: ['system', 'site', 'gov'],
   process: ['system'],
+  /*
+   * **계측 구성도 프로비저닝이다** `[사용자 요청 2026-09-28]`. 어떤 계측기를 달았는지는
+   * 사업장을 **등록하는 정보**라 위 `classification`·`process`와 같은 칸에 선다 — 사업장이
+   * 바꿀 값이 아니라 설치한 사실의 기록이다 `[사용자 결정 2026-08-21: 각 사업장을 등록하고
+   * 설정하는 것은 회원 관리나 마찬가지니 관리자의 권한]`.
+   */
+  instruments: ['system'],
+  /*
+   * **설비 전력 계측 대상도 프로비저닝이다** `[사용자 요청 2026-09-21]`. 현장조사가 이 결정을
+   * «JH솔루션 검토 후 확정»이라 적었고, 고른 결과가 **설치 범위와 비용**이 된다 — 사업장이
+   * 바꿀 값이 아니다.
+   */
+  metering: ['system'],
 };

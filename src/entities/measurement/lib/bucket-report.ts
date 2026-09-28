@@ -1,4 +1,5 @@
-import { MEASUREMENT_ITEMS } from '@/shared/config/measurement';
+import { MEASUREMENT_ITEMS, type MeasurementItemCode } from '@/shared/config/measurement';
+import { ABSENT_ITEM_LABEL } from '@/shared/config/absent-item';
 import { csvCell, toCsvText } from '@/shared/lib/csv';
 import { formatClock } from '@/shared/lib/format';
 import {
@@ -65,6 +66,8 @@ export function bucketReportToCsv(
   rows: readonly BucketRow[],
   codes: readonly SeriesCode[],
   stat: BucketStat,
+  /** 이 사업장에 장비가 없는 항목 — 열은 남기고 칸에 「미설치」를 적는다 `[TBD-61]` */
+  absentCodes: readonly MeasurementItemCode[] = [],
 ): string {
   const headers = [
     '구간(KST)',
@@ -80,7 +83,12 @@ export function bucketReportToCsv(
     headers,
     rows.map((row) => [
       formatClock(row.startIso),
-      ...codes.map((code) => csvCell(row.values[code] ?? null, MEASUREMENT_ITEMS[code].decimals)),
+      ...codes.map((code) =>
+        /* 재지도 않은 값을 파일이 주장하지 않게 한다 — 화면의 표와 같은 말이다 */
+        absentCodes.includes(code)
+          ? ABSENT_ITEM_LABEL
+          : csvCell(row.values[code] ?? null, MEASUREMENT_ITEMS[code].decimals),
+      ),
       String(row.missingCount),
       String(row.totalCount),
     ]),

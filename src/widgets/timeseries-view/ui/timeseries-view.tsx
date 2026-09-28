@@ -35,6 +35,7 @@ import {
 import { getSite } from '@/entities/site';
 import { MeasurementFilterBar, useMeasurementFilter } from '@/features/measurement-filter';
 import { useSelectedSiteId } from '@/features/site-selection';
+import { useInstruments } from '@/features/site-provisioning';
 import { useDischargeLimits } from '@/features/discharge-limit-settings';
 import { WaterQualityGrid } from '@/widgets/water-quality-grid';
 import { BucketReportPanel } from '@/widgets/bucket-report';
@@ -49,6 +50,7 @@ export function TimeseriesView() {
   const site = getSite(siteId);
   /* 사용자가 설정한 기준치와 사업장 분류. `site`의 두 축을 직접 읽으면 설정 후에도 `미확인`이 남는다 */
   const limits = useDischargeLimits();
+  const instruments = useInstruments();
 
   /*
    * **`status`도 받는다** `[사용자 지적 2026-09-07]`. 첫 응답이 오기 전에는 값이 없고
@@ -96,6 +98,7 @@ export function TimeseriesView() {
       >
         {/* 여기는 필터가 고른 항목 하나뿐이라 소절 제목을 두지 않는다 */}
         <WaterQualityGrid
+          absentCodes={instruments.absent}
           pending={seriesPending}
           data={view.points}
           sections={[{ codes: filter.codes }]}
@@ -112,6 +115,7 @@ export function TimeseriesView() {
        * 다른 값으로 보인다(E1).
        */}
       <BucketReportPanel
+        absentCodes={instruments.absent}
         pending={seriesPending}
         points={view.points}
         codes={filter.codes}

@@ -5,7 +5,7 @@
 | 항목 | 내용 |
 |------|------|
 | 문서명 | 문서 색인 |
-| 버전 | v1.5.0 |
+| 버전 | v1.6.0 |
 | 작성일 | 2026-08-06 |
 | 기반 문서 | /docs/applications/HSKorea_AI_Application_Proposal.pdf, /docs/applications/AIoT_Emission_Control_System.pdf |
 
@@ -13,6 +13,7 @@
 
 | 버전 | 날짜 | 작성자 | 변경 내용 |
 |------|------|--------|-----------|
+| v1.6.0 | 2026-09-28 | Claude | **[analysis/demonstration-sites.md](analysis/demonstration-sites.md) 등록** `[사용자 요청 2026-09-28]` — 주관사 현장조사(2026-09-11)로 실증 **1차 5개소**가 선정됐다. 원문도 우리 설계도 아닌 **제3의 근거**라 §2 구성표의 `applications/` 행에 그 성격을 적고 §3.1에 분석 문서를 등재했다. 이 문서가 저장소의 기존 전제를 **일곱 곳에서 뒤집는다**(측정 지점·색도·TN·TP 실측·설비 대수·전력 수집 범위·지역/관할·업종) — **화면과 fixture에는 반영하지 않는다** `[사용자 결정 2026-09-28: 실 데이터 연동 전까지는 내용만 참고]`. `[TBD-60]`·`[TBD-61]` 신설 |
 | v1.5.0 | 2026-08-27 | Claude | §3.4에 [integration/README.md](integration/README.md) 등록 — 계측 서버에 실제로 붙이면서 만든 **우리 쪽 구조** 문서다. PDF는 저쪽 계약이고 이 문서는 계층·자격증명 위치·폴백 규약을 적는다 |
 | v1.0.0 | 2026-08-06 | Claude | 신규 작성 — 원문 분석 산출 문서 7종의 목적·범위·참조 순서 정리 |
 | v1.1.0 | 2026-08-06 | Claude | 문서 디렉터리 재구성 반영 — 분석 문서 5종을 `analysis/`, 설계 착수용 문서 2종을 `requirements/`로 이동하고 전 문서 상호 참조 경로 갱신. §2에 디렉터리 구조도 추가 |
@@ -41,7 +42,7 @@ docs/
 
 | 구분 | 경로 | 성격 |
 |------|------|------|
-| 원문(기반 문서) | [applications/](applications/) | `HSKorea_AI_Application_Proposal.pdf`(사업계획서, 121p), `AIoT_Emission_Control_System.pdf`(발표자료, 52p) |
+| 원문(기반 문서) | [applications/](applications/) | `HSKorea_AI_Application_Proposal.pdf`(사업계획서, 121p), `AIoT_Emission_Control_System.pdf`(발표자료, 52p). **원문 외 주관사 자료도 이 폴더에 온다** — `실증지현장조사_…_20260911.xlsx`(1차 선정 5개소)는 원문이 아니라 **현장조사 결과**이고, 분석은 [analysis/demonstration-sites.md](analysis/demonstration-sites.md)에 있다 |
 | 분석 결과 | [analysis/](analysis/) | 원문에 **있는 것**을 정리. 5종 |
 | 설계 착수용 | [requirements/](requirements/) | 원문이 요구하는 기능과, 원문이 **정하지 않은 것**. 2종 |
 | **설계 명세** | [specs/](specs/) | 구현한 화면·요구사항·데이터를 **근거 표기와 함께** 확정. 산출물 xlsx 3종의 원천 |
@@ -67,13 +68,14 @@ docs/
 | [ai-model-spec.md](analysis/ai-model-spec.md) | AI 4종(AutoEncoder/LSTM/RandomForest/XMARL-PPO)과 보유 기술 2종의 입력·처리·출력·성능목표, XAI, 업종별 특화, 성능 종합표 | AI 산출값의 의미·범위 확인 |
 | [data-dictionary.md](analysis/data-dictionary.md) | 수질 8항목·설비 3항목의 단위·정확도·측정 범위·교정 주기, 수집·전송·보존 규격, AI 산출 데이터 규격, H/W 성능지표 19항목 | 데이터 항목·단위·표시 규칙 확인 |
 | [glossary.md](analysis/glossary.md) | 원문에 등장하는 약어·용어·단위, 원문 내 표기 흔들림과 오탈자 | 용어 통일 |
+| [demonstration-sites.md](analysis/demonstration-sites.md) | **실증 1차 선정 5개소의 현장조사 결과** — 업종·종별·처리공정·방류 특성, 측정 지점과 수질 항목, 유량계·전력·운전신호 수집 방안, 저장소의 기존 전제를 뒤집는 일곱 곳 | 실 데이터 연동을 준비하거나, 계측 구성·설비 대수·항목 집합의 **실제 값**을 확인할 때 |
 
 ### 3.2 `requirements/` — 설계 착수용
 
 | 문서 | 담는 내용 | 주로 쓰는 상황 |
 |------|-----------|----------------|
 | [functional-requirements.md](requirements/functional-requirements.md) | 원문이 "시스템이 제공한다"고 명시한 기능만 정리(FR-01~FR-42), 사용자·권한, 알람·경보, 운영 시나리오, 비기능 요구 | **화면 기획·설계의 입력 자료** |
-| [source-inconsistencies.md](requirements/source-inconsistencies.md) | 원문 간 모순 93건(INC), 원문 미정의 항목 39건(TBD), 추출 불가 대상, 확인 절차 | **설계 착수 전 사용자 확인 목록** |
+| [source-inconsistencies.md](requirements/source-inconsistencies.md) | 원문 간 모순 **111건**(INC), 원문 미정의 항목 **61건**(TBD), 추출 불가 대상, 확인 절차 | **설계 착수 전 사용자 확인 목록** |
 
 ### 3.3 `specs/` — 설계 명세
 

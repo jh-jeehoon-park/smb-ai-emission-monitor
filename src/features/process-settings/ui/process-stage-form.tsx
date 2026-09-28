@@ -108,13 +108,16 @@ export function ProcessStageForm({ siteId }: { siteId: string }) {
         * **되돌릴 것이 없으면 줄 자체를 그리지 않는다.** 버튼만 감추던 판본은 안내 문단이
         * 이 줄을 늘 채우고 있어서 괜찮았는데, 그 문단이 제목 옆 툴팁으로 가자 위쪽 테두리만
         * 남아 **빈 가로선**이 됐다.
+        *
+        * **좁은 화면에서만 40px을 채운다**(`min-h-10 lg:min-h-0`) — 글자 12px + `py-1`이면
+        * 실높이가 28px이라 손가락 최소를 밑돈다. `lg` 이상은 한 픽셀도 달라지지 않는다.
         */}
       {isUserSet && (
         <div className="flex justify-end border-t border-border pt-2.5">
           <button
             type="button"
             onClick={() => reset(siteId)}
-            className="shrink-0 cursor-pointer rounded-[3px] border border-border px-2 py-1 text-[12px] text-fg-subtle transition-colors duration-200 hover:border-border-strong hover:text-fg"
+            className="inline-flex min-h-10 shrink-0 cursor-pointer items-center rounded-[3px] border border-border px-2 py-1 text-[12px] text-fg-subtle transition-colors duration-200 hover:border-border-strong hover:text-fg lg:min-h-0"
           >
             표준 공정으로 되돌리기
           </button>

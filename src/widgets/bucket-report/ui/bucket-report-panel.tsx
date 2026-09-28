@@ -1,9 +1,10 @@
 'use client';
 
 import { Download } from 'lucide-react';
-import { MEASUREMENT_ITEMS } from '@/shared/config/measurement';
+import { MEASUREMENT_ITEMS , type MeasurementItemCode } from '@/shared/config/measurement';
 import { downloadCsv } from '@/shared/lib/csv';
 import { formatClock, formatValue } from '@/shared/lib/format';
+import { ABSENT_ITEM_LABEL } from '@/features/site-provisioning';
 import { Panel } from '@/shared/ui/panel';
 import { InfoTip } from '@/shared/ui/tooltip';
 import { SegmentedControl } from '@/shared/ui/segmented-control';
@@ -43,6 +44,7 @@ import { ACTION_BUTTON_QUIET } from '@/shared/ui/action-button';
 export function BucketReportPanel({
   points,
   codes,
+  absentCodes = [],
   hours,
   unit,
   stat,
@@ -54,6 +56,13 @@ export function BucketReportPanel({
 }: {
   points: MeasurementPoint[];
   codes: readonly SeriesCode[];
+  /**
+   * 이 사업장에 **장비가 없는** 항목 `[사용자 요청 2026-09-28]` `[TBD-61]`.
+   *
+   * **열을 지우지 않는다** — 열 머리가 곧 항목이라, 빼면 «그 항목을 재지 않는다»는 사실이
+   * 표에서 사라진다. 칸에 그렇게 적는다(수질 격자의 「미설치」 카드와 같은 말).
+   */
+  absentCodes?: readonly MeasurementItemCode[];
   /** 볼 구간. 리포트 화면의 기간 필터가 이 값을 정한다 */
   hours: number;
   unit: BucketUnit;
@@ -102,7 +111,7 @@ export function BucketReportPanel({
             onClick={() =>
               downloadCsv(
                 `${siteName}_구간집계_${STAT_LABELS[stat]}_${baseIso.slice(0, 10)}.csv`,
-                bucketReportToCsv(rows, codes, stat),
+                bucketReportToCsv(rows, codes, stat, absentCodes),
               )
             }
             className={ACTION_BUTTON_QUIET}
@@ -113,7 +122,7 @@ export function BucketReportPanel({
         </div>
       }
     >
-      <BucketTable rows={rows} codes={codes} stat={stat} pending={pending} />
+      <BucketTable rows={rows} codes={codes} absentCodes={absentCodes} stat={stat} pending={pending} />
     </Panel>
   );
 }
@@ -121,11 +130,13 @@ export function BucketReportPanel({
 function BucketTable({
   rows,
   codes,
+  absentCodes,
   stat,
   pending,
 }: {
   rows: BucketRow[];
   codes: readonly SeriesCode[];
+  absentCodes: readonly MeasurementItemCode[];
   stat: BucketStat;
   pending: boolean;
 }) {
@@ -172,9 +183,22 @@ function BucketTable({
                 {formatClock(row.startIso)}
               </th>
               {codes.map((code) => (
-                <td key={code} className="num px-3 py-3.5 text-center text-fg">
-                  {/* 구간 전체가 결측이면 값이 아니라 사실을 적는다(E4) */}
-                  {formatValue(code, row.values[code] ?? null)}
+                <td
+                  key={code}
+                  className={
+                    absentCodes.includes(code)
+                      ? 'num px-3 py-3.5 text-center text-fg-subtle'
+                      : 'num px-3 py-3.5 text-center text-fg'
+                  }
+                >
+                  {/*
+                   * **셋을 가려 말한다.** 장비가 없으면 「미설치」, 구간 전체가 결측이면 값이
+                   * 아니라 그 사실을(E4), 값이 있으면 값을 적는다. 미설치 칸에 숫자를 적으면
+                   * 재지도 않은 값을 표가 주장하게 된다.
+                   */}
+                  {absentCodes.includes(code)
+                    ? ABSENT_ITEM_LABEL
+                    : formatValue(code, row.values[code] ?? null)}
                 </td>
               ))}
               <td className="num px-3 py-3.5 text-center text-fg-subtle">
