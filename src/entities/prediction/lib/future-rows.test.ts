@@ -79,7 +79,7 @@ describe('기준이 없는 계열', () => {
   it('기준이 있으면 값이 찬다', () => {
     const table: DischargeLimitTable = {
       ...DISCHARGE_LIMITS,
-      TOC: { min: null, max: 10, source: '테스트', unavailableReason: null },
+      TOC: { min: null, max: 10, source: '테스트', unavailableReason: null, basis: 'legal' as const },
     };
     const rows = buildOverlayRows([THREE], table);
     expect(rows.every((row) => typeof row.TOC === 'number')).toBe(true);

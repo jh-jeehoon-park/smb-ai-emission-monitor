@@ -146,3 +146,49 @@ describe('사업장 설정 — 닫힌 탭을 주소로 넣어도 자기 탭으�
     }
   });
 });
+
+/**
+ * **방류 기준치는 «입력»과 «적용 결과» 두 벌을 그린다**
+ * `[사용자 요청 2026-09-28: 설정 재설계 검토]`.
+ *
+ * 세 역할이 같은 표를 직접 고치던 판본은 마지막에 저장한 쪽이 이겼고, 저장소에 사업장 축이
+ * 없어 한 사업장에 넣은 값이 같은 분류의 다른 사업장에도 적용됐다(실측). 입력은 한 주체가
+ * 맡고 나머지는 적용 결과를 본다.
+ *
+ * **둘 다 마크업에 있어야 한다** — `useRole()`로 갈랐다가 하이드레이션이 두 번 깨졌다.
+ */
+describe('방류 기준치 — 입력과 조회를 가른다', () => {
+  it('두 벌이 다 마크업에 있고 각자 role-hide를 단다', () => {
+    const { container } = draw('site', '?tab=limits');
+
+    const editor = container.querySelector('.role-hide-site.role-hide-gov');
+    const applied = container.querySelector('.role-hide-system');
+
+    expect(editor, '입력 칸은 사업장·기초지자체에게 가려진다').toBeTruthy();
+    expect(applied, '적용 결과는 시스템 관리자에게 가려진다').toBeTruthy();
+  });
+
+  /** 적용 결과 표는 **법정 점검 5항목**을 그대로 적는다 — SS는 계측이 없어도 자리를 지킨다 */
+  it('적용 결과 표가 5항목을 적는다', () => {
+    const { container } = draw('site', '?tab=limits');
+    const text = container.textContent ?? '';
+
+    for (const label of ['TOC', 'SS', 'T-N', 'T-P', 'pH']) {
+      expect(text, label).toContain(label);
+    }
+  });
+
+  /**
+   * **분류가 없으면 입력 칸을 열지 않는다.** 열려 있던 판본은 규모 세그먼트가
+   * 「2,000㎥ 이상」으로 선택된 채 떠서, 넣은 값이 **다른 시트에 저장돼** 영영 읽히지
+   * 않았다(실측).
+   */
+  it('분류가 없으면 입력 칸 대신 무엇을 해야 하는지 적는다', () => {
+    const { container } = draw('system', '?tab=limits');
+    const text = container.textContent ?? '';
+
+    expect(text).toContain('시스템 관리자가 「사업장 분류」에서 먼저 골라야 합니다');
+    /* 지역구분 행이 있으면 입력 표가 열린 것이다 */
+    expect(container.querySelector('[aria-label="1일 폐수배출량 규모"]')).toBeNull();
+  });
+});

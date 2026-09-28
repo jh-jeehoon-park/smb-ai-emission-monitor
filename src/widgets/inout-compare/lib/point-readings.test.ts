@@ -197,10 +197,11 @@ describe('기준은 걸리는 항목에만', () => {
   it('넘겨준 기준표를 쓴다', () => {
     const c = buildCompare(points, [], {
       ...DISCHARGE_LIMITS,
-      TOC: { min: null, max: 5, source: '사업장 허가증 입력값', unavailableReason: null },
+      TOC: { min: null, max: 5, source: '사업장 허가증 입력값', unavailableReason: null, basis: 'legal' as const },
     });
     const toc = outletOf(c, 'TOC');
-    expect(toc.limitText).toBe('≤ 5.0');
+    /* 라벨이 숫자와 함께 온다 — 시연 임계값이면 「시연 임계」가 붙는다 `[2026-09-28]` */
+    expect(toc.limitText).toBe('기준 ≤ 5.0');
     expect(toc.overLimit).not.toBeNull();
   });
 });

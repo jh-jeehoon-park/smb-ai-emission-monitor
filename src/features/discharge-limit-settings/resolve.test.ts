@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { DISCHARGE_LIMITS, hasLimit, isOverLimit } from '@/shared/config/discharge-limits';
+import {
+  DISCHARGE_LIMITS,
+  checkLimit,
+  hasAnyLimit,
+  hasLimit,
+  isOverLimit,
+} from '@/shared/config/discharge-limits';
 import { UNRESOLVED_REASONS } from './config/constants';
 import { resolveLimitTable } from './lib/resolve';
 import { parseSheets, validEntry, type LimitSheets } from './lib/storage';
@@ -16,13 +22,37 @@ describe('사업장 분류가 없으면', () => {
    * **시연 기본값이 얹힌다** `[사용자 결정 2026-08-25]` `[PROVISIONAL]`. 법정 표
    * (`DISCHARGE_LIMITS`)는 그대로 두고 *"사용자가 이미 넣어 둔 상태"* 를 만든다 —
    * 그래야 기준 대비 판정이 시연에서 동작한다.
+   *
+   * **이 검사가 한때 `hasLimit('TOC', table)).toBe(true)`를 기대했다**
+   * `[사용자 요청 2026-09-28: 설정 재설계 검토]`. 그 기대가 정확히 결함을 잠그고 있었다 —
+   * 시연 임계값이 법정 판정 자격을 얻어 화면이 「기준보다 높음 · 사업장이 설정한 기준치로
+   * 판정」이라 적었다(실측). 값이 얹히는 것은 그대로 두고 **판정 자격만** 뗀다.
    */
-  it('시연 기본값을 얹되 무엇을 해야 하는지 적는다', () => {
+  it('시연 기본값을 얹되 법정 판정 자격은 주지 않는다', () => {
     const { table, unresolvedReason, isUserSet } = resolveLimitTable(null, NOTHING, null);
     expect(table).not.toBe(DISCHARGE_LIMITS);
-    expect(hasLimit('TOC', table)).toBe(true);
+
+    /* 값은 있다 — 차트가 선을 그을 수 있다 */
+    expect(hasAnyLimit('TOC', table)).toBe(true);
+    /* 그러나 법정 판정은 하지 않는다 */
+    expect(hasLimit('TOC', table)).toBe(false);
+    expect(isOverLimit('TOC', 41, table)).toBeNull();
+
+    /* 시연 축에서는 넘었다고 말할 수 있다 — 문구가 그 사실을 밝히는 것은 화면의 몫이다 */
+    expect(checkLimit('TOC', 41, table)).toEqual({ over: true, basis: 'provisional' });
+    expect(checkLimit('TOC', 39, table)).toEqual({ over: false, basis: 'provisional' });
+
     expect(unresolvedReason).toBe(UNRESOLVED_REASONS.noClassification);
     expect(isUserSet).toBe(false);
+  });
+
+  /** pH는 시연값이 아니라 `[공정자료 p.11]`이 준 값이라 **분류 없이도 법정 판정을 한다** */
+  it('pH는 분류가 없어도 법정 판정을 한다', () => {
+    const { table } = resolveLimitTable(null, NOTHING, null);
+
+    expect(hasLimit('pH', table)).toBe(true);
+    expect(isOverLimit('pH', 8.61, table)).toBe(true);
+    expect(checkLimit('pH', 8.61, table).basis).toBe('legal');
   });
 
   /**

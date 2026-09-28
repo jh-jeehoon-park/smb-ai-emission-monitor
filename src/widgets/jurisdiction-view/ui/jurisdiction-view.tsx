@@ -25,7 +25,7 @@ import {
 import { SERIES_WINDOW_HOURS, getForecast, toMeasuredSeries } from '@/entities/prediction';
 import { GOV_MUNICIPALITY } from '@/entities/user';
 import { getSite } from '@/entities/site';
-import { useDischargeLimits } from '@/features/discharge-limit-settings';
+import { useDischargeLimits, useDischargeLimitsBySite } from '@/features/discharge-limit-settings';
 import { useInstruments , useMetering} from '@/features/site-provisioning';
 import { ALL_ALARMS, useAlarmStates } from '@/features/alarm-ack';
 import {
@@ -74,14 +74,21 @@ export function JurisdictionView() {
   }, [allAlarms, sites]);
 
   /* 관내 사업장 전부의 계열이 한 번에 필요하다 — 표의 기준 초과 건수가 계열에서 나온다 */
-  const seriesBySite = useSitesSeries(useMemo(() => sites.map((s) => s.id), [sites]));
+  const siteIds = useMemo(() => sites.map((s) => s.id), [sites]);
+  const seriesBySite = useSitesSeries(siteIds);
+  /*
+   * **기준도 사업장 수만큼 필요하다** `[사용자 요청 2026-09-28: 설정 재설계 검토]`.
+   * 위 `limits`는 **지금 고른 사업장** 것이라 상세 패널에만 쓴다 — 관내 목록에 그것을
+   * 넘기면 A를 골랐다는 이유로 B가 A의 기준으로 판정된다.
+   */
+  const { limitsOf } = useDischargeLimitsBySite(siteIds);
 
   const rows = useMemo(
     () =>
       buildSupervisionRows(
         sites,
         inMunicipality,
-        limits.table,
+        limitsOf,
         pointsBySite(seriesBySite),
         /* 대기 중인 사업장은 판정하지 않는다 — 빈 계열을 세면 «초과 0건»이 된다 */
         new Set(
@@ -90,7 +97,7 @@ export function JurisdictionView() {
             .map(([id]) => id),
         ),
       ),
-    [sites, inMunicipality, limits.table, seriesBySite],
+    [sites, inMunicipality, limitsOf, seriesBySite],
   );
 
   /*
@@ -123,7 +130,12 @@ export function JurisdictionView() {
   const idle = tallyIdleDischarge(rows.map((row) => ({ siteId: row.site.id, runs: row.idleRuns })));
   /* 감독자가 세는 단위는 건수가 아니라 **사업장**이다 */
   const needsAction = rows.filter(
-    (row) => row.status === null || row.openAlarms > 0 || (row.overLimit ?? 0) > 0,
+    /* 시연 임계 초과도 «봐야 할 줄»에 넣는다 — 법정 판정은 아니지만 값이 튄 사실은 맞다 */
+    (row) =>
+      row.status === null ||
+      row.openAlarms > 0 ||
+      (row.overLimit ?? 0) > 0 ||
+      (row.overProvisional ?? 0) > 0,
   ).length;
 
   return (

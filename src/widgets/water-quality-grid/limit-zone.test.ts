@@ -4,7 +4,7 @@ import { limitZone } from './lib/limit-zone';
 
 const USER_MAX = {
   ...DISCHARGE_LIMITS,
-  TOC: { min: null, max: 40, source: '사업장 설정', unavailableReason: null },
+  TOC: { min: null, max: 40, source: '사업장 설정', unavailableReason: null, basis: 'legal' as const },
 };
 
 describe('기준에 맞춘 y축', () => {

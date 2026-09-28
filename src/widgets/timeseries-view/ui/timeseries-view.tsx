@@ -7,7 +7,7 @@ import { useMemo } from 'react';
 import {
   LEGAL_CHECK_ITEMS,
   UNRESOLVED_LIMIT_TEXT,
-  formatLimitRange,
+  formatLimitWithLabel,
   type DischargeLimitTable,
 } from '@/shared/config/discharge-limits';
 import { COLLECTION_INTERVAL_MINUTES, MEASUREMENT_ITEMS } from '@/shared/config/measurement';
@@ -206,7 +206,8 @@ function limitText(code: SeriesCode, decimals: number, table: DischargeLimitTabl
   const limit = table[code];
   if (!limit) return '—';
   /* 상한만 있는 항목도 값이 있으면 적는다 — `≤ 40.0` 꼴 */
-  return formatLimitRange(limit, decimals) ?? UNRESOLVED_LIMIT_TEXT;
+  /* 라벨을 함께 받는다 — 시연 임계값을 「기준」이라 부르지 않는다 */
+  return formatLimitWithLabel(limit, decimals) ?? UNRESOLVED_LIMIT_TEXT;
 }
 
 /**

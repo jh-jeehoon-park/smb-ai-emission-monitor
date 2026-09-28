@@ -5,7 +5,7 @@ import type { ForecastSummary } from '../model/types';
 
 const WITH_TOC: DischargeLimitTable = {
   ...DISCHARGE_LIMITS,
-  TOC: { min: null, max: 40, source: '테스트', unavailableReason: null },
+  TOC: { min: null, max: 40, source: '테스트', unavailableReason: null, basis: 'legal' as const },
 };
 
 describe('기준 대비 비율', () => {
@@ -33,7 +33,7 @@ describe('기준 대비 비율', () => {
   /** 나눗셈이 무한대가 되는 자리 — 화면에서는 축이 통째로 무너진다 */
   it('기준이 0이면 판정하지 않는다', () => {
     const zero: DischargeLimitTable = {
-      TOC: { min: null, max: 0, source: '테스트', unavailableReason: null },
+      TOC: { min: null, max: 0, source: '테스트', unavailableReason: null, basis: 'legal' as const },
     };
     expect(toLimitPercent(20, 'TOC', zero)).toBeNull();
   });

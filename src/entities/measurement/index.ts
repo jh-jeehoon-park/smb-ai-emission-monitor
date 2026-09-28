@@ -40,7 +40,7 @@ export { intervalLabel } from './lib/interval-label';
 export { outageNotice } from './lib/outage-notice';
 export { isReceptionStalled } from './lib/reception';
 export { buildBucketReport, bucketReportToCsv, type BucketRow } from './lib/bucket-report';
-export { countOverLimit } from './lib/limit';
+export { countOverLimit, type OverLimitCount } from './lib/limit';
 export { isSeriesCode } from './lib/series-code';
 export { changeRatePercent, isSimilar, isTreatmentJudged } from './lib/inlet-quality';
 export type { SeriesBucket, SeriesStats } from './lib/series-stats';

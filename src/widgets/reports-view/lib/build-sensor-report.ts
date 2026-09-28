@@ -1,5 +1,5 @@
 import type { DischargeLimitTable } from '@/shared/config/discharge-limits';
-import { isOverLimit } from '@/shared/config/discharge-limits';
+import { checkLimit, isOverLimit } from '@/shared/config/discharge-limits';
 import { MEASUREMENT_ITEMS } from '@/shared/config/measurement';
 import { csvCell, toCsvText } from '@/shared/lib/csv';
 import {
@@ -112,7 +112,7 @@ export function buildEstimateReport(
     code: trend.code,
     label: trend.label,
     origin: trend.origin,
-    verdict: trendVerdict(trend, isOverLimit(trend.code, trend.value, limits), unresolvedReason),
+    verdict: trendVerdict(trend, checkLimit(trend.code, trend.value, limits), unresolvedReason),
     trend: trend.trend,
   }));
 }

@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import { Area, AreaChart, ResponsiveContainer, Tooltip, YAxis } from 'recharts';
 import {
+  LIMIT_LABEL,
   UNRESOLVED_LIMIT_TEXT,
   formatLimitRange,
   type DischargeLimitTable,
@@ -26,6 +27,7 @@ import { RiseItem, StaggerGroup } from '@/shared/ui/motion';
 import {
   countOverLimit,
   isSeriesCode,
+  type OverLimitCount,
   type MeasurementPoint,
   type SeriesCode,
   isReceptionStalled,
@@ -576,7 +578,7 @@ function LimitNote({
 }: {
   code: SeriesCode;
   zone: LimitZone | null;
-  overCount: number | null;
+  overCount: OverLimitCount | null;
   decimals: number;
   table?: DischargeLimitTable;
 }) {
@@ -587,14 +589,22 @@ function LimitNote({
   if (!limit) return null;
 
   const range = formatLimitRange(limit, decimals);
-  if (!zone || overCount === null || range === null) {
+  if (!zone || !overCount || overCount.count === null || range === null) {
     return <p className="mt-1 truncate text-[12px] text-fg-subtle">{UNRESOLVED_LIMIT_TEXT}</p>;
   }
 
+  /*
+   * **시연 임계값을 「기준」이라 부르지 않는다** `[사용자 요청 2026-09-28]`. 출처는
+   * `title` 안에 있어 화면을 훑는 사람에게 닿지 않는다 — 낱말 자체가 갈려야 한다.
+   */
+  const label = overCount.basis === 'none' ? LIMIT_LABEL.legal : LIMIT_LABEL[overCount.basis];
+
   return (
     <p className="mt-1 truncate text-[12px] text-fg-subtle" title={limit.source}>
-      <span className="num">기준 {range}</span>{' '}
-      · {overCount === 0 ? '초과 없음' : `초과 ${overCount}건`}
+      <span className="num">
+        {label} {range}
+      </span>{' '}
+      · {overCount.count === 0 ? '초과 없음' : `초과 ${overCount.count}건`}
     </p>
   );
 }

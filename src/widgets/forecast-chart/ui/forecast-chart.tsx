@@ -255,11 +255,19 @@ export function ForecastLimitNote({
 }) {
   const limit = limits[code];
   if (!limit) return null;
-  if (limit.unavailableReason === null) return null;
+
+  /*
+   * **시연 임계값일 때도 고지한다** `[사용자 요청 2026-09-28: 설정 재설계 검토]`.
+   * 한때 `unavailableReason === null`이면 조용히 빠졌는데, 시연 임계값이 바로 그 상태라
+   * 차트가 선을 긋고도 그것이 법정 기준이 아니라는 말을 하지 않았다.
+   */
+  if (limit.unavailableReason === null && limit.basis === 'legal') return null;
 
   return (
     <p className="mt-1.5 px-1 text-[12px] text-fg-subtle">
-      {UNRESOLVED_LIMIT_TEXT} — 초과 가능성은 판정하지 않는다
+      {limit.unavailableReason === null
+        ? '시연 임계값 — 법정 배출허용기준 초과 가능성은 판정하지 않는다'
+        : `${UNRESOLVED_LIMIT_TEXT} — 초과 가능성은 판정하지 않는다`}
     </p>
   );
 }

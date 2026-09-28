@@ -1,7 +1,9 @@
 'use client';
 
 import {
+  LIMIT_LABEL,
   UNRESOLVED_LIMIT_TEXT,
+  checkLimit,
   formatLimitRange,
   type DischargeLimit,
   type DischargeLimitTable,
@@ -26,6 +28,14 @@ import { WallSpark } from './wall-spark';
 /** 기준을 넘지 않은 항목. 등급 색과 같은 축이라 새 색을 만들지 않는다 */
 const WITHIN_LIMIT = STATUS_VISUAL.normal.hex;
 const OVER_LIMIT = STATUS_VISUAL.critical.hex;
+
+/**
+ * **시연 임계값을 넘었을 때의 색** `[사용자 요청 2026-09-28: 설계 재설계 검토]`.
+ *
+ * 위험(`critical`)은 법정 위반이 얻는 색이다. 시연 임계값 초과에 그 색을 주면 2~3m 밖에서
+ * 보는 사람에게 **법정 초과와 구별되지 않는다** — 이 화면은 글자가 아니라 색으로 읽힌다.
+ */
+const OVER_PROVISIONAL = STATUS_VISUAL.caution.hex;
 
 /**
  * 판정할 수 없는 항목. **상태색을 쓰지 않는다** — 등급을 모르는데 초록을 칠하면 정상 주장이다.
@@ -76,8 +86,20 @@ export function QualityCell({
 
   const judged = limitText !== null && limit !== undefined;
   const track = judged ? limitTrack(limit) : observed;
-  const over = judged && latest !== null && overLimit(limit, latest);
-  const color = !judged ? UNJUDGED : over ? OVER_LIMIT : WITHIN_LIMIT;
+  /*
+   * **판정을 이 파일에서 다시 만들지 않는다** `[사용자 요청 2026-09-28]`. 한때 여기
+   * `overLimit(limit, value)`라는 제 판본이 있었고, 그것이 `basis`를 몰라 **시연 임계값
+   * 초과를 위험 색으로 칠했다** — 「기준 판정은 중앙화한다」를 스스로 어긴 자리였다.
+   */
+  const check = judged ? checkLimit(code, latest, limits) : { over: null, basis: 'none' as const };
+  const color =
+    check.over === null
+      ? UNJUDGED
+      : check.over
+        ? check.basis === 'legal'
+          ? OVER_LIMIT
+          : OVER_PROVISIONAL
+        : WITHIN_LIMIT;
 
   return (
     <article
@@ -124,8 +146,19 @@ export function QualityCell({
       <p className={cn('mt-2 truncate text-fg-subtle', WALL_META)}>
         {judged ? (
           <>
-            기준 <span className="num font-bold text-fg-muted">{limitText}</span>
-            {over && <span className="ml-1.5 font-bold text-critical-ink">초과</span>}
+            {/* 시연 임계값을 「기준」이라 부르지 않는다 — 2~3m 밖에서는 이 낱말만 읽힌다 */}
+            {check.basis === 'none' ? LIMIT_LABEL.legal : LIMIT_LABEL[check.basis]}{' '}
+            <span className="num font-bold text-fg-muted">{limitText}</span>
+            {check.over === true && (
+              <span
+                className={cn(
+                  'ml-1.5 font-bold',
+                  check.basis === 'legal' ? 'text-critical-ink' : 'text-caution-ink',
+                )}
+              >
+                초과
+              </span>
+            )}
           </>
         ) : observed !== null ? (
           <>
@@ -151,11 +184,6 @@ function limitTrack(limit: DischargeLimit): [number, number] | null {
   if (min !== null && max !== null) return [min, max];
   if (max !== null) return [0, max];
   return null;
-}
-
-function overLimit(limit: DischargeLimit, value: number): boolean {
-  if (limit.max !== null && value > limit.max) return true;
-  return limit.min !== null && value < limit.min;
 }
 
 /**

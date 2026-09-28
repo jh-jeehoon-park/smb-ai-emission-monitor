@@ -8,7 +8,7 @@ import {
   useSyncExternalStore,
   type ReactNode,
 } from 'react';
-import { readJson, readUpdatedIso, removeKey, writeJson } from '@/shared/lib/local-store';
+import { readJson, readUpdatedIso, writeJson } from '@/shared/lib/local-store';
 import { CLASSIFICATION_STORAGE_KEY, LIMIT_STORAGE_KEY } from '../config/constants';
 import {
   parseClassification,
@@ -24,7 +24,6 @@ interface LimitSettingsStore {
   updatedIso: string | null;
   setSheets: (next: LimitSheets) => void;
   setClassification: (siteId: string, next: SiteClassification) => void;
-  reset: () => void;
 }
 
 const LimitSettingsContext = createContext<LimitSettingsStore | null>(null);
@@ -112,12 +111,6 @@ export function LimitSettingsProvider({ children }: { children: ReactNode }) {
     emit();
   }, []);
 
-  const reset = useCallback(() => {
-    removeKey(LIMIT_STORAGE_KEY);
-    removeKey(CLASSIFICATION_STORAGE_KEY);
-    emit();
-  }, []);
-
   const value = useMemo(
     () => ({
       sheets: store.sheets,
@@ -125,9 +118,8 @@ export function LimitSettingsProvider({ children }: { children: ReactNode }) {
       updatedIso: store.updatedIso,
       setSheets,
       setClassification,
-      reset,
     }),
-    [store, setSheets, setClassification, reset],
+    [store, setSheets, setClassification],
   );
 
   return <LimitSettingsContext.Provider value={value}>{children}</LimitSettingsContext.Provider>;

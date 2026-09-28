@@ -1,7 +1,8 @@
 import {
+  LIMIT_LABEL,
   UNRESOLVED_LIMIT_TEXT,
-  formatLimitRange,
-  isOverLimit,
+  checkLimit,
+  formatLimitWithLabel,
   type DischargeLimitTable,
 } from '@/shared/config/discharge-limits';
 import { MEASUREMENT_ITEMS } from '@/shared/config/measurement';
@@ -42,22 +43,29 @@ export function statsToCsv(
     rows.map(({ code, stats }) => {
       const item = MEASUREMENT_ITEMS[code];
       const limit = limits[code];
-      const over = isOverLimit(code, stats.latest, limits);
+      const check = checkLimit(code, stats.latest, limits);
 
       return [
         item.label,
         item.symbol,
         item.unit || '—',
         /* 기준이 없으면 빈 칸이 아니라 이유다 — 빈 칸은 "기준 0"으로 읽힐 수 있다 */
-        formatLimitRange(limit, item.decimals) ?? UNRESOLVED_LIMIT_TEXT,
+        formatLimitWithLabel(limit, item.decimals) ?? UNRESOLVED_LIMIT_TEXT,
         csvCell(stats.min, item.decimals),
         csvCell(stats.avg, item.decimals),
         csvCell(stats.max, item.decimals),
         csvCell(stats.latest, item.decimals),
         String(stats.missingCount),
         String(stats.totalCount),
-        /* 기준이 없으면 `미판정`이다. `정상`으로 적으면 없는 판정을 만든다(E4) */
-        over === null ? '미판정' : over ? '기준초과' : '기준이내',
+        /*
+         * 기준이 없으면 `미판정`이다. `정상`으로 적으면 없는 판정을 만든다(E4).
+         *
+         * **시연 임계값 판정은 낱말이 다르다** `[사용자 요청 2026-09-28]` — 파일로 나간
+         * 뒤에는 출처 열을 함께 보지 않는 사람이 읽는다. 화면과 파일이 같은 말을 쓴다(E1).
+         */
+        check.over === null
+          ? '미판정'
+          : `${LIMIT_LABEL[check.basis === 'none' ? 'legal' : check.basis]}${check.over ? '초과' : '이내'}`,
       ];
     }),
   );

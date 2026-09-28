@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
   DISCHARGE_LIMITS,
+  checkLimit,
   formatLimitRange,
+  hasAnyLimit,
   hasLimit,
   isOverLimit,
+  type DischargeLimit,
+  type DischargeLimitTable,
 } from './discharge-limits';
 
 describe('기준값 보유 여부', () => {
@@ -84,17 +88,63 @@ describe('기준 표기', () => {
   });
 
   it('상한만 있으면 부등호로 적는다', () => {
-    const limit = { min: null, max: 40, source: '테스트', unavailableReason: null };
+    const limit = { min: null, max: 40, source: '테스트', unavailableReason: null, basis: 'legal' as const };
     expect(formatLimitRange(limit, 1)).toBe('≤ 40.0');
   });
 
   it('하한만 있어도 적는다', () => {
-    const limit = { min: 2, max: null, source: '테스트', unavailableReason: null };
+    const limit = { min: 2, max: null, source: '테스트', unavailableReason: null, basis: 'legal' as const };
     expect(formatLimitRange(limit, 1)).toBe('≥ 2.0');
   });
 
   it('기준을 모르면 null이다 — 소비처가 미확정 문구를 적는다', () => {
     expect(formatLimitRange(DISCHARGE_LIMITS.TOC, 1)).toBeNull();
     expect(formatLimitRange(undefined, 1)).toBeNull();
+  });
+});
+
+/**
+ * **시연 임계값은 법정 판정을 하지 않는다** `[사용자 요청 2026-09-28: 설정 재설계 검토]`.
+ *
+ * 한때 `basis` 축이 없어 «값이 있다»가 곧 «판정할 수 있다»였다. 시연 임계값
+ * (`PROVISIONAL_DEMO_LIMITS`)이 `unavailableReason: null`로 표에 얹히면서 법정 판정
+ * 자격을 함께 얻었고, 화면이 출처에 `법정 기준 아님`이라 적으면서 판정 칸에는
+ * 「기준보다 높음」, 근거 칸에는 「사업장이 설정한 기준치로 판정」을 찍었다(실측).
+ */
+describe('법정과 시연을 가른다', () => {
+  const demo: DischargeLimit = {
+    min: null,
+    max: 40,
+    source: '[시연 기본값] 법정 기준 아님',
+    unavailableReason: null,
+    basis: 'provisional',
+  };
+  const table: DischargeLimitTable = { TOC: demo, pH: DISCHARGE_LIMITS.pH };
+
+  it('시연값으로는 법정 초과를 말하지 않는다', () => {
+    expect(hasLimit('TOC', table)).toBe(false);
+    expect(isOverLimit('TOC', 41, table)).toBeNull();
+    /* 「기준 안」도 말하지 않는다 — 그쪽이 더 위험한 거짓말이다 */
+    expect(isOverLimit('TOC', 1, table)).toBeNull();
+  });
+
+  it('그릴 선은 있다 — 차트는 구간을 그린다', () => {
+    expect(hasAnyLimit('TOC', table)).toBe(true);
+  });
+
+  it('시연 축에서는 넘었는지 말할 수 있다', () => {
+    expect(checkLimit('TOC', 41, table)).toEqual({ over: true, basis: 'provisional' });
+    expect(checkLimit('TOC', 40, table)).toEqual({ over: false, basis: 'provisional' });
+  });
+
+  it('법정값은 그대로 법정으로 판정한다', () => {
+    expect(checkLimit('pH', 8.61, table)).toEqual({ over: true, basis: 'legal' });
+    expect(isOverLimit('pH', 8.61, table)).toBe(true);
+  });
+
+  /** 값이 없는 것과 기준이 없는 것은 **둘 다** 판정 불가이되 `basis`로 가려지지 않는다 */
+  it('판정하지 못하면 basis가 none이다', () => {
+    expect(checkLimit('TOC', null, table)).toEqual({ over: null, basis: 'none' });
+    expect(checkLimit('TN', 10, table)).toEqual({ over: null, basis: 'none' });
   });
 });

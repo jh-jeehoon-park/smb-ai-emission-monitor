@@ -5,7 +5,7 @@
 | 항목 | 내용 |
 |------|------|
 | 문서명 | 문서 색인 |
-| 버전 | v1.6.0 |
+| 버전 | v1.6.1 |
 | 작성일 | 2026-08-06 |
 | 기반 문서 | /docs/applications/HSKorea_AI_Application_Proposal.pdf, /docs/applications/AIoT_Emission_Control_System.pdf |
 
@@ -13,6 +13,7 @@
 
 | 버전 | 날짜 | 작성자 | 변경 내용 |
 |------|------|--------|-----------|
+| v1.6.1 | 2026-09-28 | Claude | TBD 건수 61 → **62** — `[TBD-62]` 허가증 값의 법적 지위 신설 |
 | v1.6.0 | 2026-09-28 | Claude | **[analysis/demonstration-sites.md](analysis/demonstration-sites.md) 등록** `[사용자 요청 2026-09-28]` — 주관사 현장조사(2026-09-11)로 실증 **1차 5개소**가 선정됐다. 원문도 우리 설계도 아닌 **제3의 근거**라 §2 구성표의 `applications/` 행에 그 성격을 적고 §3.1에 분석 문서를 등재했다. 이 문서가 저장소의 기존 전제를 **일곱 곳에서 뒤집는다**(측정 지점·색도·TN·TP 실측·설비 대수·전력 수집 범위·지역/관할·업종) — **화면과 fixture에는 반영하지 않는다** `[사용자 결정 2026-09-28: 실 데이터 연동 전까지는 내용만 참고]`. `[TBD-60]`·`[TBD-61]` 신설 |
 | v1.5.0 | 2026-08-27 | Claude | §3.4에 [integration/README.md](integration/README.md) 등록 — 계측 서버에 실제로 붙이면서 만든 **우리 쪽 구조** 문서다. PDF는 저쪽 계약이고 이 문서는 계층·자격증명 위치·폴백 규약을 적는다 |
 | v1.0.0 | 2026-08-06 | Claude | 신규 작성 — 원문 분석 산출 문서 7종의 목적·범위·참조 순서 정리 |
@@ -75,7 +76,7 @@ docs/
 | 문서 | 담는 내용 | 주로 쓰는 상황 |
 |------|-----------|----------------|
 | [functional-requirements.md](requirements/functional-requirements.md) | 원문이 "시스템이 제공한다"고 명시한 기능만 정리(FR-01~FR-42), 사용자·권한, 알람·경보, 운영 시나리오, 비기능 요구 | **화면 기획·설계의 입력 자료** |
-| [source-inconsistencies.md](requirements/source-inconsistencies.md) | 원문 간 모순 **111건**(INC), 원문 미정의 항목 **61건**(TBD), 추출 불가 대상, 확인 절차 | **설계 착수 전 사용자 확인 목록** |
+| [source-inconsistencies.md](requirements/source-inconsistencies.md) | 원문 간 모순 **111건**(INC), 원문 미정의 항목 **62건**(TBD), 추출 불가 대상, 확인 절차 | **설계 착수 전 사용자 확인 목록** |
 
 ### 3.3 `specs/` — 설계 명세
 

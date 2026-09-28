@@ -5,7 +5,7 @@ import {
 } from '@/shared/config/provisional';
 import {
   UNRESOLVED_LIMIT_TEXT,
-  formatLimitRange,
+  formatLimitWithLabel,
   isOverLimit,
   type DischargeLimitTable,
 } from '@/shared/config/discharge-limits';
@@ -186,7 +186,7 @@ function toReading(
     demo: DEMO_SERIES_CODES.includes(code),
     /* 표에 항목이 있으면 기준이 걸리는 항목이다 — 값이 아직 없어도(`[TBD-45]`) 걸린다 */
     regulated: limit !== undefined,
-    limitText: formatLimitRange(limit, item.decimals),
+    limitText: formatLimitWithLabel(limit, item.decimals),
     overLimit: isOverLimit(code, observed.value, limits),
   };
 }

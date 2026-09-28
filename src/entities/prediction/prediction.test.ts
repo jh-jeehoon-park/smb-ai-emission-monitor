@@ -257,14 +257,43 @@ describe('경향', () => {
 describe('판정 문구', () => {
   const of = (siteId: string) => getForecast(siteId).trends[0]!;
 
+  /** 판정하지 못했다 — 값이 없거나 기준이 없다 */
+  const NONE = { over: null, basis: 'none' } as const;
+  const legal = (over: boolean) => ({ over, basis: 'legal' }) as const;
+  const demo = (over: boolean) => ({ over, basis: 'provisional' }) as const;
+
   it('값이 없으면 기준 유무보다 먼저 수신 없음이다', () => {
-    /* `isOverLimit`이 "값 없음"과 "기준 없음"을 같은 null로 내므로 순서가 뒤집히면 안 된다 */
-    expect(trendVerdict(of('S-04'), null).text).toBe('수신 없음');
+    /* `checkLimit`이 "값 없음"과 "기준 없음"을 같은 `none`으로 내므로 순서가 뒤집히면 안 된다 */
+    expect(trendVerdict(of('S-04'), NONE).text).toBe('수신 없음');
   });
 
   it('기준이 설정되면 기준 대비로 적는다', () => {
-    expect(trendVerdict(of('S-01'), true).text).toBe('기준보다 높음');
-    expect(trendVerdict(of('S-01'), false).text).toBe('기준보다 낮음');
+    expect(trendVerdict(of('S-01'), legal(true)).text).toBe('기준보다 높음');
+    expect(trendVerdict(of('S-01'), legal(false)).text).toBe('기준보다 낮음');
+  });
+
+  /**
+   * **시연 임계값은 «기준»이라 부르지 않는다** `[사용자 요청 2026-09-28: 설정 재설계 검토]`.
+   *
+   * 한때 이 자리가 `boolean | null` 하나여서 시연 임계값 초과가 법정 초과와 **같은 문장**을
+   * 얻었고, 근거 칸에는 사실이 아닌 「사업장이 설정한 기준치로 판정」이 찍혔다(실측).
+   */
+  it('시연 임계값 초과를 법정 기준 초과라 적지 않는다', () => {
+    const verdict = trendVerdict(of('S-01'), demo(true));
+
+    expect(verdict.text).toBe('시연 임계값보다 높음');
+    expect(verdict.text).not.toBe('기준보다 높음');
+    expect(verdict.basis).toContain('법정 배출허용기준 판정이 아닙니다');
+    expect(verdict.basis).not.toContain('사업장이 설정한');
+  });
+
+  /** 위험 색은 법정 위반이 얻는다 — 시연 임계 초과에 주면 등급 축과 법정 축이 같은 말이 된다 */
+  it('시연 임계 초과는 위험 색을 얻지 않는다', () => {
+    const demoInk = trendVerdict(of('S-01'), demo(true)).ink;
+    const legalInk = trendVerdict(of('S-01'), legal(true)).ink;
+
+    expect(demoInk).toBeTruthy();
+    expect(demoInk).not.toBe(legalInk);
   });
 
   /** 두 판정의 단어가 섞이면 관측 기반 판정이 법적 판정으로 읽힌다 */
@@ -273,7 +302,7 @@ describe('판정 문구', () => {
    * `직전 3시간보다 높음`으로 떨어뜨렸는데, 요구는 *기준치보다* 높고 낮음이었다.
    */
   it('기준이 없으면 기준 미설정이라 적고 다른 축을 끌어오지 않는다', () => {
-    const verdict = trendVerdict(of('S-01'), null);
+    const verdict = trendVerdict(of('S-01'), NONE);
     expect(verdict.text).toBe('기준 미설정');
     expect(verdict.text).not.toContain('시간');
   });
@@ -284,9 +313,9 @@ describe('판정 문구', () => {
    * 그쪽을 단정한다 — 빈 칸이면 값이 없는 것으로 읽힌다.
    */
   it('무엇을 해야 하는지가 근거 자리에 온다 — 빈 칸이면 값이 없는 것으로 읽힌다', () => {
-    expect(trendVerdict(of('S-01'), true).basis).toContain('기준치');
-    expect(trendVerdict(of('S-01'), null, '지역구분을 고르세요').basis).toBe('지역구분을 고르세요');
-    expect(trendVerdict(of('S-01'), null).basis).toContain('입력되지 않았습니다');
-    expect(trendVerdict(of('S-01'), null).basis).not.toContain('TBD-');
+    expect(trendVerdict(of('S-01'), legal(true)).basis).toContain('기준치');
+    expect(trendVerdict(of('S-01'), NONE, '지역구분을 고르세요').basis).toBe('지역구분을 고르세요');
+    expect(trendVerdict(of('S-01'), NONE).basis).toContain('입력되지 않았습니다');
+    expect(trendVerdict(of('S-01'), NONE).basis).not.toContain('TBD-');
   });
 });

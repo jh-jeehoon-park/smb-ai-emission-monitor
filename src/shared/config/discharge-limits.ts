@@ -29,6 +29,19 @@ export type DischargeScale = (typeof DISCHARGE_SCALES)[number];
  * 법에는 있다 — `[공정자료 p.11]`이 *"규모·지역별 별도 기준표가 있으며"* 라고 적었다.
  * 값을 지어내면 없는 초과 판정을 만들게 되므로 비워 둔다(`README` §3.1).
  */
+/**
+ * 이 경계값이 **법정 판정에 쓸 수 있는가** `[사용자 요청 2026-09-28: 설정 재설계 검토]`.
+ *
+ * **이 필드가 없어서 화면이 거짓말했다.** 시연 임계값(`PROVISIONAL_DEMO_LIMITS`)이
+ * `unavailableReason: null`로 표에 얹히면 `hasLimit`이 참이 되고 `isOverLimit`이 `true`를
+ * 돌려준다 — 출처 칸에는 `법정 기준 아님`이라 적으면서 판정 칸에는 **「기준보다 높음」**이,
+ * 판정 근거 칸에는 **「사업장이 설정한 기준치로 판정」**이 찍혔다(실측).
+ *
+ * 값의 «있음/없음»과 «법정/시연»은 **다른 축이다.** 한 필드로 겹쳐 두면 둘 중 하나는
+ * 반드시 거짓이 된다.
+ */
+export type LimitBasis = 'legal' | 'provisional';
+
 export interface DischargeLimit {
   /** 하한. pH처럼 양방향 기준이 있는 항목만 값을 갖는다 */
   min: number | null;
@@ -38,6 +51,8 @@ export interface DischargeLimit {
   source: string;
   /** 값이 없는 이유. 있으면 화면이 초과 판정 대신 이 문구를 적는다 */
   unavailableReason: string | null;
+  /** **법정 판정 가능 여부.** `provisional`이면 법정 초과/이내를 말하지 않는다 */
+  basis: LimitBasis;
 }
 
 const NO_LIMIT_TABLE =
@@ -71,10 +86,29 @@ export const DISCHARGE_LIMITS: DischargeLimitTable = {
     max: 8.6,
     source: '통상 적용 범위 · 사업장 허가증 확인 필요',
     unavailableReason: null,
+    basis: 'legal',
   },
-  TOC: { min: null, max: null, source: '[공정자료 p.12·19]', unavailableReason: NO_LIMIT_TABLE },
-  TN: { min: null, max: null, source: '[공정자료 p.12·19]', unavailableReason: NO_LIMIT_TABLE },
-  TP: { min: null, max: null, source: '[공정자료 p.12·19]', unavailableReason: NO_LIMIT_TABLE },
+  TOC: {
+    min: null,
+    max: null,
+    source: '[공정자료 p.12·19]',
+    unavailableReason: NO_LIMIT_TABLE,
+    basis: 'legal',
+  },
+  TN: {
+    min: null,
+    max: null,
+    source: '[공정자료 p.12·19]',
+    unavailableReason: NO_LIMIT_TABLE,
+    basis: 'legal',
+  },
+  TP: {
+    min: null,
+    max: null,
+    source: '[공정자료 p.12·19]',
+    unavailableReason: NO_LIMIT_TABLE,
+    basis: 'legal',
+  },
 };
 
 /**
@@ -104,6 +138,18 @@ export const LEGAL_CHECK_ITEMS = [
 export const UNRESOLVED_LIMIT_TEXT = '기준값 미확정';
 
 /**
+ * 경계값 앞에 붙는 말. **법정과 시연이 다른 낱말을 쓴다**
+ * `[사용자 요청 2026-09-28: 설정 재설계 검토]`.
+ *
+ * 숫자만 적으면 둘이 구별되지 않는다 — 출처는 `title`·툴팁 안에 있어 화면을 훑는 사람에게
+ * 닿지 않는다. 시연 임계값을 「기준」이라 부르는 순간 그 줄은 법정 판정이 된다.
+ */
+export const LIMIT_LABEL: Record<LimitBasis, string> = {
+  legal: '기준',
+  provisional: '시연 임계',
+};
+
+/**
  * 사업장 분류를 사람이 읽는 한 줄로. `가지역 · 200㎥ 미만` 꼴.
  *
  * **기준치는 지역과 규모로 갈린다** `[공정자료 p.11]`. 값만 보이고 어느 구분의 값인지
@@ -117,6 +163,23 @@ export function formatClassification(
   if (!regionGrade && !dischargeScale) return null;
   /* 한쪽만 골랐으면 나머지를 물음표로 남긴다 — 빈 칸으로 두면 다 골랐다고 읽힌다 */
   return `${regionGrade ?? '지역구분 미설정'} · ${dischargeScale ?? '규모 미설정'}`;
+}
+
+/**
+ * **라벨과 숫자를 한 곳에서 붙인다** — `기준 ≤ 40.0` · `시연 임계 5.80–8.60`.
+ *
+ * 숫자만 적는 자리가 여섯 곳(계측 격자·월보드·시계열 표·CSV·유입유출 대조·예측 고지)이었고,
+ * 각자 앞에 「기준」을 적고 있었다 `[사용자 요청 2026-09-28: 설정 재설계 검토]`. 시연
+ * 임계값에도 같은 낱말이 붙어 **여섯 화면이 함께 법정 기준이라 주장했다.**
+ *
+ * 기준을 모르면 `null`이다 — 소비처가 `UNRESOLVED_LIMIT_TEXT`를 적는다.
+ */
+export function formatLimitWithLabel(
+  limit: DischargeLimit | undefined,
+  decimals: number,
+): string | null {
+  const range = formatLimitRange(limit, decimals);
+  return range === null || !limit ? null : `${LIMIT_LABEL[limit.basis]} ${range}`;
 }
 
 /**
@@ -141,14 +204,31 @@ export function formatLimitRange(
 }
 
 /**
- * 기준이 정해진 항목인가. 화면은 이 값으로 기준선을 그릴지 정한다.
+ * **법정 초과를 판정할 수 있는 항목인가.**
+ *
+ * 값이 있는 것만으로는 부족하다 — 시연 임계값도 값을 갖는다. 그래서 `basis`를 함께 본다
+ * `[사용자 요청 2026-09-28]`. 이 함수가 참을 돌려주는 순간 화면은 **법정 배출허용기준으로
+ * 판정했다**고 말하게 되므로, 근거가 법령(또는 그 사업장 허가증)인 값에만 참이다.
  *
  * **표를 인자로 받고 기본값을 둔다.** 사용자가 설정한 기준치가 정적 표를 덮어쓸 수 있어야
  * 하는데(`[회의 2026-08-20]`), 이 파일이 localStorage를 읽으면 `shared`가 브라우저에
- * 묶이고 서버 렌더에서 터진다. 표는 **밖에서 넘어오고** 여기는 순수하게 남는다 —
- * 기본값이 있으므로 기존 호출은 한 곳도 고치지 않는다.
+ * 묶이고 서버 렌더에서 터진다. 표는 **밖에서 넘어오고** 여기는 순수하게 남는다.
  */
 export function hasLimit(
+  code: MeasurementItemCode,
+  table: DischargeLimitTable = DISCHARGE_LIMITS,
+): boolean {
+  const limit = table[code];
+  return Boolean(limit && limit.unavailableReason === null && limit.basis === 'legal');
+}
+
+/**
+ * **그릴 경계선이 있는가** — 법정·시연을 가리지 않는다.
+ *
+ * 차트의 기준 구간 음영처럼 «선을 그을 수 있는가»만 묻는 자리가 쓴다. 판정에는 쓰지 않는다 —
+ * 그 자리는 `hasLimit`·`checkLimit`이다.
+ */
+export function hasAnyLimit(
   code: MeasurementItemCode,
   table: DischargeLimitTable = DISCHARGE_LIMITS,
 ): boolean {
@@ -157,21 +237,66 @@ export function hasLimit(
 }
 
 /**
- * 기준을 벗어났는가.
+ * **무엇으로 판정했는지까지 함께 낸다.**
+ *
+ * `boolean | null`만으로는 «판정했다»와 «무엇으로 판정했다»를 구분할 수 없어, 시연 임계값
+ * 초과가 법정 초과와 같은 문장을 얻었다. 화면은 이 `basis`를 읽어 문구를 가른다.
  *
  * **경계값은 초과가 아니다** — 5.8과 8.6은 허용 범위 안이다. `<`·`>`로 비교한다.
- * 기준이 없거나 값이 결측이면 **판정하지 않는다**(`null`) — `false`를 돌려주면
+ * 기준이 없거나 값이 결측이면 **판정하지 않는다**(`over: null`) — `false`를 돌려주면
  * "기준 안에 있다"는 사실 주장이 되어 없는 판정을 만든다(E4).
+ */
+export interface LimitCheck {
+  /** 경계를 벗어났는가. 판정하지 못했으면 `null` */
+  over: boolean | null;
+  /** 무엇으로 판정했는가. `over`가 `null`이면 `'none'` */
+  basis: LimitBasis | 'none';
+}
+
+/**
+ * 그 항목의 경계값이 **무엇에 근거하는가** — 값을 보지 않고 표만 본다.
+ *
+ * 계열 전체를 세는 자리가 쓴다: 표본마다 묻지 않고 한 번 묻는다. 경계가 없으면 `'none'`이다.
+ */
+export function limitBasisOf(
+  code: MeasurementItemCode,
+  table: DischargeLimitTable = DISCHARGE_LIMITS,
+): LimitBasis | 'none' {
+  const limit = table[code];
+  return limit && limit.unavailableReason === null ? limit.basis : 'none';
+}
+
+
+export function checkLimit(
+  code: MeasurementItemCode,
+  value: number | null,
+  table: DischargeLimitTable = DISCHARGE_LIMITS,
+): LimitCheck {
+  const limit = table[code];
+  if (value === null || !limit || limit.unavailableReason !== null) {
+    return { over: null, basis: 'none' };
+  }
+
+  let over = false;
+  if (limit.min !== null && value < limit.min) over = true;
+  if (limit.max !== null && value > limit.max) over = true;
+  return { over, basis: limit.basis };
+}
+
+/**
+ * **법정** 기준을 벗어났는가.
+ *
+ * **시연 임계값으로는 판정하지 않는다** — `null`이다 `[사용자 요청 2026-09-28]`. 한때
+ * 이 함수가 시연값에도 `true`/`false`를 돌려주어, 출처는 `법정 기준 아님`인데 판정은
+ * 「기준보다 높음」이라 적히는 화면이 됐다.
+ *
+ * 시연 임계값 대비를 보여 주려는 자리는 `checkLimit`을 쓰고 **문구로 그 사실을 밝힌다.**
  */
 export function isOverLimit(
   code: MeasurementItemCode,
   value: number | null,
   table: DischargeLimitTable = DISCHARGE_LIMITS,
 ): boolean | null {
-  if (value === null || !hasLimit(code, table)) return null;
-
-  const limit = table[code]!;
-  if (limit.min !== null && value < limit.min) return true;
-  if (limit.max !== null && value > limit.max) return true;
-  return false;
+  const { over, basis } = checkLimit(code, value, table);
+  return basis === 'legal' ? over : null;
 }

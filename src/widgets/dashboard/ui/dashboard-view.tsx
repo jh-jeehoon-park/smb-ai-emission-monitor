@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import { DEMO_NOW_ISO } from '@/shared/config/demo';
-import { isOverLimit } from '@/shared/config/discharge-limits';
+import { checkLimit } from '@/shared/config/discharge-limits';
 import { STATUS_VISUAL, statusInk } from '@/shared/config/status-visual';
 import { DISPLAY_TIMEZONE, formatDateTime } from '@/shared/lib/format';
 import { COLLECTION_INTERVAL_MINUTES } from '@/shared/config/measurement';
@@ -325,7 +325,7 @@ export function DashboardView() {
                   {detail.forecast.trends.map((t) => {
                     const verdict = trendVerdict(
                       t,
-                      isOverLimit(t.code, t.value, limits.table),
+                      checkLimit(t.code, t.value, limits.table),
                       limits.unresolvedReason,
                     );
                     return (

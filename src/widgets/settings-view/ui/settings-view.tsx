@@ -11,6 +11,8 @@ import {
   SITE_CLASSIFICATION_NOTE,
   DischargeLimitEditor,
   SiteClassificationForm,
+  APPLIED_LIMIT_NOTE,
+  AppliedLimits,
   useDischargeLimits,
 } from '@/features/discharge-limit-settings';
 import {
@@ -101,9 +103,39 @@ export function SettingsView() {
     limits: (
       <Panel
         title="방류 기준치"
-        titleAside={<InfoTip label="빈 칸의 뜻" content={DISCHARGE_LIMIT_NOTE} />}
+        titleAside={
+          <>
+            <span className="role-hide-site role-hide-gov">
+              <InfoTip label="빈 칸의 뜻" content={DISCHARGE_LIMIT_NOTE} />
+            </span>
+            <span className="role-hide-system">
+              <InfoTip label="이 표가 뜻하는 것" content={APPLIED_LIMIT_NOTE} />
+            </span>
+          </>
+        }
       >
-        <DischargeLimitEditor siteId={siteId} />
+        {/*
+         * **입력은 한 주체가 맡고 나머지는 적용 결과를 본다**
+         * `[사용자 요청 2026-09-28: 설정 재설계 검토]`.
+         *
+         * 세 역할이 같은 표를 직접 고치던 판본은 **마지막에 저장한 쪽이 이겼다** — 저장소가
+         * `(지역구분 × 규모 × 항목)` 한 벌이라 사업장 축조차 없어, 한 사업장에 넣은 값이
+         * 같은 분류의 다른 사업장에도 함께 적용됐다(실측). 규제 기준에 쓸 수 있는 규칙이
+         * 아니다.
+         *
+         * **탭을 내리지 않는다.** 사업장·기초지자체는 그대로 이 탭을 열고, 보는 것이
+         * 「입력 칸」에서 「적용 결과와 출처」로 바뀐다 — 그들이 입력하던 값은 어차피
+         * 시스템 관리자가 사업장 분류를 고르기 전까지 **어디에도 적용되지 않았다**(실측).
+         *
+         * **두 벌을 다 그리고 CSS가 고른다** — `useRole()`로 갈랐다가 하이드레이션이
+         * 두 번 깨졌다(§7.2).
+         */}
+        <div className="role-hide-site role-hide-gov">
+          <DischargeLimitEditor siteId={siteId} />
+        </div>
+        <div className="role-hide-system">
+          <AppliedLimits />
+        </div>
       </Panel>
     ),
     process: (

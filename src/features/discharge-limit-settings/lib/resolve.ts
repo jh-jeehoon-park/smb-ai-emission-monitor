@@ -44,8 +44,14 @@ function withDemoLimits(): DischargeLimitTable {
       min: entry.min,
       max: entry.max,
       source: DEMO_LIMIT_SOURCE,
-      /* 값이 있으므로 판정할 수 있다 — 이 필드가 `null`이 되는 것이 곧 "기준이 있다"다 */
+      /* 값은 있다 — 그릴 선이 있다는 뜻이고, 판정 가능 여부는 아래 `basis`가 정한다 */
       unavailableReason: null,
+      /*
+       * **법정 판정에 쓰지 않는다** `[사용자 요청 2026-09-28]`. 한때 이 자리에 축이 없어
+       * 시연 임계값이 `hasLimit`을 참으로 만들었고, 출처에 `법정 기준 아님`이라 적으면서
+       * 판정 칸에는 「기준보다 높음」이 찍혔다.
+       */
+      basis: 'provisional',
     };
   }
   return table;
@@ -87,8 +93,14 @@ export function resolveLimitTable(
       min: entry.min,
       max: entry.max,
       source: userLimitSource(updatedIso),
-      /* 값이 들어왔으므로 판정할 수 있다. 이 필드가 `null`이 되는 것이 곧 "기준이 있다"다 */
+      /* 값이 들어왔으므로 그릴 선이 있다 */
       unavailableReason: null,
+      /*
+       * **사용자가 넣은 허가증 값은 법정 판정에 쓴다** `[회의 2026-08-20]` — `[TBD-45]`를
+       * 「사용자 설정값으로 받는다」로 우회한 결정이 이것이다. 그 값의 법적 지위 자체
+       * (허가조건이 일반기준을 대체·강화하는가)는 아직 확인되지 않았다 → `[TBD-62]`.
+       */
+      basis: 'legal',
     };
   }
 

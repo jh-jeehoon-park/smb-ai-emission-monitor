@@ -5,8 +5,8 @@ import { DEMO_NOW_ISO } from '@/shared/config/demo';
 import {
   UNRESOLVED_LIMIT_TEXT,
   formatClassification,
+  checkLimit,
   formatLimitRange,
-  isOverLimit,
 } from '@/shared/config/discharge-limits';
 import { DISPLAY_TIMEZONE, formatDateTime } from '@/shared/lib/format';
 import { useQueryState } from '@/shared/lib/use-query-state';
@@ -343,8 +343,8 @@ function LimitMonitor({
             {trends.map((trend) => {
               const limit = limits.table[trend.code];
               const range = formatLimitRange(limit, trend.decimals);
-              const over = isOverLimit(trend.code, trend.value, limits.table);
-              const verdict = trendVerdict(trend, over, limits.unresolvedReason);
+              const check = checkLimit(trend.code, trend.value, limits.table);
+              const verdict = trendVerdict(trend, check, limits.unresolvedReason);
 
               return (
                 <tr key={trend.code} className={TABLE_ROW}>
@@ -409,10 +409,10 @@ function TrendCard({
   pending: boolean;
 }) {
   /* `null`은 판정하지 않았다는 뜻이다 — 기준이 없거나 값이 결측이다(E4) */
-  const over = isOverLimit(trend.code, trend.value, limits.table);
+  const check = checkLimit(trend.code, trend.value, limits.table);
   const headline = pending
     ? { text: TELEMETRY_PENDING_NOTE, ink: undefined, basis: null }
-    : trendVerdict(trend, over, limits.unresolvedReason);
+    : trendVerdict(trend, check, limits.unresolvedReason);
   /* 판정만 있고 기준치가 안 보이면 무엇에 견준 판정인지 알 수 없다 `[회의 2026-08-20]` */
   const range = formatLimitRange(limits.table[trend.code], trend.decimals);
   const classificationLabel = formatClassification(

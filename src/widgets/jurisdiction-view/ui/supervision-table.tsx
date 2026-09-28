@@ -16,15 +16,32 @@ import type { SupervisionRow } from '../lib/supervision-rows';
  */
 const UNJUDGED = '판정 불가';
 
-function CountCell({ value, unit }: { value: number | null; unit: string }) {
-  if (value === null) {
-    return <span className="text-fg-subtle">{UNJUDGED}</span>;
-  }
+function CountCell({
+  value,
+  unit,
+  note,
+}: {
+  value: number | null;
+  unit: string;
+  /**
+   * 본 칸 아래 한 줄. **시연 임계값 초과가 여기 온다**
+   * `[사용자 요청 2026-09-28: 설정 재설계 검토]` — 법정 초과와 같은 숫자 자리에 두면
+   * 그 건수가 법령이 뒷받침하는 초과로 읽힌다.
+   */
+  note?: string | null;
+}) {
   return (
-    <span className={value > 0 ? 'num font-semibold text-critical-ink' : 'num text-fg-muted'}>
-      {value}
-      {unit}
-    </span>
+    <>
+      {value === null ? (
+        <span className="text-fg-subtle">{UNJUDGED}</span>
+      ) : (
+        <span className={value > 0 ? 'num font-semibold text-critical-ink' : 'num text-fg-muted'}>
+          {value}
+          {unit}
+        </span>
+      )}
+      {note ? <span className="mt-0.5 block text-[12px] text-fg-subtle">{note}</span> : null}
+    </>
   );
 }
 
@@ -117,7 +134,12 @@ export function SupervisionTable({
                 )}
               </td>
               <td className="px-3 py-3.5">
-                <CountCell value={row.overLimit} unit="건" />
+                <CountCell
+                  value={row.overLimit}
+                  unit="건"
+                  /* 0건이면 적지 않는다 — 대부분이 0이라 그 줄이 칸을 덮는다 */
+                  note={row.overProvisional ? `시연 임계 ${row.overProvisional}건` : null}
+                />
               </td>
               <td className="px-3 py-3.5">
                 <CountCell value={row.idleRuns} unit="구간" />

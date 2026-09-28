@@ -13,6 +13,7 @@ import {
 import { MEASUREMENT_ITEMS, type MeasurementItemCode } from '@/shared/config/measurement';
 import { NumberField } from '@/shared/ui/number-field';
 import { SegmentedControl } from '@/shared/ui/segmented-control';
+import { UNRESOLVED_REASONS } from '../config/constants';
 import { classificationOf, useLimitSettingsStore } from '../model/limit-settings-context';
 import { validEntry, type LimitEntry, type LimitSheets } from '../lib/storage';
 import { TABLE_HEAD_CELL, TABLE_HEAD_ROW, TABLE_ROOT, TABLE_ROW, TABLE_SCROLL } from '@/shared/ui/table';
@@ -43,6 +44,28 @@ export function DischargeLimitEditor({ siteId }: { siteId: string }) {
   const store = useLimitSettingsStore();
   const own = classificationOf(store, siteId);
   const [scale, setScale] = useState<DischargeScale>(own.dischargeScale ?? DISCHARGE_SCALES[0]);
+
+  /*
+   * **분류가 없으면 입력받지 않는다** `[사용자 요청 2026-09-28: 설정 재설계 검토]`.
+   *
+   * 두 가지가 한꺼번에 잘못됐다.
+   * ① `resolveLimitTable`이 지역구분·규모 둘 중 하나라도 없으면 **입력한 시트를 통째로
+   *    무시한다** — 넣어도 화면이 달라지지 않는다(실측).
+   * ② 그런데도 표가 열려 있었고, 규모 세그먼트가 `DISCHARGE_SCALES[0]`(2,000㎥ 이상)로
+   *    선택된 채 떴다. 실증 사업장은 전부 4·5종(200㎥ 미만)이라, 나중에 관리자가 분류를
+   *    제대로 넣어도 그때 입력한 값은 **다른 시트에 있어 영영 읽히지 않는다**(실측으로
+   *    저장소에 `{"가지역":{"2,000㎥ 이상":{…}}}`이 남았다).
+   *
+   * 안내는 **툴팁이 아니라 본문에** 둔다 — 한때 이 문구가 `InfoTip` 안에만 있어 열기 전까지
+   * DOM에 존재하지도 않았다.
+   */
+  if (!own.regionGrade || !own.dischargeScale) {
+    return (
+      <p className="rounded-nested border border-border bg-surface-2 px-3 py-3 text-[12px] leading-relaxed text-fg-muted">
+        {UNRESOLVED_REASONS.noClassification}
+      </p>
+    );
+  }
 
   const update = (region: RegionGrade, code: MeasurementItemCode, next: LimitEntry) => {
     const sheets: LimitSheets = structuredClone(store.sheets);
