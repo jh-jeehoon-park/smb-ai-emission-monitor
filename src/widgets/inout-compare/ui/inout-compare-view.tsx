@@ -7,7 +7,7 @@ import { getAnomalySummary } from '@/entities/anomaly';
 import { dischargingAt, telemetrySourceLabel, useSiteSeries } from '@/entities/measurement';
 import { getSite } from '@/entities/site';
 import { allAlarmsForSite, useAlarmStates } from '@/features/alarm-ack';
-import { useDischargeLimits } from '@/features/discharge-limit-settings';
+import { useDischargeLimits, useSiteReuse } from '@/features/discharge-limit-settings';
 import { useSelectedSiteId, useSiteHref } from '@/features/site-selection';
 import { buildCompare } from '../lib/point-readings';
 import { buildRunBands } from '../lib/run-bands';
@@ -50,6 +50,7 @@ import { VerdictBar } from './verdict-bar';
  */
 export function InOutCompareView() {
   const { siteId } = useSelectedSiteId();
+  const reuse = useSiteReuse(siteId);
   const withSite = useSiteHref();
   const site = getSite(siteId);
   /* 사용자가 설정한 기준치가 정적 표를 덮어쓴다 — 같은 항목이 화면마다 다르게 판정되지 않게 */
@@ -110,6 +111,7 @@ export function InOutCompareView() {
           pending={pending}
           /* 실측이면 서버 값, 폴백이면 시나리오 — 규칙은 `dischargingAt` 한 곳이다 */
           dischargingNow={dischargingAt(siteId, liveDischarging, points.length - 1)}
+          reuse={reuse}
         />
       </RiseItem>
 

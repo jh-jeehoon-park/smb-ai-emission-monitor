@@ -4,7 +4,12 @@ import {
   type MeasurementPoint,
   type SeriesCode,
 } from '@/entities/measurement';
-import type { ResolvedStage } from '@/features/process-settings';
+import {
+  channelStateOf,
+  type ChannelState,
+  type ResolvedStage,
+} from '@/features/process-settings';
+import type { MeasurementItemCode } from '@/shared/config/measurement';
 
 export interface StageReading {
   code: SeriesCode;
@@ -41,3 +46,26 @@ export function stageReadings(points: MeasurementPoint[], stage: ResolvedStage):
 
 /** 설정된 항목이 하나도 없는 단계인가. 화면이 이유를 적을지 정하는 데 쓴다 */
 export const hasNoCodes = (stage: ResolvedStage): boolean => stage.codes.length === 0;
+
+export interface PendingGroup {
+  state: Exclude<ChannelState, 'reading'>;
+  items: MeasurementItemCode[];
+}
+
+/** 채널 미지정이 먼저다 — 사용자가 할 일이 있는 쪽이다 */
+const PENDING_ORDER: PendingGroup['state'][] = ['noChannel', 'notWired'];
+
+/**
+ * **값이 오지 않는 계측 지점** — 상태별로 묶는다. 채널을 아직 걸지 않았거나, 걸었지만 화면이
+ * 그 채널을 받지 않는다.
+ *
+ * 읽는 지점만 보여 주면 이 지점들이 사라져 «이 단계는 그것을 재지 않는다»로 읽힌다. 지점은 있고
+ * 값이 아직 없다는 것을 따로 적는다(**E4**의 연장 — 없음과 모름을 가른다). 한 줄씩 늘어놓으면
+ * 유입 단계가 여덟 줄의 같은 말로 채워져 읽는 값이 묻힌다 — 상태마다 한 줄이다.
+ */
+export function pendingChannels(stage: ResolvedStage): PendingGroup[] {
+  return PENDING_ORDER.map((state) => ({
+    state,
+    items: stage.channels.filter((c) => channelStateOf(c) === state).map((c) => c.item),
+  })).filter((group) => group.items.length > 0);
+}

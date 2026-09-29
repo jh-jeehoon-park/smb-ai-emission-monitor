@@ -17,16 +17,21 @@ import {
   OPTICAL_ITEMS,
   PROBE_ITEMS,
   REGULATED_ITEMS,
-  STAGE_IDS,
   STAGE_QUERY_KEY,
   getOperatingState,
 } from '@/entities/process';
 import { getSite } from '@/entities/site';
-import { NO_STAGE_CODES_REASON, useProcess, type ResolvedStage } from '@/features/process-settings';
+import {
+  CHANNEL_STATE_LABELS,
+  NO_STAGE_CODES_REASON,
+  useProcess,
+  type ResolvedStage,
+} from '@/features/process-settings';
 import { useSelectedSiteId } from '@/features/site-selection';
 import { MEASUREMENT_ITEMS } from '@/shared/config/measurement';
+import { cn } from '@/shared/lib/cn';
 import { formatValue } from '@/shared/lib/format';
-import { stageReadings } from '../lib/stage-readings';
+import { pendingChannels, stageReadings } from '../lib/stage-readings';
 import { ProcessDiagram } from './process-diagram';
 import { InfoTip } from '@/shared/ui/tooltip';
 import { TABLE_SCROLL } from '@/shared/ui/table';
@@ -41,11 +46,15 @@ import { TABLE_SCROLL } from '@/shared/ui/table';
 export function ProcessView() {
   const { siteId } = useSelectedSiteId();
   const site = getSite(siteId);
-  /* 켠 단계만 온다. 무엇을 켤지는 사업장 설정이 정한다 `[회의 2026-08-20]` */
-  const { stages, disabled } = useProcess();
+  /* 그 사업장의 공정 목록. 단계·순서는 사업장 설정이 정한다 `[사용자 요청 2026-09-29]` */
+  const { stages } = useProcess();
 
-  const [stageId, setStageId] = useQueryState(STAGE_QUERY_KEY, STAGE_IDS, STAGE_IDS[0]!);
-  /* 끈 단계가 URL에 남아 있을 수 있다 — 없는 단계를 고르면 첫 단계로 떨어진다 */
+  /*
+   * **허용 목록은 그 사업장의 단계다** — 사업장마다 단계를 더하고 빼므로 고정 목록이 없다.
+   * 지운 단계가 URL에 남아 있으면 첫 단계로 떨어진다.
+   */
+  const stageIds = stages.map((s) => s.stage.id);
+  const [stageId, setStageId] = useQueryState(STAGE_QUERY_KEY, stageIds, stageIds[0] ?? '');
   const selected = stages.find((s) => s.stage.id === stageId) ?? stages[0];
 
   /* 계측을 한 번만 읽어 도해·상세가 같은 계열을 본다 — JSX에서 부르면 단계마다 다시 만든다 */
@@ -66,15 +75,15 @@ export function ProcessView() {
     : [];
 
   /*
-   * 단계를 전부 끄면 그릴 것이 없다. 빈 SVG를 두면 고장으로 읽히므로 왜 비었는지 적는다
+   * 단계를 다 지우면 그릴 것이 없다. 빈 SVG를 두면 고장으로 읽히므로 왜 비었는지 적는다
    * (R19) — 설정으로 되돌릴 수 있다는 것까지 말해야 막힌 화면이 되지 않는다.
    */
   if (!selected) {
     return (
       <Panel title="폐수처리 공정">
-        <p className="max-w-[64ch] py-8 text-center text-[12px] leading-relaxed text-fg-subtle">
-          활성화된 공정 단계가 없습니다. 사업장 설정 &gt; 공정 구성에서 이 사업장의 단계를
-          켜면 공정도를 그립니다.
+        <p className="mx-auto max-w-[64ch] py-8 text-center text-[12px] leading-relaxed text-fg-subtle">
+          이 사업장에 공정 단계가 없습니다. 사업장 설정 &gt; 공정 구성에서 「단계 추가」로
+          공정을 만들면 공정도를 그립니다.
         </p>
       </Panel>
     );
@@ -92,9 +101,7 @@ export function ProcessView() {
           titleAside={
             <InfoTip
               label="이 공정도를 읽는 법"
-              content={`표준 공정은 5단계입니다. 사업장마다 공정이 달라 최대 공정을 두고 필요한 단계만 켭니다 — 사업장 설정 > 공정 구성에서 바꿉니다.${
-                disabled.length > 0 ? ` 지금 ${disabled.length}단계를 껐습니다.` : ''
-              } 단계별 계측 항목은 원문에 없어 설정으로 받습니다.`}
+              content="사업장마다 공정의 단계·순서가 다릅니다 — 사업장 설정 > 공정 구성에서 단계를 더하고 빼고 순서를 바꿉니다. 각 단계의 값은 그 단계에 건 ECP 채널에서 옵니다. «재이용»은 처리수 일부가 그 단계에서 제조공정으로 돌아간다는 표시이며 그 양은 계측하지 않습니다."
             />
           }
           action={<GradeLegend />}
@@ -211,13 +218,16 @@ function StageDetail({
   online: boolean;
 }) {
   const { stage } = resolved;
+  const waiting = pendingChannels(resolved);
+  /* 지점이 하나라도 있으면 «계측하지 않는 단계»가 아니다 — 값이 아직 오지 않을 뿐이다 */
+  const unmeasured = stage.grade === 'none' && resolved.channels.length === 0;
 
   return (
     <Panel
       title={stage.name}
       /* 계측하지 않는 단계는 그 사실이 결함으로 읽히지 않게 이유를 함께 둔다 */
       titleAside={
-        stage.grade === 'none' ? (
+        unmeasured ? (
           <InfoTip
             label="이 단계를 계측하지 않는 이유"
             content="전처리·침전 구간에 계측기가 적은 것은 이 시스템의 한계가 아니라 업계 표준입니다 — 계측은 제어가 필요한 곳과 법이 요구하는 곳에 몰립니다."
@@ -225,16 +235,26 @@ function StageDetail({
         ) : undefined
       }
     >
-      <p className="text-[12px] text-fg-muted">{stage.units.join(' · ')}</p>
+      {stage.units.length > 0 && <p className="text-[12px] text-fg-muted">{stage.units.join(' · ')}</p>}
+      {/*
+       * **재이용 분기 표시** `[사용자 결정 2026-09-29: (가)]`. 처리수 일부가 여기서 제조공정으로
+       * 돌아간다 — 그 양은 계측하지 않으므로 선을 그리지 않고 말로만 적는다.
+       */}
+      {resolved.reuseBranch && (
+        <p className="mt-1.5 text-[12px] text-fg-subtle">
+          처리수 일부가 이 단계에서 제조공정으로 재이용됩니다 — 재이용량은 계측하지 않습니다
+        </p>
+      )}
 
       {/*
        * **이 단계에서 재는 값.** 회의가 요구한 공정별 모니터링이다 `[회의 2026-08-20]`.
        * 설정하지 않았으면 이유를 적는다 — 빈 칸은 "재지 않는 단계"로 읽힌다.
        */}
       <div className="mt-3 border-t border-border pt-2.5">
-        {readings.length === 0 ? (
+        {readings.length === 0 && waiting.length === 0 && (
           <p className="text-[12px] leading-relaxed text-fg-subtle">{NO_STAGE_CODES_REASON}</p>
-        ) : (
+        )}
+        {readings.length > 0 && (
           <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[12px] sm:grid-cols-3">
             {readings.map((reading) => (
               <div key={reading.code}>
@@ -260,6 +280,25 @@ function StageDetail({
                       )}
                     </>
                   )}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        )}
+        {/*
+         * **값이 오지 않는 지점도 적는다** — 빼면 «이 단계는 그 항목을 재지 않는다»로 읽힌다.
+         * 채널 미지정과 수신 연결 전은 할 일이 달라 말을 가른다.
+         */}
+        {waiting.length > 0 && (
+          <dl className={cn('space-y-1.5 text-[12px]', readings.length > 0 && 'mt-3')}>
+            {waiting.map((group) => (
+              <div key={group.state} className="flex gap-3">
+                <dt className="w-[88px] shrink-0 text-fg-subtle">
+                  {CHANNEL_STATE_LABELS[group.state]}
+                  <span className="num ml-1 text-fg-muted">{group.items.length}</span>
+                </dt>
+                <dd className="min-w-0 leading-relaxed text-fg-muted">
+                  {group.items.map((item) => MEASUREMENT_ITEMS[item].symbol).join(' · ')}
                 </dd>
               </div>
             ))}
@@ -292,7 +331,7 @@ function StageDetail({
         </ul>
       )}
 
-      {stage.grade === 'none' && (
+      {unmeasured && (
         <p className="mt-3 rounded-nested bg-surface-2 px-2.5 py-2 text-[12px] text-fg-subtle">
           이 단계는 계측하지 않습니다.
         </p>
@@ -352,7 +391,8 @@ function NotMeasured() {
         <div className="rounded-nested bg-surface-2 px-2.5 py-2">
           <dt className="text-[12px] text-fg-subtle">프로브 설치 지점</dt>
           <dd className="mt-0.5 text-[12px] leading-relaxed text-fg-muted">
-            원문에 설치 위치 서술이 없습니다. 실증 데이터가 방류구 기준이라 6단계에 그렸습니다.
+            원문에 설치 위치 서술이 없습니다. 어느 단계에서 무엇을 재는지는 사업장마다 ECP 채널을
+            단계에 걸어 정합니다.
           </dd>
         </div>
       </dl>

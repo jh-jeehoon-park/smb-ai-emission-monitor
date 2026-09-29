@@ -4,6 +4,8 @@ import { MEASUREMENT_ITEMS } from '@/shared/config/measurement';
 import { ACTUAL_HEX } from '@/shared/config/status-visual';
 import { DISPLAY_TIMEZONE, formatClock } from '@/shared/lib/format';
 import { cn } from '@/shared/lib/cn';
+import { PROVISIONAL_DISPLAY_DECIMALS } from '@/shared/config/provisional';
+import type { SiteReuse } from '@/features/discharge-limit-settings';
 import { SPARK_H_PX } from '../config/constants';
 import type { ComparePoint, InOutCompare, PointReading } from '../lib/point-readings';
 import { SectionPanel } from './section-panel';
@@ -24,10 +26,13 @@ export function FlowAside({
   compare,
   pending,
   dischargingNow,
+  reuse,
 }: {
   compare: InOutCompare;
   pending: boolean;
   dischargingNow: boolean | null;
+  /** 처리수 재이용 — 사업장 규제정보가 받는다 `[사용자 결정 2026-09-29: 재이용 (가)]` */
+  reuse: SiteReuse;
 }) {
   return (
     <SectionPanel
@@ -48,7 +53,7 @@ export function FlowAside({
        */}
       <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:items-stretch lg:gap-4">
         <Pillar point={compare.inlet} pending={pending} />
-        <Held compare={compare} pending={pending} />
+        <Held compare={compare} pending={pending} reuse={reuse} />
         <Pillar point={compare.outlet} pending={pending} align="right" />
       </div>
     </SectionPanel>
@@ -140,7 +145,15 @@ function Pillar({
  * «처리 중인 양»이라 부르지 않는다. 차이는 체류·슬러지·증발이 섞인 값이고, 하나로 단정하면
  * 재 보지 않은 해석을 화면이 주장하게 된다.
  */
-function Held({ compare, pending }: { compare: InOutCompare; pending: boolean }) {
+function Held({
+  compare,
+  pending,
+  reuse,
+}: {
+  compare: InOutCompare;
+  pending: boolean;
+  reuse: SiteReuse;
+}) {
   return (
     /*
      * **가운데가 두 상자를 잇는다** `[사용자 요청 2026-09-10: 중앙의 유입 → 유출 관계가 더
@@ -181,6 +194,22 @@ function Held({ compare, pending }: { compare: InOutCompare; pending: boolean })
       ) : (
         /* 한쪽이라도 모르면 모른다 — 0으로 채우면 «머문 양 0»이라는 사실 주장이 된다(E4) */
         <p className="text-[12px] text-fg-subtle">수신 없음</p>
+      )}
+
+      {/*
+       * **재이용 사업장이라는 사실만 적는다** `[사용자 결정 2026-09-29: 재이용 (가)]` — 유출이 유입보다
+       * 적은 까닭 하나를 화면이 말하게 한다. 빼서 고치지 않고 «포함»이라고도 적지 않는다: 재이용량은
+       * 일평균이고 위 차이는 순간값이라, 둘을 한 식에 넣으면 두 시간 축을 섞는다(«198 포함»이 차이
+       * 44 아래 적혀 모순으로 읽혔다). 양은 입력한 자릿수 그대로다.
+       */}
+      {!pending && reuse.status === 'partial' && (
+        <p className="mt-1 text-center text-[12px] leading-snug text-fg-subtle">
+          처리수 일부 재이용
+          <br />
+          {reuse.dailyM3 === null
+            ? '재이용량 모름'
+            : `일평균 ${reuse.dailyM3.toFixed(PROVISIONAL_DISPLAY_DECIMALS.dailyWastewaterM3)} ${MEASUREMENT_ITEMS.inflow.unit}`}
+        </p>
       )}
     </section>
   );

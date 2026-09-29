@@ -1,6 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import { ArrowRight, MapPinned } from 'lucide-react';
+import { ACTION_BUTTON } from '@/shared/ui/action-button';
+import { EmptyState } from '@/shared/ui/empty-state';
 import {
   DISCHARGE_SCALES,
   LEGAL_CHECK_ITEMS,
@@ -40,7 +43,17 @@ export const DISCHARGE_LIMIT_NOTE = (
   </>
 );
 
-export function DischargeLimitEditor({ siteId }: { siteId: string }) {
+export function DischargeLimitEditor({
+  siteId,
+  onGoToFacts,
+}: {
+  siteId: string;
+  /**
+   * 분류가 없을 때 **어디로 가서 풀면 되는지**를 버튼으로 준다. 탭 전환은 화면(위젯)이 쥐고
+   * 있어 여기서는 부르기만 한다.
+   */
+  onGoToFacts?: () => void;
+}) {
   const store = useLimitSettingsStore();
   const own = classificationOf(store, siteId);
   const [scale, setScale] = useState<DischargeScale>(own.dischargeScale ?? DISCHARGE_SCALES[0]);
@@ -61,9 +74,19 @@ export function DischargeLimitEditor({ siteId }: { siteId: string }) {
    */
   if (!own.regionGrade || !own.dischargeScale) {
     return (
-      <p className="rounded-nested border border-border bg-surface-2 px-3 py-3 text-[12px] leading-relaxed text-fg-muted">
-        {UNRESOLVED_REASONS.noClassification}
-      </p>
+      <EmptyState
+        icon={<MapPinned className="size-5" strokeWidth={1.8} />}
+        title="사업장 규제정보가 먼저 필요합니다"
+        description={UNRESOLVED_REASONS.noClassification}
+        action={
+          onGoToFacts ? (
+            <button type="button" onClick={onGoToFacts} className={ACTION_BUTTON}>
+              사업장 규제정보 입력
+              <ArrowRight aria-hidden className="size-3.5" strokeWidth={2} />
+            </button>
+          ) : null
+        }
+      />
     );
   }
 

@@ -129,14 +129,21 @@ describe('조작 버튼도 손가락 최소를 채운다', () => {
    * 되돌리기는 사용자가 넣은 설정을 지우는 조작이라 **잘못 눌리는 것도 결함**이다.
    */
   it('설정 폼의 되돌리기 셋이 40px을 채운다', () => {
+    /*
+     * 한때 세 폼이 같은 클래스 문자열(`min-h-10 … lg:min-h-0`)을 각자 적었다. 개편에서 공용
+     * 조작 버튼(`ACTION_BUTTON_QUIET`)으로 옮겼다 `[2026-09-29]` — 40px 규약은 그 껍데기의
+     * `BASE`가 갖고, 위 검사가 그것을 잠근다. 여기서는 **셋이 그 껍데기를 실제로 쓰는지**를 본다.
+     */
     for (const path of [
       'src/features/process-settings/ui/process-stage-form.tsx',
       'src/features/site-provisioning/ui/instrument-form.tsx',
       'src/features/site-provisioning/ui/metering-form.tsx',
     ]) {
-      const source = read(path);
-      expect(source, path).toMatch(/min-h-10[^"]*되돌리기|min-h-10[^"]*rounded-\[3px\]/);
-      expect(source, path).toContain('lg:min-h-0');
+      const body = read(path)
+        .split('\n')
+        .filter((line) => !line.trimStart().startsWith('import'))
+        .join('\n');
+      expect(body, path).toMatch(/className=\{ACTION_BUTTON_QUIET\}[\s\S]{0,160}되돌리기/);
     }
   });
 

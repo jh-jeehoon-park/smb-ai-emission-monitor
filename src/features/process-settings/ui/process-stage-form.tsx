@@ -1,127 +1,186 @@
 'use client';
 
-import { MEASUREMENT_ITEMS, WATER_QUALITY_CODES } from '@/shared/config/measurement';
-import { EQUIPMENT_CODES, type MeasurementItemCode } from '@/shared/config/measurement';
-import { Checkbox } from '@/shared/ui/checkbox';
-import { ALL_PROCESS_STAGES } from '@/entities/process';
+import { useState } from 'react';
+import { Plus, RotateCcw, Undo2 } from 'lucide-react';
+import { ACTION_BUTTON, ACTION_BUTTON_QUIET } from '@/shared/ui/action-button';
+import { SegmentedControl } from '@/shared/ui/segmented-control';
+import { isMetaChannel, useSiteChannelKeys } from '@/entities/measurement';
+import { CHANNEL_SOURCE_LABELS } from '../config/constants';
 import { useProcessSettingsStore } from '../model/process-settings-context';
 import { useProcess } from '../model/use-process';
+import {
+  addChannel,
+  assignChannel,
+  channelRows,
+  insertStage,
+  moveStage,
+  removeChannel,
+  removeStage,
+  unassignedCount,
+  updateStage,
+} from '../lib/edit';
+import type { SiteProcess, SiteStage } from '../lib/storage';
+import { AddStagePanel, type NewStageDraft } from './add-stage-panel';
+import { ChannelTable } from './channel-table';
+import { StageList } from './stage-list';
 
-/** 단계마다 고를 수 있는 항목 — 수질 8종 + 설비 3종. 진동은 계열이 아니라 제외한다 */
-const SELECTABLE: readonly MeasurementItemCode[] = [...WATER_QUALITY_CODES, ...EQUIPMENT_CODES];
-
-/**
- * **어느 단계에서 무엇을 재는지는 원문에 없다** — 이 화면이 정한다는 사실을 밝힌다.
- *
- * 카드 제목을 가진 부모(`설정 > 공정 구성`)가 툴팁에 넣는다(`screens.md` §8) — 이 컴포넌트에는
- * 제목이 없어 붙일 자리가 없다.
- */
+/** 이 폼을 담는 패널의 제목 옆 툴팁에 쓴다 */
 export const PROCESS_STAGE_ITEMS_NOTE =
-  '단계별 계측 항목은 원문에 없습니다. 프로브를 각 공정에 부착한다는 것까지가 회의 결과이고, 어느 단계에서 무엇을 재는지는 여기서 정합니다.';
+  '「공정 단계」에서 이 사업장의 단계와 순서를 정하고, 「채널 연결」에서 ECP가 보내는 채널이 어느 단계의 값인지 고릅니다. 단계 목록은 실증 현장조사 5개소에 실제로 나온 공정이고, 목록 밖은 직접 입력합니다.';
+
+type View = 'stages' | 'channels';
 
 /**
- * 사업장의 공정 구성을 고른다 (SCR-OP-010).
+ * 새 단계의 id. **이벤트 안에서만 만든다** — 렌더 중에 만들면 서버와 클라이언트의 값이 달라
+ * 하이드레이션이 깨진다. 이름을 바꿔도 유지되는 값이라 공정 화면 주소(`?stage=`)가 이것을 쓴다.
+ */
+function newStageId(): string {
+  return `st-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+}
+
+/**
+ * 사업장의 **공정 구성** (SCR-OP-010) — 두 보기로 나눈다 `[사용자 지적 2026-09-29: 공정 구성 UX가
+ * 너무 복잡함 — 관리자가 사용하기에도 복잡해 단순화 필요]`.
  *
- * 회의가 방식을 정했다 — 최대 공정을 두고 필요한 단계만 켠다 `[회의 2026-08-20]`.
- * 여기서 켠 것이 공정도·단계 상세에 그대로 반영된다.
+ * 한 판 전(같은 날)은 단계 순서 · 채널 연결 · 안 쓰는 채널 정리를 **한 화면에 동시에** 펼쳤다 —
+ * 기본 화면에 조작 단추가 50개를 넘었고 세로가 1,900px이었다(1440px 실측). 관리자가 하는 일은 둘이고
+ * 순서도 있다: **단계를 정한다 → 채널이 어느 단계 것인지 고른다.** 그 둘을 보기 하나씩에 둔다.
  *
- * **계측 항목의 기본값을 채우지 않는다.** 어느 단계에서 무엇을 재는지가 원문에도 회의에도
- * 없다 `[TBD-53]` — 우리가 골라 두면 없는 계측을 주장하게 된다. 빈 상태가 정직한 출발점이다.
+ * - 「공정 단계」 — 한 줄씩. 누르면 그 단계만 펼쳐 고친다(이름 · 유형 · 재이용 · 위로/아래로 · 삭제)
+ * - 「채널 연결」 — 표 한 장. 채널마다 «어느 단계의 값인가» 한 칸
+ *
+ * 아직 정하지 않은 채널이 있으면 **보기 이름에 수를 적는다** — 다른 보기에 있어도 놓치지 않게.
+ * 삭제는 확인창 대신 되돌리기 줄로 받는다.
  */
 export function ProcessStageForm({ siteId }: { siteId: string }) {
-  const { setStage, reset } = useProcessSettingsStore();
-  const { stages, isUserSet } = useProcess();
+  const { setProcess, reset } = useProcessSettingsStore();
+  const { process, isUserSet } = useProcess();
+  const channels = useSiteChannelKeys(siteId);
 
-  /* 켜진 단계를 빠르게 찾기 위한 색인. 배열을 매번 훑으면 단계마다 전체를 다시 본다 */
-  const enabled = new Map(stages.map((s) => [s.stage.id, s.codes]));
+  const [view, setView] = useState<View>('stages');
+  const [adding, setAdding] = useState(false);
+  const [lastRemoved, setLastRemoved] = useState<{ stage: SiteStage; index: number } | null>(null);
+
+  const save = (next: SiteProcess) => setProcess(siteId, next);
+  const rows = channelRows(process, channels.keys, isMetaChannel);
+  const pending = unassignedCount(rows);
+
+  const addStage = (draft: NewStageDraft, index: number) => {
+    save(
+      insertStage(
+        process,
+        {
+          id: newStageId(),
+          origin: draft.origin,
+          name: draft.name,
+          type: draft.type,
+          units: [],
+          channels: [],
+          equipmentIds: [],
+          reuseBranch: false,
+        },
+        index,
+      ),
+    );
+    setAdding(false);
+  };
+
+  const views = [
+    { value: 'stages' as const, label: `공정 단계 ${process.stages.length}` },
+    { value: 'channels' as const, label: pending > 0 ? `채널 연결 · 정하기 전 ${pending}` : '채널 연결' },
+  ];
 
   return (
-    <div className="space-y-3">
-      <ul className="space-y-2">
-        {ALL_PROCESS_STAGES.map((stage) => {
-          const codes = enabled.get(stage.id);
-          const on = codes !== undefined;
+    <div className="space-y-4">
+      <SegmentedControl ariaLabel="공정 구성 보기" value={view} onChange={setView} options={views} />
 
-          return (
-            <li key={stage.id} className="rounded-nested border border-border px-3 py-2.5">
-              <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                <label className="flex cursor-pointer items-center gap-2 text-[12px] text-fg">
-                  <Checkbox
-                    size="sm"
-                    checked={on}
-                    onChange={(event) =>
-                      setStage(siteId, stage.id, {
-                        enabled: event.target.checked,
-                        codes: codes ?? [],
-                      })
-                    }
-                  />
-                  <span className="num text-fg-subtle">{stage.order}</span>
-                  {stage.name}
-                </label>
-                <span className="text-[12px] text-fg-subtle">
-                  {stage.optional ? '플러스 알파' : '표준 공정'} · {stage.units.join(' · ')}
-                </span>
-              </div>
+      {view === 'stages' ? (
+        <div className="space-y-3">
+          {lastRemoved && (
+            <div
+              role="status"
+              className="flex flex-wrap items-center justify-between gap-2 rounded-nested border border-border bg-surface-2 px-3.5 py-2 text-[12px] text-fg-muted"
+            >
+              <span>
+                「{lastRemoved.stage.name}」을(를) 삭제했습니다
+                {lastRemoved.stage.channels.some((c) => c.key) && ' — 연결돼 있던 채널은 «정하지 않음»으로 돌아갔습니다'}
+              </span>
+              <button
+                type="button"
+                className={ACTION_BUTTON_QUIET}
+                onClick={() => {
+                  save(insertStage(process, lastRemoved.stage, lastRemoved.index));
+                  setLastRemoved(null);
+                }}
+              >
+                <Undo2 aria-hidden className="size-3.5" strokeWidth={2} />
+                되돌리기
+              </button>
+            </div>
+          )}
 
-              {/* 끈 단계의 항목을 보여 주지 않는다 — 고를 수 없는 것을 띄우면 조작처럼 보인다 */}
-              {on && (
-                <div className="mt-2 flex flex-wrap gap-1.5 border-t border-border pt-2">
-                  {SELECTABLE.map((code) => {
-                    const picked = codes.includes(code);
-                    return (
-                      <button
-                        key={code}
-                        type="button"
-                        aria-pressed={picked}
-                        onClick={() =>
-                          setStage(siteId, stage.id, {
-                            enabled: true,
-                            codes: picked
-                              ? codes.filter((c) => c !== code)
-                              : [...codes, code],
-                          })
-                        }
-                        className={
-                          picked
-                            ? 'cursor-pointer rounded-chip border border-accent/40 bg-accent-weak px-1.5 py-0.5 text-[12px] font-semibold text-accent'
-                            : 'cursor-pointer rounded-chip border border-border px-1.5 py-0.5 text-[12px] text-fg-subtle transition-colors duration-200 hover:border-accent/40 hover:text-accent'
-                        }
-                      >
-                        {MEASUREMENT_ITEMS[code].symbol}
-                      </button>
-                    );
-                  })}
-                  {codes.length === 0 && (
-                    <span className="text-[12px] text-fg-subtle">
-                      항목을 고르지 않으면 계측 지점이 아닙니다
-                    </span>
-                  )}
-                </div>
+          {process.stages.length > 0 ? (
+            <StageList
+              stages={process.stages}
+              onMove={(stageId, delta) => save(moveStage(process, stageId, delta))}
+              onRemove={(stageId) => {
+                const { process: next, removed } = removeStage(process, stageId);
+                save(next);
+                setLastRemoved(removed);
+              }}
+              onUpdate={(stageId, patch) => save(updateStage(process, stageId, patch))}
+              onRemovePoint={(stageId, index) => save(removeChannel(process, stageId, index))}
+              onGoToChannels={() => setView('channels')}
+            />
+          ) : (
+            <p className="rounded-nested border border-dashed border-border-strong bg-surface-2 px-4 py-6 text-center text-[12px] text-fg-subtle">
+              단계가 없습니다 — 「단계 추가」로 이 사업장의 공정을 만드세요
+            </p>
+          )}
+
+          {adding ? (
+            <AddStagePanel
+              stageNames={process.stages.map((s) => s.name)}
+              onAdd={addStage}
+              onCancel={() => setAdding(false)}
+            />
+          ) : (
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <button type="button" className={ACTION_BUTTON} onClick={() => setAdding(true)}>
+                <Plus aria-hidden className="size-3.5" strokeWidth={2.2} />
+                단계 추가
+              </button>
+              {/* 되돌릴 것이 없으면 그리지 않는다 */}
+              {isUserSet && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    reset(siteId);
+                    setLastRemoved(null);
+                  }}
+                  className={ACTION_BUTTON_QUIET}
+                >
+                  <RotateCcw aria-hidden className="size-3.5" strokeWidth={2} />
+                  표준 공정으로 되돌리기
+                </button>
               )}
-            </li>
-          );
-        })}
-      </ul>
-
-      {/*
-        * **되돌릴 것이 없으면 줄 자체를 그리지 않는다.** 버튼만 감추던 판본은 안내 문단이
-        * 이 줄을 늘 채우고 있어서 괜찮았는데, 그 문단이 제목 옆 툴팁으로 가자 위쪽 테두리만
-        * 남아 **빈 가로선**이 됐다.
-        *
-        * **좁은 화면에서만 40px을 채운다**(`min-h-10 lg:min-h-0`) — 글자 12px + `py-1`이면
-        * 실높이가 28px이라 손가락 최소를 밑돈다. `lg` 이상은 한 픽셀도 달라지지 않는다.
-        */}
-      {isUserSet && (
-        <div className="flex justify-end border-t border-border pt-2.5">
-          <button
-            type="button"
-            onClick={() => reset(siteId)}
-            className="inline-flex min-h-10 shrink-0 cursor-pointer items-center rounded-[3px] border border-border px-2 py-1 text-[12px] text-fg-subtle transition-colors duration-200 hover:border-border-strong hover:text-fg lg:min-h-0"
-          >
-            표준 공정으로 되돌리기
-          </button>
+            </div>
+          )}
         </div>
+      ) : (
+        <ChannelTable
+          rows={rows}
+          stages={process.stages}
+          sourceLabel={CHANNEL_SOURCE_LABELS[channels.source]}
+          onAssign={(key, target) => save(assignChannel(process, key, target))}
+          onAddManual={(key, item, stageId) => {
+            if (rows.some((row) => row.key === key)) return `「${key}」은(는) 이미 표에 있습니다`;
+            const result = addChannel(process, stageId, { key, item });
+            if (!result.ok) return result.reason;
+            save(result.process);
+            return null;
+          }}
+        />
       )}
     </div>
   );

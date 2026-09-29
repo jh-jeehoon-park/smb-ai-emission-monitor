@@ -6,13 +6,33 @@ export const SETTINGS_TABS = ['classification', 'limits', 'process', 'instrument
 export type SettingsTab = (typeof SETTINGS_TABS)[number];
 
 export const SETTINGS_TAB_OPTIONS: { value: SettingsTab; label: string }[] = [
-  { value: 'classification', label: '사업장 분류' },
+  { value: 'classification', label: '사업장 규제정보' },
   { value: 'limits', label: '방류 기준치' },
   { value: 'process', label: '공정 구성' },
   { value: 'instruments', label: '계측 구성' },
   { value: 'metering', label: '설비 전력 계측' },
 ];
 
+/**
+ * 목차의 **묶음** `[사용자 요청 2026-09-29: 사업장 설정 UI/UX 개편]`.
+ *
+ * «사업장»은 그 곳이 어떤 곳이고 어떤 기준을 받는가 — 규정·판정에 닿는다. «설비·계측»은 무엇을
+ * 달았는가 — 장비 구성이다. 고치는 사람도 시점도 다르다(허가증이 갱신될 때 vs 장비를 설치할 때).
+ * 탭 순서(`SETTINGS_TABS`)와 이 묶음의 순서가 같다 — 어긋나면 목차와 기본 탭이 따로 논다.
+ */
+export const SETTINGS_TAB_GROUPS: readonly { label: string; tabs: readonly SettingsTab[] }[] = [
+  { label: '사업장', tabs: ['classification', 'limits'] },
+  { label: '설비·계측', tabs: ['process', 'instruments', 'metering'] },
+];
+
+/**
+ * **`classification`은 이제 «분류»보다 넓다** `[사용자 요청 2026-09-28: 설정 재설계 검토]`.
+ *
+ * 처음에는 기준치표를 고르는 두 축(지역구분·배출량 규모)뿐이라 그 이름이 맞았다. 지금은
+ * **1일 폐수배출량 원시값**과 **방류·처리 경로**까지 담아 «그 사업장이 어떤 곳인가»를
+ * 적는 칸이 됐고, 라벨을 **사업장 규제정보**로 바꿨다. 키는 그대로 둔다 — 주소
+ * (`?tab=classification`)를 저장해 둔 사람의 링크가 깨진다.
+ */
 /**
  * 역할이 어느 탭을 다루는가.
  *

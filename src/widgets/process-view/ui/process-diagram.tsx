@@ -1,6 +1,6 @@
 'use client';
 
-import { Droplets, Filter, Gauge, Layers, ShieldCheck, Wind } from 'lucide-react';
+import { Droplets, Filter, FlaskConical, Gauge, Layers, Wind } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import {
   PROVISIONAL_MEASUREMENT_GRADE_DASH,
@@ -10,7 +10,7 @@ import { MEASUREMENT_ITEMS } from '@/shared/config/measurement';
 import type { MeasurementPoint } from '@/entities/measurement';
 import { ACTUAL_HEX, AI_HEX, MEASUREMENT_GRADE_HEX } from '@/shared/config/status-visual';
 import { formatValue } from '@/shared/lib/format';
-import type { ProcessStage } from '@/entities/process';
+import { TREATMENT_TYPE_LABELS, type ProcessStage, type TreatmentType } from '@/entities/process';
 import type { ResolvedStage } from '@/features/process-settings';
 import {
   BASIN_FLOOR,
@@ -22,14 +22,8 @@ import {
   nodeCenterY,
   nodeX,
 } from '../config/layout';
+import { nodeNameLines } from '../lib/node-name';
 import { stageReadings, type StageReading } from '../lib/stage-readings';
-
-const TYPE_LABELS: Record<ProcessStage['type'], string> = {
-  physical: '물리',
-  biological: '생물',
-  chemical: '화학',
-  monitoring: '측정',
-};
 
 /** 단계가 하는 일을 한 눈에 — 거름·침전·폭기·분리·소독·계측 */
 const STAGE_ICONS: Record<string, LucideIcon> = {
@@ -40,8 +34,23 @@ const STAGE_ICONS: Record<string, LucideIcon> = {
   advanced: Gauge,
 };
 
-/** 아이콘이 없는 플러스 알파 단계의 기본값. 목록이 오면 위 표에 넣는다 `[TBD-53]` */
-const FALLBACK_ICON = ShieldCheck;
+/**
+ * 표준 단계가 아닌 단계는 **처리 유형**으로 아이콘을 고른다 — 사업장이 더한 단계(목록·직접 입력)는
+ * id가 제각각이라 id로 고를 수 없다.
+ */
+const TYPE_ICONS: Record<TreatmentType, LucideIcon> = {
+  physical: Layers,
+  chemical: FlaskConical,
+  biological: Wind,
+  monitoring: Gauge,
+};
+
+/**
+ * 노드 안 글자의 세로 자리(노드 윗변 기준). **이름이 두 줄이면 등급 줄이 한 단 내려간다** —
+ * 계측값 줄(`NODE_TOP + 104`)은 그대로라 두 경우 모두 겹치지 않는다.
+ */
+const NAME_Y = { single: [68], double: [62, 77] } as const;
+const GRADE_Y = { single: 86, double: 92 } as const;
 
 /**
  * 노드 하나에 적는 계측값의 최대 개수.
@@ -97,6 +106,7 @@ export function ProcessDiagram({ stages, points, selectedId, onSelect, pending =
         <BasinNode
           key={resolved.stage.id}
           stage={resolved.stage}
+          reuseBranch={resolved.reuseBranch}
           index={index}
           readings={stageReadings(points, resolved)}
           pending={pending}
@@ -105,9 +115,19 @@ export function ProcessDiagram({ stages, points, selectedId, onSelect, pending =
         />
       ))}
 
-      <EstimateBranch count={stages.length} />
+      <EstimateBranch index={outletIndex(stages)} />
     </svg>
   );
+}
+
+/**
+ * AI 추정이 갈라져 나오는 자리 — **방류 유량 채널이 걸린 단계**다. T-N·T-P는 방류수의 수질에서
+ * 추정하므로 그 지점에 달려야 한다. 예전에는 늘 마지막 단계였는데, 사업장이 방류 뒤에 단계를
+ * 붙이면(파샬플룸 등) 엉뚱한 단계에 달린다. 방류 유량을 건 단계가 없으면 마지막 단계다.
+ */
+function outletIndex(stages: readonly ResolvedStage[]): number {
+  const found = stages.findIndex((s) => s.channels.some((c) => c.item === 'flow' && c.key !== null));
+  return found >= 0 ? found : stages.length - 1;
 }
 
 /** 수조 사이를 잇는 관. 굵은 관 안쪽으로 물이 흐른다 */
@@ -141,6 +161,7 @@ function Pipe({ index }: { index: number }) {
 
 function BasinNode({
   stage,
+  reuseBranch,
   index,
   readings,
   pending,
@@ -148,6 +169,8 @@ function BasinNode({
   onSelect,
 }: {
   stage: ProcessStage;
+  /** 처리수 일부가 여기서 재이용으로 갈라지는가 — 표시만 한다 `[사용자 결정 2026-09-29: (가)]` */
+  reuseBranch: boolean;
   index: number;
   readings: StageReading[];
   pending: boolean;
@@ -157,7 +180,9 @@ function BasinNode({
   const x = nodeX(index);
   const hex = MEASUREMENT_GRADE_HEX[stage.grade];
   const floorY = NODE_TOP + NODE_HEIGHT - BASIN_FLOOR;
-  const Icon = STAGE_ICONS[stage.id] ?? FALLBACK_ICON;
+  const Icon = STAGE_ICONS[stage.id] ?? TYPE_ICONS[stage.type];
+  const nameLines = nodeNameLines(stage.name);
+  const layout = nameLines.length > 1 ? 'double' : 'single';
   /* 설정된 항목이 있으면 그것이 곧 계측 지점이다 — 등급 상수보다 사용자 설정이 먼저다 */
   const measured = readings.length > 0 || stage.grade === 'actual';
 
@@ -166,7 +191,9 @@ function BasinNode({
       role="button"
       tabIndex={0}
       aria-pressed={selected}
-      aria-label={`${stage.order}. ${stage.name} — ${PROVISIONAL_MEASUREMENT_GRADE_LABELS[stage.grade]}`}
+      aria-label={`${stage.order}. ${stage.name} — ${PROVISIONAL_MEASUREMENT_GRADE_LABELS[stage.grade]}${
+        reuseBranch ? ' · 재이용 분기' : ''
+      }`}
       /*
        * `group`은 아래 초점 테두리가 이 `<g>`의 `:focus-visible`을 보기 위한 것이다.
        * `outline`을 쓰지 않는 이유는 SVG 요소의 outline 렌더가 브라우저마다 갈리기 때문이다 —
@@ -238,14 +265,33 @@ function BasinNode({
       <Icon x={x + 12} y={NODE_TOP + 12} width={17} height={17} stroke={hex} strokeWidth={1.8} />
 
       <text x={x + 12} y={NODE_TOP + 48} className="fill-fg-subtle text-[10px]">
-        {TYPE_LABELS[stage.type]}
+        {TREATMENT_TYPE_LABELS[stage.type]}
       </text>
-      <text x={x + 12} y={NODE_TOP + 68} className="fill-fg text-[13px] font-semibold">
-        {stage.name}
+      <text className="fill-fg text-[13px] font-semibold">
+        <title>{stage.name}</title>
+        {nameLines.map((line, row) => (
+          <tspan key={row} x={x + 12} y={NODE_TOP + NAME_Y[layout][row]!}>
+            {line}
+          </tspan>
+        ))}
       </text>
-      <text x={x + 12} y={NODE_TOP + 86} className="text-[10px]" style={{ fill: hex }}>
+      <text x={x + 12} y={NODE_TOP + GRADE_Y[layout]} className="text-[10px]" style={{ fill: hex }}>
         {PROVISIONAL_MEASUREMENT_GRADE_LABELS[stage.grade]}
       </text>
+      {/*
+       * **재이용 분기는 글자로만 적는다** `[사용자 결정 2026-09-29: (가)]`. 갈래 선을 그리면 그 양을
+       * 재는 것처럼 보이는데 재이용량은 계측하지 않는다. 포인트색은 조작·선택에만 쓰므로 무채색이다.
+       */}
+      {reuseBranch && (
+        <text
+          x={x + NODE_WIDTH - 12}
+          y={NODE_TOP + GRADE_Y[layout]}
+          textAnchor="end"
+          className="fill-fg-muted text-[10px] font-semibold"
+        >
+          ↻ 재이용
+        </text>
+      )}
 
       {/*
        * **그 지점의 지금 값.** 회의가 요구한 것이 이것이다 — HMI가 공정마다 값을 띄우는
@@ -336,13 +382,13 @@ function Readings({
 }
 
 /**
- * 마지막 단계에서 갈라져 나오는 AI 추정. **직접 재지 않는 항목이라 선을 나눈다** —
+ * 방류 지점에서 갈라져 나오는 AI 추정. **직접 재지 않는 항목이라 선을 나눈다** —
  * 같은 관에 이어 그리면 프로브가 TN·TP도 재는 것처럼 읽힌다(E3).
  */
-function EstimateBranch({ count }: { count: number }) {
-  if (count === 0) return null;
+function EstimateBranch({ index }: { index: number }) {
+  if (index < 0) return null;
 
-  const x = nodeX(count - 1) + NODE_WIDTH / 2;
+  const x = nodeX(index) + NODE_WIDTH / 2;
   const y1 = NODE_TOP + NODE_HEIGHT;
   const y2 = y1 + 30;
 

@@ -15,6 +15,7 @@ import {
   parseSheets,
   type ClassificationBySite,
   type LimitSheets,
+  EMPTY_CLASSIFICATION,
   type SiteClassification,
 } from '../lib/storage';
 
@@ -28,7 +29,6 @@ interface LimitSettingsStore {
 
 const LimitSettingsContext = createContext<LimitSettingsStore | null>(null);
 
-const EMPTY_CLASSIFICATION: SiteClassification = { regionGrade: null, dischargeScale: null };
 const EMPTY_SHEETS: LimitSheets = {};
 const EMPTY_BY_SITE: ClassificationBySite = {};
 

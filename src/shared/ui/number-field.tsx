@@ -21,6 +21,11 @@ interface NumberFieldProps {
   disabled?: boolean;
   /** 못 쓰는 칸의 이유. `disabled`와 함께 준다 */
   disabledNote?: string;
+  /**
+   * 라벨을 **눈에서만** 감춘다 — 설정 행(`SettingRow`)처럼 바로 옆에 같은 이름이 이미 있을 때.
+   * 지우지 않는 이유: 화면 읽기 프로그램에는 입력 칸의 이름이 그대로 필요하다.
+   */
+  hideLabel?: boolean;
 }
 
 /**
@@ -44,6 +49,7 @@ export function NumberField({
   className,
   disabled,
   disabledNote,
+  hideLabel = false,
 }: NumberFieldProps) {
   const id = useId();
   const noteId = `${id}-note`;
@@ -51,7 +57,7 @@ export function NumberField({
 
   return (
     <div className={cn('min-w-0', className)}>
-      <label htmlFor={id} className="block text-[12px] text-fg-subtle">
+      <label htmlFor={id} className={cn('block text-[12px] text-fg-subtle', hideLabel && 'sr-only')}>
         {label}
         {unit ? <span className="ml-1 text-fg-subtle">({unit})</span> : null}
       </label>
@@ -80,13 +86,14 @@ export function NumberField({
           onChange(Number.isFinite(parsed) ? parsed : null);
         }}
         className={cn(
+          !hideLabel && 'mt-1',
           /*
            * **좁은 화면에서는 40px을 채운다** `[사용자 요청 2026-09-21: 나머지 전체 화면 반응형]`.
            * `py-1.5` + 13px 글자면 실높이가 **34px**이라 손가락으로 정확히 짚기 어렵다(실측) —
            * 기준치를 손으로 넣는 화면이라 잘못 짚으면 옆 항목의 값을 고치게 된다.
            * `lg` 이상은 되돌려 **넓은 화면의 표 줄 높이가 그대로다**.
            */
-          'num mt-1 min-h-10 w-full rounded-[4px] border bg-surface px-2 py-1.5 text-[13px] text-fg lg:min-h-0',
+          'num min-h-10 w-full rounded-[4px] border bg-surface px-2 py-1.5 text-[13px] text-fg lg:min-h-0',
           'transition-colors duration-200 placeholder:text-fg-subtle',
           'focus-visible:outline focus-visible:-outline-offset-1 focus-visible:outline-border-strong',
           'disabled:cursor-not-allowed disabled:bg-surface-2 disabled:text-fg-subtle',

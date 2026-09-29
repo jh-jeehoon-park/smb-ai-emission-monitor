@@ -1,3 +1,5 @@
+import type { DischargeRoute } from '@/entities/regulation';
+import { DISCHARGE_ROUTES } from '@/entities/regulation';
 import {
   DISCHARGE_SCALES,
   LIMIT_INPUT_KIND,
@@ -6,6 +8,7 @@ import {
   type RegionGrade,
 } from '@/shared/config/discharge-limits';
 import { MEASUREMENT_ITEMS, type MeasurementItemCode } from '@/shared/config/measurement';
+import { REUSE_STATUSES, type ReuseStatus } from '../config/constants';
 
 /**
  * 사용자가 입력한 기준치. **(지역구분 × 규모 × 항목) → 값**이다.
@@ -25,13 +28,45 @@ export type LimitSheets = Partial<
   Record<RegionGrade, Partial<Record<DischargeScale, Partial<Record<MeasurementItemCode, LimitEntry>>>>>
 >;
 
-/** 사업장의 두 축. 이것이 없으면 위 표에서 어느 시트를 볼지 정할 수 없다 */
+/**
+ * 사업장의 **규제 관련 사실관계**.
+ *
+ * 처음에는 두 축뿐이었다(지역구분·배출량 규모) — 기준치표를 고르는 데 그 둘만 필요했기
+ * 때문이다. **이름은 그때의 것이고 지금은 사실관계 전체를 담는다**
+ * `[사용자 요청 2026-09-28: 설정 재설계 검토]`.
+ *
+ * **배출량은 구간이 아니라 원시 값이 정본이다.** `dailyWastewaterM3`가 있으면
+ * `dischargeScale`은 거기서 파생된다(`scaleFromDailyFlow`) — 구간 경계는 법이 정하는 것이라
+ * 바뀔 수 있고, 구간만 저장해 두면 경계가 바뀔 때 **사업장 데이터를 전부 다시 분류해야 한다.**
+ * 원시 값을 모르는 동안에는 구간을 직접 고른다(기존 동작 그대로).
+ */
 export interface SiteClassification {
   regionGrade: RegionGrade | null;
   dischargeScale: DischargeScale | null;
+  /** 1일 폐수배출량(㎥). 허가량이 아니라 **실제 배출량**이다 */
+  dailyWastewaterM3: number | null;
+  /** 하천 직접방류와 공공처리시설 유입은 **적용되는 법이 다르다** `[공정자료 p.11]` */
+  dischargeRoute: DischargeRoute | null;
+  /**
+   * 처리수 일부를 제조공정에 재이용하는가 `[사용자 결정 2026-09-29: 재이용 (가)]`. `null`은 **모름**이다 —
+   * «없음»으로 두면 확인하지 않은 사업장이 재이용이 없다고 주장하게 된다.
+   */
+  reuse: ReuseStatus | null;
+  /** 재이용량 일평균(㎥/일). 일부 재이용일 때만 뜻이 있다. 모르면 `null` */
+  reuseDailyM3: number | null;
 }
 
 export type ClassificationBySite = Record<string, SiteClassification>;
+
+/** 아무것도 모르는 사업장 — 모든 축이 `null`이다. 한 곳에 두어 필드가 늘 때 빠뜨리지 않게 한다 */
+export const EMPTY_CLASSIFICATION: SiteClassification = {
+  regionGrade: null,
+  dischargeScale: null,
+  dailyWastewaterM3: null,
+  dischargeRoute: null,
+  reuse: null,
+  reuseDailyM3: null,
+};
 
 const isRegion = (v: unknown): v is RegionGrade =>
   typeof v === 'string' && (REGION_GRADES as readonly string[]).includes(v);
@@ -39,6 +74,32 @@ const isScale = (v: unknown): v is DischargeScale =>
   typeof v === 'string' && (DISCHARGE_SCALES as readonly string[]).includes(v);
 const isCode = (v: unknown): v is MeasurementItemCode =>
   typeof v === 'string' && v in MEASUREMENT_ITEMS;
+const isRoute = (v: unknown): v is DischargeRoute =>
+  typeof v === 'string' && (DISCHARGE_ROUTES as readonly string[]).includes(v);
+const isReuse = (v: unknown): v is ReuseStatus =>
+  typeof v === 'string' && (REUSE_STATUSES as readonly string[]).includes(v);
+/** 0 이상의 유한수만 받는다 — 음수 배출량·재이용량은 없는 값이다 */
+const nonNegative = (v: unknown): number | null =>
+  typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : null;
+
+/** 배출량이 있으면 구간은 거기서 나온다 — 저장된 구간이 옛 값이어도 원시 값이 이긴다 */
+function scaleOf(flow: number | null, stored: unknown): DischargeScale | null {
+  if (flow !== null) return scaleFromDailyFlow(flow);
+  return isScale(stored) ? stored : null;
+}
+
+/**
+ * 1일 폐수배출량(㎥) → 규모 구간 `[공정자료 p.11]`.
+ *
+ * **경계값은 위 구간에 넣는다** — 정확히 2,000㎥면 `2,000㎥ 이상`이다. 법령 표기가
+ * `2,000㎥ 이상`이라 그 낱말이 이미 경계를 포함한다.
+ */
+export function scaleFromDailyFlow(m3: number): DischargeScale {
+  if (m3 >= 2000) return '2,000㎥ 이상';
+  if (m3 >= 700) return '700~2,000㎥';
+  if (m3 >= 200) return '200~700㎥';
+  return '200㎥ 미만';
+}
 
 /**
  * 한 항목의 값이 쓸 수 있는가.
@@ -109,10 +170,18 @@ export function parseClassification(raw: unknown): ClassificationBySite | null {
 
   for (const [siteId, value] of Object.entries(raw)) {
     if (typeof siteId !== 'string' || typeof value !== 'object' || value === null) continue;
-    const { regionGrade, dischargeScale } = value as Partial<SiteClassification>;
+    const { regionGrade, dischargeScale, dailyWastewaterM3, dischargeRoute, reuse, reuseDailyM3 } =
+      value as Partial<SiteClassification>;
+    const flow = nonNegative(dailyWastewaterM3);
+    const reuseStatus = isReuse(reuse) ? reuse : null;
     out[siteId] = {
       regionGrade: isRegion(regionGrade) ? regionGrade : null,
-      dischargeScale: isScale(dischargeScale) ? dischargeScale : null,
+      dischargeScale: scaleOf(flow, dischargeScale),
+      dailyWastewaterM3: flow,
+      dischargeRoute: isRoute(dischargeRoute) ? dischargeRoute : null,
+      reuse: reuseStatus,
+      /* 재이용이 없거나 모르면 양도 없다 — 남은 숫자가 «일부 재이용»처럼 읽힌다 */
+      reuseDailyM3: reuseStatus === 'partial' ? nonNegative(reuseDailyM3) : null,
     };
   }
   return out;

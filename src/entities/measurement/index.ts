@@ -7,6 +7,14 @@ export {
   type SiteSeries,
 } from './api/use-site-series';
 export { useRetryTelemetry } from './api/use-retry-telemetry';
+export {
+  INLET_CHANNEL_ITEMS,
+  KNOWN_CHANNELS,
+  isMetaChannel,
+  readableSeriesOf,
+  type KnownChannel,
+} from './api/channel-registry';
+export { useSiteChannelKeys, type SiteChannelKeys } from './api/channels';
 export { pollIntervalMs, useSiteLatest } from './api/use-site-series';
 export {
   WATER_SERIES_CODES,

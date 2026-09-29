@@ -671,12 +671,17 @@
    * 있다는 사실을 다시 말하지 못한다(실측으로 잡았다). 다크에서는 같은 자리에 **옅은 빛**을
    * 둔다 — 어두운 면 위에서 «가장자리가 이어진다»를 말하는 방향이 반대이기 때문이다.
    */
+  /*
+   * **가리개 색을 여기서 선언하지 않고 기본값으로만 쓴다**(`var(--scroll-hint-bg, var(--surface))`)
+   * `[2026-09-29]`. 이 규칙이 `--scroll-hint-bg`를 스스로 선언하던 판본은 소비처의 덮어쓰기
+   * (`[--scroll-hint-bg:…]`)와 특이도가 같아 **CSS 순서로 이겼다** — 덮어쓰기가 조용히 무시되어
+   * 흰 면이 아닌 자리(설비 상태 격자·설정 목차)에 흰 띠가 남았다(설정 목차 캡처로 잡았다).
+   */
   .scroll-hint {
-    --scroll-hint-bg: var(--surface);
     --scroll-hint-ink: rgb(15 23 42 / 0.13);
     background-image:
-      linear-gradient(to right, var(--scroll-hint-bg) 40%, transparent),
-      linear-gradient(to left, var(--scroll-hint-bg) 40%, transparent),
+      linear-gradient(to right, var(--scroll-hint-bg, var(--surface)) 40%, transparent),
+      linear-gradient(to left, var(--scroll-hint-bg, var(--surface)) 40%, transparent),
       radial-gradient(farthest-side at 0 50%, var(--scroll-hint-ink), transparent),
       radial-gradient(farthest-side at 100% 50%, var(--scroll-hint-ink), transparent);
     background-position:

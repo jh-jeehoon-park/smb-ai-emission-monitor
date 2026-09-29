@@ -10,8 +10,8 @@ import { UNRESOLVED_REASONS } from './config/constants';
 import { resolveLimitTable } from './lib/resolve';
 import { parseSheets, validEntry, type LimitSheets } from './lib/storage';
 
-const NOTHING = { regionGrade: null, dischargeScale: null };
-const CLASSIFIED = { regionGrade: '가지역' as const, dischargeScale: '200㎥ 미만' as const };
+const NOTHING = { regionGrade: null, dischargeScale: null, dailyWastewaterM3: null, dischargeRoute: null, reuse: null, reuseDailyM3: null };
+const CLASSIFIED = { regionGrade: '가지역' as const, dischargeScale: '200㎥ 미만' as const, dailyWastewaterM3: null, dischargeRoute: null, reuse: null, reuseDailyM3: null };
 const ISO = '2026-08-20T09:00:00.000Z';
 
 const sheetWith = (entries: Record<string, { min: number | null; max: number | null }>) =>
@@ -76,7 +76,7 @@ describe('사업장 분류가 없으면', () => {
 
   /** 두 축 중 하나만 있어도 시트를 고를 수 없다 */
   it('한 축만 있어도 고르지 못한다', () => {
-    const half = { regionGrade: '가지역' as const, dischargeScale: null };
+    const half = { regionGrade: '가지역' as const, dischargeScale: null, dailyWastewaterM3: null, dischargeRoute: null, reuse: null, reuseDailyM3: null };
     expect(resolveLimitTable(null, half, null).unresolvedReason).toBe(
       UNRESOLVED_REASONS.noClassification,
     );

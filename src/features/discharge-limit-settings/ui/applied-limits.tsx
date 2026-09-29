@@ -1,28 +1,15 @@
 'use client';
 
-import {
-  LEGAL_CHECK_ITEMS,
-  LIMIT_LABEL,
-  UNRESOLVED_LIMIT_TEXT,
-  formatLimitRange,
-  limitBasisOf,
-} from '@/shared/config/discharge-limits';
-import { MEASUREMENT_ITEMS } from '@/shared/config/measurement';
-import {
-  TABLE_HEAD_CELL,
-  TABLE_HEAD_ROW,
-  TABLE_ROOT,
-  TABLE_ROW,
-  TABLE_SCROLL,
-} from '@/shared/ui/table';
-import { useDischargeLimits } from '../model/use-discharge-limits';
+import { StandardTable } from '@/entities/regulation';
+import { useSiteStandards } from '../model/use-site-standards';
 
 /** 이 표를 담는 패널의 제목 옆 툴팁에 쓴다 — 값과 같은 파일에 있어야 함께 고쳐진다 */
 export const APPLIED_LIMIT_NOTE = (
   <>
     <strong className="text-fg">지금 이 사업장에 적용되는 기준</strong>입니다. 여기서 고치지
-    않습니다 — 값은 <strong className="text-fg">사업장 분류와 입력된 기준표</strong>에서 계산되며,
-    바뀌면 이 표가 따라옵니다.
+    않습니다 — 값은 <strong className="text-fg">규정과 사업장 사실관계</strong>에서 산출되며,
+    둘 중 하나가 바뀌면 이 표가 따라옵니다. <strong className="text-fg">왜 이 값인가</strong>
+    칸이 어느 규정이 쓰였고 무엇을 몰라 확정하지 못했는지를 적습니다.
   </>
 );
 
@@ -33,80 +20,24 @@ export const APPLIED_LIMIT_NOTE = (
  * 한때 세 역할이 **같은 기준치 표를 직접 편집**했다. 저장소는 `(지역구분 × 규모 × 항목)`
  * 한 벌이고 쓰는 쪽은 통째로 덮어쓰므로, 마지막에 저장한 역할이 이긴다 — 그리고 그 값은
  * **같은 분류의 모든 사업장**에 함께 적용된다(실측: `S-02`에 넣은 값이 `S-03`에도 적용됐다).
+ * 규제 기준에 «마지막에 쓴 쪽이 이긴다»를 두지 않는다.
  *
- * 규제 기준에 «마지막에 쓴 쪽이 이긴다»를 두지 않는다. 입력은 한 주체가 맡고, 나머지는
- * **적용 결과와 그 출처**를 본다.
+ * **숫자 하나만 적던 판본을 걷었다.** 그 표는 값이 법령에서 온 것인지 우리가 넣은 시연값인지,
+ * 무엇을 몰라서 아직 확정이 아닌지를 말하지 못했다 — 판단이 전부 코드 안에 있어 **화면에서
+ * 검토할 수 없었다.** 이 화면은 mock으로 채워 회의에서 형태를 판별하는 대상이므로
+ * `[사용자 지적 2026-09-28]` 판단의 근거가 화면에 있어야 한다.
  *
  * **권한을 내린 것이 아니다** — 탭은 그대로 보이고, 보는 내용이 «입력 칸»에서 «적용 결과»로
  * 바뀌었다. 한때 사업장·기초지자체가 입력할 수 있었으나 그 값은 시스템 관리자가 사업장
  * 분류를 고르기 전까지 **어디에도 적용되지 않았다**(실측) — 고칠 수 있다는 표시만 있었다.
  */
 export function AppliedLimits() {
-  const { table, unresolvedReason, classification } = useDischargeLimits();
+  const rows = useSiteStandards();
 
-  return (
-    <div className="space-y-3">
-      {unresolvedReason ? (
-        <p className="rounded-nested border border-border bg-surface-2 px-3 py-3 text-[12px] leading-relaxed text-fg-muted">
-          {unresolvedReason}
-        </p>
-      ) : null}
-
-      <div className={TABLE_SCROLL}>
-        <table className={`${TABLE_ROOT} min-w-[460px] text-[12px]`}>
-          <caption className="sr-only">
-            이 사업장에 적용되는 방류 기준치. 지역구분 {classification.regionGrade ?? '미설정'} ·
-            배출량 규모 {classification.dischargeScale ?? '미설정'} 기준으로 계산된 값이다.
-          </caption>
-          <thead>
-            <tr className={TABLE_HEAD_ROW}>
-              <th scope="col" className={TABLE_HEAD_CELL}>
-                항목
-              </th>
-              <th scope="col" className={TABLE_HEAD_CELL}>
-                적용 기준
-              </th>
-              <th scope="col" className={TABLE_HEAD_CELL}>
-                출처
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {LEGAL_CHECK_ITEMS.map((item) => {
-              const limit = item.code ? table[item.code] : undefined;
-              const basis = item.code ? limitBasisOf(item.code, table) : 'none';
-              const range = limit
-                ? formatLimitRange(limit, MEASUREMENT_ITEMS[item.code!].decimals)
-                : null;
-
-              return (
-                <tr key={item.label} className={TABLE_ROW}>
-                  <th scope="row" className="px-3 py-3 text-left font-normal text-fg">
-                    {item.label}
-                  </th>
-                  <td className="px-3 py-3">
-                    {range === null || basis === 'none' ? (
-                      <span className="text-fg-subtle">{UNRESOLVED_LIMIT_TEXT}</span>
-                    ) : (
-                      <span className="num text-fg">
-                        {LIMIT_LABEL[basis]} {range}
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-3 py-3 text-fg-muted">
-                    {/*
-                     * **SS는 기준을 넣어도 비교할 값이 없다** — 우리 계측에도 AI 추정에도
-                     * 없어서(`[공정자료 p.5·19]`) `code`가 `null`이다. 5항목을 그대로 적고
-                     * 보유 여부를 따로 표시한다는 원칙 그대로다.
-                     */}
-                    {item.code === null ? '계측 없음 — 이 시스템이 측정하지 않는 항목' : (limit?.source ?? '—')}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
+  /*
+   * 분류가 없다는 안내는 **여기 두지 않는다** `[사용자 요청 2026-09-29: 사업장 설정 UI/UX 개편]` —
+   * 바로 위 판정 준비 카드의 «다음 할 일»이 같은 문장을 적는다. 한 화면에 같은 말이 두 번이면
+   * 두 번째는 읽히지 않고 첫 번째까지 소음이 된다. 행별 «확인 필요»는 그 항목에만 해당하는 것을 적는다.
+   */
+  return <StandardTable rows={rows} />;
 }

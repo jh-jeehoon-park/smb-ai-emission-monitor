@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from 'vitest';
 import { cleanup, render } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import { ROLES } from '@/entities/user';
 import { LimitSettingsProvider } from '@/features/discharge-limit-settings';
@@ -29,14 +30,22 @@ vi.mock('next/navigation', () => ({
 
 const search = { current: '' };
 
-/** 설정 화면은 두 저장소 위에서만 산다 — 감싸지 않으면 훅이 던진다 */
+/**
+ * 공정 폼이 장치의 채널 목록을 조회한다. **조회를 켜지 않는다** — 검사가 네트워크에 닿으면 결과가
+ * 서버 상태에 따라 갈린다. 꺼 두면 늘 «알려진 목록»으로 그려진다.
+ */
+const queryClient = new QueryClient({ defaultOptions: { queries: { enabled: false } } });
+
+/** 설정 화면은 저장소 위에서만 산다 — 감싸지 않으면 훅이 던진다 */
 function Wrapped({ children }: { children: ReactNode }) {
   return (
-    <LimitSettingsProvider>
-      <ProcessSettingsProvider>
-        <ProvisioningProvider>{children}</ProvisioningProvider>
-      </ProcessSettingsProvider>
-    </LimitSettingsProvider>
+    <QueryClientProvider client={queryClient}>
+      <LimitSettingsProvider>
+        <ProcessSettingsProvider>
+          <ProvisioningProvider>{children}</ProvisioningProvider>
+        </ProcessSettingsProvider>
+      </LimitSettingsProvider>
+    </QueryClientProvider>
   );
 }
 
@@ -77,29 +86,49 @@ describe('사업장 설정 — 역할로 분기하지 않는다', () => {
     for (const html of drawn) expect(html).toBe(drawn[0]);
   });
 
-  it('탭 단추가 셋 다 마크업에 있다 — 고르는 일은 CSS가 한다', () => {
+  /*
+   * **탭 줄이 왼쪽 목차가 됐다** `[사용자 요청 2026-09-29: 사업장 설정 UI/UX 개편]`. 옛 검사는
+   * 세그먼트(`[role=group]`)가 역할 수만큼 있는지를 셌다 — 목차는 **다루는 탭이 둘 이상인
+   * 역할에게만** 선다(한 줄짜리 목차는 누를 곳이 없는 메뉴다). 성질은 그대로다: 마크업은 역할과
+   * 무관하고 고르는 일은 CSS가 한다.
+   */
+  it('목차 단추가 마크업에 있다 — 고르는 일은 CSS가 한다', () => {
     const { container } = draw('site');
     /*
-     * **패널 제목이 아니라 탭 단추를 센다.** 제목은 같은 글자를 갖고 있어서, 여기서 `getAllByText`로
-     * 훑으면 탭 목록이 한 역할 것만 남아도 통과한다 — 실제로 그렇게 통과하는 것을 보고 좁혔다.
+     * **패널 제목이 아니라 목차 단추를 센다.** 제목은 같은 글자를 갖고 있어서, 여기서 `getAllByText`로
+     * 훑으면 목차가 사라져도 통과한다 — 실제로 그렇게 통과하는 것을 보고 좁혔다.
      */
-    const labels = [...container.querySelectorAll('[role="group"][aria-label="설정 항목"] button')]
-      .map((button) => button.textContent?.trim())
-      .filter(Boolean);
+    const labels = [...container.querySelectorAll('nav[aria-label="설정 항목"] button')].map(
+      (button) => button.textContent ?? '',
+    );
 
-    for (const option of ['사업장 분류', '방류 기준치', '공정 구성']) {
-      expect(labels, option).toContain(option);
+    /* 「사업장 분류」였다 — 배출량 원시값·방류 경로까지 담으며 이름이 넓어졌다 `[2026-09-28]` */
+    for (const option of ['사업장 규제정보', '방류 기준치', '공정 구성', '계측 구성', '설비 전력 계측']) {
+      expect(labels.some((label) => label.includes(option)), option).toBe(true);
     }
   });
 
-  /** 역할마다 한 벌씩 그려야 CSS가 고를 수 있다 */
-  it('설정 항목 묶음이 역할 수만큼 있고 각자 `role-only-*`를 단다', () => {
+  /** 목차는 탭이 둘 이상인 역할에게만 서고, 각자 `role-only-*`를 단다 */
+  it('목차가 여러 탭을 다루는 역할에게만 선다', () => {
     const { container } = draw('site');
-    const groups = [...container.querySelectorAll('[role="group"][aria-label="설정 항목"]')];
-    expect(groups).toHaveLength(ROLES.length);
-    for (const role of ROLES) {
-      expect(groups.some((g) => g.className.includes(`role-only-${role}`)), role).toBe(true);
+    const navs = [...container.querySelectorAll('nav[aria-label="설정 항목"]')];
+    const withNav = ROLES.filter(
+      (role) => SETTINGS_TABS.filter((tab) => SETTINGS_TAB_ROLES[tab].includes(role)).length > 1,
+    );
+
+    expect(navs).toHaveLength(withNav.length);
+    for (const role of withNav) {
+      expect(navs.some((nav) => nav.className.includes(`role-only-${role}`)), role).toBe(true);
     }
+  });
+
+  /** 목차 한 줄에 **지금 상태**가 붙는다 — 들어가 보지 않고도 어느 칸이 비었는지 안다 */
+  it('목차 항목이 상태 한 줄을 갖는다', () => {
+    const { container } = draw('system');
+    const text = container.querySelector('nav[aria-label="설정 항목"]')?.textContent ?? '';
+
+    expect(text).toContain('0 / 3 입력');
+    expect(text).toContain('보유 8');
   });
 });
 
@@ -187,7 +216,10 @@ describe('방류 기준치 — 입력과 조회를 가른다', () => {
     const { container } = draw('system', '?tab=limits');
     const text = container.textContent ?? '';
 
-    expect(text).toContain('시스템 관리자가 「사업장 분류」에서 먼저 골라야 합니다');
+    /* 탭이 「사업장 규제정보」로 넓어진 뒤에도 이 문구만 옛 이름이라 없는 탭을 가리켰다 `[2026-09-29]` */
+    expect(text).toContain('시스템 관리자가 「사업장 규제정보」에서 먼저 골라야 합니다');
+    /* 막혀 있다는 말만이 아니라 **풀러 가는 단추**가 있다 */
+    expect(text).toContain('사업장 규제정보 입력');
     /* 지역구분 행이 있으면 입력 표가 열린 것이다 */
     expect(container.querySelector('[aria-label="1일 폐수배출량 규모"]')).toBeNull();
   });

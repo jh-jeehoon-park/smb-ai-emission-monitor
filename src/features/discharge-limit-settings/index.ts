@@ -6,5 +6,8 @@ export { UNRESOLVED_REASONS } from './config/constants';
 export { validEntry } from './lib/storage';
 export { DischargeLimitEditor, DISCHARGE_LIMIT_NOTE } from './ui/discharge-limit-editor';
 export { AppliedLimits, APPLIED_LIMIT_NOTE } from './ui/applied-limits';
+export { useSiteStandards } from './model/use-site-standards';
+export { useSiteReuse, type SiteReuse } from './model/use-site-reuse';
+export { sheetsToRules } from './lib/sheets-to-rules';
 export { SiteClassificationForm, SITE_CLASSIFICATION_NOTE } from './ui/site-classification-form';
 export type { LimitEntry, LimitSheets, SiteClassification } from './lib/storage';

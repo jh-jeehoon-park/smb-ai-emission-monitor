@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import type { DischargeLimitTable } from '@/shared/config/discharge-limits';
 import { resolveLimitTable } from '../lib/resolve';
+import { EMPTY_CLASSIFICATION } from '../lib/storage';
 import { classificationOf, useLimitSettingsStore } from './limit-settings-context';
 
 /**
@@ -43,7 +44,7 @@ export function useDischargeLimitsBySite(siteIds: readonly string[]): LimitsBySi
 
     const fallback = resolveLimitTable(
       store.sheets,
-      { regionGrade: null, dischargeScale: null },
+      EMPTY_CLASSIFICATION,
       store.updatedIso,
     ).table;
 

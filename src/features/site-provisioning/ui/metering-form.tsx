@@ -1,6 +1,8 @@
 'use client';
 
-import { Checkbox } from '@/shared/ui/checkbox';
+import { RotateCcw, Zap } from 'lucide-react';
+import { ACTION_BUTTON_QUIET } from '@/shared/ui/action-button';
+import { ToggleCard } from '@/shared/ui/toggle-card';
 import { useMetering } from '../model/use-metering';
 import { useProvisioningStore } from '../model/provisioning-context';
 
@@ -34,48 +36,41 @@ export function MeteringForm({ siteId, units }: { siteId: string; units: Meterab
     return <p className="text-[12px] text-fg-subtle">이 사업장의 설비 목록이 아직 없습니다.</p>;
   }
 
+  /*
+   * **설비를 카드 격자로 세운다** `[사용자 요청 2026-09-29: 사업장 설정 UI/UX 개편]` — 계측 구성과
+   * 같은 부품이되 **끈 것의 뜻이 반대다**: 여기서 끈 것은 «없다»가 아니라 «고르지 않았다»라
+   * 흐리게 두지 않는다(`offMeaning="selection"`). 대부분이 꺼져 있는 자리라 흐리면 목록 전체가
+   * 죽어 보인다.
+   */
   return (
-    <div className="space-y-3">
-      <ul className="space-y-2">
-        {units.map((unit) => {
-          const on = isMetered(unit.id);
-          return (
-            <li key={unit.id} className="rounded-nested border border-border px-3 py-2.5">
-              <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                <label className="flex cursor-pointer items-center gap-2 text-[12px] text-fg">
-                  <Checkbox
-                    size="sm"
-                    checked={on}
-                    onChange={(event) => setOn(unit.id, event.target.checked)}
-                  />
-                  {unit.name}
-                </label>
-                {/*
+    <div className="space-y-4">
+      <div className="@container">
+        <ul className="grid gap-2 @[34rem]:grid-cols-2 @[56rem]:grid-cols-3">
+          {units.map((unit) => (
+            <li key={unit.id}>
+              <ToggleCard
+                checked={isMetered(unit.id)}
+                onChange={(next) => setOn(unit.id, next)}
+                mark={<Zap className="size-4" strokeWidth={1.8} />}
+                title={unit.name}
+                meta={unit.id}
+                offMeaning="selection"
+                /*
                  * 켠 것에만 결과를 적는다 — 끈 줄까지 「미계측」을 달면 대부분이 같은 말을
                  * 반복해 정작 고른 것이 눈에 띄지 않는다.
-                 */}
-                <span className="text-[12px] text-fg-subtle">
-                  {on ? '통신형 전력량계 설치 대상' : ''}
-                </span>
-              </div>
+                 */
+                onNote="통신형 전력량계 설치 대상"
+              />
             </li>
-          );
-        })}
-      </ul>
+          ))}
+        </ul>
+      </div>
 
-      {/*
-        * 되돌릴 것이 없으면 줄 자체를 그리지 않는다 — 빈 가로선만 남는다(공정·계측 폼의 선례).
-        *
-        * **좁은 화면에서만 40px을 채운다**(`min-h-10 lg:min-h-0`) — 글자 12px + `py-1`이면
-        * 실높이가 28px이라 손가락 최소를 밑돈다. `lg` 이상은 한 픽셀도 달라지지 않는다.
-        */}
+      {/* 되돌릴 것이 없으면 줄 자체를 그리지 않는다. 공용 조작 버튼이 좁은 화면 40px을 채운다 */}
       {isUserSet && (
-        <div className="flex justify-end border-t border-border pt-2.5">
-          <button
-            type="button"
-            onClick={() => reset(siteId)}
-            className="inline-flex min-h-10 shrink-0 cursor-pointer items-center rounded-[3px] border border-border px-2 py-1 text-[12px] text-fg-subtle transition-colors duration-200 hover:border-border-strong hover:text-fg lg:min-h-0"
-          >
+        <div className="flex justify-end">
+          <button type="button" onClick={() => reset(siteId)} className={ACTION_BUTTON_QUIET}>
+            <RotateCcw aria-hidden className="size-3.5" strokeWidth={2} />
             선정 전으로 되돌리기
           </button>
         </div>

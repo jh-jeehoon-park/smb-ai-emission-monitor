@@ -4,7 +4,6 @@ import { useMemo, type ReactNode } from 'react';
 import { cn } from '@/shared/lib/cn';
 import { useQueryState } from '@/shared/lib/use-query-state';
 import { Panel } from '@/shared/ui/panel';
-import { SegmentedControl } from '@/shared/ui/segmented-control';
 import { ROLES, type Role } from '@/entities/user';
 import {
   DISCHARGE_LIMIT_NOTE,
@@ -21,6 +20,9 @@ import {
   useProcess,
 } from '@/features/process-settings';
 import { getEquipment } from '@/entities/equipment';
+import { getSite } from '@/entities/site';
+import { LEGAL_CHECK_ITEMS, limitBasisOf } from '@/shared/config/discharge-limits';
+import { DISCHARGE_ROUTE_LABELS } from '@/entities/regulation';
 import { useSelectedSiteId } from '@/features/site-selection';
 import {
   INSTRUMENT_FORM_NOTE,
@@ -33,10 +35,11 @@ import {
 import {
   SETTINGS_TABS,
   SETTINGS_TAB_KEY,
-  SETTINGS_TAB_OPTIONS,
   SETTINGS_TAB_ROLES,
   type SettingsTab,
 } from '../config/constants';
+import { SettingsNav } from './settings-nav';
+import { SettingsOverview } from './settings-overview';
 import { InfoTip } from '@/shared/ui/tooltip';
 
 /**
@@ -53,6 +56,23 @@ import { InfoTip } from '@/shared/ui/tooltip';
  * 대상 사업장은 **헤더 사업장 선택**을 그대로 쓴다(`?site=`) — 관리자는 전 사업장을 고를 수
  * 있고 사업장은 라우트 가드가 자사로 박아 둔다. 새 쿼리 키를 만들면 가드와 싸운다.
  */
+/** 그 역할이 다루는 탭 */
+const tabsOf = (forRole: Role): SettingsTab[] =>
+  SETTINGS_TABS.filter((value) => SETTINGS_TAB_ROLES[value].includes(forRole));
+
+/** 목차를 세울 역할 — 다루는 탭이 둘 이상인 역할만 */
+const NAV_ROLES: readonly Role[] = ROLES.filter((forRole) => tabsOf(forRole).length > 1);
+
+/**
+ * 두 칸 격자는 **목차가 서는 역할에서만** 켠다. 클래스 문자열을 조립하면 Tailwind가 찾지 못해
+ * 역할마다 글자 그대로 적는다.
+ */
+const GRID_WITH_NAV: Record<Role, string> = {
+  system: 'lg:[:root[data-role=system]_&]:grid-cols-[236px_minmax(0,1fr)]',
+  site: 'lg:[:root[data-role=site]_&]:grid-cols-[236px_minmax(0,1fr)]',
+  gov: 'lg:[:root[data-role=gov]_&]:grid-cols-[236px_minmax(0,1fr)]',
+};
+
 export function SettingsView() {
   const siteId = useSelectedSiteId().siteId;
   /*
@@ -69,7 +89,7 @@ export function SettingsView() {
    * 그래서 `tab`은 역할과 무관하고 서버·클라이언트가 같은 값을 본다.
    */
   const [tab, setTab] = useQueryState(SETTINGS_TAB_KEY, SETTINGS_TABS, SETTINGS_TABS[0]);
-  const { unresolvedReason, isUserSet, classification } = useDischargeLimits();
+  const { unresolvedReason, isUserSet, classification, table } = useDischargeLimits();
   const process = useProcess();
   const instruments = useInstruments();
   const metering = useMetering();
@@ -77,6 +97,11 @@ export function SettingsView() {
    * **설비 목록은 이 화면이 읽어 폼에 넘긴다.** `features/site-provisioning`은 설비 도메인을
    * 모르고(FSD: feature끼리 못 본다), 설정이 정하는 것은 그 목록 위의 **계측 여부**뿐이다.
    */
+  /* 코드가 아니라 사람이 읽는 말로 적는다 — 요약 줄은 설정 폼 밖에서도 읽힌다 */
+  const routeLabel = classification.dischargeRoute
+    ? DISCHARGE_ROUTE_LABELS[classification.dischargeRoute]
+    : '미설정';
+
   const meterableUnits = useMemo(
     () => getEquipment(siteId).map((eq) => ({ id: eq.id, name: eq.name })),
     [siteId],
@@ -94,8 +119,8 @@ export function SettingsView() {
   const PANELS: Record<SettingsTab, ReactNode> = {
     classification: (
       <Panel
-        title="사업장 분류"
-        titleAside={<InfoTip label="입력 안내" content={SITE_CLASSIFICATION_NOTE} />}
+        title="사업장 규제정보"
+        titleAside={<InfoTip label="무엇을 적는 칸인가" content={SITE_CLASSIFICATION_NOTE} />}
       >
         <SiteClassificationForm siteId={siteId} />
       </Panel>
@@ -131,7 +156,7 @@ export function SettingsView() {
          * 두 번 깨졌다(§7.2).
          */}
         <div className="role-hide-site role-hide-gov">
-          <DischargeLimitEditor siteId={siteId} />
+          <DischargeLimitEditor siteId={siteId} onGoToFacts={() => setTab('classification')} />
         </div>
         <div className="role-hide-system">
           <AppliedLimits />
@@ -141,10 +166,10 @@ export function SettingsView() {
     process: (
       <Panel
         title="공정 구성"
-        titleAside={<InfoTip label="단계별 계측 항목의 출처" content={PROCESS_STAGE_ITEMS_NOTE} />}
+        titleAside={<InfoTip label="공정 구성과 ECP 채널" content={PROCESS_STAGE_ITEMS_NOTE} />}
         action={
           <span className="text-[12px] text-fg-subtle">
-            켠 단계 {process.stages.length} · 끈 단계 {process.disabled.length}
+            {process.stages.length}단계{process.isUserSet ? '' : ' · 표준 공정'}
           </span>
         }
       >
@@ -179,86 +204,101 @@ export function SettingsView() {
     ),
   };
 
+  /*
+   * 목차가 달 한 줄씩 — **들어가 보지 않고도 어느 칸이 비었는지** 알게 한다.
+   */
+  const filledFacts = [
+    classification.regionGrade,
+    classification.dischargeScale,
+    classification.dischargeRoute,
+  ].filter((value) => value !== null).length;
+  const navStatus: Record<SettingsTab, string> = {
+    classification: `${filledFacts} / 3 입력`,
+    limits: isUserSet ? '허가증 값 입력됨' : '입력 없음 · 통상 범위만',
+    process: process.isUserSet ? `${process.stages.length}단계 사용` : `표준 ${process.stages.length}단계`,
+    instruments: `보유 ${instruments.held.length} · 미설치 ${instruments.absent.length}`,
+    metering: `계측 ${metering.ids.length} / 설비 ${meterableUnits.length}`,
+  };
+
+  /* 지금 무엇으로 판정하고 있는가 — 법정 근거와 시연 임계값을 가른다 */
+  const judged = LEGAL_CHECK_ITEMS.filter((item) => item.code !== null).map((item) => ({
+    label: item.label,
+    basis: limitBasisOf(item.code!, table),
+  }));
+
+  const site = getSite(siteId);
+
   return (
     <div className="space-y-6">
-      <Panel
-        title="사업장 설정"
-        titleAside={
-          <InfoTip
-            label="지금 판정 상태"
-            content={unresolvedReason ?? '네 항목의 기준치가 모두 설정되어 초과를 판정합니다.'}
+      <SettingsOverview
+        siteName={site.name}
+        siteRegion={`${site.industry} · ${site.address}`}
+        steps={[
+          { label: '지역구분', value: classification.regionGrade },
+          {
+            label: '배출량 규모',
+            value:
+              classification.dailyWastewaterM3 === null
+                ? classification.dischargeScale
+                : `${classification.dischargeScale} · ${classification.dailyWastewaterM3}㎥/일`,
+          },
+          {
+            label: '방류·처리 경로',
+            value: classification.dischargeRoute ? routeLabel : null,
+          },
+          { label: '방류 기준치', value: isUserSet ? '허가증 값 입력됨' : null },
+        ]}
+        legalCodes={judged.filter((j) => j.basis === 'legal').map((j) => j.label)}
+        provisionalCodes={judged.filter((j) => j.basis === 'provisional').map((j) => j.label)}
+        nextAction={unresolvedReason}
+      />
+
+      {/*
+       * **목차 + 본문 두 칸** `[사용자 요청 2026-09-29: 사업장 설정 UI/UX 개편]`. 목차는 다루는 탭이
+       * **둘 이상인 역할에게만** 선다 — 탭이 하나인 역할(사업장·기초지자체)에게 한 줄짜리 목차는
+       * 누를 곳이 없는 메뉴다. 그 역할은 본문이 전폭을 쓴다.
+       *
+       * **역할마다 한 벌씩 그리고 CSS가 고른다** — 두 칸 격자도 `data-role`로 켠다. `useRole()`로
+       * 가르면 서버(역할을 모름)와 트리가 어긋나 하이드레이션이 깨진다(§7.2).
+       */}
+      <div className={cn('grid gap-6', NAV_ROLES.map((forRole) => GRID_WITH_NAV[forRole]))}>
+        {NAV_ROLES.map((forRole) => (
+          <SettingsNav
+            key={forRole}
+            className={`role-only-${forRole} lg:sticky lg:top-[calc(var(--header-h)_+_1.5rem)] lg:self-start`}
+            tabs={tabsOf(forRole)}
+            active={effectiveTab(forRole)}
+            onSelect={setTab}
+            status={navStatus}
           />
-        }
-        action={
-          /* 역할마다 한 벌. 보이는 것은 CSS가 고른다 — 서버는 어느 것이 보일지 모른다 */
-          <>
-            {ROLES.map((forRole) => (
-              <SegmentedControl
-                key={forRole}
-                className={`role-only-${forRole}`}
-                ariaLabel="설정 항목"
-                value={effectiveTab(forRole)}
-                onChange={setTab}
-                options={SETTINGS_TAB_OPTIONS.filter((option) =>
-                  SETTINGS_TAB_ROLES[option.value].includes(forRole),
+        ))}
+
+        <div className="min-w-0 space-y-6">
+          {SETTINGS_TABS.map((value) => {
+            /*
+             * 그 탭을 보게 되는 역할들. 하나도 없으면 아예 그리지 않는다 — 대개 한둘이다.
+             * `contents`는 레이아웃에 투명하고, 가려야 할 때 `role-hide-*`가 특이도로 이겨 `none`이
+             * 된다(`RoleGate`가 쓰는 짜임 그대로다).
+             */
+            const seenBy = ROLES.filter((forRole) => effectiveTab(forRole) === value);
+            if (seenBy.length === 0) return null;
+
+            return (
+              <div
+                key={value}
+                className={cn(
+                  'contents',
+                  ROLES.filter((forRole) => !seenBy.includes(forRole)).map(
+                    (forRole) => `role-hide-${forRole}`,
+                  ),
                 )}
-              />
-            ))}
-          </>
-        }
-      >
-        {/*
-         * **지금 적용되는 상태를 먼저 보인다.** 설정 화면에 들어온 사람이 알고 싶은 첫 번째는
-         * "지금 어떻게 되어 있나"이고, 그것을 모르면 무엇을 고쳐야 하는지도 모른다.
-         */}
-        <dl className="grid grid-cols-1 gap-y-2 text-[12px] sm:grid-cols-3 sm:gap-x-6">
-          <Fact label="지역구분" value={classification.regionGrade ?? '미설정'} />
-          <Fact label="배출량 규모" value={classification.dischargeScale ?? '미설정'} />
-          <Fact label="기준치 출처" value={isUserSet ? '사용자 설정' : '입력 없음 · 통상 범위만'} />
-          <Fact
-            label="공정 구성"
-            value={
-              process.isUserSet
-                ? `${process.stages.length}단계 사용 (사용자 설정)`
-                : `표준 ${process.stages.length}단계`
-            }
-          />
-        </dl>
-
-      </Panel>
-
-      {SETTINGS_TABS.map((value) => {
-        /*
-         * 그 탭을 보게 되는 역할들. 하나도 없으면 아예 그리지 않는다 — 대개 한둘이다.
-         * `contents`는 레이아웃에 투명하고, 가려야 할 때 `role-hide-*`가 특이도로 이겨 `none`이
-         * 된다(`RoleGate`가 쓰는 짜임 그대로다).
-         */
-        const seenBy = ROLES.filter((forRole) => effectiveTab(forRole) === value);
-        if (seenBy.length === 0) return null;
-
-        return (
-          <div
-            key={value}
-            className={cn(
-              'contents',
-              ROLES.filter((forRole) => !seenBy.includes(forRole)).map(
-                (forRole) => `role-hide-${forRole}`,
-              ),
-            )}
-          >
-            {PANELS[value]}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function Fact({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <dt className="text-[12px] text-fg-subtle">{label}</dt>
-      <dd className="mt-0.5 text-fg">{value}</dd>
+              >
+                {PANELS[value]}
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }
