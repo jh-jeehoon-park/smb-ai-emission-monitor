@@ -1,0 +1,47 @@
+@use 'shared/styles' as *;
+
+.empty {
+  margin: auto;
+  color: var(--fg-subtle);
+}
+
+.list {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.rowHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: sp(2);
+}
+
+.name {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  gap: sp(1.5);
+}
+
+.direction {
+  flex-shrink: 0;
+  color: var(--fg-subtle);
+}
+
+.label {
+  min-width: 0;
+  @include truncate;
+}
+
+.percent {
+  flex-shrink: 0;
+}
+
+.bar {
+  margin-top: sp(1.5);
+  height: sp(2);
+}

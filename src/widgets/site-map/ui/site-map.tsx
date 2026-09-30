@@ -38,6 +38,7 @@ import {
   SEG_TRACK,
   SegPill,
 } from '@/shared/ui/segmented-control';
+import styles from './site-map.module.scss';
 
 interface SiteMapProps {
   sites: Site[];
@@ -288,17 +289,17 @@ export function SiteMap({
    */
   if (missingShape) {
     return (
-      <div className="flex h-full min-h-[320px] items-center justify-center px-6 text-center">
-        <p className="max-w-[36ch] text-[12px] leading-relaxed text-fg-subtle">
-          <strong className="text-fg-muted">{municipality}</strong> 관내에 사업장이 없어 지도를
-          그리지 않습니다 — <strong className="text-fg-muted">0개소는 오류가 아닙니다.</strong>
+      <div className={styles.empty}>
+        <p className={styles.emptyText}>
+          <strong className={styles.emptyEmphasis}>{municipality}</strong> 관내에 사업장이 없어 지도를
+          그리지 않습니다 — <strong className={styles.emptyEmphasis}>0개소는 오류가 아닙니다.</strong>
         </p>
       </div>
     );
   }
 
   return (
-    <div className="flex h-full min-h-0 w-full flex-col gap-2">
+    <div className={styles.root}>
       {/*
        * **관할 모드에는 확대 줄이 없다.** 고를 지역이 하나뿐이라 누를 것이 없고,
        * 문구도 `전국`·`시도를 눌러 확대`라 관할 화면에서는 거짓이 된다.
@@ -309,11 +310,11 @@ export function SiteMap({
          * **면은 시도인데 관할은 시·군·구다** — 그 어긋남을 글이 메운다. 이 줄이 없으면
          * 경상북도 전체가 관할로 읽힌다(경북에는 6개소가 있고 관할은 안동 2곳이다).
          */
-        <p className="shrink-0 px-1 text-[12px] text-fg-subtle">
-          <span className="font-medium text-fg-muted">{region.province}</span>
-          <span className="mx-1">·</span>관할 {region.name} 사업장{' '}
+        <p className={styles.regionLine}>
+          <span className={styles.regionName}>{region.province}</span>
+          <span className={styles.regionDot}>·</span>관할 {region.name} 사업장{' '}
           <span className="num">{sites.length}</span>개소
-          <span className="ml-1">· 관할 밖 사업장은 표시하지 않습니다</span>
+          <span className={styles.regionNote}>· 관할 밖 사업장은 표시하지 않습니다</span>
         </p>
       ) : (
         <ProvinceZoomBar
@@ -340,25 +341,11 @@ export function SiteMap({
        * svh를 쓴다 — 모바일에서 주소창이 접힐 때 dvh처럼 높이가 출렁이지 않는다.
        * 계산이 CSS 안에서 끝나므로 렌더 중 window를 읽지 않는다(hydration 안전).
        */}
-      {/*
-       * **지도 칸의 높이는 이 상자가 정하고 svg는 그 안을 채운다** `[사용자 지시 2026-08-24: 지도가
-       * 컨테이너 밖으로 삐져나온다]`.
-       *
-       * 예전에는 svg가 직접 `flex-1 min-h-[400px]`을 들었다. 카드 높이가 뷰포트에 매달려 있어
-       * 남는 자리가 400px보다 작아지는 순간(짧은 화면·탭 줄이 붙어 카드가 24px 더 줄어든 뒤)
-       * **최소 높이가 이겨 카드 밖으로 밀려 나왔다** — 고정 높이 카드 안에 바닥값을 두면 넘칠 수밖에 없다.
-       *
-       * 지금은 상자가 남는 높이를 받고(`flex-1 min-h-0`) svg는 `h-full`로 그 안을 채운다.
-       * `preserveAspectRatio` 기본값이 뷰박스를 상자 안에 **맞춰 넣으므로**(meet) 도형이 상자보다
-       * 커지는 경우가 없다. 바닥값은 카드 높이가 자동인 구간(`xl` 미만)에만 남긴다 — 그쪽은
-       * 카드가 내용만큼 늘어나므로 넘치지 않고, 없으면 `flex-1`이 0으로 접혀 지도가 사라진다.
-       */}
-      <div className="min-h-[320px] flex-1 xl:min-h-0">
+      <div className={styles.canvas}>
         <svg
           ref={svgRef}
           viewBox={viewBox}
-          /* 확대한 그룹과 그림자가 뷰박스 밖으로 나가는 것을 여기서 자른다 */
-          className="mx-auto block h-full max-h-[630px] w-full max-w-[510px] overflow-hidden"
+          className={styles.svg}
           role="img"
           /* 관할 모드에는 면 농도 축이 없다 — 도형이 하나라 견줄 대상이 없어 그 말이 거짓이 된다 */
           aria-label={
@@ -461,7 +448,7 @@ export function SiteMap({
                 transform={`translate(0, ${MAP_DEPTH / k})`}
                 fill="color-mix(in srgb, var(--accent) 34%, var(--surface))"
                 stroke="none"
-                className="pointer-events-none"
+                className={styles.passThrough}
               />
             ))}
 
@@ -488,7 +475,7 @@ export function SiteMap({
                 strokeLinejoin="round"
                 /* 확대해도 경계선이 굵어지지 않게 한다 */
                 vectorEffect="non-scaling-stroke"
-                className="cursor-pointer transition-[fill] duration-150"
+                className={styles.province}
                 onMouseEnter={() => setHoveredProvince(province.name)}
                 /* 도형을 벗어나면 바로 지운다. svg 단위로만 처리하면 바다 위에서도
                  마지막 시도 이름이 남아 지금 가리키는 곳을 잘못 알려 준다 */
@@ -514,7 +501,7 @@ export function SiteMap({
                 strokeWidth={province.name === focusedProvince ? 2.2 : 1.2}
                 strokeLinejoin="round"
                 vectorEffect="non-scaling-stroke"
-                className="pointer-events-none"
+                className={styles.passThrough}
                 opacity={province.name === focusedProvince ? 1 : 0.5}
               />
             ))}
@@ -540,7 +527,7 @@ export function SiteMap({
                   fontSize={MAP_LABEL_FONT_SIZE / k}
                   fontWeight={hasSites ? 600 : 400}
                   textAnchor="middle"
-                  className="pointer-events-none select-none"
+                  className={styles.provinceLabel}
                   /* 광역시 라벨은 이웃 면 위로 넘친다. 테두리를 둘러 글자가 묻히지 않게 한다 */
                   stroke="var(--surface)"
                   strokeWidth={2.5 / k}
@@ -604,7 +591,7 @@ function ProvinceZoomBar({
   const pillId = useId();
 
   return (
-    <div className="flex shrink-0 flex-wrap items-center gap-2">
+    <div className={styles.zoomBar}>
       <div role="group" aria-label="지도 확대 지역" className={SEG_TRACK}>
         <ZoomButton active={focused === null} pillId={pillId} onClick={() => onFocus(null)}>
           전국
@@ -625,7 +612,7 @@ function ProvinceZoomBar({
        * 가리키는 지역의 이름을 지도가 아니라 여기에 적는다. 도형 위에 띄우면
        * 작은 광역시에서는 툴팁이 도형보다 커져 정작 가리킨 곳을 덮는다.
        */}
-      <span className="ml-auto truncate text-[12px] text-fg-subtle">
+      <span className={styles.readout}>
         {readout ?? '시도를 눌러 확대'}
       </span>
     </div>
@@ -649,10 +636,10 @@ function ZoomButton({
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={cn(SEG_ITEM, 'px-2 py-0.5', active ? SEG_ITEM_ON : SEG_ITEM_OFF)}
+      className={cn(SEG_ITEM, styles.zoomButton, active ? SEG_ITEM_ON : SEG_ITEM_OFF)}
     >
       {active && <SegPill layoutId={pillId} />}
-      <span className="relative">{children}</span>
+      <span className={styles.zoomLabel}>{children}</span>
     </button>
   );
 }
@@ -704,7 +691,7 @@ function SitePin({ site, idPrefix, selected, hovered, scale, onSelect, onHover }
       tabIndex={0}
       aria-label={label}
       aria-pressed={selected}
-      className="cursor-pointer"
+      className={styles.pin}
       onClick={(e) => {
         // 핀 아래에는 시도 도형이 있다. 막지 않으면 선택과 확대가 같이 일어난다
         e.stopPropagation();
@@ -873,7 +860,7 @@ function PinTooltip({
      * 툴팁만 1.23배로 커져 있던 것이 이 한 줄로 맞는다(`use-screen-unit.ts`).
      */
     <g
-      className="pointer-events-none"
+      className={styles.passThrough}
       aria-hidden
       transform={`translate(${box.x} ${box.y}) scale(${unit})`}
     >
@@ -890,7 +877,7 @@ function PinTooltip({
        */}
       <foreignObject x={0} y={0} width={width} height={height}>
         <div
-          className="h-full w-full rounded-[5px] border border-border bg-surface/70 shadow-panel backdrop-blur-md"
+          className={styles.glass}
           style={{ boxSizing: 'border-box' }}
         />
       </foreignObject>
@@ -901,7 +888,7 @@ function PinTooltip({
         fontSize={TOOLTIP_TITLE_SIZE}
         fontWeight={600}
         fill="var(--fg)"
-        className="select-none"
+        className={styles.tooltipText}
       >
         {site.name}
       </text>
@@ -910,7 +897,7 @@ function PinTooltip({
         x={textX}
         y={titleY + TOOLTIP_LINE_GAP + TOOLTIP_DETAIL_SIZE}
         fontSize={TOOLTIP_DETAIL_SIZE}
-        className="select-none"
+        className={styles.tooltipText}
       >
         <tspan fill="var(--fg-subtle)">{industry}</tspan>
         <tspan fill={visual ? visual.ink : 'var(--fg-subtle)'} fontWeight={600}>

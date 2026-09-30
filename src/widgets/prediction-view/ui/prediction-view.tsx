@@ -50,6 +50,8 @@ import {
 } from '@/widgets/forecast-chart';
 import { ALL_TARGETS, TARGET_QUERY_KEY, TARGET_VIEWS, type TargetView } from '../config/constants';
 import { TABLE_HEAD_CELL, TABLE_HEAD_ROW, TABLE_ROOT, TABLE_ROW, TABLE_SCROLL } from '@/shared/ui/table';
+import { cn } from '@/shared/lib/cn';
+import styles from './prediction-view.module.scss';
 
 const TARGET_OPTIONS: { value: TargetView; label: string }[] = [
   { value: ALL_TARGETS, label: '전체' },
@@ -116,7 +118,7 @@ export function PredictionView() {
   const peak = peakValue(forecast);
 
   return (
-    <div className="space-y-6">
+    <div className={styles.stack}>
       {/*
        * **판정이 맨 위에 온다** `[사용자 요청 2026-08-26]`.
        *
@@ -128,7 +130,7 @@ export function PredictionView() {
        * 그때 근거는 *"계열이 기준 대비로 읽히므로 판정의 축이 먼저 와야 한다"* 였는데,
        * 그 축은 차트의 세로 눈금(`기준` 선)이 이미 말하고 있어 표가 앞설 이유가 없었다.
        */}
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className={styles.cards}>
         {forecast.trends.map((trend) => (
           <TrendCard key={trend.code} trend={trend} limits={limits} pending={seriesPending} />
         ))}
@@ -170,7 +172,7 @@ export function PredictionView() {
            * 계열도 낼 수 없다 — 자리는 실제 차트와 같은 높이로 잡아 값이 도착할 때 카드가
            * 튀지 않게 한다.
            */
-          <SkeletonRegion label={TELEMETRY_PENDING_NOTE} className="space-y-5">
+          <SkeletonRegion label={TELEMETRY_PENDING_NOTE} className={styles.chartStack}>
             <div className={CHART_SURFACE}>
               <Skeleton style={{ height: FULL_HEIGHT }} />
             </div>
@@ -181,7 +183,7 @@ export function PredictionView() {
             )}
           </SkeletonRegion>
         ) : showAll ? (
-          <div className="space-y-5">
+          <div className={styles.chartStack}>
             {/*
               * **수질은 기준 대비 한 축에 겹친다.** 3단으로 쌓던 판본은 축이 각자라 같은
               * 시각의 세 항목이 비교되지 않았고, 6종으로 늘리면 768px 스택이 됐다.
@@ -189,7 +191,7 @@ export function PredictionView() {
               * 가 한눈에 보인다 — 이 화면이 묻는 것이 그것이다.
               */}
             <div>
-              <p className="mb-1.5 text-[12px] font-medium text-fg-subtle">수질 — 기준 대비</p>
+              <p className={styles.chartLabel}>수질 — 기준 대비</p>
               <ForecastOverlay
                 summaries={allForecasts}
                 nowIso={DEMO_NOW_ISO}
@@ -199,7 +201,7 @@ export function PredictionView() {
               />
             </div>
             <div>
-              <p className="mb-1.5 text-[12px] font-medium text-fg-subtle">
+              <p className={styles.chartLabel}>
                 수량 — 유입·유출 (m³/day)
               </p>
               <ForecastOverlay
@@ -219,13 +221,13 @@ export function PredictionView() {
          * 유량은 **성능 목표 자체가 없다**. 같은 `원문 미규정`으로 보이므로 이유를 적는다(E3).
          */}
         {showFlow && (
-          <p className="mt-2 px-1 text-[12px] text-fg-subtle">
+          <p className={styles.flowNote}>
             유량 예측은 원문에 정확도 목표가 없다 — AI 성능 목표는 수질 예측에만 있다
           </p>
         )}
 
         {/* AI 산출값은 언제·무엇을 근거로 나왔는지 값과 함께 보여야 한다(E3) */}
-        <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-1.5 border-t border-border pt-3 text-[12px] sm:grid-cols-4">
+        <dl className={styles.meta}>
           <Meta label="산출 모델" value={forecast.modelLabel} />
           <Meta label="입력 대상 기간" value={forecast.inputWindowLabel} />
           <Meta
@@ -279,8 +281,8 @@ export function PredictionView() {
 function Meta({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <div>
-      <dt className="text-fg-subtle">{label}</dt>
-      <dd className={mono ? 'num mt-0.5 text-fg-muted' : 'mt-0.5 text-fg-muted'}>{value}</dd>
+      <dt className={styles.metaTerm}>{label}</dt>
+      <dd className={mono ? cn('num', styles.metaValue) : styles.metaValue}>{value}</dd>
     </div>
   );
 }
@@ -324,13 +326,13 @@ function LimitMonitor({
         />
       }
       action={
-        <span className="text-[12px] text-fg-subtle">
+        <span className={styles.classificationAction}>
           {classificationLabel ?? '사업장 분류 미설정'}
         </span>
       }
     >
       <div className={TABLE_SCROLL}>
-        <table className={`${TABLE_ROOT} min-w-[520px] text-[12px] text-center`}>
+        <table className={cn(TABLE_ROOT, styles.limitTable)}>
           <thead>
             <tr className={TABLE_HEAD_ROW}>
               <th className={TABLE_HEAD_CELL}>항목</th>
@@ -348,29 +350,29 @@ function LimitMonitor({
 
               return (
                 <tr key={trend.code} className={TABLE_ROW}>
-                  <td className="px-3 py-3.5">
-                    <span className="font-semibold text-fg">{trend.code}</span>
-                    <span className="ml-1.5 text-[12px] text-fg-subtle">{trend.label}</span>
+                  <td className={styles.cell}>
+                    <span className={styles.code}>{trend.code}</span>
+                    <span className={styles.codeLabel}>{trend.label}</span>
                   </td>
-                  <td className="num px-3 py-3.5 text-center">
+                  <td className={cn('num', styles.rangeCell)}>
                     {range === null ? (
-                      <span className="text-fg-subtle">—</span>
+                      <span className={styles.subtle}>—</span>
                     ) : (
-                      <span className="text-fg">
+                      <span className={styles.strong}>
                         {range} {trend.unit}
                       </span>
                     )}
                   </td>
                   {/* 판정만 계열에서 온다 — 기준치·출처 열은 설정이 아는 것이라 그대로 둔다 */}
-                  <td className="px-3 py-3.5" style={{ color: pending ? undefined : verdict.ink }}>
+                  <td className={styles.cell} style={{ color: pending ? undefined : verdict.ink }}>
                     {pending ? (
-                      <Skeleton className="mx-auto h-3 w-16" />
+                      <Skeleton className={styles.verdictSkeleton} />
                     ) : (
                       verdict.text
                     )}
                   </td>
                   {/* 우리가 넣은 값이 아니라 사용자가 넣은 값임을 심사자가 바로 알아야 한다 */}
-                  <td className="px-3 py-3.5 text-[12px] text-fg-subtle">
+                  <td className={styles.sourceCell}>
                     {limit && limit.unavailableReason === null
                       ? limit.source
                       : UNRESOLVED_LIMIT_TEXT}
@@ -422,7 +424,7 @@ function TrendCard({
 
   return (
     <Panel title={trend.code}>
-      <div className="flex items-end justify-between gap-3">
+      <div className={styles.cardHead}>
         {/*
          * **농도를 적지 않는다** `[회의 2026-08-20]`. 소프트 센싱으로는 절대값의 정확도를
          * 맞추기 어려워 높낮이만 낸다 — 숫자를 크게 띄우면 그 값이 계측된 농도로 읽힌다(E3).
@@ -435,7 +437,7 @@ function TrendCard({
          * "이 카드엔 값이 없다"로 읽혔다.
          */}
         <p
-          className={`${VALUE_MD} text-fg`}
+          className={cn(VALUE_MD, styles.headline)}
           style={{ color: headline.ink }}
         >
           {headline.text}
@@ -447,21 +449,21 @@ function TrendCard({
         * TP 기준치는 몇인 이러한 사항의 모니터링도 필요]`. 판정만 있으면 무엇에 견준 것인지
         * 알 수 없고, 기준치가 지역·규모마다 다르므로 어느 구분의 값인지도 함께 적는다.
         */}
-      <p className="mt-2 text-[12px] text-fg-muted">
+      <p className={styles.limitLine}>
         기준{' '}
         {range === null ? (
-          <span className="text-fg-subtle">미설정</span>
+          <span className={styles.subtle}>미설정</span>
         ) : (
-          <span className="num text-fg">
+          <span className={cn('num', styles.strong)}>
             {range} {trend.unit}
           </span>
         )}
-        {classificationLabel && <span className="ml-1 text-fg-subtle">· {classificationLabel}</span>}
+        {classificationLabel && <span className={styles.classification}>· {classificationLabel}</span>}
       </p>
-      <p className="mt-1.5 text-[12px] leading-relaxed text-fg-subtle">
+      <p className={styles.origin}>
         {SERIES_ORIGIN_LABELS[trend.origin]} · R² <span className="num">{formatR2(trend.r2)}</span>
         {/* 어느 근거로 판정했는지 적는다 — 기준 미설정이면 무엇을 해야 하는지가 온다 */}
-        <span className="ml-1">· {headline.basis}</span>
+        <span className={styles.basis}>· {headline.basis}</span>
       </p>
     </Panel>
   );

@@ -2,13 +2,14 @@
 
 import { StandardTable } from '@/entities/regulation';
 import { useSiteStandards } from '../model/use-site-standards';
+import styles from './applied-limits.module.scss';
 
 /** 이 표를 담는 패널의 제목 옆 툴팁에 쓴다 — 값과 같은 파일에 있어야 함께 고쳐진다 */
 export const APPLIED_LIMIT_NOTE = (
   <>
-    <strong className="text-fg">지금 이 사업장에 적용되는 기준</strong>입니다. 여기서 고치지
-    않습니다 — 값은 <strong className="text-fg">규정과 사업장 사실관계</strong>에서 산출되며,
-    둘 중 하나가 바뀌면 이 표가 따라옵니다. <strong className="text-fg">왜 이 값인가</strong>
+    <strong className={styles.emphasis}>지금 이 사업장에 적용되는 기준</strong>입니다. 여기서 고치지
+    않습니다 — 값은 <strong className={styles.emphasis}>규정과 사업장 사실관계</strong>에서 산출되며,
+    둘 중 하나가 바뀌면 이 표가 따라옵니다. <strong className={styles.emphasis}>왜 이 값인가</strong>
     칸이 어느 규정이 쓰였고 무엇을 몰라 확정하지 못했는지를 적습니다.
   </>
 );

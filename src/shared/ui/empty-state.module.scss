@@ -1,0 +1,45 @@
+@use 'shared/styles' as *;
+
+/* 뿌리는 `className`으로 호출부가 덮는다 — 그래서 `components` 레이어다 */
+@layer components {
+  .root {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: sp(2);
+    border-radius: var(--radius-nested);
+    border: 1px dashed var(--border-strong);
+    background-color: var(--surface-2);
+    padding: sp(8) sp(6);
+    text-align: center;
+  }
+}
+
+.icon {
+  margin-bottom: sp(1);
+  display: grid;
+  width: sp(10);
+  height: sp(10);
+  place-items: center;
+  border-radius: calc(infinity * 1px);
+  background-color: var(--surface);
+  color: var(--fg-subtle);
+  box-shadow: var(--card-shadow);
+}
+
+.title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.description {
+  max-width: 52ch;
+  font-size: 12px;
+  line-height: 1.625;
+  color: var(--fg-subtle);
+}
+
+.action {
+  margin-top: sp(2);
+}

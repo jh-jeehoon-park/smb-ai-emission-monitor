@@ -1,4 +1,5 @@
 import type { Trend } from '../model/types';
+import styles from './trend-visual.module.scss';
 
 /**
  * 경향의 색·배경·형태.
@@ -30,14 +31,14 @@ import type { Trend } from '../model/types';
  */
 export const TREND_VISUAL: Record<Trend, { text: string; chip: string; glyph: string }> = {
   rising: {
-    text: 'text-caution-ink',
-    chip: 'bg-chip-caution',
+    text: styles.risingText,
+    chip: styles.risingChip,
     glyph: '↑',
   },
   /* 변화가 없다는 것은 상태가 아니다 — 가장 흐린 중립면에 둔다 */
   steady: {
-    text: 'text-fg-muted',
-    chip: 'bg-surface-3',
+    text: styles.steadyText,
+    chip: styles.neutralChip,
     glyph: '→',
   },
   /*
@@ -45,8 +46,8 @@ export const TREND_VISUAL: Record<Trend, { text: string; chip: string; glyph: st
    * 팔레트에 속하지 않으면서 `유지`(`--fg-muted`)보다 진해 셋이 명도로도 갈린다.
    */
   falling: {
-    text: 'text-actual',
-    chip: 'bg-surface-3',
+    text: styles.fallingText,
+    chip: styles.neutralChip,
     glyph: '↓',
   },
 };

@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
+import { readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import styles from './receive-indicator.module.scss';
 
 /**
  * 헤더의 **수신 점** `[사용자 요청 2026-09-18: 모바일 헤더 반응형]`.
@@ -43,12 +45,21 @@ function draw(next: Partial<typeof series.current>, online = true) {
 /** 점은 장식이라 `aria-hidden`이다 — 마크업으로 찾되 «무엇을 뜻하는가»는 글자로 검사한다 */
 const dot = (root: HTMLElement) => root.querySelector('button > span') as HTMLElement;
 
+/**
+ * jsdom은 모듈 SCSS를 읽지 않아 계산된 스타일이 없다 — 요소가 어느 모듈 클래스를 갖는지 보고,
+ * 그 클래스가 무엇을 그리는지는 소스에서 읽는다.
+ */
+const sheet = readFileSync('src/widgets/app-shell/ui/receive-indicator.module.scss', 'utf8');
+const ruleOf = (name: string) => sheet.match(new RegExp(`\\.${name}\\s*\\{([^}]*)\\}`))?.[1] ?? '';
+
 afterEach(cleanup);
 
 describe('수신 점 — 색 말고도 갈린다', () => {
   it('정상이면 채운 점이 파동과 함께 돈다', () => {
     const { container } = draw({ status: 'live' });
     expect(dot(container).className).toContain('live-pulse');
+    expect(dot(container).className).toContain(styles.dotFilled);
+    expect(ruleOf('dotFilled')).toMatch(/background-color:\s*currentColor/);
   });
 
   /**
@@ -61,16 +72,19 @@ describe('수신 점 — 색 말고도 갈린다', () => {
   ])('%s이면 파동이 돌지 않고 속이 빈다', (_label, next, online) => {
     const { container } = draw(next, online);
     expect(dot(container).className).not.toContain('live-pulse');
-    expect(dot(container).className).toContain('border');
+    expect(dot(container).className).toContain(styles.dotHollow);
+    expect(dot(container).className).not.toContain(styles.dotFilled);
+    expect(ruleOf('dotHollow')).toMatch(/border:\s*[\d.]+px solid currentColor/);
   });
 
   /**
-   * 정상일 때 `text-normal-ink`가 남아야 한다 — `.live-pulse::before`가
+   * 정상일 때 정상 글자색(`--normal-ink`)이 남아야 한다 — `.live-pulse::before`가
    * `background: currentColor`라, 색 클래스를 걷으면 **파동이 검게 뜬다.**
    */
   it('정상일 때 글자색이 남아 파동이 그 색을 쓴다', () => {
     const { container } = draw({ status: 'live' });
-    expect(container.querySelector('button')!.className).toContain('text-normal-ink');
+    expect(container.querySelector('button')!.className).toContain(styles.toneLive);
+    expect(ruleOf('toneLive')).toMatch(/color:\s*var\(--normal-ink\)/);
   });
 });
 

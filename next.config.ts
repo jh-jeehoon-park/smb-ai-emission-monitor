@@ -1,3 +1,4 @@
+import path from 'node:path';
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
@@ -29,6 +30,15 @@ const nextConfig: NextConfig = {
    * `*`로 전부 열지 않는 이유도 같다.
    */
   allowedDevOrigins: ['192.168.*.*', '10.*.*.*'],
+
+  /**
+   * **SCSS 모듈이 공용 믹스인을 `@use 'shared/styles' as *;` 한 줄로 받게 한다.** 상대 경로로 적으면
+   * 폴더 깊이마다 `../../..`가 달라져 파일을 옮길 때마다 깨진다 — TS가 `@/*`를 쓰는 것과 같은 이유다.
+   * 함수 옵션(`functions`)이 아니라 경로만 주므로 Turbopack에서도 동작한다.
+   */
+  sassOptions: {
+    loadPaths: [path.join(process.cwd(), 'src')],
+  },
 };
 
 export default nextConfig;

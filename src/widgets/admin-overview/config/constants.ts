@@ -1,3 +1,5 @@
+import styles from './constants.module.scss';
+
 /**
  * 알람 카드 본문의 **상한** — 두 건 남짓만 보이고 나머지는 그 안에서 스크롤한다
  * `[사용자 요청 2026-09-07]`.
@@ -8,6 +10,6 @@
  *
  * 옆 카드(`이상 탐지 결과`)가 머리글·여백까지 340px 안팎이라 두 카드의 키가 비슷해진다.
  *
- * Tailwind는 소스 글자를 훑으므로 임의값에 변수를 넣을 수 없다. 클래스로 둔다.
+ * 값(280px)은 `constants.module.scss`에 있다. 클래스로 두어 카드의 `bodyClassName`에 그대로 얹는다.
  */
-export const ALARM_PREVIEW_MAX_HEIGHT = 'max-h-[280px]';
+export const ALARM_PREVIEW_MAX_HEIGHT = styles.alarmPreviewMaxHeight;

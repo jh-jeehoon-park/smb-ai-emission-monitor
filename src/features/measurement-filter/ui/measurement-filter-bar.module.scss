@@ -1,0 +1,8 @@
+@use 'shared/styles' as *;
+
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: sp(2);
+}

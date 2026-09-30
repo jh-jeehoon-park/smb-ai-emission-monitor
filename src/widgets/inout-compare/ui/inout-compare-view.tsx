@@ -18,6 +18,7 @@ import { QualityRows } from './quality-rows';
 import { SectionPanel } from './section-panel';
 import { TreatmentScale, TreatmentVerdictBand } from './treatment-scale';
 import { VerdictBar } from './verdict-bar';
+import styles from './inout-compare-view.module.scss';
 
 /**
  * **유입·유출 비교**(SCR-AD-005) — 관제 묶음 4번째 `[사용자 요청 2026-09-10]`.
@@ -69,7 +70,7 @@ export function InOutCompareView() {
   const { alarms } = useAlarmStates(useMemo(() => allAlarmsForSite(siteId), [siteId]));
 
   return (
-    <StaggerGroup className="space-y-5">
+    <StaggerGroup className={styles.root}>
       {/*
        * **현재 상태 한 상자** `[사용자 지적 2026-09-10: «91 위험»과 «처리 미흡 의심»의 연결이
        * 약하다]`.
@@ -80,7 +81,7 @@ export function InOutCompareView() {
        * 상자 경계뿐이다.
        */}
       <RiseItem>
-        <div className="overflow-hidden rounded-panel border border-card-border bg-surface shadow-panel">
+        <div className={styles.statusBox}>
           <VerdictBar
             siteName={site.name}
             score={anomaly.score}
@@ -95,7 +96,7 @@ export function InOutCompareView() {
             detailHref={withSite('/overview')}
             embedded
           />
-          <div className="border-t border-border bg-surface-2">
+          <div className={styles.verdictBand}>
             <TreatmentVerdictBand compare={compare} pending={pending} />
           </div>
         </div>
@@ -135,7 +136,7 @@ export function InOutCompareView() {
         <SectionPanel
           title="AI 추정"
           aside={
-            <p className="text-[12px] text-fg-subtle">
+            <p className={styles.aside}>
               직접 재지 않습니다 — 소프트 센싱이 낼 값입니다
             </p>
           }

@@ -20,6 +20,46 @@ import {
 const config = readFileSync('src/widgets/login-view/config/login-media.ts', 'utf8');
 const view = readFileSync('src/widgets/login-view/ui/login-view.tsx', 'utf8');
 
+/** 폭으로 갈리는 배치·타이포는 모듈 SCSS가 갖는다 — 마크업에는 `styles.x`만 남는다 */
+const STYLES = 'src/widgets/login-view/ui/login-view.module.scss';
+const sheet = readFileSync(STYLES, 'utf8');
+
+/** `{`부터 짝이 맞는 `}`까지의 안쪽 — 중첩 블록(`@include up(md) { … }`)을 함께 담는다 */
+function blockAt(text: string, open: number): string {
+  let depth = 0;
+  for (let i = open; i < text.length; i++) {
+    if (text[i] === '{') depth++;
+    else if (text[i] === '}' && --depth === 0) return text.slice(open + 1, i);
+  }
+  throw new Error('괄호가 닫히지 않았다');
+}
+
+function rule(name: string): string {
+  const head = new RegExp(`\\.${name}\\s*\\{`).exec(sheet);
+  expect(head, `${STYLES}에 .${name}이 없다`).not.toBeNull();
+  return blockAt(sheet, head!.index + head![0].length - 1);
+}
+
+/** 규칙에서 중첩 블록을 걷은 것 — 폭과 무관하게 늘 걸리는 선언만 남는다 */
+function base(block: string): string {
+  let out = '';
+  let depth = 0;
+  for (const ch of block) {
+    if (ch === '{') depth++;
+    else if (ch === '}') depth--;
+    else if (depth === 0) out += ch;
+  }
+  return out;
+}
+
+/** 시트 전체의 `@include up(단) { … }` — 어느 단에서 무엇이 걸리는가 */
+function stepBlocks(text: string): { step: string; body: string }[] {
+  return [...text.matchAll(/@include up\((\w+)\)\s*\{/g)].map((m) => ({
+    step: m[1]!,
+    body: blockAt(text, m.index! + m[0].length - 1),
+  }));
+}
+
 /**
  * JPEG의 가로·세로를 파일에서 직접 읽는다 — **이미지 라이브러리를 새로 들이지 않으려고** 쓴다.
  *
@@ -179,19 +219,35 @@ describe('좁은 화면의 정지 이미지', () => {
    */
   it('영상을 CSS로 감추지 않고 조건부로 마운트한다', () => {
     expect(view).toContain('{isWide && <LoginVideo');
-    expect(view).not.toMatch(/<video[^>]*className="[^"]*md:block/);
+
+    /* 영상이 쓰는 클래스(상수 → 모듈 클래스)를 따라가 `display`를 걸지 않는지 본다 */
+    const expr = view.match(/<video[\s\S]*?className=\{([^}]*)\}/)?.[1];
+    expect(expr, '<video>에 className이 없다').toBeDefined();
+    const names = [...expr!.matchAll(/\b[A-Z][A-Z_]+\b/g)].map(
+      (m) => view.match(new RegExp(`const ${m[0]} = styles\\.(\\w+)`))?.[1],
+    );
+    expect(names.length).toBeGreaterThan(0);
+    for (const name of names) {
+      expect(name, '영상 클래스 상수가 모듈 클래스를 가리키지 않는다').toBeDefined();
+      expect(rule(name!), `.${name}`).not.toMatch(/display:/);
+    }
   });
 
   /** 선택기는 PC에서만 — 좁은 화면에는 고를 영상 자체가 없다 */
   it('배경 선택기가 좁은 화면에서 감춰진다', () => {
-    expect(view).toContain('hidden items-center gap-1.5');
-    expect(view).toContain('md:flex');
+    const name = view.match(/aria-label="시연용 배경 영상 선택"\s*className=\{styles\.(\w+)\}/)?.[1];
+    expect(name, '선택기에 모듈 클래스가 없다').toBeDefined();
+
+    const picker = rule(name!);
+    expect(base(picker)).toMatch(/display:\s*none/);
+    const wide = stepBlocks(picker).filter((b) => b.step === 'md');
+    expect(wide.map((b) => b.body).join('\n')).toMatch(/display:\s*flex/);
   });
 });
 
 /**
  * **분기 폭이 세 곳에 흩어져 있다** `[사용자 요청 2026-09-17: 768px 기준 아래로 Mobile
- * 반응형을 잡을 것]` — 이 상수 · 화면의 Tailwind 접두사 · `globals.css`의 유리 미디어 쿼리.
+ * 반응형을 잡을 것]` — 이 상수 · 화면 모듈 SCSS의 `@include up(단)` · `globals.scss`의 유리 미디어 쿼리.
  *
  * 한 곳만 옮기면 **한 화면이 두 판본으로 그려진다**: 영상은 붙었는데 기둥은 아직 카드이거나,
  * 그 반대다. 폭 하나에서만 보이고 그 폭을 열어 보지 않으면 눈에 띄지 않는다.
@@ -200,42 +256,52 @@ describe('좁은 화면의 정지 이미지', () => {
  * 한때 같은 값이라 `shared/config`에 함께 두었던 것이 이 검사가 생긴 계기다.
  */
 describe('넓은 화면 기준이 세 곳에서 같다', () => {
-  const css = readFileSync('src/app/globals.css', 'utf8');
+  const css = readFileSync('src/app/globals.scss', 'utf8');
 
-  /** Tailwind 기본값. 상수의 `rem` 값이 어느 접두사인지 정한다 */
-  const TAILWIND_STEPS: Record<string, string> = {
-    '40rem': 'sm',
-    '48rem': 'md',
-    '64rem': 'lg',
-    '80rem': 'xl',
-  };
+  /** 반응형 단은 `shared/styles`가 정한다. 상수의 `rem` 값이 어느 단인지 거기서 찾는다 */
+  const STEPS = Object.fromEntries(
+    [
+      ...readFileSync('src/shared/styles/_breakpoints.scss', 'utf8').matchAll(
+        /'(\w+)':\s*([\d.]+rem)/g,
+      ),
+    ].map((m) => [m[2]!, m[1]!]),
+  );
 
   const width = LOGIN_WIDE_QUERY.match(/min-width:\s*([\d.]+rem)/)?.[1];
-  const prefix = width ? TAILWIND_STEPS[width] : undefined;
+  const prefix = width ? STEPS[width] : undefined;
 
-  it('상수가 Tailwind 단 위에 놓여 있다 — 아니면 클래스로 옮길 수 없다', () => {
-    expect(prefix, `${LOGIN_WIDE_QUERY}는 Tailwind 기본 단이 아니다`).toBeDefined();
+  it('상수가 반응형 단 위에 놓여 있다 — 아니면 `up()`으로 옮길 수 없다', () => {
+    expect(prefix, `${LOGIN_WIDE_QUERY}는 shared/styles의 단이 아니다`).toBeDefined();
   });
 
-  it('화면이 그 단의 접두사로 갈린다', () => {
-    expect(view).toContain(`${prefix}:flex`);
-    expect(view).toContain(`${prefix}:hidden`);
-    expect(view).toContain(`${prefix}:grid-cols-[`);
+  it('화면이 그 단의 `up()`으로 갈린다', () => {
+    const wide = stepBlocks(sheet)
+      .filter((b) => b.step === prefix)
+      .map((b) => b.body)
+      .join('\n');
+    expect(wide).toMatch(/display:\s*flex/);
+    expect(wide).toMatch(/display:\s*none/);
+    expect(wide).toMatch(/grid-template-columns:/);
   });
 
   /**
-   * **«둘 중 어느 판본인가»를 가르는 클래스는 한 접두사여야 한다.**
+   * **«둘 중 어느 판본인가»를 가르는 규칙은 한 단이어야 한다.**
    *
-   * 열을 세울지(`grid-cols`)·감출지(`hidden`/`flex`)·카드를 풀지(`mx-0`/`rounded-none`)가
-   * 그것이다. 하나라도 다른 단에 남으면 **그 사이 폭에서 반쪽짜리 화면**이 그려진다.
+   * 열을 세울지(`grid-template-columns`)·감출지(`display: none`/`flex`)·카드를 풀지
+   * (`margin-inline: 0`/`border-radius: 0`)가 그것이다. 하나라도 다른 단에 남으면 **그 사이
+   * 폭에서 반쪽짜리 화면**이 그려진다.
    *
    * 더 넓은 단(`lg`·`xl`)에 남는 것은 **같은 판본 안의 다듬기**뿐이다 — 기둥 폭 한 단
-   * (`lg:grid-cols-…`)과 타이포. 그래서 `grid-cols`는 이 검사에서 뺀다: 768px에서 기둥을
+   * (`lg`의 `grid-template-columns`)과 타이포. 그래서 열은 이 검사에서 뺀다: 768px에서 기둥을
    * 420px로 고정하느라 두 단에 걸쳐 있고, 그것은 판본을 가르는 것이 아니다.
    */
-  it('판본을 가르는 접두사가 두 벌이 아니다', () => {
-    const switches = /(sm|md|lg|xl):(hidden|flex(?![\w-])|mx-0|rounded-none)/g;
-    const used = new Set([...view.matchAll(switches)].map((m) => m[1]));
+  it('판본을 가르는 단이 두 벌이 아니다', () => {
+    const switches = /display:\s*(none|flex)\b|margin-inline:\s*0\b|border-radius:\s*0\b/;
+    const used = new Set(
+      stepBlocks(sheet)
+        .filter((b) => switches.test(b.body))
+        .map((b) => b.step),
+    );
     expect([...used].sort()).toEqual([prefix]);
   });
 

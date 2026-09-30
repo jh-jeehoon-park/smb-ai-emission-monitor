@@ -2,6 +2,7 @@ import { PROVISIONAL_STATUS_LABELS, type StatusLevel } from '@/shared/config/pro
 import { STATUS_VISUAL } from '@/shared/config/status-visual';
 import { cn } from '@/shared/lib/cn';
 import { BADGE_BASE } from './badge';
+import styles from './status-badge.module.scss';
 
 /**
  * 등급 뱃지.
@@ -13,7 +14,7 @@ import { BADGE_BASE } from './badge';
 export function StatusBadge({ level, className }: { level: StatusLevel; className?: string }) {
   const v = STATUS_VISUAL[level];
   return (
-    <span className={cn(BADGE_BASE, 'font-medium', v.bg, v.text, className)}>
+    <span className={cn(BADGE_BASE, styles.root, v.bg, v.text, className)}>
       {PROVISIONAL_STATUS_LABELS[level]}
     </span>
   );

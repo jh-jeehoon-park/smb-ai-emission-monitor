@@ -1,0 +1,49 @@
+@use 'shared/styles' as *;
+
+/*
+ * **그래프와 범례 사이에는 간격이 없다.** 그래프 판(`ChartFigure`의 `<figure>`)이 자기 여백을
+ * 0으로 두고, Tailwind에서는 그것이 묶음 간격(`:where()`라 특이도 0)을 이겼다 — 범례는 제 윗선과
+ * 안쪽 여백으로만 떨어진다. 그래서 간격을 판에는 주지 않는다(주면 없던 12px이 생긴다).
+ */
+.root {
+  & > :not(figure, :last-child) {
+    margin-block-end: sp(3);
+  }
+}
+
+.peak {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  column-gap: sp(6);
+  row-gap: sp(2);
+}
+
+.caption {
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+.noScore {
+  margin-top: sp(0.5);
+  font-size: 13px;
+  color: var(--fg-muted);
+}
+
+.noScoreEmphasis {
+  color: var(--fg);
+}
+
+.reading {
+  margin-top: sp(0.5);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: sp(2.5);
+  row-gap: sp(1);
+}
+
+.fact {
+  color: var(--fg-muted);
+}

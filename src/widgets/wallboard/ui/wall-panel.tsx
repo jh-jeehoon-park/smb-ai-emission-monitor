@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { cn } from '@/shared/lib/cn';
 import { WALL_META, WALL_TITLE } from '../config/constants';
+import styles from './wall-panel.module.scss';
 
 /**
  * 현황판의 패널 한 장 — **레퍼런스의 머리 띠를 그대로 가져온다.**
@@ -36,21 +37,16 @@ export function WallPanel({
   bodyClassName?: string;
 }) {
   return (
-    <section
-      className={cn(
-        'flex min-h-0 min-w-0 flex-col overflow-hidden rounded-panel border border-card-border bg-surface shadow-panel',
-        className,
-      )}
-    >
-      <div className="wall-head-pad flex shrink-0 items-center gap-2.5 border-b border-border">
-        <span aria-hidden className="h-[18px] w-[3px] shrink-0 rounded-full bg-accent" />
-        <h2 className={cn('min-w-0 truncate', WALL_TITLE)}>{title}</h2>
+    <section className={cn(styles.root, className)}>
+      <div className={cn('wall-head-pad', styles.head)}>
+        <span aria-hidden className={styles.tick} />
+        <h2 className={cn(styles.title, WALL_TITLE)}>{title}</h2>
         {aside !== undefined && (
-          <span className={cn('ml-auto shrink-0 text-fg-subtle', WALL_META)}>{aside}</span>
+          <span className={cn(styles.aside, WALL_META)}>{aside}</span>
         )}
       </div>
 
-      <div className={cn('wall-pad-md flex min-h-0 flex-1 flex-col', bodyClassName)}>{children}</div>
+      <div className={cn('wall-pad-md', styles.body, bodyClassName)}>{children}</div>
     </section>
   );
 }

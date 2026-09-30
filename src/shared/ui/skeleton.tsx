@@ -1,4 +1,5 @@
 import { cn } from '@/shared/lib/cn';
+import styles from './skeleton.module.scss';
 
 /**
  * 아직 모르는 자리 `[사용자 요청 2026-09-07]`.
@@ -11,7 +12,7 @@ import { cn } from '@/shared/lib/cn';
  * «아직 안 물어봤거나 답을 기다린다»다. 모름을 사실 주장으로 바꾸지 않는 것이
  * 이 저장소의 규약이다(**E4**).
  *
- * **깜빡임은 감속 설정을 따른다.** `motion-safe:`가 붙어 있어 설정을 켠 사용자에게는
+ * **깜빡임은 감속 설정을 따른다.** `pulse-motion-safe`라 설정을 켠 사용자에게는
  * 가만히 있는 면으로 보인다 — 배경 영상을 멈추는 것과 같은 이유다.
  */
 export function Skeleton({
@@ -32,11 +33,11 @@ export function Skeleton({
      * 그렇게 만들었고 React가 *"In HTML, `<div>` cannot be a descendant of `<p>`"* 로 잡아냈다.
      *
      * `display: block`을 물려 `<div>`처럼 눕는다. 인라인으로 써야 하는 자리는 `inline-block`을
-     * 넘기면 되고, `cn`이 `tailwind-merge`라 뒤에 온 것이 이긴다.
+     * 넘기면 되고, 뼈대가 `components` 레이어라 넘긴 클래스가 이긴다.
      */
     <span
       aria-hidden
-      className={cn('block rounded-nested bg-surface-3 motion-safe:animate-pulse', className)}
+      className={cn(styles.root, 'pulse-motion-safe', className)}
       style={style}
     />
   );
@@ -57,8 +58,8 @@ export function SkeletonCells({ count }: { count: number }) {
   return (
     <>
       {Array.from({ length: count }, (_, i) => (
-        <td key={i} className="px-3 py-3.5">
-          <Skeleton className="mx-auto h-3 w-10" />
+        <td key={i} className={styles.cell}>
+          <Skeleton className={styles.cellBar} />
         </td>
       ))}
     </>

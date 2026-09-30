@@ -1,0 +1,13 @@
+@use 'shared/styles' as *;
+
+/* 화면에서의 높이는 부르는 쪽이 `className`으로 준다 — 그래서 `components` 레이어다 */
+@layer components {
+  /*
+   * `overflow: visible` — 바닥이 `0`인 축에서는 선이 **맨 아래에 닿는다.** 기본값이면
+   * 굵기의 절반이 잘려 «방류를 멈춘 구간»의 선이 가늘어 보인다.
+   */
+  .root {
+    width: 100%;
+    overflow: visible;
+  }
+}

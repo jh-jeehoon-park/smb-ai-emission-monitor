@@ -1,11 +1,13 @@
 import { MEASUREMENT_ITEMS } from '@/shared/config/measurement';
 import { PROVISIONAL_DISPLAY_DECIMALS, type StatusLevel } from '@/shared/config/provisional';
 import { STATUS_VISUAL, statusInk } from '@/shared/config/status-visual';
+import { cn } from '@/shared/lib/cn';
 import { formatValue } from '@/shared/lib/format';
 import { TrendingDown, TrendingUp } from 'lucide-react';
 import { Eyebrow } from '@/shared/ui/eyebrow';
 import { MeterBar } from '@/shared/ui/meter-bar';
 import type { ContributionEvidence } from '../lib/distribution';
+import styles from './contribution-evidence.module.scss';
 
 /**
  * 기여 변수 — **모델이 낸 것과 계측이 낸 것을 나란히** `[사용자 요청 2026-09-08]`.
@@ -35,42 +37,42 @@ export function ContributionEvidenceList({
 
   return (
     <div>
-      <div className="mb-2 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+      <div className={styles.head}>
         <Eyebrow>주요 기여 변수 · XAI</Eyebrow>
         {/*
          * **«이 구간 등급의»라 적는다.** 기여 변수는 점수 밴드로 갈려 78과 91이 같은 다섯 행을
          * 낸다 — 구간을 바꿔도 안 바뀌는 것이 이 값의 성질이라 그것을 숨기지 않는다.
          */}
-        <p className="text-[12px] text-fg-subtle">
-          모델 산출 · <span className="text-fg-muted">{atLabel}</span> 계측
+        <p className={styles.source}>
+          모델 산출 · <span className={styles.sourceTime}>{atLabel}</span> 계측
         </p>
       </div>
 
-      <ul className="space-y-3">
+      <ul className={styles.rows}>
         {rows.map(({ contribution, value, distribution, percentile }) => {
           const Arrow = contribution.direction === 'up' ? TrendingUp : TrendingDown;
           const item = MEASUREMENT_ITEMS[contribution.code];
 
           return (
-            <li key={contribution.code} className="grid gap-x-4 gap-y-1.5 @[30rem]:grid-cols-2">
+            <li key={contribution.code} className={styles.row}>
               {/* 왼쪽 — 모델이 낸 것 */}
               <div>
-                <div className="mb-1.5 flex items-center justify-between gap-2">
-                  <span className="flex min-w-0 items-center gap-1.5 text-[12px] text-fg-muted">
+                <div className={styles.modelHead}>
+                  <span className={styles.label}>
                     {/* 방향은 화살표 모양이 나르고 색은 등급 하나뿐이다 `[사용자 지적 2026-08-31]` */}
                     <Arrow
                       aria-hidden
                       size={13}
                       strokeWidth={2.2}
-                      className="shrink-0"
+                      className={styles.arrow}
                       style={{ color: statusInk(visual) }}
                     />
-                    <span className="sr-only">
+                    <span className={styles.srOnly}>
                       {contribution.direction === 'up' ? '상승' : '하강'} 기여
                     </span>
-                    <span className="truncate">{contribution.label}</span>
+                    <span className={styles.truncate}>{contribution.label}</span>
                   </span>
-                  <span className="num shrink-0 text-[12px] font-semibold text-fg">
+                  <span className={cn(styles.weight, 'num')}>
                     {(contribution.weight * 100).toFixed(
                       PROVISIONAL_DISPLAY_DECIMALS.contributionPercent,
                     )}
@@ -82,14 +84,14 @@ export function ContributionEvidenceList({
 
               {/* 오른쪽 — 계측이 낸 것 */}
               <div>
-                <div className="mb-1.5 flex items-baseline justify-between gap-2 text-[12px]">
-                  <span className="num font-semibold text-fg">
+                <div className={styles.measuredHead}>
+                  <span className={cn(styles.value, 'num')}>
                     {value === null ? '수신 없음' : formatValue(contribution.code, value)}
                     {value !== null && item.unit && (
-                      <span className="ml-1 font-normal text-fg-subtle">{item.unit}</span>
+                      <span className={styles.unit}>{item.unit}</span>
                     )}
                   </span>
-                  <span className="num shrink-0 text-fg-subtle">{rankLabel(percentile)}</span>
+                  <span className={cn(styles.rank, 'num')}>{rankLabel(percentile)}</span>
                 </div>
                 <DistributionTrack distribution={distribution} value={value} code={contribution.code} />
               </div>
@@ -102,9 +104,9 @@ export function ContributionEvidenceList({
        * **이 마크가 무엇인지 한 번 적는다.** 계열 범례가 아니라 **마크 해설**이다 — 이 형태가
        * 저장소에 처음이라 없으면 상자와 점이 무엇인지 알 수 없다(§8 `그래프` — 범례는 그래프 아래).
        */}
-      <p className="mt-3 border-t border-border pt-2 text-[12px] leading-relaxed text-fg-subtle">
-        가로 트랙은 <strong className="text-fg-muted">조회 구간의 관측 범위</strong>, 가운데 상자는
-        중앙 50%(사분위), 세로선은 중앙값입니다. 점은 <strong className="text-fg-muted">그 시각의
+      <p className={styles.caption}>
+        가로 트랙은 <strong className={styles.captionEmphasis}>조회 구간의 관측 범위</strong>, 가운데 상자는
+        중앙 50%(사분위), 세로선은 중앙값입니다. 점은 <strong className={styles.captionEmphasis}>그 시각의
         실측값</strong>입니다 — 백분위는 관측 분포 안에서의 자리이지 기준 초과 판정이 아닙니다.
       </p>
     </div>
@@ -132,7 +134,7 @@ function DistributionTrack({
 }) {
   if (distribution === null) {
     return (
-      <p className="text-[12px] text-fg-subtle">계열이 없어 분포를 낼 수 없습니다</p>
+      <p className={styles.noDistribution}>계열이 없어 분포를 낼 수 없습니다</p>
     );
   }
 
@@ -143,10 +145,10 @@ function DistributionTrack({
 
   return (
     <div>
-      <div className="relative h-2.5 w-full rounded-chip bg-surface-2 shadow-track">
+      <div className={styles.track}>
         {/* 중앙 50% — 참조 맥락이라 중립색 */}
         <span
-          className="absolute inset-y-0 rounded-[2px]"
+          className={styles.quartiles}
           style={{
             left: `${at(q1)}%`,
             width: `${Math.max(at(q3) - at(q1), 1)}%`,
@@ -155,12 +157,12 @@ function DistributionTrack({
         />
         {/* 중앙값 — 하이라인 실선. 점선은 격자 어휘라 여기 쓰지 않는다 */}
         <span
-          className="absolute inset-y-0 w-px"
+          className={styles.median}
           style={{ left: `${at(median)}%`, backgroundColor: 'var(--border-strong)' }}
         />
         {value !== null && (
           <span
-            className="absolute top-1/2 size-2 -translate-x-1/2 -translate-y-1/2 rounded-full"
+            className={styles.marker}
             style={{
               left: `${at(value)}%`,
               backgroundColor: 'var(--actual)',
@@ -170,9 +172,9 @@ function DistributionTrack({
           />
         )}
       </div>
-      <p className="num mt-1 text-[12px] text-fg-subtle">
+      <p className={cn(styles.range, 'num')}>
         {formatValue(code, min)}–{formatValue(code, max)}
-        <span className="ml-1.5">· {distribution.count}점</span>
+        <span className={styles.count}>· {distribution.count}점</span>
       </p>
     </div>
   );

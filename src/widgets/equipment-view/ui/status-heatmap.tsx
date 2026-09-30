@@ -27,6 +27,7 @@ import {
 } from '../config/constants';
 import { cn } from '@/shared/lib/cn';
 import { TABLE_SCROLL } from '@/shared/ui/table';
+import styles from './status-heatmap.module.scss';
 
 /**
  * 값이 없는 시간을 여백과 구분해 드러낸다 — 빈 칸으로 두면 "여기 아무 일 없었다"로 읽힌다.
@@ -85,7 +86,7 @@ export function StatusHeatmap({ siteId, items }: { siteId: string; items: Equipm
    * 좌표를 **마우스에서** 받는다.
    *
    * 칸 위치로 계산하면 가로 스크롤이 생기는 폭에서 어긋난다. 그리고 툴팁은 스크롤 상자
-   * **바깥** 기준면에 그린다 — `overflow-x-auto`는 세로도 함께 자르므로(CSS 규정) 안에
+   * **바깥** 기준면에 그린다 — `overflow-x: auto`는 세로도 함께 자르므로(CSS 규정) 안에
    * 두면 격자 아래로 나가는 순간 잘려 아예 보이지 않는다. 실제로 그렇게 안 보였다.
    */
   const track = (event: React.MouseEvent, build: (x: number, y: number) => HoverTarget) => {
@@ -104,7 +105,7 @@ export function StatusHeatmap({ siteId, items }: { siteId: string; items: Equipm
    */
   if (!rows.some((row) => row.cells.some((cell) => cell.running !== null))) {
     return (
-      <p className="py-8 text-center text-[12px] text-fg-subtle">
+      <p className={styles.offline}>
         통신이 두절된 사업장입니다. 수신한 시간이 없어 가동 격자를 그리지 않습니다.
       </p>
     );
@@ -116,26 +117,14 @@ export function StatusHeatmap({ siteId, items }: { siteId: string; items: Equipm
   const ticks = rows[0]!.cells;
 
   return (
-    <div className="space-y-2">
-      <div className="relative" ref={frame} onMouseLeave={() => setHover(null)}>
-        {/*
-         * 격자를 **홈 안에 앉힌다** `[사용자 지시 2026-08-24]` — 옅은 면 + 안쪽 그림자
-         * (`--track-inset`, 막대·게이지 트랙과 같은 값)라 칸들이 파인 자리에 놓인 것으로 읽힌다.
-         * 홈이 없던 판본은 120칸이 카드 면 위에 떠 있어 어디까지가 격자인지 경계가 없었다.
-         */}
-        {/* 가리개는 상자 뒤 면과 같은 색이어야 한다 — 흰 면 기본값을 쓰면 홈 위에 흰 띠가 남는다 */}
-        <div
-          className={cn(
-            TABLE_SCROLL,
-            '[--scroll-hint-bg:var(--surface-2)]',
-            'rounded-nested bg-surface-2 p-2.5 shadow-track',
-          )}
-        >
+    <div className={styles.root}>
+      <div className={styles.frame} ref={frame} onMouseLeave={() => setHover(null)}>
+        <div className={cn(TABLE_SCROLL, styles.well)}>
           <table
-            className="w-full table-fixed border-separate border-spacing-[1px] text-center"
+            className={styles.table}
             style={{ minWidth: STATUS_TIMELINE_HOURS * HEATMAP_CELL_MIN_PX + HEATMAP_LABEL_PX }}
           >
-            <caption className="sr-only">
+            <caption className={styles.srOnly}>
               설비별 24시간 가동 상태. 행은 설비, 열은 시각, 칸은 그 시간의 가동 여부와 이상
               신호다.
             </caption>
@@ -144,7 +133,7 @@ export function StatusHeatmap({ siteId, items }: { siteId: string; items: Equipm
               <tr>
                 <th
                   scope="col"
-                  className="pb-1 text-left text-[12px] font-normal text-fg-subtle"
+                  className={styles.headLabel}
                   style={{ width: HEATMAP_LABEL_PX }}
                 >
                   설비
@@ -153,13 +142,13 @@ export function StatusHeatmap({ siteId, items }: { siteId: string; items: Equipm
                   <th
                     key={cell.hourOffset}
                     scope="col"
-                    className="num pb-1 text-[12px] font-normal text-fg-subtle"
+                    className={cn(styles.headTick, 'num')}
                   >
                     {/* 24칸에 눈금을 다 달면 겹친다. 눈으로는 3시간마다, 스크린리더에는 전부 */}
                     <span aria-hidden>
                       {cell.hourOffset % HEATMAP_TICK_HOURS === 0 ? formatClock(cell.iso) : ''}
                     </span>
-                    <span className="sr-only">{formatClock(cell.iso)}</span>
+                    <span className={styles.srOnly}>{formatClock(cell.iso)}</span>
                   </th>
                 ))}
               </tr>
@@ -170,7 +159,7 @@ export function StatusHeatmap({ siteId, items }: { siteId: string; items: Equipm
                 <tr key={equipment.id}>
                   <th
                     scope="row"
-                    className="truncate pr-2 text-left text-[12px] font-normal text-fg-muted"
+                    className={styles.rowHead}
                   >
                     {equipment.name}
                   </th>
@@ -221,10 +210,10 @@ function RunCell({
     return (
       <td
         onMouseMove={onMove}
-        className="h-5 rounded-[3px]"
+        className={styles.cellMissing}
         style={{ backgroundImage: MISSING_FILL, outline: active ? OUTLINE : undefined }}
       >
-        <span className="sr-only">{hour} 수신 없음</span>
+        <span className={styles.srOnly}>{hour} 수신 없음</span>
       </td>
     );
   }
@@ -232,7 +221,7 @@ function RunCell({
   return (
     <td
       onMouseMove={onMove}
-      className="h-5 rounded-[3px] text-center align-middle"
+      className={styles.cell}
       style={{
         /*
          * 같은 색의 위아래 농도 차 + 윗면 하이라이트 — 칸이 면에 얹힌 조각으로 읽힌다.
@@ -244,7 +233,7 @@ function RunCell({
         outline: active ? OUTLINE : undefined,
       }}
     >
-      <span className="sr-only">
+      <span className={styles.srOnly}>
         {hour} {RUN_LABEL[state]}
         {anomaly && ` · ${cell.signals.map((s) => EQUIPMENT_SIGNAL_LABELS[s]).join(' · ')}`}
       </span>
@@ -267,7 +256,7 @@ function HeatmapTooltip({ hover }: { hover: HoverTarget }) {
     <div
       aria-hidden
       data-heat-tooltip
-      className="pointer-events-none absolute z-10"
+      className={styles.tooltip}
       style={{
         left: hover.x + (hover.flip ? -HEATMAP_TOOLTIP_OFFSET_PX : HEATMAP_TOOLTIP_OFFSET_PX),
         top: hover.y,
@@ -275,7 +264,7 @@ function HeatmapTooltip({ hover }: { hover: HoverTarget }) {
       }}
     >
       <ChartTooltipShell label={`${formatClock(hover.iso)} ${DISPLAY_TIMEZONE}`}>
-        <p className="text-[12px] text-fg-muted">{hover.equipmentName}</p>
+        <p className={styles.tooltipName}>{hover.equipmentName}</p>
         {hover.body}
       </ChartTooltipShell>
     </div>
@@ -328,19 +317,19 @@ function HeatmapLegend({
   hasAnomaly: boolean;
 }) {
   return (
-    <ul className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-border pt-2 text-[12px] text-fg-subtle">
-      <li className="flex items-center gap-1">
+    <ul className={styles.legend}>
+      <li className={styles.legendItem}>
         <span
           aria-hidden
-          className="h-2.5 w-3.5 rounded-[2px]"
+          className={styles.legendSwatch}
           style={{ backgroundColor: OPERATING_FILL.on }}
         />
         가동
       </li>
-      <li className="flex items-center gap-1">
+      <li className={styles.legendItem}>
         <span
           aria-hidden
-          className="h-2.5 w-3.5 rounded-[2px]"
+          className={styles.legendSwatch}
           style={{ backgroundColor: OPERATING_FILL.off }}
         />
         정지
@@ -348,11 +337,11 @@ function HeatmapLegend({
 
       {/* 일어나지 않은 상태의 범례는 잡음이다. 격자에 있을 때만 설명한다 */}
       {hasAnomaly && (
-        <li className="flex items-center gap-1">
+        <li className={styles.legendItem}>
           {/* 칸과 같은 채움을 축소해 보인다 — 범례와 격자가 다른 표기를 쓰면 범례가 거짓이 된다 */}
           <span
             aria-hidden
-            className="h-2.5 w-3.5 rounded-[2px]"
+            className={styles.legendSwatch}
             style={{ backgroundImage: OPERATING_ANOMALY_GRADIENT }}
           />
           이상 신호
@@ -360,10 +349,10 @@ function HeatmapLegend({
       )}
 
       {hasMissing && (
-        <li className="flex items-center gap-1">
+        <li className={styles.legendItem}>
           <span
             aria-hidden
-            className="h-2.5 w-3.5 rounded-[2px]"
+            className={styles.legendSwatch}
             style={{ backgroundImage: MISSING_FILL }}
           />
           수신 없음

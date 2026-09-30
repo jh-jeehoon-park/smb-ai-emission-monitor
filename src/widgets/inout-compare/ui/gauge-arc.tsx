@@ -3,6 +3,7 @@
 import { ACTUAL_HEX } from '@/shared/config/status-visual';
 import { motion, useInstantWhenReduced } from '@/shared/ui/motion';
 import { COMPARE_ROW_STAGGER_S, GAUGE_GEOMETRY, INLET_MARK_COLOR } from '../config/constants';
+import styles from './gauge-arc.module.scss';
 
 const G = GAUGE_GEOMETRY;
 
@@ -64,7 +65,7 @@ export function GaugeArc({
   return (
     <svg
       viewBox={`0 0 ${G.width} ${G.height}`}
-      className="w-full"
+      className={styles.root}
       style={{ maxWidth: G.width }}
       /* 값은 전부 카드 안에 글자로 있다 — 이 그림은 그것을 되풀이하는 장식이다 */
       aria-hidden

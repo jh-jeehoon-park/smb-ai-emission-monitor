@@ -1,0 +1,90 @@
+@use 'shared/styles' as *;
+
+/* 뿌리는 `className`으로 호출부가 덮는다 — 그래서 `components` 레이어다 */
+@layer components {
+  .root {
+    position: relative;
+    display: inline-flex;
+    flex-shrink: 0;
+  }
+}
+
+/*
+ * **상태 규칙의 순서가 곧 뜻이다** — 켬 → hover → 초점 → 비활성(Tailwind가 쓰던 차례). 켠 스위치에
+ * 마우스를 올리면 테두리는 hover(60%)를 따른다.
+ */
+.track {
+  position: relative;
+  height: sp(5);
+  width: sp(9);
+  flex-shrink: 0;
+  cursor: pointer;
+  appearance: none;
+  border-radius: calc(infinity * 1px);
+  border: 1px solid var(--border-strong);
+  background-color: var(--surface-3);
+  transition-property: background-color, border-color, box-shadow;
+  transition-duration: 200ms;
+  transition-timing-function: cubic-bezier(0, 0, 0.2, 1);
+
+  &:checked {
+    border-color: var(--accent);
+    background-color: var(--accent);
+    box-shadow: 0 2px 6px rgb(13 71 161 / 30%);
+  }
+
+  @include hover {
+    &:hover {
+      border-color: var(--accent);
+      border-color: color-mix(in oklab, var(--accent) 60%, transparent);
+    }
+  }
+
+  // 초점 고리는 1px 면색 틈 + 2px 고리다. 켠 스위치면 켬 그림자가 고리 아래에 함께 남는다
+  &:focus-visible {
+    outline-style: none;
+    box-shadow: 0 0 0 1px var(--surface), 0 0 0 3px var(--accent);
+    box-shadow: 0 0 0 1px var(--surface), 0 0 0 3px color-mix(in oklab, var(--accent) 35%, transparent);
+  }
+
+  &:checked:focus-visible {
+    box-shadow: 0 0 0 1px var(--surface), 0 0 0 3px var(--accent), 0 2px 6px rgb(13 71 161 / 30%);
+    box-shadow:
+      0 0 0 1px var(--surface),
+      0 0 0 3px color-mix(in oklab, var(--accent) 35%, transparent),
+      0 2px 6px rgb(13 71 161 / 30%);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+  }
+
+  @include motion-reduce {
+    transition-property: none;
+  }
+}
+
+/* 손잡이는 16px — 홈 높이 20px에서 위아래 2px씩 남는다 */
+.knob {
+  pointer-events: none;
+  position: absolute;
+  left: sp(0.5);
+  top: sp(0.5);
+  width: sp(4);
+  height: sp(4);
+  border-radius: calc(infinity * 1px);
+  background-color: white;
+  box-shadow: 0 1px 2px rgb(16 22 28 / 25%);
+  transition-property: transform, translate, scale, rotate;
+  transition-duration: 200ms;
+  transition-timing-function: cubic-bezier(0, 0, 0.2, 1);
+
+  .track:checked ~ & {
+    translate: sp(4) 0;
+  }
+
+  @include motion-reduce {
+    transition-property: none;
+  }
+}

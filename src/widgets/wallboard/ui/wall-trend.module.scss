@@ -1,0 +1,68 @@
+@use 'shared/styles' as *;
+
+.root {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.row {
+  display: flex;
+  min-width: 0;
+  gap: sp(2);
+}
+
+.axisY {
+  position: relative;
+  flex-shrink: 0;
+  color: var(--fg-subtle);
+}
+
+.axisYTick {
+  position: absolute;
+  right: 0;
+  translate: 0 -50%;
+}
+
+.axisYZero {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  translate: 0 50%;
+}
+
+.plot {
+  min-width: 0;
+  flex: 1;
+  border-bottom: 1px solid var(--border);
+}
+
+.axisGap {
+  flex-shrink: 0;
+}
+
+.axisX {
+  position: relative;
+  min-width: 0;
+  flex: 1;
+  color: var(--fg-subtle);
+}
+
+.strut {
+  visibility: hidden;
+}
+
+.axisXTick {
+  position: absolute;
+  top: 0;
+  white-space: nowrap;
+}
+
+.footnote {
+  margin-top: auto;
+  display: flex;
+  justify-content: space-between;
+  padding-top: sp(2);
+  color: var(--fg-subtle);
+}

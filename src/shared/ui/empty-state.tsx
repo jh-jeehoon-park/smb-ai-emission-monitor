@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { cn } from '@/shared/lib/cn';
+import styles from './empty-state.module.scss';
 
 /**
  * **아직 채울 수 없는 자리** — 왜 비었는지와 다음에 할 일을 한 덩어리로 말한다
@@ -30,24 +31,21 @@ export function EmptyState({
 }) {
   return (
     <div
-      className={cn(
-        'flex flex-col items-center gap-2 rounded-nested border border-dashed border-border-strong bg-surface-2 px-6 py-8 text-center',
-        className,
-      )}
+      className={cn(styles.root, className)}
     >
       {icon && (
         <span
           aria-hidden
-          className="mb-1 grid size-10 place-items-center rounded-full bg-surface text-fg-subtle shadow-panel"
+          className={styles.icon}
         >
           {icon}
         </span>
       )}
-      <p className="text-[14px] font-semibold text-fg">{title}</p>
+      <p className={styles.title}>{title}</p>
       {description && (
-        <p className="max-w-[52ch] text-[12px] leading-relaxed text-fg-subtle">{description}</p>
+        <p className={styles.description}>{description}</p>
       )}
-      {action && <div className="mt-2">{action}</div>}
+      {action && <div className={styles.action}>{action}</div>}
     </div>
   );
 }

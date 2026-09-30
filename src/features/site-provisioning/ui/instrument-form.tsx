@@ -6,6 +6,7 @@ import { ACTION_BUTTON_QUIET } from '@/shared/ui/action-button';
 import { ToggleCard } from '@/shared/ui/toggle-card';
 import { useInstruments } from '../model/use-instruments';
 import { useProvisioningStore } from '../model/provisioning-context';
+import styles from './instrument-form.module.scss';
 
 /**
  * 사업장이 **어떤 계측기를 달았는지** 고른다 (SCR-OP-010).
@@ -33,9 +34,9 @@ export function InstrumentForm({ siteId }: { siteId: string }) {
     setAbsentCodes(siteId, nextHeld ? absent.filter((c) => c !== code) : [...absent, code]);
 
   return (
-    <div className="space-y-4">
-      <div className="@container">
-        <ul className="grid gap-2 @[34rem]:grid-cols-2 @[56rem]:grid-cols-3">
+    <div className={styles.root}>
+      <div className={styles.cards}>
+        <ul className={styles.cardGrid}>
           {WATER_QUALITY_CODES.map((code) => {
             const item = MEASUREMENT_ITEMS[code];
             return (
@@ -63,9 +64,9 @@ export function InstrumentForm({ siteId }: { siteId: string }) {
         * 공용 조작 버튼을 쓴다 — 좁은 화면 40px 규약이 그 껍데기에 들어 있다.
         */}
       {isUserSet && (
-        <div className="flex justify-end">
+        <div className={styles.foot}>
           <button type="button" onClick={() => reset(siteId)} className={ACTION_BUTTON_QUIET}>
-            <RotateCcw aria-hidden className="size-3.5" strokeWidth={2} />
+            <RotateCcw aria-hidden className={styles.glyph} strokeWidth={2} />
             전부 보유로 되돌리기
           </button>
         </div>

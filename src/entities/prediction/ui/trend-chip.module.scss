@@ -1,0 +1,16 @@
+@use 'shared/styles' as *;
+
+/* `bare`는 칩의 뿌리다 — `className`으로 호출부가 덮으므로 `components` 레이어 */
+@layer components {
+  .bare {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: sp(1);
+    font-size: 12px;
+  }
+}
+
+.glyph {
+  line-height: 1;
+}

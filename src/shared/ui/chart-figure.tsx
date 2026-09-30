@@ -11,6 +11,7 @@ import {
   SegPill,
 } from '@/shared/ui/segmented-control';
 import { TABLE_HEAD_ROW } from './table';
+import styles from './chart-figure.module.scss';
 
 interface Column<T> {
   header: string;
@@ -24,7 +25,7 @@ interface Column<T> {
  * 목적은 강조가 아니라 "여기부터 그래프"라는 경계를 주는 것이고, 더 진하게 하면
  * 그래프 안의 상태 색과 밴드가 이 면과 경쟁한다.
  */
-export const CHART_SURFACE = 'rounded-nested bg-surface-2 p-3';
+export const CHART_SURFACE = styles.surface;
 
 interface ChartFigureProps<T> {
   /** 차트가 무엇을 보여주는지 한 문장. 스크린리더는 이 문장을 먼저 읽는다 */
@@ -93,10 +94,10 @@ export function ChartFigure<T>({
     </div>
   );
 
-  if (!hasTable || !columns) return <figure className="m-0">{chart}</figure>;
+  if (!hasTable || !columns) return <figure className={styles.figure}>{chart}</figure>;
 
   return (
-    <figure className="m-0">
+    <figure className={styles.figure}>
       {/*
        * 껍데기는 `SegmentedControl`과 **같은 것을 쓴다** `[사용자 지시 2026-08-24]` —
        * 값은 `segmented-control.tsx` 한 곳에 있다. 컴포넌트를 그대로 쓰지 못하는 이유는
@@ -107,7 +108,7 @@ export function ChartFigure<T>({
        * **화살표로도 옮긴다.** `role="tab"`을 붙인 이상 보조기술 사용자는 좌우 화살표를
        * 기대한다(WAI-ARIA 탭 패턴). Tab 키 이동은 그대로 두므로 더해지기만 한다.
        */}
-      <div role="tablist" aria-label={`${label} 보기 방식`} className={cn(SEG_TRACK, 'mb-2')}>
+      <div role="tablist" aria-label={`${label} 보기 방식`} className={cn(SEG_TRACK, styles.tabs)}>
         {(['chart', 'table'] as const).map((mode) => (
           <button
             key={mode}
@@ -126,7 +127,7 @@ export function ChartFigure<T>({
             className={cn(SEG_ITEM, view === mode ? SEG_ITEM_ON : SEG_ITEM_OFF)}
           >
             {view === mode && <SegPill layoutId={`${id}-tab`} />}
-            <span className="relative">{mode === 'chart' ? '그래프로 보기' : '표로 보기'}</span>
+            <span className={styles.tabLabel}>{mode === 'chart' ? '그래프로 보기' : '표로 보기'}</span>
           </button>
         ))}
       </div>
@@ -136,16 +137,15 @@ export function ChartFigure<T>({
        * 칸의 높이가 그래프 하나로 결정되고 표는 그 안에서만 스크롤한다.
        * 격자에 겹쳐 두었을 때는 칸이 둘 중 **큰 쪽**을 따라가 288행 표가 카드를 늘렸다.
        *
-       * 감출 때 `hidden`이 아니라 `invisible`인 이유: `display:none`이면 Recharts의
-       * `ResponsiveContainer`가 폭 0을 읽어 다시 보일 때 차트를 못 그린다.
+       * 감출 때 `display: none`이 아니라 `visibility: hidden`이다 — 이유는 `.panelHidden` 곁에 적었다.
        */}
-      <div className="relative">
+      <div className={styles.stage}>
         <div
           id={`${id}-chart`}
           role="tabpanel"
           className={cn(
-            'transition-opacity duration-200',
-            view === 'chart' ? 'opacity-100' : 'pointer-events-none invisible opacity-0',
+            styles.chartPanel,
+            view === 'chart' ? styles.panelShown : styles.panelHidden,
           )}
         >
           {chart}
@@ -155,20 +155,20 @@ export function ChartFigure<T>({
           id={`${id}-table`}
           role="tabpanel"
           className={cn(
-            'absolute inset-0 transition-opacity duration-200',
-            view === 'table' ? 'opacity-100' : 'pointer-events-none invisible opacity-0',
+            styles.tablePanel,
+            view === 'table' ? styles.panelShown : styles.panelHidden,
           )}
         >
-          <div className="h-full overflow-auto rounded-nested bg-surface-2 p-3">
-            <table className={`${TABLE_ROOT} text-[12px] text-center`}>
-              <caption className="sr-only">{label}</caption>
-              <thead className="sticky top-0">
+          <div className={styles.tableScroll}>
+            <table className={cn(TABLE_ROOT, styles.table)}>
+              <caption className={styles.caption}>{label}</caption>
+              <thead className={styles.head}>
                 <tr className={TABLE_HEAD_ROW}>
                   {columns.map((c) => (
                     <th
                       key={c.header}
                       scope="col"
-                      className="whitespace-nowrap px-3 py-2.5 text-center"
+                      className={styles.headCell}
                     >
                       {c.header}
                     </th>
@@ -179,7 +179,7 @@ export function ChartFigure<T>({
                 {sampled.map((row, i) => (
                   <tr key={i} className={TABLE_ROW}>
                     {columns.map((c) => (
-                      <td key={c.header} className="num whitespace-nowrap px-3 py-2.5 text-fg">
+                      <td key={c.header} className={cn(styles.cell, 'num')}>
                         {c.cell(row)}
                       </td>
                     ))}

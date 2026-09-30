@@ -1,0 +1,52 @@
+@use 'shared/styles' as *;
+
+.root {
+  :where(& > :not(:last-child)) {
+    margin-block-start: 0;
+    margin-block-end: sp(4);
+  }
+}
+
+.stages {
+  :where(& > :not(:last-child)) {
+    margin-block-start: 0;
+    margin-block-end: sp(3);
+  }
+}
+
+.undo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: sp(2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-nested);
+  background-color: var(--surface-2);
+  padding: sp(2) sp(3.5);
+  font-size: 12px;
+  color: var(--fg-muted);
+}
+
+.glyph {
+  width: sp(3.5);
+  height: sp(3.5);
+}
+
+.empty {
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-nested);
+  background-color: var(--surface-2);
+  padding: sp(6) sp(4);
+  text-align: center;
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: sp(2);
+}

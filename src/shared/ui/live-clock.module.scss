@@ -1,0 +1,18 @@
+@use 'shared/styles' as *;
+
+.root {
+  display: flex;
+  align-items: center;
+  gap: sp(1.5);
+}
+
+/*
+ * 폭을 미리 잡아 값이 들어올 때 옆 요소가 밀리지 않게 한다.
+ * 가장 긴 표기(`12월 30일 (수) 오후 12:00:00`)를 실측한 140px에 맞춘 값이다 — 넉넉히 잡으면 값
+ * 오른쪽에 빈 자리가 남아 알림 아이콘과의 간격이 어긋난다.
+ */
+.time {
+  display: inline-block;
+  min-width: 8.75rem;
+  color: var(--fg-muted);
+}

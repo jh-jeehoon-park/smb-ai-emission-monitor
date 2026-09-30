@@ -5,6 +5,7 @@ import { useSyncExternalStore, type ReactNode } from 'react';
 import { cn } from '@/shared/lib/cn';
 import { ROLES, useRole } from '@/entities/user';
 import { isBlockedFor } from '../config/navigation';
+import styles from './role-gate.module.scss';
 
 /**
  * 역할에 닫힌 화면을 **그리지 않는다** `[사용자 결정 2026-09-15]`.
@@ -57,7 +58,7 @@ export function RoleGate({ children }: { children: ReactNode }) {
      */
     <div
       data-role-gated
-      className={cn('contents', !hydrated && hidden.map((r) => `role-hide-${r}`))}
+      className={cn(styles.contents, !hydrated && hidden.map((r) => `role-hide-${r}`))}
     >
       {hydrated && blocked ? null : children}
     </div>

@@ -1,0 +1,54 @@
+@use 'shared/styles' as *;
+
+/* 겉면과 본문은 `className`·`bodyClassName`으로 호출부가 덮는다 — 그래서 `components` 레이어다 */
+@layer components {
+  /* `min-width: 0`이 없으면 그리드·플렉스 안에서 내용 폭만큼 늘어나 좁은 화면을 넘어간다 */
+  .root {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-panel);
+    background-color: var(--surface);
+    padding: sp(4);
+    box-shadow: var(--card-shadow);
+
+    @include up(lg) {
+      padding: sp(5);
+    }
+  }
+
+  .body {
+    flex: 1;
+  }
+}
+
+.header {
+  margin-bottom: sp(4);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  column-gap: sp(3);
+  row-gap: sp(2);
+}
+
+.heading {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: sp(1.5);
+}
+
+.title {
+  @include truncate;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--fg);
+}
+
+/* `max-width: 100%`가 없으면 필터 묶음이 내용 폭을 그대로 주장해 헤더가 화면을 넘는다 */
+.action {
+  max-width: 100%;
+  flex-shrink: 0;
+}

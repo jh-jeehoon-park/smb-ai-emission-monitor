@@ -1,0 +1,99 @@
+@use 'shared/styles' as *;
+
+/*
+ * **비교 세 열의 면**(`COMPARE_COL`). 머리 칸에도 얹혀 있지만 그 자리에서는 `TABLE_HEAD_ROW`의
+ * 띠 색이 이긴다(`.headRow > th`의 특이도가 더 높다) — Tailwind 시절에도 그랬다. 그래서 같은
+ * `components` 레이어에 둔다: 레이어 밖에 두면 특이도와 무관하게 이겨 머리 띠를 덮는다.
+ */
+@layer components {
+  .compareCol {
+    background-color: var(--surface-2);
+    background-color: color-mix(in oklab, var(--surface-2) 60%, transparent);
+  }
+}
+
+.rowHeight {
+  height: sp(13);
+}
+
+.numCell {
+  padding-inline: sp(3);
+  text-align: right;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--fg);
+}
+
+/* 변화·평균 칸은 숫자 칸의 굵기·잉크를 한 단 물린다 — `.numCell`보다 뒤에 있어야 이긴다 */
+.numCellQuiet {
+  font-weight: 400;
+  color: var(--fg-muted);
+}
+
+.mark {
+  display: inline-block;
+  width: sp(2);
+  height: sp(2);
+  flex-shrink: 0;
+  border-radius: calc(infinity * 1px);
+}
+
+.ring {
+  background-color: var(--surface);
+}
+
+.srOnly {
+  @include sr-only;
+}
+
+.headLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: sp(1.5);
+}
+
+.groupCell {
+  padding-inline: sp(3);
+  text-align: left;
+  vertical-align: middle;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.labelCell {
+  padding-inline: sp(3);
+  font-size: 12px;
+  color: var(--fg);
+}
+
+.symbol {
+  margin-left: sp(1);
+  color: var(--fg-subtle);
+}
+
+.demoChip {
+  margin-left: sp(1.5);
+  border-radius: var(--radius-chip);
+  background-color: var(--surface-3);
+  padding: sp(0.5) sp(1.5);
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--fg-subtle);
+}
+
+.unitCell {
+  padding-inline: sp(3);
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+.centerCell {
+  padding-inline: sp(3);
+  text-align: center;
+  font-size: 12px;
+}
+
+.subtle {
+  color: var(--fg-subtle);
+}

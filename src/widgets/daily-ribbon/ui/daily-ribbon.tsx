@@ -34,7 +34,9 @@ import { ChartTooltipRow, ChartTooltipShell } from '@/shared/ui/chart-tooltip';
 import { CountUp } from '@/shared/ui/motion';
 import { StatusBadge } from '@/shared/ui/status-badge';
 import { VALUE_LG } from '@/shared/ui/type-scale';
+import { cn } from '@/shared/lib/cn';
 import { RibbonLegend } from './ribbon-legend';
+import styles from './daily-ribbon.module.scss';
 import {
   DANGER_ZONE_OPACITY,
   OUTAGE_PATTERN_ID,
@@ -74,7 +76,7 @@ export function DailyRibbon({ data, dateIso }: { data: RibbonData; dateIso: stri
   const view = useMemo(() => buildDayView(data), [data]);
 
   return (
-    <div className="space-y-3">
+    <div className={styles.root}>
       <PeakReading peak={view.peak} data={data} dateIso={dateIso} />
 
       <ChartFigure
@@ -294,24 +296,24 @@ function PeakReading({
   dateIso: string;
 }) {
   return (
-    <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
+    <div className={styles.peak}>
       <div>
-        <p className="text-[12px] text-fg-subtle">최고 이상 점수</p>
+        <p className={styles.caption}>최고 이상 점수</p>
         {peak === null ? (
           /* 하루 내내 결측이면 0이 아니라 «산출 없음»이다 — 없는 사실을 적지 않는다(**E4**) */
-          <p className="mt-0.5 text-[13px] text-fg-muted">
-            통신이 두절되어 <strong className="text-fg">산출된 점수가 없습니다.</strong>
+          <p className={styles.noScore}>
+            통신이 두절되어 <strong className={styles.noScoreEmphasis}>산출된 점수가 없습니다.</strong>
           </p>
         ) : (
-          <div className="mt-0.5 flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
+          <div className={styles.reading}>
             <span
-              className={`num ${VALUE_LG}`}
+              className={cn('num', VALUE_LG)}
               style={{ color: statusInk(STATUS_VISUAL[peak.level]) }}
             >
               <CountUp value={peak.score} />
             </span>
             <StatusBadge level={peak.level} />
-            <span className="num text-[12px] text-fg-subtle">
+            <span className={cn('num', styles.caption)}>
               {formatClock(peak.iso)} {DISPLAY_TIMEZONE}
             </span>
           </div>
@@ -319,10 +321,10 @@ function PeakReading({
       </div>
 
       {/* 조회 조건과 하루 요약. 값이 아니라 곁의 사실이라 오른쪽으로 물린다 */}
-      <p className="text-[12px] text-fg-subtle">
+      <p className={styles.caption}>
         {dateIso.slice(0, 10)} · {HISTORY_WINDOW_HOURS}시간 · {COLLECTION_INTERVAL_MINUTES}분 주기
-        · 방류 <span className="num text-fg-muted">{dischargeHoursText(data)}</span> · 알람{' '}
-        <span className="num text-fg-muted">{data.alarms.length}</span>건
+        · 방류 <span className={cn('num', styles.fact)}>{dischargeHoursText(data)}</span> · 알람{' '}
+        <span className={cn('num', styles.fact)}>{data.alarms.length}</span>건
       </p>
     </div>
   );

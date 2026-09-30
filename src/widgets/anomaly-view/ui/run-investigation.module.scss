@@ -1,0 +1,160 @@
+@use 'shared/styles' as *;
+
+.note {
+  font-size: 12px;
+  line-height: 1.625;
+  color: var(--fg-subtle);
+}
+
+.noteEmphasis {
+  color: var(--fg-muted);
+}
+
+.layout {
+  container-type: inline-size;
+  display: grid;
+  gap: sp(5);
+
+  @container (min-width: 46rem) {
+    grid-template-columns: minmax(0, 232px) minmax(0, 1fr);
+  }
+}
+
+.runList {
+  max-height: 320px;
+  overflow: auto;
+
+  & > :not(:last-child) {
+    margin-block-end: sp(1.5);
+  }
+
+  @container (min-width: 46rem) {
+    max-height: 420px;
+  }
+}
+
+.run {
+  width: 100%;
+  cursor: pointer;
+  border-radius: var(--radius-nested);
+  border-style: solid;
+  border-width: 1px;
+  padding: sp(2.5) sp(3);
+  text-align: left;
+  @include transition-colors(200ms);
+}
+
+.runActive {
+  border-color: var(--accent);
+  background-color: var(--accent-weak);
+}
+
+.runIdle {
+  border-color: var(--border);
+  background-color: var(--surface-2);
+
+  @include hover {
+    &:hover {
+      border-color: var(--border-strong);
+    }
+  }
+}
+
+.runHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: sp(2);
+}
+
+.runRange {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.runDuration {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+.runPeak {
+  margin-top: sp(1);
+  display: flex;
+  align-items: baseline;
+  gap: sp(1.5);
+  font-size: 12px;
+}
+
+.runPeakLabel {
+  color: var(--fg-subtle);
+}
+
+.peakValue {
+  font-weight: 600;
+}
+
+.runLevel {
+  color: var(--fg-muted);
+}
+
+.reading {
+  container-type: inline-size;
+
+  & > :not(:last-child) {
+    margin-block-end: sp(4);
+  }
+}
+
+.summary {
+  font-size: 12px;
+  line-height: 1.625;
+  color: var(--fg-muted);
+}
+
+.summaryTime {
+  color: var(--fg);
+}
+
+.scoreRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: sp(5);
+  row-gap: sp(3);
+  border-top: 1px solid var(--border);
+  padding-top: sp(3);
+}
+
+.score {
+  display: flex;
+  align-items: baseline;
+  gap: sp(2);
+}
+
+.gauge {
+  min-width: 180px;
+  flex: 1;
+}
+
+.metaRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: sp(1.5);
+}
+
+.evidence {
+  border-top: 1px solid var(--border);
+  padding-top: sp(3);
+}
+
+.meta {
+  gap: sp(1);
+  background-color: var(--surface-2);
+  color: var(--fg-muted);
+}
+
+.metaLabel {
+  color: var(--fg-subtle);
+}

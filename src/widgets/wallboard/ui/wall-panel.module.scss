@@ -1,0 +1,53 @@
+@use 'shared/styles' as *;
+
+/*
+ * 겉면과 본문은 `className`·`bodyClassName`으로 호출부가 덮는다 — 그래서 `components` 레이어다.
+ * 여백은 여기 없다 — 전역 `.wall-pad-md`·`.wall-head-pad`(`globals.scss`)가 화면 높이를 따라 준다.
+ */
+@layer components {
+  .root {
+    display: flex;
+    min-height: 0;
+    min-width: 0;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-panel);
+    background-color: var(--surface);
+    box-shadow: var(--card-shadow);
+  }
+
+  .body {
+    display: flex;
+    min-height: 0;
+    flex: 1;
+    flex-direction: column;
+  }
+}
+
+.head {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: sp(2.5);
+  border-bottom: 1px solid var(--border);
+}
+
+.tick {
+  height: 18px;
+  width: 3px;
+  flex-shrink: 0;
+  border-radius: calc(infinity * 1px);
+  background-color: var(--accent);
+}
+
+.title {
+  min-width: 0;
+  @include truncate;
+}
+
+.aside {
+  margin-left: auto;
+  flex-shrink: 0;
+  color: var(--fg-subtle);
+}

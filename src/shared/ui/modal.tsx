@@ -4,6 +4,7 @@ import * as Dialog from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
 import { useEffect, useRef, type ReactNode } from 'react';
 import { cn } from '@/shared/lib/cn';
+import styles from './modal.module.scss';
 
 interface ModalProps {
   open: boolean;
@@ -71,7 +72,7 @@ export function Modal({
          * 뒤 화면이 흐릿하게 살아 있으면 시선이 그쪽으로 새고, 계측 화면에서는 흐린 숫자가
          * 읽히는 값처럼 보인다. 어둡게만 덮으면 뒤는 배경이고 앞이 읽을 것이다.
          */}
-        <Dialog.Overlay className="fixed inset-0 z-40 bg-black/40" />
+        <Dialog.Overlay className={styles.overlay} />
         <Dialog.Content
           onCloseAutoFocus={(event) => {
             const target = opener.current;
@@ -79,42 +80,26 @@ export function Modal({
             event.preventDefault();
             target.focus();
           }}
-          className={cn(
-            'fixed left-1/2 top-1/2 z-50 w-[min(560px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2',
-            /*
-             * 내용이 길면 모달 안에서 스크롤한다. 화면 밖으로 밀리면 닫기 버튼을 못 누른다.
-             * `dvh`인 이유: 모바일 브라우저의 주소창이 접혔다 펴지는 만큼 `vh`가 실제 보이는
-             * 높이보다 커서, 바닥의 조치 버튼이 화면 밖에 남는다.
-             */
-            'max-h-[calc(100dvh-3rem)] overflow-y-auto',
-            /*
-             * **불투명한 카드다** `[사용자 지시 2026-08-25]`. 반투명 + 뒤 흐림(유리)으로
-             * 두었던 판본은 blur를 걷는 순간 뒤 화면이 그대로 비쳐, 어느 숫자가 이 모달의
-             * 것인지 알 수 없었다 — 배경 불투명은 화면 전반의 규칙이기도 하다(R12).
-             * 겉면은 화면의 다른 카드와 같은 값을 쓰고 그림자만 한 단 깊다(떠 있는 것이므로).
-             */
-            'rounded-panel border border-card-border bg-surface shadow-2xl',
-            className,
-          )}
+          className={cn(styles.content, className)}
         >
-          <header className="flex items-center justify-between gap-3 border-b border-border px-5 py-4">
-            <div className="min-w-0">
-              <Dialog.Title className="text-[15px] font-bold leading-snug text-fg">
+          <header className={styles.header}>
+            <div className={styles.heading}>
+              <Dialog.Title className={styles.title}>
                 {title}
               </Dialog.Title>
             </div>
             <Dialog.Close
               aria-label="닫기"
-              className="shrink-0 cursor-pointer rounded-chip border border-border bg-surface p-1.5 text-fg-subtle transition-colors duration-200 hover:border-accent/40 hover:bg-accent-weak hover:text-accent"
+              className={styles.close}
             >
               <X aria-hidden size={13} strokeWidth={1.9} />
             </Dialog.Close>
           </header>
 
-          <div className="p-5">{children}</div>
+          <div className={styles.body}>{children}</div>
 
           {footer && (
-            <footer className="flex flex-wrap items-center justify-end gap-2 border-t border-border px-5 py-4">
+            <footer className={styles.footer}>
               {footer}
             </footer>
           )}
@@ -127,7 +112,7 @@ export function Modal({
 /** 모달 본문의 사실 나열. `dt`가 왼쪽 라벨, `dd`가 값이다 */
 export function ModalFacts({ children }: { children: ReactNode }) {
   return (
-    <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2 text-[12px]">{children}</dl>
+    <dl className={styles.facts}>{children}</dl>
   );
 }
 
@@ -142,8 +127,8 @@ export function ModalFact({
 }) {
   return (
     <>
-      <dt className="text-fg-subtle">{label}</dt>
-      <dd className={cn('min-w-0 text-fg', mono && 'num')}>{value}</dd>
+      <dt className={styles.factLabel}>{label}</dt>
+      <dd className={cn(styles.factValue, mono && 'num')}>{value}</dd>
     </>
   );
 }

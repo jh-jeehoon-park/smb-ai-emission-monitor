@@ -9,6 +9,7 @@ import {
   WALL_SPARK_BUCKET_MINUTES,
   WALL_SPARK_H,
 } from '../config/constants';
+import styles from './wall-spark.module.scss';
 
 /** 라벨이 없을 때의 격자 — 값을 뜻하지 않는 질감이라 4등분이다 */
 const DEFAULT_GRID_AT = [0.25, 0.5, 0.75] as const;
@@ -110,11 +111,7 @@ export function WallSpark({
     <svg
       viewBox={`0 0 ${w} ${h}`}
       preserveAspectRatio="none"
-      /*
-       * `overflow-visible` — 바닥이 `0`인 축에서는 선이 **맨 아래에 닿는다.** 기본값이면
-       * 굵기의 절반이 잘려 «방류를 멈춘 구간»의 선이 가늘어 보인다.
-       */
-      className={cn('w-full overflow-visible', className)}
+      className={cn(styles.root, className)}
       /* 값은 곁의 큰 숫자가 글자로 갖는다 — 이 그림은 그것의 흐름을 되풀이한다 */
       aria-hidden
     >

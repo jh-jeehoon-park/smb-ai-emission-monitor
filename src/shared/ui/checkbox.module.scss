@@ -1,0 +1,128 @@
+@use 'shared/styles' as *;
+
+/* 뿌리는 `className`으로 호출부가 덮는다 — 그래서 `components` 레이어다 */
+@layer components {
+  .root {
+    position: relative;
+    display: inline-flex;
+    flex-shrink: 0;
+  }
+}
+
+/*
+ * 누르는 맛은 **면 + 그림자 + 눌림**에서 나온다. 색만 바뀌면 평평하다.
+ * 켠 순간 그림자가 한 겹 깔리고(포인트색 35%), 누르는 동안 95%로 눌린다.
+ *
+ * **상태 규칙의 순서가 곧 뜻이다** — 켬 → hover → 켬+hover → 초점 → 눌림 → 비활성(Tailwind가 쓰던
+ * 차례). 켠 칸에 마우스를 올리면 테두리는 hover(70%)를 따르고 면은 포인트색 그대로 남는다.
+ */
+.box {
+  position: relative;
+  flex-shrink: 0;
+  cursor: pointer;
+  appearance: none;
+  border: 1px solid var(--border-strong);
+  background-color: var(--surface);
+  transition-property: background-color, border-color, box-shadow, transform;
+  transition-duration: 200ms;
+  transition-timing-function: cubic-bezier(0, 0, 0.2, 1);
+
+  &:checked {
+    border-color: var(--accent);
+    background-color: var(--accent);
+    box-shadow: 0 2px 6px rgb(13 71 161 / 35%);
+  }
+
+  @include hover {
+    &:hover {
+      border-color: var(--accent);
+      border-color: color-mix(in oklab, var(--accent) 70%, transparent);
+      background-color: var(--accent-weak);
+    }
+
+    &:checked:hover {
+      background-color: var(--accent);
+    }
+  }
+
+  // 초점 고리는 1px 면색 틈 + 2px 고리다. 켠 칸이면 켬 그림자가 고리 아래에 함께 남는다
+  &:focus-visible {
+    outline-style: none;
+    box-shadow: 0 0 0 1px var(--surface), 0 0 0 3px var(--accent);
+    box-shadow: 0 0 0 1px var(--surface), 0 0 0 3px color-mix(in oklab, var(--accent) 35%, transparent);
+  }
+
+  &:checked:focus-visible {
+    box-shadow: 0 0 0 1px var(--surface), 0 0 0 3px var(--accent), 0 2px 6px rgb(13 71 161 / 35%);
+    box-shadow:
+      0 0 0 1px var(--surface),
+      0 0 0 3px color-mix(in oklab, var(--accent) 35%, transparent),
+      0 2px 6px rgb(13 71 161 / 35%);
+  }
+
+  &:active {
+    scale: 95% 95%;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+  }
+
+  @include motion-reduce {
+    transition-property: none;
+  }
+}
+
+.boxSm {
+  width: sp(4);
+  height: sp(4);
+  border-radius: 5px;
+}
+
+.boxMd {
+  width: 18px;
+  height: 18px;
+  border-radius: 6px;
+}
+
+/*
+ * 체크는 **그려지듯 나타난다** — 선 길이(`stroke-dasharray`)만큼 밀어 두었다가 0으로 당긴다.
+ * `stroke-dashoffset`은 SVG에서 상속되는 속성이라 `<svg>`에 걸면 안쪽 선이 따라온다
+ * (형제 선택자 `~`는 형제만 잡으므로 `<path>`에는 걸 수 없다).
+ * 지원하지 않는 브라우저에서도 켜면 offset이 0이라 체크는 그대로 보인다 — 애니메이션만 없다.
+ */
+.mark {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  color: white;
+  opacity: 0;
+  transform: scale(0.6);
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24px;
+  transition-property: opacity, transform, stroke-dashoffset;
+  transition-duration: 200ms;
+  transition-timing-function: cubic-bezier(0, 0, 0.2, 1);
+
+  .box:checked ~ & {
+    opacity: 1;
+    transform: scale(1);
+    stroke-dashoffset: 0;
+  }
+
+  @include motion-reduce {
+    transition-property: none;
+  }
+}
+
+.markSm {
+  width: 11px;
+  height: 11px;
+}
+
+.markMd {
+  width: sp(3);
+  height: sp(3);
+}

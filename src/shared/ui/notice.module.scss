@@ -1,0 +1,79 @@
+@use 'shared/styles' as *;
+
+/* 두 뿌리 모두 `className`으로 호출부가 덮는다 — 그래서 `components` 레이어다 */
+@layer components {
+  .root {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: sp(3);
+    padding: sp(10) sp(4);
+    text-align: center;
+  }
+
+  .bar {
+    margin-bottom: sp(4);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    column-gap: sp(3);
+    row-gap: sp(2);
+    border-radius: var(--radius-nested);
+    border: 1px solid var(--border);
+    background-color: var(--surface-2);
+    padding: sp(2) sp(3);
+
+    @include up(lg) {
+      margin-bottom: sp(5);
+    }
+  }
+}
+
+.code {
+  font-size: 44px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.025em;
+  color: var(--fg-subtle);
+}
+
+.title {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--fg);
+}
+
+.description {
+  max-width: 46ch;
+  font-size: 13px;
+  line-height: 1.625;
+  color: var(--fg-muted);
+}
+
+.actions {
+  margin-top: sp(2);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: sp(2);
+}
+
+.footnote {
+  margin-top: sp(1);
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+.barMessage {
+  min-width: 0;
+  font-size: 12px;
+  line-height: 1.625;
+  color: var(--fg-muted);
+}
+
+.barAction {
+  flex-shrink: 0;
+}

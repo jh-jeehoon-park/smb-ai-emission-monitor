@@ -10,6 +10,7 @@ import { Sparkline } from '@/shared/ui/sparkline';
 import { StatusBadge } from '@/shared/ui/status-badge';
 import { TABLE_HEAD_CELL, TABLE_HEAD_ROW, TABLE_ROOT, TABLE_SCROLL } from '@/shared/ui/table';
 import type { Site } from '@/entities/site';
+import styles from './site-score-table.module.scss';
 
 interface SiteScoreTableProps {
   /** 이미 정렬된 목록. 순위 숫자는 이 순서를 그대로 쓴다 */
@@ -38,7 +39,7 @@ export function SiteScoreTable(props: SiteScoreTableProps) {
   /*
    * **폭으로 두 벌이 갈린다** `[사용자 요청 2026-09-21: 나머지 전체 화면 반응형]`.
    *
-   * 표는 `min-w-[880px]`이라 좁은 화면에서 가로로 밀린다. 그 자체는 규약대로지만(§8
+   * 표는 최소 폭이 880px이라 좁은 화면에서 가로로 밀린다. 그 자체는 규약대로지만(§8
    * `고정 폭은 스크롤 상자 안에`), **390px에서 보이는 것이 `순위 · 사업장 · 업종·지역`
    * 세 열뿐이었다** — 이 표의 주어인 **점수와 등급이 564px 오른쪽에 숨어 있었다**(실측).
    * 밀면 나오기는 하지만, 휴대폰의 겹침 스크롤바는 만지기 전까지 뜨지 않아 **그것이 있다는
@@ -56,10 +57,10 @@ export function SiteScoreTable(props: SiteScoreTableProps) {
    */
   return (
     <>
-      <div className="hidden lg:block">
+      <div className={styles.wide}>
         <SiteScoreTableWide {...props} />
       </div>
-      <div className="lg:hidden">
+      <div className={styles.narrow}>
         <SiteScoreList {...props} />
       </div>
     </>
@@ -71,45 +72,45 @@ function SiteScoreTableWide({ sites, selectedId, onSelect, spark }: SiteScoreTab
     /*
      * **열마다 폭을 못박는다** `[사용자 지시 2026-08-24: 두 줄로 내려가지 않게]`.
      *
-     * `table-fixed`가 아니면 브라우저가 내용으로 폭을 정해, 사업장 이름이 긴 줄에서만 다른
+     * `table-layout: fixed`가 아니면 브라우저가 내용으로 폭을 정해, 사업장 이름이 긴 줄에서만 다른
      * 열이 좁아지고 등급 뱃지나 헤더 글자가 두 줄로 접혔다 — 줄마다 열 위치가 어긋난다.
      *
      * **추세 열은 280px, 그래프는 그 안에서 좌우 40px을 비운다** `[사용자 지시 2026-08-24]` —
      * 200px 그래프가 칸 가운데에 놓인다. 여백이 없던 판본은 선이 칸 경계에 닿아 옆 열의 숫자와
      * 붙어 보였다.
      *
-     * 남는 자리는 **사업장 이름**이 받는다(폭을 비워 둔 유일한 열이다). 좁아지면 `min-w`(880px)
+     * 남는 자리는 **사업장 이름**이 받는다(폭을 비워 둔 유일한 열이다). 좁아지면 최소 폭(880px)
      * 에서 멈추고 가로 스크롤한다 — 열을 접으면 비교라는 목적이 사라진다. 880 = 고정 5열(756) +
      * 이름 최소 124px.
      */
     <div className={TABLE_SCROLL}>
-      <table className={`${TABLE_ROOT} min-w-[880px] table-fixed text-center text-[12px]`}>
-        <caption className="sr-only">
+      <table className={cn(TABLE_ROOT, styles.table)}>
+        <caption className={styles.srOnly}>
           사업장별 이상 점수 — 점수 높은 순, 최근 24시간 추세 포함
         </caption>
         <thead>
           <tr className={TABLE_HEAD_ROW}>
-            <th scope="col" className={`w-[52px] ${TABLE_HEAD_CELL}`}>
+            <th scope="col" className={cn(styles.colRank, TABLE_HEAD_CELL)}>
               순위
             </th>
             <th scope="col" className={TABLE_HEAD_CELL}>
               사업장
             </th>
             {/* 업종·지역을 이름 아래 붙이지 않고 **한 열로 낸다** `[사용자 지시 2026-08-24]` */}
-            <th scope="col" className={`w-[156px] ${TABLE_HEAD_CELL}`}>
+            <th scope="col" className={cn(styles.colRegion, TABLE_HEAD_CELL)}>
               업종 · 지역
             </th>
-            <th scope="col" className={`w-[92px] ${TABLE_HEAD_CELL}`}>
+            <th scope="col" className={cn(styles.colLevel, TABLE_HEAD_CELL)}>
               등급
             </th>
-            <th scope="col" className={`w-[76px] ${TABLE_HEAD_CELL}`}>
+            <th scope="col" className={cn(styles.colScore, TABLE_HEAD_CELL)}>
               점수
             </th>
-            <th scope="col" className={`w-[280px] ${TABLE_HEAD_CELL}`}>
+            <th scope="col" className={cn(styles.colTrend, TABLE_HEAD_CELL)}>
               최근 24시간 추세
             </th>
             {/* 열 이름이 있어야 그 칸의 버튼들이 무엇을 하는 묶음인지 읽힌다 */}
-            <th scope="col" className={`w-[96px] ${TABLE_HEAD_CELL}`}>
+            <th scope="col" className={cn(styles.colDetail, TABLE_HEAD_CELL)}>
               상세
             </th>
           </tr>
@@ -124,53 +125,50 @@ function SiteScoreTableWide({ sites, selectedId, onSelect, spark }: SiteScoreTab
                 key={site.id}
                 onClick={() => onSelect(site.id)}
                 className={cn(
-                  'cursor-pointer',
-                  '[&>*]:border-b [&>*]:border-border [&>*]:transition-colors [&>*]:duration-200',
+                  styles.row,
                   /*
                    * **줄 전체가 눌린다** `[사용자 지시 2026-08-25]`. 칸마다 눌리는 곳을 찾지 않고
                    * 줄 아무 데나 누르면 아래 구역이 그 사업장으로 바뀐다.
                    *
-                   * hover는 칸 배경을 한 단 올리고, 누르는 동안(`active`)은 한 단 더 내린다 —
+                   * hover는 칸 배경을 한 단 올리고, 누르는 동안(`:active`)은 한 단 더 내린다 —
                    * 눌렀다는 것이 손을 떼기 전에 보인다.
                    *
                    * **키보드·보조기술 경로는 오른쪽 `상세` 버튼이 맡는다.** `<tr>`에는
                    * "누를 수 있는 줄"이라는 역할이 없어 클릭만 걸면 마우스 밖에서는 길이 없다 —
                    * 줄 클릭은 편의이고 그 줄의 **정식 조작은 버튼**이다.
                    */
-                  selected
-                    ? '[&>*]:bg-accent-weak'
-                    : 'hover:[&>*]:bg-surface-2 active:[&>*]:bg-surface-3',
+                  selected ? styles.rowSelected : styles.rowIdle,
                 )}
               >
-                <td className="num px-3 py-3 text-center text-fg-subtle">{index + 1}</td>
+                <td className={cn(styles.rank, 'num')}>{index + 1}</td>
 
                 {/* 이 열이 표의 주어다 — 다른 칸(12px)보다 한 단 크고 굵다 */}
                 <th scope="row" className={TABLE_HEAD_CELL}>
                   <span
                     className={cn(
-                      'block max-w-full truncate text-[13px]',
-                      selected ? 'font-bold text-accent' : 'font-semibold text-fg',
+                      styles.siteName,
+                      selected ? styles.siteNameSelected : styles.siteNameIdle,
                     )}
                   >
                     {site.name}
                   </span>
                 </th>
 
-                <td className="truncate px-3 py-3 text-fg-muted">
+                <td className={styles.region}>
                   {site.industry} · {site.region}
                 </td>
 
-                <td className="px-3 py-3">
+                <td className={styles.cell}>
                   {site.status ? (
                     <StatusBadge level={site.status} />
                   ) : (
                     /* 통신 두절은 등급이 아니라 수신 상태다 — 등급 팔레트를 쓰지 않는다 */
-                    <span className={`${BADGE_BASE} bg-surface-3 text-fg-muted`}>통신 두절</span>
+                    <span className={cn(BADGE_BASE, styles.offlineChip)}>통신 두절</span>
                   )}
                 </td>
 
                 <td
-                  className="num px-3 py-3 text-center text-[15px] font-bold"
+                  className={cn(styles.score, 'num')}
                   style={{ color: visual ? statusInk(visual) : 'var(--fg-subtle)' }}
                 >
                   {/* 값이 없으면 0으로 채우지 않는다(E4) */}
@@ -178,7 +176,7 @@ function SiteScoreTableWide({ sites, selectedId, onSelect, spark }: SiteScoreTab
                 </td>
 
                 {/* 좌우 40px을 비운다 — 선이 칸 경계에 닿으면 옆 열 숫자와 붙어 보인다 */}
-                <td className="px-10 py-2">
+                <td className={styles.trend}>
                   <Sparkline
                     values={spark(site.id)}
                     color={visual ? visual.hex : 'var(--missing)'}
@@ -206,8 +204,8 @@ function SiteScoreTableWide({ sites, selectedId, onSelect, spark }: SiteScoreTab
                     aria-label={`${site.name} 상세 보기`}
                     className={cn(
                       ACTION_LINK,
-                      'mx-auto',
-                      selected ? 'text-accent' : 'text-fg-subtle',
+                      styles.detailButton,
+                      selected ? styles.detailButtonSelected : styles.detailButtonIdle,
                     )}
                   >
                     상세
@@ -235,7 +233,7 @@ function SiteScoreTableWide({ sites, selectedId, onSelect, spark }: SiteScoreTab
  */
 function SiteScoreList({ sites, selectedId, onSelect }: SiteScoreTableProps) {
   return (
-    <ul role="list" className="divide-y divide-border">
+    <ul role="list" className={styles.list}>
       {sites.map((site, index) => {
         const selected = site.id === selectedId;
         const visual = site.status ? STATUS_VISUAL[site.status] : null;
@@ -246,33 +244,29 @@ function SiteScoreList({ sites, selectedId, onSelect }: SiteScoreTableProps) {
               type="button"
               onClick={() => onSelect(site.id)}
               aria-label={`${site.name} 상세 보기`}
-              className={cn(
-                'flex w-full cursor-pointer items-center gap-3 px-1 py-2.5 text-left',
-                'transition-colors duration-200',
-                selected ? 'bg-accent-weak' : 'hover:bg-surface-2',
-              )}
+              className={cn(styles.listRow, selected ? styles.listRowSelected : styles.listRowIdle)}
             >
               {/* 순위는 이름 앞에 둔다 — 열이 없으니 숫자가 어느 축인지 자리로 말해야 한다 */}
-              <span className="num w-5 shrink-0 text-center text-[12px] text-fg-subtle">
+              <span className={cn(styles.listRank, 'num')}>
                 {index + 1}
               </span>
 
-              <span className="min-w-0 flex-1">
+              <span className={styles.listBody}>
                 <span
                   className={cn(
-                    'block truncate text-[14px]',
-                    selected ? 'font-bold text-accent' : 'font-semibold text-fg',
+                    styles.listName,
+                    selected ? styles.siteNameSelected : styles.siteNameIdle,
                   )}
                 >
                   {site.name}
                 </span>
-                <span className="block truncate text-[12px] text-fg-muted">
+                <span className={styles.listRegion}>
                   {site.industry} · {site.region}
                 </span>
               </span>
 
               <span
-                className="num shrink-0 text-[15px] font-bold"
+                className={cn(styles.listScore, 'num')}
                 style={{ color: visual ? statusInk(visual) : 'var(--fg-subtle)' }}
               >
                 {/* 값이 없으면 0으로 채우지 않는다(E4) */}
@@ -280,9 +274,9 @@ function SiteScoreList({ sites, selectedId, onSelect }: SiteScoreTableProps) {
               </span>
 
               {site.status ? (
-                <StatusBadge level={site.status} className="shrink-0" />
+                <StatusBadge level={site.status} className={styles.shrink} />
               ) : (
-                <span className={`${BADGE_BASE} shrink-0 bg-surface-3 text-fg-muted`}>
+                <span className={cn(BADGE_BASE, styles.listOfflineChip)}>
                   통신 두절
                 </span>
               )}
@@ -291,7 +285,7 @@ function SiteScoreList({ sites, selectedId, onSelect }: SiteScoreTableProps) {
                 aria-hidden
                 size={16}
                 strokeWidth={1.9}
-                className="shrink-0 text-fg-subtle"
+                className={styles.chevron}
               />
             </button>
           </li>

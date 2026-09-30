@@ -41,7 +41,9 @@ import { WaterQualityGrid } from '@/widgets/water-quality-grid';
 import { homeHrefFor, navLabelOf } from '@/widgets/app-shell/config/navigation';
 import { InfoTip } from '@/shared/ui/tooltip';
 import { ACTION_BUTTON_QUIET } from '@/shared/ui/action-button';
+import { cn } from '@/shared/lib/cn';
 import { ALARM_PREVIEW_MAX_HEIGHT } from '../config/constants';
+import styles from './admin-overview-view.module.scss';
 
 /**
  * 사업장 사용자가 여기서 답을 얻어야 하는 세 질문 — 괜찮은가 / 얼마나 줄었나 / 뭘 해야 하나.
@@ -124,7 +126,7 @@ export function AdminOverviewView() {
   const worstEquipment = detail.equipment[0];
 
   return (
-    <div className="space-y-6">
+    <div className={styles.root}>
       {/*
         * **돌아갈 길** `[사용자 요청 2026-08-28]`. 이 화면은 시스템 관리자·기초지자체의
         * 사이드바에 없어(메뉴 노출은 사업장뿐), 그 둘이 들어오면 **활성 항목이 하나도 없고
@@ -155,7 +157,7 @@ export function AdminOverviewView() {
           <div key={each} className={`role-only-${each}`}>
             <Link
               href={withSite(target)}
-              className={`${TAP_AREA_Y} inline-flex items-center gap-0.5 text-[12px] text-fg-subtle transition-colors duration-200 hover:text-accent`}
+              className={cn(TAP_AREA_Y, styles.backLink)}
             >
               <ChevronLeft aria-hidden size={16} strokeWidth={2} />
               {navLabelOf(target)}(으)로 돌아가기
@@ -172,11 +174,11 @@ export function AdminOverviewView() {
          */
         title={`일간 운전 · ${site.name}`}
         action={
-          <div className="flex items-center gap-2 text-[12px]">
+          <div className={styles.statusAction}>
             {site.status ? (
               <StatusBadge level={site.status} />
             ) : (
-              <span className="text-fg-subtle">수신 없음</span>
+              <span className={styles.noSignal}>수신 없음</span>
             )}
           </div>
         }
@@ -184,7 +186,7 @@ export function AdminOverviewView() {
         <DailyRibbon data={detail.ribbon} dateIso={DEMO_NOW_ISO} />
       </Panel>
 
-      <StaggerGroup className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      <StaggerGroup className={styles.tiles}>
         <RiseItem>
           <StatTile
             label="이상 점수"
@@ -236,7 +238,7 @@ export function AdminOverviewView() {
         </RiseItem>
       </StaggerGroup>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+      <div className={styles.split}>
         <Panel title="이상 탐지 결과">
           <AnomalyPanel summary={detail.anomalySummary} />
         </Panel>
@@ -249,11 +251,8 @@ export function AdminOverviewView() {
          * 비는 쪽은 알람이 아니라 옆 카드였다.
          *
          * 상한을 걸어 **두 건 남짓만 보이고 나머지는 그 안에서 스크롤한다**
-         * `[사용자 요청 2026-09-07]`.
-         *
-         * **`min-h-0`이 함께 있어야 한다.** 본문은 `flex-1`이라 flex 자식의 기본
-         * `min-height: auto`가 걸리는데, CSS에서 `min-height`는 `max-height`를 이긴다 —
-         * 그것만 빠뜨리면 상한이 **아무 일도 하지 않고** 카드가 그대로 늘어난다.
+         * `[사용자 요청 2026-09-07]`. 상한과 함께 `min-height: 0`이 있어야 하는 이유는
+         * `admin-overview-view.module.scss`의 `.alarmBody`가 적는다.
          *
          * 흐름에서 들어내는 방법(`absolute inset-0`)도 재 봤다. 알람이 행 높이에 아예
          * 기여하지 않아 더 깔끔하지만, **0건·1건에서 무너진다** — 절대 배치는 높이에
@@ -261,7 +260,7 @@ export function AdminOverviewView() {
          *
          * 상한은 **이 화면만의 것**이다. 알람 이력(`SCR-OP-007`)은 목록이 본문이라 자른다.
          */}
-        <Panel title="알람" bodyClassName={`${ALARM_PREVIEW_MAX_HEIGHT} min-h-0 overflow-y-auto`}>
+        <Panel title="알람" bodyClassName={cn(ALARM_PREVIEW_MAX_HEIGHT, styles.alarmBody)}>
           <AlarmList alarms={alarms} nowIso={DEMO_NOW_ISO} selectedSiteId={siteId} />
         </Panel>
       </div>
@@ -314,7 +313,7 @@ export function AdminOverviewView() {
         />
       </Panel>
 
-      <nav className="flex flex-wrap gap-2" aria-label="상세 화면 바로가기">
+      <nav className={styles.shortcuts} aria-label="상세 화면 바로가기">
         {SHORTCUTS.map((shortcut) => (
           <Link
             key={shortcut.href}

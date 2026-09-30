@@ -1,0 +1,7 @@
+@use 'shared/styles' as *;
+
+.zone {
+  margin-left: sp(1.5);
+  font-weight: 500;
+  color: var(--fg-subtle);
+}

@@ -20,6 +20,8 @@ import { UNRESOLVED_REASONS } from '../config/constants';
 import { classificationOf, useLimitSettingsStore } from '../model/limit-settings-context';
 import { validEntry, type LimitEntry, type LimitSheets } from '../lib/storage';
 import { TABLE_HEAD_CELL, TABLE_HEAD_ROW, TABLE_ROOT, TABLE_ROW, TABLE_SCROLL } from '@/shared/ui/table';
+import { cn } from '@/shared/lib/cn';
+import styles from './discharge-limit-editor.module.scss';
 
 const EMPTY: LimitEntry = { min: null, max: null };
 
@@ -36,9 +38,9 @@ const EMPTY: LimitEntry = { min: null, max: null };
 /** 이 편집기를 담는 패널의 제목 옆 툴팁에 쓴다 — 값과 같은 파일에 있어야 함께 고쳐진다 */
 export const DISCHARGE_LIMIT_NOTE = (
   <>
-    <strong className="text-fg">빈 칸은 미설정이며 0이 아닙니다.</strong> 지우면 그 항목은 초과를
+    <strong className={styles.emphasis}>빈 칸은 미설정이며 0이 아닙니다.</strong> 지우면 그 항목은 초과를
     판정하지 않고 화면에 `{UNRESOLVED_LIMIT_TEXT}`로 남습니다. 값의 옳고 그름은 검사하지 않습니다 —
-    <strong className="text-fg"> 법령이 원천</strong>이며 우리는 범위가 뒤집혔는지와 센서 측정 범위
+    <strong className={styles.emphasis}> 법령이 원천</strong>이며 우리는 범위가 뒤집혔는지와 센서 측정 범위
     안인지만 봅니다.
   </>
 );
@@ -75,14 +77,14 @@ export function DischargeLimitEditor({
   if (!own.regionGrade || !own.dischargeScale) {
     return (
       <EmptyState
-        icon={<MapPinned className="size-5" strokeWidth={1.8} />}
+        icon={<MapPinned className={styles.emptyGlyph} strokeWidth={1.8} />}
         title="사업장 규제정보가 먼저 필요합니다"
         description={UNRESOLVED_REASONS.noClassification}
         action={
           onGoToFacts ? (
             <button type="button" onClick={onGoToFacts} className={ACTION_BUTTON}>
               사업장 규제정보 입력
-              <ArrowRight aria-hidden className="size-3.5" strokeWidth={2} />
+              <ArrowRight aria-hidden className={styles.glyph} strokeWidth={2} />
             </button>
           ) : null
         }
@@ -109,25 +111,25 @@ export function DischargeLimitEditor({
   };
 
   return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+    <div className={styles.root}>
+      <div className={styles.toolbar}>
         <SegmentedControl
-          className="flex-wrap"
+          className={styles.scales}
           ariaLabel="1일 폐수배출량 규모"
           value={scale}
           onChange={setScale}
           options={DISCHARGE_SCALES.map((option) => ({ value: option, label: option }))}
         />
         {own.dischargeScale === scale && own.regionGrade ? (
-          <span className="text-[12px] text-fg-subtle">
+          <span className={styles.appliedSheet}>
             이 사업장에 적용되는 시트 · {own.regionGrade}
           </span>
         ) : null}
       </div>
 
       <div className={TABLE_SCROLL}>
-        <table className={`${TABLE_ROOT} min-w-[720px] text-[12px] text-center`}>
-          <caption className="sr-only">
+        <table className={cn(TABLE_ROOT, styles.table)}>
+          <caption className={styles.caption}>
             지역구분별 방류 기준치. 행은 지역구분, 열은 법정 점검 항목이다. 값을 지우면 미설정으로
             돌아간다.
           </caption>
@@ -146,15 +148,15 @@ export function DischargeLimitEditor({
               <tr key={region} className={TABLE_ROW}>
                 <th
                   scope="row"
-                  className="whitespace-nowrap px-3 py-3.5 text-center font-normal text-fg"
+                  className={styles.region}
                 >
                   {region}
                   {own.regionGrade === region ? (
-                    <span className="ml-1.5 text-[12px] text-fg-subtle">우리 사업장</span>
+                    <span className={styles.ownRegion}>우리 사업장</span>
                   ) : null}
                 </th>
                 {LEGAL_CHECK_ITEMS.map((item) => (
-                  <td key={item.label} className="px-3 py-3.5 align-top">
+                  <td key={item.label} className={styles.cell}>
                     <ItemCell
                       code={item.code}
                       label={item.label}
@@ -188,7 +190,7 @@ function ItemCell({
 }) {
   /* SS는 계측·추정 대상이 아니라 기준을 넣어도 비교할 값이 없다 */
   if (!code) {
-    return <p className="pt-1 text-[12px] leading-snug text-fg-subtle">계측 없음</p>;
+    return <p className={styles.notMeasured}>계측 없음</p>;
   }
 
   const item = MEASUREMENT_ITEMS[code];
@@ -198,9 +200,9 @@ function ItemCell({
 
   if (kind === 'range') {
     return (
-      <div className="flex items-start gap-1.5">
+      <div className={styles.range}>
         <NumberField
-          className="w-[84px]"
+          className={styles.rangeField}
           label={`${label} 하한`}
           value={entry.min}
           onChange={(min) => onChange({ ...entry, min })}
@@ -210,7 +212,7 @@ function ItemCell({
           error={error}
         />
         <NumberField
-          className="w-[84px]"
+          className={styles.rangeField}
           label="상한"
           value={entry.max}
           onChange={(max) => onChange({ ...entry, max })}
@@ -224,7 +226,7 @@ function ItemCell({
 
   return (
     <NumberField
-      className="w-[110px]"
+      className={styles.maxField}
       label={`${label} 상한`}
       value={entry.max}
       onChange={(max) => onChange({ min: null, max })}

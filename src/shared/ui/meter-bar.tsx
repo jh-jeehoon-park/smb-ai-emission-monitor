@@ -2,9 +2,7 @@
 
 import { cn } from '@/shared/lib/cn';
 import { motion } from '@/shared/ui/motion';
-
-/** 트랙. 안쪽 그림자로 홈처럼 파이고, 채움이 그 위에 얹힌 것으로 읽힌다 */
-const TRACK = 'relative h-2 w-full overflow-hidden rounded-full bg-surface-3 shadow-track';
+import styles from './meter-bar.module.scss';
 
 interface MeterBarProps {
   /** 0~100. 범위를 벗어난 값은 잘라 넣는다 — 트랙을 넘치면 길이가 거짓이 된다 */
@@ -37,9 +35,9 @@ export function MeterBar({ percent, color, direction, delay = 0, className }: Me
 
   if (!direction) {
     return (
-      <div className={cn(TRACK, className)}>
+      <div className={cn(styles.track, className)}>
         <motion.div
-          className="h-full rounded-full"
+          className={styles.fill}
           style={{ backgroundImage: fill }}
           initial={{ width: 0 }}
           animate={{ width: `${width}%` }}
@@ -58,9 +56,9 @@ export function MeterBar({ percent, color, direction, delay = 0, className }: Me
    */
   const up = direction === 'up';
   return (
-    <div className={cn(TRACK, className)}>
+    <div className={cn(styles.track, className)}>
       <motion.div
-        className={cn('absolute top-0 h-full', up ? 'left-1/2 rounded-r-full' : 'rounded-l-full')}
+        className={cn(styles.fillFromCenter, up ? styles.fillUp : styles.fillDown)}
         style={{
           backgroundImage: up
             ? fill

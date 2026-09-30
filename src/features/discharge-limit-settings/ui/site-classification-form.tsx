@@ -9,6 +9,7 @@ import {
   type RegionGrade,
 } from '@/shared/config/discharge-limits';
 import { PROVISIONAL_DISPLAY_DECIMALS } from '@/shared/config/provisional';
+import { cn } from '@/shared/lib/cn';
 import { BADGE_BASE } from '@/shared/ui/badge';
 import { NumberField } from '@/shared/ui/number-field';
 import { OptionCard } from '@/shared/ui/option-card';
@@ -23,15 +24,16 @@ import {
 import { REUSE_STATUS_LABELS, REUSE_STATUSES, type ReuseStatus } from '../config/constants';
 import { classificationOf, useLimitSettingsStore } from '../model/limit-settings-context';
 import { scaleFromDailyFlow, type SiteClassification } from '../lib/storage';
+import styles from './site-classification-form.module.scss';
 
 const UNSET = '미설정';
 
 /** 이 폼을 담는 패널의 제목 옆 툴팁에 쓴다 */
 export const SITE_CLASSIFICATION_NOTE = (
   <>
-    <strong className="text-fg">그 사업장이 어떤 곳인가</strong>를 적는 칸입니다 — 기준치 자체가
-    아니라 <strong className="text-fg">어느 규정이 걸리는지를 정하는 사실관계</strong>입니다.
-    값은 <strong className="text-fg">사업장 폐수배출시설 설치허가(신고)증</strong>에서 확인합니다.
+    <strong className={styles.emphasis}>그 사업장이 어떤 곳인가</strong>를 적는 칸입니다 — 기준치 자체가
+    아니라 <strong className={styles.emphasis}>어느 규정이 걸리는지를 정하는 사실관계</strong>입니다.
+    값은 <strong className={styles.emphasis}>사업장 폐수배출시설 설치허가(신고)증</strong>에서 확인합니다.
     배출량을 넣으면 규모 구간은 거기서 자동으로 정해집니다.
   </>
 );
@@ -49,11 +51,11 @@ const REUSE_OPTIONS = [
  * 않는다. 그림은 **무엇으로 가는가**를 가른다: 물길 · 공공시설 · 공장 · 운반 · 재순환.
  */
 const ROUTE_ICON: Record<DischargeRoute, ReactNode> = {
-  PUBLIC_WATER: <Waves className="size-4" strokeWidth={1.8} />,
-  SEWAGE_TREATMENT: <Building2 className="size-4" strokeWidth={1.8} />,
-  WASTEWATER_TREATMENT: <Factory className="size-4" strokeWidth={1.8} />,
-  FULL_CONSIGNMENT: <Truck className="size-4" strokeWidth={1.8} />,
-  FULL_REUSE: <Recycle className="size-4" strokeWidth={1.8} />,
+  PUBLIC_WATER: <Waves className={styles.routeGlyph} strokeWidth={1.8} />,
+  SEWAGE_TREATMENT: <Building2 className={styles.routeGlyph} strokeWidth={1.8} />,
+  WASTEWATER_TREATMENT: <Factory className={styles.routeGlyph} strokeWidth={1.8} />,
+  FULL_CONSIGNMENT: <Truck className={styles.routeGlyph} strokeWidth={1.8} />,
+  FULL_REUSE: <Recycle className={styles.routeGlyph} strokeWidth={1.8} />,
 };
 
 /**
@@ -77,12 +79,12 @@ export function SiteClassificationForm({ siteId }: { siteId: string }) {
     store.setClassification(siteId, { ...current, ...next });
 
   return (
-    <div className="space-y-6">
+    <div className={styles.root}>
       <section aria-labelledby={`${siteId}-where`}>
-        <h3 id={`${siteId}-where`} className="mb-2.5 text-[12px] font-semibold text-fg-subtle">
+        <h3 id={`${siteId}-where`} className={styles.sectionTitle}>
           위치와 규모
         </h3>
-        <div className="rounded-nested border border-border px-4 py-4">
+        <div className={styles.group}>
           <SettingRow label="지역구분" hint="배출허용기준표의 첫 번째 축">
             <Segments
               label="지역구분"
@@ -101,8 +103,8 @@ export function SiteClassificationForm({ siteId }: { siteId: string }) {
             label="1일 폐수배출량"
             hint="허가량이 아니라 실제 배출량. 넣으면 규모 구간이 여기서 정해진다"
           >
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-              <div className="flex items-center gap-2">
+            <div className={styles.flow}>
+              <div className={styles.amount}>
                 <NumberField
                   label="1일 폐수배출량"
                   hideLabel
@@ -118,14 +120,14 @@ export function SiteClassificationForm({ siteId }: { siteId: string }) {
                   unit="㎥/일"
                   decimals={PROVISIONAL_DISPLAY_DECIMALS.dailyWastewaterM3}
                   range={FLOW_RANGE}
-                  className="w-[160px]"
+                  className={styles.amountField}
                 />
-                <span aria-hidden className="text-[13px] text-fg-subtle">
+                <span aria-hidden className={styles.amountUnit}>
                   ㎥/일
                 </span>
               </div>
               {current.dailyWastewaterM3 !== null && (
-                <span className={`${BADGE_BASE} bg-accent-weak text-accent`}>
+                <span className={cn(BADGE_BASE, styles.scaleBadge)}>
                   {scaleFromDailyFlow(current.dailyWastewaterM3)} 구간
                 </span>
               )}
@@ -153,11 +155,11 @@ export function SiteClassificationForm({ siteId }: { siteId: string }) {
                 onChange={(next) => save({ dischargeScale: next as DischargeScale | null })}
               />
             ) : (
-              <p className="inline-flex min-h-10 items-center gap-2 rounded-[4px] border border-border bg-surface-2 px-3 text-[13px] text-fg lg:min-h-9">
-                <span className="num font-semibold">{current.dischargeScale}</span>
+              <p className={styles.derived}>
+                <span className={cn(styles.derivedValue, 'num')}>{current.dischargeScale}</span>
                 <Lock
                   aria-label="자동으로 정해진 값"
-                  className="size-3.5 text-fg-subtle"
+                  className={styles.lock}
                   strokeWidth={2}
                 />
               </p>
@@ -173,24 +175,24 @@ export function SiteClassificationForm({ siteId }: { siteId: string }) {
        * 달라지는지 적을 자리도 없었다 — 카드로 펼치고 뜻을 적는다.
        */}
       <section aria-labelledby={`${siteId}-route`}>
-        <div className="mb-2.5 flex items-baseline justify-between gap-3">
-          <h3 id={`${siteId}-route`} className="text-[12px] font-semibold text-fg-subtle">
+        <div className={styles.routeHead}>
+          <h3 id={`${siteId}-route`} className={styles.routeTitle}>
             방류·처리 경로
           </h3>
           {current.dischargeRoute ? (
             <button
               type="button"
               onClick={() => save({ dischargeRoute: null })}
-              className="inline-flex min-h-10 cursor-pointer items-center text-[12px] text-fg-subtle underline decoration-transparent underline-offset-2 transition-colors duration-200 hover:text-fg hover:decoration-current lg:min-h-0"
+              className={styles.clear}
             >
               선택 해제
             </button>
           ) : (
-            <span className="text-[12px] text-fg-subtle">미설정 · 현장조사에도 없는 값</span>
+            <span className={styles.routeUnset}>미설정 · 현장조사에도 없는 값</span>
           )}
         </div>
-        <div role="radiogroup" aria-labelledby={`${siteId}-route`} className="@container">
-          <div className="grid gap-2 @[34rem]:grid-cols-2 @[56rem]:grid-cols-3">
+        <div role="radiogroup" aria-labelledby={`${siteId}-route`} className={styles.routes}>
+          <div className={styles.routeGrid}>
             {DISCHARGE_ROUTES.map((route) => (
               <OptionCard
                 key={route}
@@ -214,13 +216,13 @@ export function SiteClassificationForm({ siteId }: { siteId: string }) {
        * 유입·유출 화면이 «유입 − 유출»을 읽을 때 쓴다.
        */}
       <section aria-labelledby={`${siteId}-reuse`}>
-        <h3 id={`${siteId}-reuse`} className="mb-2.5 text-[12px] font-semibold text-fg-subtle">
+        <h3 id={`${siteId}-reuse`} className={styles.sectionTitle}>
           처리수 재이용
         </h3>
-        <div className="rounded-nested border border-border px-4 py-4">
+        <div className={styles.group}>
           {current.dischargeRoute === 'FULL_REUSE' ? (
             /* 전량 재이용은 경로가 갖는다 — 같은 사실을 두 곳에서 고치지 않게 칸을 걷는다 */
-            <p className="text-[12px] leading-relaxed text-fg-subtle">
+            <p className={styles.fullReuse}>
               방류·처리 경로가 「{DISCHARGE_ROUTE_LABELS.FULL_REUSE}」입니다 — 방류하지 않으므로 일부
               재이용을 따로 적지 않습니다.
             </p>
@@ -228,7 +230,7 @@ export function SiteClassificationForm({ siteId }: { siteId: string }) {
             <>
               <SettingRow label="재이용" hint="처리수 일부를 방류하지 않고 제조공정에 다시 쓰는가">
                 <SegmentedControl
-                  className="flex-wrap"
+                  className={styles.segments}
                   ariaLabel="처리수 재이용"
                   value={current.reuse ?? UNSET}
                   onChange={(next) => {
@@ -244,7 +246,7 @@ export function SiteClassificationForm({ siteId }: { siteId: string }) {
                   label="재이용량"
                   hint="일평균. 모르면 비워 둔다 — 유입·유출 화면이 «재이용량 모름»으로 적는다"
                 >
-                  <div className="flex items-center gap-2">
+                  <div className={styles.amount}>
                     <NumberField
                       label="재이용량"
                       hideLabel
@@ -253,9 +255,9 @@ export function SiteClassificationForm({ siteId }: { siteId: string }) {
                       unit="㎥/일"
                       decimals={PROVISIONAL_DISPLAY_DECIMALS.dailyWastewaterM3}
                       range={FLOW_RANGE}
-                      className="w-[160px]"
+                      className={styles.amountField}
                     />
-                    <span aria-hidden className="text-[13px] text-fg-subtle">
+                    <span aria-hidden className={styles.amountUnit}>
                       ㎥/일
                     </span>
                   </div>
@@ -286,7 +288,7 @@ function Segments({
 }) {
   return (
     <SegmentedControl
-      className="flex-wrap"
+      className={styles.segments}
       ariaLabel={label}
       value={value ?? UNSET}
       onChange={(next) => onChange(next === UNSET ? null : next)}

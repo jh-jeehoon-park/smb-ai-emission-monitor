@@ -5,6 +5,7 @@ import { STATUS_VISUAL } from '@/shared/config/status-visual';
 import { cn } from '@/shared/lib/cn';
 import { SegPill } from '@/shared/ui/segmented-control';
 import type { Site } from '@/entities/site';
+import styles from './site-tabs.module.scss';
 
 /**
  * 사업장 탭. **아래 상세 영역이 어느 사업장의 것인지**를 정하는 유일한 조작이다
@@ -38,7 +39,7 @@ export function SiteTabs({
     <div
       role="tablist"
       aria-label="사업장 선택"
-      className={cn('flex max-w-full flex-wrap gap-1', className)}
+      className={cn(styles.root, className)}
     >
       {sites.map((site) => {
         const selected = site.id === selectedId;
@@ -49,11 +50,7 @@ export function SiteTabs({
             role="tab"
             aria-selected={selected}
             onClick={() => onSelect(site.id)}
-            className={cn(
-              'relative flex shrink-0 cursor-pointer items-center gap-1.5 rounded-nested px-2.5 py-1.5 text-[12px]',
-              'transition-colors duration-200',
-              selected ? 'font-semibold text-accent' : 'text-fg-subtle hover:text-fg-muted',
-            )}
+            className={cn(styles.tab, selected ? styles.tabSelected : styles.tabIdle)}
           >
             {/*
              * 흰 알약이 고른 탭으로 **미끄러진다** `[사용자 지시 2026-08-24: 과하지 않은 동적 효과]`.
@@ -69,12 +66,12 @@ export function SiteTabs({
              */}
             <span
               aria-hidden
-              className="relative size-1.5 shrink-0 rounded-full"
+              className={styles.dot}
               style={{
                 backgroundColor: site.status ? STATUS_VISUAL[site.status].hex : 'var(--missing)',
               }}
             />
-            <span className="relative">{site.name}</span>
+            <span className={styles.name}>{site.name}</span>
           </button>
         );
       })}

@@ -1,5 +1,6 @@
 import { AI_HEX, MISSING_HEX } from '@/shared/config/status-visual';
 import { AnomalyBandLegend } from '@/shared/ui/anomaly-band-legend';
+import styles from './ribbon-legend.module.scss';
 
 /**
  * 차트 발치의 범례.
@@ -14,28 +15,28 @@ import { AnomalyBandLegend } from '@/shared/ui/anomaly-band-legend';
  */
 export function RibbonLegend() {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-border pt-2">
-      <ul className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
-        <li className="flex items-center gap-1.5 text-[12px] text-fg-subtle">
+    <div className={styles.root}>
+      <ul className={styles.items}>
+        <li className={styles.item}>
           {/* 선 계열이라 스와치도 선이다 — 면으로 보이면 이 계열이 면인 줄 알게 된다 */}
           <span
             aria-hidden
-            className="inline-block h-0.5 w-4 rounded-full"
+            className={styles.lineSwatch}
             style={{ backgroundColor: AI_HEX }}
           />
           이상 점수 (AI 산출)
         </li>
 
-        <li aria-hidden className="h-3 w-px shrink-0 bg-border" />
+        <li aria-hidden className={styles.separator} />
 
-        <li className="flex items-center gap-1.5 text-[12px] text-fg-subtle">
+        <li className={styles.item}>
           {/*
            * **결측은 빗금이다**(`screens.md` §8 `결측`). 차트에 깔린 것과 같은 45도 질감을
            * 축소해 보인다 — 범례가 그림과 다른 표기를 쓰면 범례가 거짓이 된다.
            */}
           <span
             aria-hidden
-            className="inline-block h-2.5 w-4 rounded-[2px]"
+            className={styles.hatchSwatch}
             style={{
               backgroundImage: `repeating-linear-gradient(45deg, ${MISSING_HEX} 0 2px, transparent 2px 5px)`,
             }}
@@ -45,7 +46,7 @@ export function RibbonLegend() {
       </ul>
 
       {/* 좁아지면 눌러 담지 말고 줄을 바꾼다 — 구간 숫자는 줄어들면 못 읽는다 */}
-      <AnomalyBandLegend className="shrink-0" />
+      <AnomalyBandLegend className={styles.bands} />
     </div>
   );
 }

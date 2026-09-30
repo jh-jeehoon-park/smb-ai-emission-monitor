@@ -1,0 +1,147 @@
+@use 'shared/styles' as *;
+
+.root {
+  & > :not(:last-child) {
+    margin-block-end: sp(6);
+  }
+}
+
+.lower {
+  display: grid;
+  gap: sp(6);
+
+  @include up(xl) {
+    grid-template-columns: minmax(0, 1fr) 340px;
+  }
+}
+
+.offline {
+  padding-block: sp(10);
+  text-align: center;
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+.ranking {
+  & > :not(:last-child) {
+    border-bottom: 1px solid var(--border);
+  }
+}
+
+/*
+ * **목록 한 줄의 글자 단을 화면 전반과 맞춘다** `[사용자 지시 2026-08-25]` —
+ * 설비명 14 bold(무엇인가) · 이상 신호 13 muted(그것의 내용) · 사업장·지속 12 subtle
+ * (곁의 사실). 전부 12px이던 판본은 다섯 조각이 같은 무게로 늘어서 순위 목록인지
+ * 표인지 알 수 없었다.
+ */
+.rankRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: sp(3);
+  row-gap: sp(1.5);
+  padding-block: sp(2.5);
+}
+
+/* 지금 보고 있는 사업장 줄은 옅은 면으로 남긴다 — 순위에서 내 자리를 찾는 것이 이 목록의 첫 쓰임이다 */
+.rankRowCurrent {
+  background-color: var(--surface-2);
+}
+
+.rankNumber {
+  width: sp(5);
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--fg-subtle);
+}
+
+.rankBody {
+  min-width: 0;
+  flex: 1;
+  flex-basis: 200px;
+}
+
+.rankName {
+  display: block;
+  @include truncate;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.375;
+  color: var(--fg);
+}
+
+.rankSite {
+  margin-top: sp(0.5);
+  display: block;
+  @include truncate;
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+.rankFigures {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: sp(3);
+}
+
+.rankSignals {
+  width: 128px;
+  text-align: right;
+  font-size: 13px;
+  color: var(--fg-muted);
+}
+
+.rankHours {
+  width: 56px;
+  text-align: right;
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+.table {
+  min-width: 620px;
+  font-size: 12px;
+  text-align: center;
+}
+
+.cell {
+  padding: sp(3.5) sp(3);
+}
+
+.cellName {
+  padding: sp(3.5) sp(3);
+  color: var(--fg);
+}
+
+.cellMuted {
+  padding: sp(3.5) sp(3);
+  color: var(--fg-muted);
+}
+
+.cellFigure {
+  padding: sp(3.5) sp(3);
+  text-align: center;
+  color: var(--fg-muted);
+}
+
+.cellFigureSubtle {
+  padding: sp(3.5) sp(3);
+  text-align: center;
+  color: var(--fg-subtle);
+}
+
+.running {
+  display: flex;
+  align-items: center;
+  gap: sp(1.5);
+  color: var(--fg-muted);
+}
+
+.runningDot {
+  width: sp(1.5);
+  height: sp(1.5);
+  flex-shrink: 0;
+  border-radius: calc(infinity * 1px);
+}

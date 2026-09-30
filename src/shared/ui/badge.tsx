@@ -1,4 +1,5 @@
 import { cn } from '@/shared/lib/cn';
+import styles from './badge.module.scss';
 
 /**
  * 뱃지의 크기·여백을 한 곳에 둔다 `[사용자 지시 2026-08-24: 12px · 높이 20px · 좌우 4px]`.
@@ -7,8 +8,7 @@ import { cn } from '@/shared/lib/cn';
  * **높이를 고정값으로 잡는다.** 위아래 패딩으로 만들면 글리프가 붙은 뱃지와 글자만 있는
  * 뱃지의 높이가 갈려 표 한 줄에서 서로 다른 크기로 보인다.
  */
-export const BADGE_BASE =
-  'inline-flex h-5 shrink-0 items-center gap-1 rounded-[4px] px-1 text-[12px] leading-none';
+export const BADGE_BASE = styles.base;
 
 export function badgeClass(...extra: Parameters<typeof cn>) {
   return cn(BADGE_BASE, ...extra);

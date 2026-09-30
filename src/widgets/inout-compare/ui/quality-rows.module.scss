@@ -1,0 +1,154 @@
+@use 'shared/styles' as *;
+
+.root {
+  & > :not(:last-child) {
+    margin-block-end: sp(2);
+  }
+}
+
+.title {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  color: var(--fg-subtle);
+}
+
+.list {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-nested);
+
+  & > :not(:last-child) {
+    border-bottom: 1px solid var(--border);
+  }
+}
+
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: sp(3);
+  row-gap: sp(1);
+  background-color: var(--surface);
+  padding: sp(2.5) sp(3);
+
+  @include up(sm) {
+    grid-template-columns: minmax(0, 7rem) auto minmax(0, 1fr) auto;
+  }
+}
+
+.name {
+  min-width: 0;
+  @include truncate;
+  font-size: 12px;
+  color: var(--fg-muted);
+}
+
+.symbol {
+  margin-left: sp(1.5);
+  color: var(--fg-subtle);
+}
+
+.value {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: sp(1);
+
+  @include up(sm) {
+    justify-content: flex-start;
+  }
+}
+
+.valueSkeleton {
+  display: block;
+  height: sp(4);
+  width: sp(12);
+  border-radius: var(--radius-chip);
+  background-color: var(--surface-3);
+}
+
+.note {
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+.number {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.025em;
+}
+
+.track {
+  grid-column: span 2 / span 2;
+
+  @include up(sm) {
+    grid-column: span 1 / span 1;
+  }
+}
+
+.verdict {
+  grid-column: span 2 / span 2;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: sp(2);
+
+  @include up(sm) {
+    grid-column: span 1 / span 1;
+  }
+}
+
+.grade {
+  font-size: 12px;
+}
+
+.range {
+  display: flex;
+  align-items: center;
+  gap: sp(2);
+}
+
+.bound {
+  display: none;
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--fg-subtle);
+
+  @include up(sm) {
+    display: inline;
+  }
+}
+
+.bar {
+  position: relative;
+  height: sp(1.5);
+  min-width: 0;
+  flex: 1;
+  border-radius: calc(infinity * 1px);
+  background-color: var(--surface-3);
+}
+
+.average {
+  position: absolute;
+  top: 50%;
+  height: sp(2.5);
+  width: 1px;
+  translate: 0 -50%;
+  background-color: var(--border-strong);
+}
+
+.marker {
+  position: absolute;
+  top: 50%;
+  width: sp(2.5);
+  height: sp(2.5);
+  translate: -50% -50%;
+  border-radius: calc(infinity * 1px);
+}
+
+.srOnly {
+  @include sr-only;
+}

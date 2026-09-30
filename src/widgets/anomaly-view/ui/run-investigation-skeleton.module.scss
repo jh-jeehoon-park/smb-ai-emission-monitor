@@ -1,0 +1,123 @@
+@use 'shared/styles' as *;
+
+.layout {
+  display: grid;
+  gap: sp(5);
+
+  @container (min-width: 46rem) {
+    grid-template-columns: minmax(0, 232px) minmax(0, 1fr);
+  }
+}
+
+.runs {
+  & > :not(:last-child) {
+    margin-block-end: sp(1.5);
+  }
+}
+
+.run {
+  height: 68px;
+  border-radius: var(--radius-nested);
+}
+
+.reading {
+  & > :not(:last-child) {
+    margin-block-end: sp(4);
+  }
+}
+
+.summary {
+  height: sp(3);
+  width: 75%;
+}
+
+.scoreRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: sp(5);
+  row-gap: sp(3);
+  border-top: 1px solid var(--border);
+  padding-top: sp(3);
+}
+
+/* `VALUE_LG`(22px)와 같은 높이로 덮는다 — 어긋나면 값이 올 때 카드가 튄다 */
+.score {
+  height: 22px;
+  width: sp(16);
+}
+
+.gauge {
+  height: sp(2.5);
+  min-width: 180px;
+  flex: 1;
+}
+
+.metaRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: sp(1.5);
+}
+
+.metaModel {
+  height: sp(5);
+  width: sp(40);
+  border-radius: var(--radius-chip);
+}
+
+.metaWindow {
+  height: sp(5);
+  width: sp(44);
+  border-radius: var(--radius-chip);
+}
+
+.metaComputed {
+  height: sp(5);
+  width: sp(36);
+  border-radius: var(--radius-chip);
+}
+
+.contributions {
+  border-top: 1px solid var(--border);
+  padding-top: sp(3);
+
+  & > :not(:last-child) {
+    margin-block-end: sp(3);
+  }
+}
+
+.contribution {
+  display: grid;
+  column-gap: sp(4);
+  row-gap: sp(1.5);
+
+  @container (min-width: 30rem) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.contributionSide {
+  & > :not(:last-child) {
+    margin-block-end: sp(1.5);
+  }
+}
+
+.labelModel {
+  height: sp(3);
+  width: sp(32);
+}
+
+.barModel {
+  height: sp(2);
+  border-radius: var(--radius-chip);
+}
+
+.labelMeasured {
+  height: sp(3);
+  width: sp(24);
+}
+
+.barMeasured {
+  height: sp(2.5);
+  border-radius: var(--radius-chip);
+}

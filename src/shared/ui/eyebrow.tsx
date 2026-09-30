@@ -1,4 +1,5 @@
 import { cn } from '@/shared/lib/cn';
+import styles from './eyebrow.module.scss';
 
 const HANGUL = /[가-힣]/;
 
@@ -12,11 +13,7 @@ export function Eyebrow({ children, className }: { children: string; className?:
 
   return (
     <p
-      className={cn(
-        'text-[12px] text-fg-subtle',
-        latinOnly && 'uppercase tracking-[0.14em]',
-        className,
-      )}
+      className={cn(styles.root, latinOnly && styles.latin, className)}
     >
       {children}
     </p>

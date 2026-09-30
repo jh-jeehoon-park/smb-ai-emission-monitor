@@ -1,0 +1,103 @@
+@use 'shared/styles' as *;
+
+/* 겉면은 `className`으로 호출부가 덮는다(`lg` 이상에서 감추기) — 그래서 `components` 레이어다 */
+@layer components {
+  .root {
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-panel);
+    background-color: var(--surface);
+    padding: sp(4);
+    box-shadow: var(--card-shadow);
+
+    & > :not(:last-child) {
+      margin-block-end: sp(3);
+    }
+  }
+}
+
+.selected {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: sp(3);
+  border: 1px solid var(--accent);
+  border-color: color-mix(in oklab, var(--accent) 40%, transparent);
+  border-radius: var(--radius-nested);
+  background-color: var(--accent-weak);
+  padding-inline: sp(3.5);
+  padding-block: sp(3);
+}
+
+.selectedText {
+  min-width: 0;
+}
+
+.selectedLabel {
+  color: var(--accent);
+}
+
+.selectedName {
+  @include truncate;
+  margin-top: sp(0.5);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--fg);
+}
+
+.rows {
+  margin-top: sp(1);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+
+  & > :not(:last-child) {
+    border-bottom: 1px solid var(--border);
+  }
+}
+
+.row {
+  display: flex;
+  width: 100%;
+  cursor: pointer;
+  align-items: center;
+  justify-content: space-between;
+  gap: sp(3);
+  padding-inline: sp(1);
+  padding-block: sp(3);
+  text-align: left;
+  @include transition-colors(200ms);
+
+  @include hover {
+    &:hover {
+      background-color: var(--surface-2);
+    }
+  }
+}
+
+.rowName {
+  @include truncate;
+  min-width: 0;
+  font-size: 14px;
+  color: var(--fg);
+}
+
+.rowAside {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: sp(2);
+}
+
+.chevron {
+  color: var(--fg-subtle);
+}
+
+.outageBadge {
+  flex-shrink: 0;
+  background-color: var(--surface-3);
+  color: var(--fg-muted);
+}
+
+.statusBadge {
+  flex-shrink: 0;
+}

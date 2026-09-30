@@ -20,6 +20,7 @@ import {
   SWITCHABLE_ROLES,
 } from '../config/constants';
 import { useRole } from './role-context';
+import styles from './profile-menu.module.scss';
 
 /**
  * 헤더의 계정 메뉴 — **지금 이 세션이 무엇으로 서 있는가**를 담는다.
@@ -54,7 +55,7 @@ export function ProfileMenu({ className }: { className?: string }) {
   useDismiss({ open, onDismiss: close, boxRef, triggerRef });
 
   return (
-    <div ref={boxRef} className={cn('relative', className)}>
+    <div ref={boxRef} className={cn(styles.root, className)}>
       <button
         ref={triggerRef}
         type="button"
@@ -62,7 +63,7 @@ export function ProfileMenu({ className }: { className?: string }) {
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label="계정과 화면 설정"
-        className={cn(ICON_BUTTON, 'text-fg-muted')}
+        className={cn(ICON_BUTTON, styles.trigger)}
       >
         <UserRound aria-hidden size={16} strokeWidth={1.9} />
       </button>
@@ -72,28 +73,24 @@ export function ProfileMenu({ className }: { className?: string }) {
          * **화면의 카드와 같은 어휘로 짠다** `[사용자 지시 2026-08-25]` — 카드 모서리
          * (`--radius-panel`), 카드 테두리·그림자, 구역마다 `Eyebrow` 제목.
          * 예전에는 이 메뉴만 8px 모서리에 11px 글자, 회색 칩 줄이라 다른 앱처럼 보였다.
-         *
-         * **폭을 넓혔다(240 → 272px).** 역할 이름이 `시스템 관리자`(6자)라 세 칸이 240px에서
-         * 두 줄로 접혔다 — 탭 한 칸에 최소 78px이 필요하고 여백을 빼면 272px이 그 하한이다.
          */
         <div
           role="menu"
-          className="absolute right-0 z-20 mt-2 w-[min(272px,calc(100vw-2rem))] rounded-panel border border-card-border bg-surface p-4 shadow-lg"
+          className={styles.menu}
         >
-          <div className="flex items-center justify-between gap-2">
+          <div className={styles.sectionHead}>
             <Eyebrow>역할 전환</Eyebrow>
             {/* 이 분기가 인가로 오해되면 안 된다. 화면에 적어 둔다(E6 예외) */}
-            <span className={`${BADGE_BASE} bg-surface-3 text-fg-muted`}>인가 아님</span>
+            <span className={cn(BADGE_BASE, styles.notAuthBadge)}>인가 아님</span>
           </div>
 
           {/*
            * 탭 껍데기는 화면의 다른 탭·필터와 **같은 것**을 쓴다(`SEG_*`).
-           * 칸을 `flex-1`로 늘려 세 역할이 같은 폭을 갖고, 라벨은 줄바꿈하지 않는다.
            */}
           <div
             role="group"
             aria-label="시연 역할 전환"
-            className={cn(SEG_TRACK, 'mt-2 w-full flex-nowrap')}
+            className={cn(SEG_TRACK, styles.segTrack)}
           >
             {ROLES.map((role) => {
               const blocked = !SWITCHABLE_ROLES.includes(role);
@@ -109,8 +106,8 @@ export function ProfileMenu({ className }: { className?: string }) {
                   }}
                   className={cn(
                     SEG_ITEM,
-                    'flex-1 whitespace-nowrap px-1.5 text-center',
-                    blocked ? 'cursor-not-allowed opacity-40' : SEG_ITEM_OFF,
+                    styles.roleOption,
+                    blocked ? styles.roleOptionBlocked : SEG_ITEM_OFF,
                     /* 지금 역할은 CSS가 고른다 — 마크업은 역할을 모른다(hydration) */
                     `role-pick-${role}`,
                   )}
@@ -127,7 +124,7 @@ export function ProfileMenu({ className }: { className?: string }) {
            * 이유만 남으면 무엇을 말하는지 알 수 없다.
            */}
           {ROLES.some((role) => !SWITCHABLE_ROLES.includes(role)) && (
-            <p className="mt-2 text-[12px] leading-relaxed text-fg-subtle">
+            <p className={styles.blockedReason}>
               {ROLE_SWITCH_BLOCKED_REASON}
             </p>
           )}
@@ -136,16 +133,16 @@ export function ProfileMenu({ className }: { className?: string }) {
            * 지금 누구로 보고 있는지. **역할마다 한 벌을 그리고 CSS가 고른다** —
            * 서버는 localStorage를 읽을 수 없어 렌더 중 분기하면 hydration이 깨진다.
            */}
-          <div className="mt-3 rounded-nested bg-surface-2 p-3">
+          <div className={styles.whoBox}>
             {ROLES.map((role) => (
-              <div key={role} className={`role-only-${role} flex items-center justify-between gap-2`}>
-                <div className="min-w-0">
-                  <p className="truncate text-[13px] font-semibold text-fg">
+              <div key={role} className={cn(`role-only-${role}`, styles.whoRow)}>
+                <div className={styles.whoText}>
+                  <p className={styles.whoName}>
                     {ROLE_PROFILES[role].demoName}
                   </p>
-                  <p className="truncate text-[12px] text-fg-subtle">{ROLE_PROFILES[role].who}</p>
+                  <p className={styles.whoRole}>{ROLE_PROFILES[role].who}</p>
                 </div>
-                <span className={`${BADGE_BASE} shrink-0 bg-surface text-fg-muted`}>
+                <span className={cn(BADGE_BASE, styles.scopeBadge)}>
                   {ROLE_PROFILES[role].scopeLabel}
                 </span>
               </div>
@@ -153,12 +150,12 @@ export function ProfileMenu({ className }: { className?: string }) {
           </div>
 
           {/* 사업장 역할일 때만 계정이 둘이다. 사업장이 달라 화면 값이 통째로 바뀐다 */}
-          <div className="role-only-site mt-3">
+          <div className={cn('role-only-site', styles.accountSwitch)}>
             <Eyebrow>계정 전환</Eyebrow>
             <div
               role="group"
               aria-label="사업장 계정 전환"
-              className={cn(SEG_TRACK, 'mt-2 w-full flex-nowrap')}
+              className={cn(SEG_TRACK, styles.segTrack)}
             >
               {ADMIN_ACCOUNTS.map((account, index) => (
                 <button
@@ -170,7 +167,7 @@ export function ProfileMenu({ className }: { className?: string }) {
                   }}
                   className={cn(
                     SEG_ITEM,
-                    'flex-1 whitespace-nowrap text-center',
+                    styles.accountOption,
                     SEG_ITEM_OFF,
                     `admin-pick-${index + 1}`,
                   )}
@@ -190,15 +187,15 @@ export function ProfileMenu({ className }: { className?: string }) {
            * 화면(표시) · 시각(기준). 셋 다 «지금 이 세션이 무엇으로 서 있는가»의 답이라
            * 한 메뉴에 있는 것이 맞고, 묶이지 않은 채 쌓이는 것만 피하면 된다.
            */}
-          <div className="mt-4 border-t border-border pt-3">
+          <div className={styles.displaySection}>
             <Eyebrow>화면</Eyebrow>
-            <div className="mt-2 flex items-center justify-between gap-2">
-              <span className="text-[13px] text-fg-muted">테마</span>
+            <div className={styles.themeRow}>
+              <span className={styles.themeLabel}>테마</span>
               <ThemeToggle />
             </div>
           </div>
 
-          <div className="mt-3 border-t border-border pt-3">
+          <div className={styles.timeSection}>
             <Eyebrow>시각</Eyebrow>
             {/*
              * **현재 시각과 데이터 기준 시각을 나란히 둔다**(E5). 헤더에 있을 때부터 둘은
@@ -209,27 +206,27 @@ export function ProfileMenu({ className }: { className?: string }) {
              * 있어 `tooltip.tsx`가 적어 둔 «툴팁에 값을 담지 않는다(E3)»를 이 자리가 어기고
              * 있었다.
              */}
-            <dl className="mt-2 space-y-1 text-[13px]">
-              <div className="flex items-baseline justify-between gap-2">
-                <dt className="shrink-0 text-fg-subtle">현재</dt>
-                <dd className="num text-right text-fg-muted">
+            <dl className={styles.timeList}>
+              <div className={styles.timeRow}>
+                <dt className={styles.timeTerm}>현재</dt>
+                <dd className={cn('num', styles.timeValue)}>
                   <LiveClock />
                 </dd>
               </div>
-              <div className="flex items-baseline justify-between gap-2">
-                <dt className="shrink-0 text-fg-subtle">데이터 기준</dt>
-                <dd className="num text-right text-fg-muted">
+              <div className={styles.timeRow}>
+                <dt className={styles.timeTerm}>데이터 기준</dt>
+                <dd className={cn('num', styles.timeValue)}>
                   {formatDateTime(DEMO_NOW_ISO)} {DISPLAY_TIMEZONE}
                 </dd>
               </div>
             </dl>
-            <p className="mt-2 text-[12px] leading-relaxed text-fg-subtle">{DEMO_NOTICE}</p>
+            <p className={styles.notice}>{DEMO_NOTICE}</p>
           </div>
 
           <button
             type="button"
             onClick={signOut}
-            className={cn(ACTION_BUTTON_QUIET, 'mt-4 w-full justify-center')}
+            className={cn(ACTION_BUTTON_QUIET, styles.signOut)}
           >
             <LogOut aria-hidden size={14} strokeWidth={1.9} />
             로그아웃

@@ -1,0 +1,6 @@
+/* 모듈마다 `@use 'shared/styles' as *;` 한 줄로 받는다 */
+@forward 'layers';
+@forward 'breakpoints';
+@forward 'media';
+@forward 'spacing';
+@forward 'mixins';

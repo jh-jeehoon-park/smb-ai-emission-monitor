@@ -8,6 +8,7 @@ import { formatValue } from '@/shared/lib/format';
 import { cn } from '@/shared/lib/cn';
 import { WINDOW_HOURS } from '../config/constants';
 import { verdictText, type PointReading } from '../lib/point-readings';
+import styles from './quality-rows.module.scss';
 
 /**
  * 유출수의 수질 — **줄 목록으로 그린다.**
@@ -31,10 +32,10 @@ export function QualityRows({
   title: string;
 }) {
   return (
-    <section className="space-y-2">
-      <h3 className="text-[12px] font-semibold uppercase tracking-wide text-fg-subtle">{title}</h3>
+    <section className={styles.root}>
+      <h3 className={styles.title}>{title}</h3>
 
-      <dl className="divide-y divide-border overflow-hidden rounded-nested border border-border">
+      <dl className={styles.list}>
         {rows.map((row) => (
           <Row key={row.code} row={row} pending={pending} />
         ))}
@@ -47,38 +48,38 @@ function Row({ row, pending }: { row: PointReading; pending: boolean }) {
   const verdict = verdictText(row);
 
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 bg-surface px-3 py-2.5 sm:grid-cols-[minmax(0,7rem)_auto_minmax(0,1fr)_auto]">
-      <dt className="min-w-0 truncate text-[12px] text-fg-muted" title={row.label}>
+    <div className={styles.row}>
+      <dt className={styles.name} title={row.label}>
         {row.label}
-        <span className="ml-1.5 text-fg-subtle">{row.symbol}</span>
+        <span className={styles.symbol}>{row.symbol}</span>
       </dt>
 
-      <dd className="flex items-baseline justify-end gap-1 sm:justify-start">
+      <dd className={styles.value}>
         {pending ? (
-          <span className="block h-4 w-12 animate-pulse rounded-chip bg-surface-3" />
+          <span className={cn(styles.valueSkeleton, 'pulse')} />
         ) : row.value === null ? (
-          <span className="text-[12px] text-fg-subtle">수신 없음</span>
+          <span className={styles.note}>수신 없음</span>
         ) : (
           <>
             <span
-              className="num text-[18px] font-bold leading-none tracking-tight"
+              className={cn('num', styles.number)}
               style={{ color: MEASUREMENT_GRADE_HEX[row.grade] }}
             >
               {row.valueText}
             </span>
-            {row.unit && <span className="text-[12px] text-fg-subtle">{row.unit}</span>}
+            {row.unit && <span className={styles.note}>{row.unit}</span>}
           </>
         )}
       </dd>
 
-      <dd className="col-span-2 sm:col-span-1">{!pending && <RangeTrack row={row} />}</dd>
+      <dd className={styles.track}>{!pending && <RangeTrack row={row} />}</dd>
 
-      <dd className="col-span-2 flex items-center justify-end gap-2 sm:col-span-1">
-        <span className="text-[12px]" style={{ color: MEASUREMENT_GRADE_HEX[row.grade] }}>
+      <dd className={styles.verdict}>
+        <span className={styles.grade} style={{ color: MEASUREMENT_GRADE_HEX[row.grade] }}>
           {PROVISIONAL_MEASUREMENT_GRADE_LABELS[row.grade]}
         </span>
         {/* 기준이 걸리지 않는 항목에는 아무것도 적지 않는다 — 없는 기준을 예고하지 않는다 */}
-        {verdict && <span className="text-[12px] text-fg-subtle">{verdict}</span>}
+        {verdict && <span className={styles.note}>{verdict}</span>}
       </dd>
     </div>
   );
@@ -102,26 +103,26 @@ function RangeTrack({ row }: { row: PointReading }) {
       : clamp(((row.average - row.min) / span) * 100, 0, 100);
 
   return (
-    <div className="flex items-center gap-2">
-      <span className="num hidden shrink-0 text-[12px] text-fg-subtle sm:inline">
+    <div className={styles.range}>
+      <span className={cn('num', styles.bound)}>
         {formatValue(row.code, row.min)}
       </span>
 
       <div
-        className="relative h-1.5 min-w-0 flex-1 rounded-full bg-surface-3"
+        className={styles.bar}
         style={{ boxShadow: 'var(--track-inset)' }}
       >
         {/* 평균 자리 — «평소»의 눈금. 값이 아니라 기준이라 가늘다 */}
         {avgAt !== null && (
           <span
             aria-hidden
-            className="absolute top-1/2 h-2.5 w-px -translate-y-1/2 bg-border-strong"
+            className={styles.average}
             style={{ left: `${avgAt}%` }}
           />
         )}
         <span
           aria-hidden
-          className={cn('absolute top-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full')}
+          className={cn(styles.marker)}
           style={{
             left: `${at}%`,
             backgroundColor: MEASUREMENT_GRADE_HEX[row.grade],
@@ -130,10 +131,10 @@ function RangeTrack({ row }: { row: PointReading }) {
         />
       </div>
 
-      <span className="num hidden shrink-0 text-[12px] text-fg-subtle sm:inline">
+      <span className={cn('num', styles.bound)}>
         {formatValue(row.code, row.max)}
       </span>
-      <span className="sr-only">{`최근 ${WINDOW_HOURS}시간 범위`}</span>
+      <span className={styles.srOnly}>{`최근 ${WINDOW_HOURS}시간 범위`}</span>
     </div>
   );
 }

@@ -1,0 +1,52 @@
+@use 'shared/styles' as *;
+
+/* 뼈대는 `className`으로 호출부가 덮는다(`lg` 미만에서 감추기) — 그래서 `components` 레이어다 */
+@layer components {
+  .root {
+    display: flex;
+    max-width: 100%;
+    flex-wrap: wrap;
+    gap: sp(1);
+  }
+}
+
+.tab {
+  position: relative;
+  display: flex;
+  flex-shrink: 0;
+  cursor: pointer;
+  align-items: center;
+  gap: sp(1.5);
+  border-radius: var(--radius-nested);
+  padding-inline: sp(2.5);
+  padding-block: sp(1.5);
+  font-size: 12px;
+  @include transition-colors(200ms);
+}
+
+.tabSelected {
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.tabIdle {
+  color: var(--fg-subtle);
+
+  @include hover {
+    &:hover {
+      color: var(--fg-muted);
+    }
+  }
+}
+
+.dot {
+  position: relative;
+  width: sp(1.5);
+  height: sp(1.5);
+  flex-shrink: 0;
+  border-radius: 9999px;
+}
+
+.name {
+  position: relative;
+}

@@ -5,6 +5,49 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { SITES } from '@/entities/site';
 import { SITE_LIST_MAX_HEIGHT } from '../config/constants';
 import { SiteList } from './site-list';
+import styles from './site-list.module.scss';
+
+/**
+ * jsdom은 모듈 SCSS를 읽지 않아 계산된 스타일이 없다 — 요소가 어느 모듈 클래스를 갖는지 보고,
+ * 그 클래스가 무엇을 그리는지는 소스에서 읽는다.
+ */
+const sheetOf = (path: string) => readFileSync(path, 'utf8');
+const SHEET = sheetOf('src/features/site-selection/ui/site-list.module.scss');
+
+/** `{`부터 짝이 맞는 `}`까지의 안쪽 — 중첩 블록(`@include up(lg) { … }`)을 함께 담는다 */
+function blockAt(text: string, open: number): string {
+  let depth = 0;
+  for (let i = open; i < text.length; i++) {
+    if (text[i] === '{') depth++;
+    else if (text[i] === '}' && --depth === 0) return text.slice(open + 1, i);
+  }
+  throw new Error('괄호가 닫히지 않았다');
+}
+
+function rule(sheet: string, name: string): string {
+  const head = new RegExp(`\\.${name}\\s*\\{`).exec(sheet);
+  expect(head, `.${name}이 없다`).not.toBeNull();
+  return blockAt(sheet, head!.index + head![0].length - 1);
+}
+
+/** 규칙에서 중첩 블록을 걷은 것 — 폭과 무관하게 늘 걸리는 선언만 남는다 */
+function base(block: string): string {
+  let out = '';
+  let depth = 0;
+  for (const ch of block) {
+    if (ch === '{') depth++;
+    else if (ch === '}') depth--;
+    else if (depth === 0) out += ch;
+  }
+  return out;
+}
+
+/** `@include up(lg) { … }` 안쪽 — 그 폭 이상에서만 걸리는 선언 */
+function above(block: string, step: string): string {
+  const at = block.indexOf(`@include up(${step})`);
+  expect(at, `up(${step}) 블록이 없다`).toBeGreaterThan(-1);
+  return blockAt(block, block.indexOf('{', at));
+}
 
 /**
  * 좁은 화면의 사업장 고르기 `[사용자 요청 2026-09-18: 첨부 이미지]`.
@@ -68,15 +111,17 @@ describe('사업장 목록', () => {
     draw(SITES[1]!.id);
 
     const badge = screen.getByText('통신 두절');
-    expect(badge.className).toContain('bg-surface-3');
+    expect(badge.className).toContain(styles.outageBadge);
+    expect(rule(SHEET, 'outageBadge')).toMatch(/background-color:\s*var\(--surface-3\)/);
   });
 
   /** 알약 26px이 손가락 최소를 밑돌던 것을 이 배치가 고친 것이므로, 그 값을 잠근다 */
   it('한 줄의 실높이가 44px을 채운다', () => {
     draw();
     const row = screen.getByRole('group', { name: '사업장 선택' }).firstElementChild!;
-    /* jsdom은 레이아웃을 재 주지 않으므로 여백 값으로 확인한다 — `py-3`(24) + 줄높이 20 */
-    expect(row.className).toContain('py-3');
+    /* jsdom은 레이아웃을 재 주지 않으므로 여백 값으로 확인한다 — 위아래 12px씩(24) + 줄높이 20 */
+    expect(row.className).toContain(styles.row);
+    expect(rule(SHEET, 'row')).toMatch(/padding-block:\s*sp\(3\)/);
   });
 });
 
@@ -91,9 +136,11 @@ describe('사업장 목록 — 흰 면', () => {
     draw();
     const root = screen.getByText('현재 선택 사업장').closest('div')!.parentElement!.parentElement!;
 
-    expect(root.className).toContain('bg-surface');
-    expect(root.className).toContain('rounded-panel');
-    expect(root.className).toContain('border-card-border');
+    expect(root.className).toContain(styles.root);
+    const face = rule(SHEET, 'root');
+    expect(face).toMatch(/background-color:\s*var\(--surface\)/);
+    expect(face).toMatch(/border-radius:\s*var\(--radius-panel\)/);
+    expect(face).toMatch(/border:\s*1px solid var\(--card-border\)/);
   });
 });
 
@@ -106,7 +153,11 @@ describe('사업장 목록 — 흰 면', () => {
  */
 describe('사업장 목록 — 세 줄 창', () => {
   it('상한이 세 줄의 실높이다', () => {
-    const px = Number(/max-h-\[(\d+)px\]/.exec(SITE_LIST_MAX_HEIGHT)?.[1]);
+    const limit = rule(
+      sheetOf('src/features/site-selection/config/constants.module.scss'),
+      'siteListMaxHeight',
+    );
+    const px = Number(/max-height:\s*(\d+)px/.exec(limit)?.[1]);
     /* 첫 줄 46 + 구분선을 얹은 둘째·셋째 47씩 (실측) */
     expect(px).toBe(46 + 47 + 47);
   });
@@ -116,9 +167,11 @@ describe('사업장 목록 — 세 줄 창', () => {
     const box = screen.getByRole('group', { name: '사업장 선택' });
 
     expect(box.className).toContain(SITE_LIST_MAX_HEIGHT);
-    expect(box.className).toContain('overflow-y-auto');
+    expect(box.className).toContain(styles.rows);
+    const rows = rule(SHEET, 'rows');
+    expect(rows).toMatch(/overflow-y:\s*auto/);
     /* 없으면 상자 끝에서 스크롤이 페이지로 넘어가 목록을 넘기다 화면이 함께 튄다 */
-    expect(box.className).toContain('overscroll-contain');
+    expect(rows).toMatch(/overscroll-behavior:\s*contain/);
   });
 
   /**
@@ -159,14 +212,28 @@ describe.each([
 ])('%s — 폭으로 갈리고 PC는 그대로', (_name, path) => {
   const source = readFileSync(path, 'utf8');
   const code = source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\{\/\*[\s\S]*?\*\/\}/g, '');
+  /* 폭 규칙은 그 화면의 모듈 SCSS에 있다 — 마크업에는 `styles.x`만 남는다 */
+  const sheet = () => sheetOf(path.replace(/\.tsx$/, '.module.scss'));
+  const classOn = (tag: string) =>
+    new RegExp(`<${tag}[\\s\\S]*?className=\\{styles\\.(\\w+)\\}`).exec(code)?.[1];
 
   it('파일을 실제로 읽었다', () => {
     expect(code).toContain('<SiteList');
   });
 
   it('탭 줄은 `lg` 이상, 목록은 그 아래에서만 보인다', () => {
-    expect(code).toMatch(/<SiteTabs[\s\S]*?className="hidden lg:flex"/);
-    expect(code).toMatch(/<SiteList[\s\S]*?className="lg:hidden"/);
+    const tabsClass = classOn('SiteTabs');
+    const listClass = classOn('SiteList');
+    expect(tabsClass, '<SiteTabs>에 모듈 클래스가 없다').toBeDefined();
+    expect(listClass, '<SiteList>에 모듈 클래스가 없다').toBeDefined();
+
+    const tabs = rule(sheet(), tabsClass!);
+    expect(base(tabs)).toMatch(/display:\s*none/);
+    expect(above(tabs, 'lg')).toMatch(/display:\s*flex/);
+
+    const list = rule(sheet(), listClass!);
+    expect(base(list)).not.toMatch(/display:/);
+    expect(above(list, 'lg')).toMatch(/display:\s*none/);
   });
 
   /** 둘 사이에 닫는 태그만 있어야 한다 — 형제로 흩어지면 띠의 자식 수가 늘어난다 */

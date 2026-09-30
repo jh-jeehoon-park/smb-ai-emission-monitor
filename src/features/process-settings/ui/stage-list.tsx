@@ -10,12 +10,7 @@ import { SegmentedControl } from '@/shared/ui/segmented-control';
 import { Switch } from '@/shared/ui/switch';
 import { TREATMENT_TYPE_LABELS, TREATMENT_TYPES, type TreatmentType } from '@/entities/process';
 import type { SiteStage } from '../lib/storage';
-
-/** 끝에서 더 밀 수 없는 쪽 — 누를 수 없다는 것이 보여야 한다 */
-const DISABLED = 'disabled:cursor-not-allowed disabled:opacity-45';
-
-const INPUT =
-  'mt-1 min-h-10 w-full rounded-[4px] border border-border bg-surface px-2 text-[13px] text-fg lg:min-h-9';
+import styles from './stage-list.module.scss';
 
 /** 한 줄 요약 — 채널이 몇 개 걸렸는가. 채널 없이 정한 지점은 따로 센다(할 일이 다르다) */
 function pointsSummary(stage: SiteStage): string {
@@ -50,33 +45,30 @@ export function StageList({ stages, onMove, onRemove, onUpdate, onRemovePoint, o
   const [openId, setOpenId] = useState<string | null>(null);
 
   return (
-    <ol className="divide-y divide-border overflow-hidden rounded-nested border border-border">
+    <ol className={styles.list}>
       {stages.map((stage, index) => {
         const open = openId === stage.id;
         return (
-          <li key={stage.id} className={cn(open && 'bg-surface-2')}>
+          <li key={stage.id} className={cn(open && styles.stageOpen)}>
             <button
               type="button"
               aria-expanded={open}
               onClick={() => setOpenId(open ? null : stage.id)}
-              className={cn(
-                'flex min-h-14 w-full cursor-pointer items-center gap-3 px-3.5 py-2.5 text-left transition-colors duration-200',
-                open ? 'bg-accent-weak' : 'hover:bg-surface-2',
-              )}
+              className={cn(styles.row, open ? styles.rowOpen : styles.rowClosed)}
             >
-              <span className="num grid size-7 shrink-0 place-items-center rounded-full bg-surface-3 text-[12px] font-bold text-fg">
+              <span className={cn(styles.order, 'num')}>
                 {index + 1}
               </span>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-[13px] font-semibold text-fg">{stage.name}</span>
-                <span className="block truncate text-[12px] text-fg-subtle">
+              <span className={styles.rowText}>
+                <span className={styles.rowName}>{stage.name}</span>
+                <span className={styles.rowMeta}>
                   {TREATMENT_TYPE_LABELS[stage.type]} · {pointsSummary(stage)}
                 </span>
               </span>
-              {stage.reuseBranch && <span className={cn(BADGE_BASE, 'bg-surface-3 text-fg-muted')}>↻ 재이용</span>}
+              {stage.reuseBranch && <span className={cn(BADGE_BASE, styles.reuseBadge)}>↻ 재이용</span>}
               <ChevronDown
                 aria-hidden
-                className={cn('size-4 shrink-0 text-fg-subtle transition-transform duration-200', open && 'rotate-180')}
+                className={cn(styles.chevron, open && styles.chevronOpen)}
                 strokeWidth={2}
               />
             </button>
@@ -132,10 +124,10 @@ function StageEditor({
   const channelCount = stage.channels.filter((c) => c.key !== null).length;
 
   return (
-    <div className="space-y-3.5 border-t border-border px-3.5 pb-3.5 pt-3 sm:pl-[52px]">
-      <div className="grid gap-3 sm:grid-cols-2">
-        <label htmlFor={nameId} className="block">
-          <span className="block text-[12px] text-fg-subtle">단계 이름</span>
+    <div className={styles.editor}>
+      <div className={styles.fields}>
+        <label htmlFor={nameId} className={styles.field}>
+          <span className={styles.fieldLabel}>단계 이름</span>
           <input
             id={nameId}
             defaultValue={stage.name}
@@ -145,11 +137,11 @@ function StageEditor({
               if (next !== '' && next !== stage.name) onUpdate({ name: next });
               else event.target.value = stage.name;
             }}
-            className={INPUT}
+            className={styles.input}
           />
         </label>
-        <label htmlFor={unitsId} className="block">
-          <span className="block text-[12px] text-fg-subtle">조(槽) — 쉼표로 구분, 비워도 된다</span>
+        <label htmlFor={unitsId} className={styles.field}>
+          <span className={styles.fieldLabel}>조(槽) — 쉼표로 구분, 비워도 된다</span>
           <input
             id={unitsId}
             defaultValue={stage.units.join(', ')}
@@ -161,12 +153,12 @@ function StageEditor({
                   .filter(Boolean),
               })
             }
-            className={INPUT}
+            className={styles.input}
           />
         </label>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className={styles.typeRow}>
         <SegmentedControl
           ariaLabel={`${order}단계 처리 유형`}
           value={stage.type}
@@ -174,7 +166,7 @@ function StageEditor({
           options={TREATMENT_TYPES.map((type) => ({ value: type, label: TREATMENT_TYPE_LABELS[type] }))}
         />
         {/* `[사용자 결정 2026-09-29: 재이용 (가)]` 처리수 일부가 여기서 제조공정으로 돌아간다 — 표시만 한다 */}
-        <label htmlFor={reuseId} className="flex min-h-10 cursor-pointer items-center gap-2 text-[12px] text-fg-muted">
+        <label htmlFor={reuseId} className={styles.reuseSwitch}>
           처리수 일부를 여기서 재이용
           <Switch
             id={reuseId}
@@ -185,12 +177,12 @@ function StageEditor({
       </div>
 
       {/* 채널은 여기서 걸지 않는다 — 한 곳(채널 연결 표)에서만 정해야 두 곳에서 어긋나지 않는다 */}
-      <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-fg-subtle">
-        계측 채널 <span className="num font-semibold text-fg-muted">{channelCount}</span>
+      <p className={styles.channels}>
+        계측 채널 <span className={cn(styles.channelCount, 'num')}>{channelCount}</span>
         <button
           type="button"
           onClick={onGoToChannels}
-          className="inline-flex min-h-10 cursor-pointer items-center text-accent underline decoration-transparent underline-offset-2 transition-colors duration-200 hover:decoration-current lg:min-h-0"
+          className={styles.channelLink}
         >
           채널 연결에서 정하기
         </button>
@@ -201,21 +193,21 @@ function StageEditor({
        * 채널 표에는 줄이 없으므로 여기서만 보이고 여기서만 뺀다.
        */}
       {stage.channels.some((c) => c.key === null) && (
-        <ul className="flex flex-wrap gap-1.5">
+        <ul className={styles.points}>
           {stage.channels.map((channel, index) =>
             channel.key === null ? (
               <li
                 key={`none-${channel.item}-${index}`}
-                className="inline-flex items-center gap-1 rounded-chip bg-chip-caution py-0.5 pl-2 text-[12px] text-caution-ink"
+                className={styles.point}
               >
                 {MEASUREMENT_ITEMS[channel.item].symbol} · 채널 미지정
                 <button
                   type="button"
                   aria-label={`${MEASUREMENT_ITEMS[channel.item].label} 지점 빼기`}
                   onClick={() => onRemovePoint(index)}
-                  className="relative inline-flex size-6 cursor-pointer items-center justify-center rounded-chip before:absolute before:-inset-2 before:content-[''] hover:text-fg"
+                  className={styles.pointRemove}
                 >
-                  <X aria-hidden className="size-3" strokeWidth={2.2} />
+                  <X aria-hidden className={styles.pointGlyph} strokeWidth={2.2} />
                 </button>
               </li>
             ) : null,
@@ -223,23 +215,23 @@ function StageEditor({
         </ul>
       )}
 
-      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3">
-        <div className="flex gap-2">
-          <button type="button" className={cn(ACTION_BUTTON_QUIET, DISABLED)} disabled={isFirst} onClick={() => onMove(-1)}>
-            <ArrowUp aria-hidden className="size-3.5" strokeWidth={2} />
+      <div className={styles.foot}>
+        <div className={styles.move}>
+          <button type="button" className={cn(ACTION_BUTTON_QUIET, styles.moveButton)} disabled={isFirst} onClick={() => onMove(-1)}>
+            <ArrowUp aria-hidden className={styles.glyph} strokeWidth={2} />
             위로
           </button>
-          <button type="button" className={cn(ACTION_BUTTON_QUIET, DISABLED)} disabled={isLast} onClick={() => onMove(1)}>
-            <ArrowDown aria-hidden className="size-3.5" strokeWidth={2} />
+          <button type="button" className={cn(ACTION_BUTTON_QUIET, styles.moveButton)} disabled={isLast} onClick={() => onMove(1)}>
+            <ArrowDown aria-hidden className={styles.glyph} strokeWidth={2} />
             아래로
           </button>
         </div>
         <button
           type="button"
-          className={cn(ACTION_BUTTON_QUIET, 'hover:border-critical/40 hover:bg-chip-critical hover:text-critical-ink')}
+          className={cn(ACTION_BUTTON_QUIET, styles.removeButton)}
           onClick={onRemove}
         >
-          <Trash2 aria-hidden className="size-3.5" strokeWidth={2} />이 단계 삭제
+          <Trash2 aria-hidden className={styles.glyph} strokeWidth={2} />이 단계 삭제
         </button>
       </div>
     </div>

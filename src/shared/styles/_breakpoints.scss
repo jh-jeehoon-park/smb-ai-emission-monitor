@@ -1,0 +1,32 @@
+@use 'sass:map';
+
+/**
+ * 반응형 문턱 — Tailwind v4 기본값과 같다(`sm` 40rem · `md` 48rem · `lg` 64rem · `xl` 80rem · `2xl` 96rem).
+ * 값을 바꾸면 전 화면의 접히는 폭이 함께 바뀐다. `STICKY_BAR_QUERY`·`LOGIN_WIDE_QUERY`처럼
+ * 스크립트가 같은 문턱을 따로 적은 곳이 있으니 함께 본다.
+ */
+$breakpoints: (
+  'sm': 40rem,
+  'md': 48rem,
+  'lg': 64rem,
+  'xl': 80rem,
+  '2xl': 96rem,
+);
+
+@function bp($name) {
+  @return map.get($breakpoints, $name);
+}
+
+/* `lg:` — 그 폭 이상 */
+@mixin up($name) {
+  @media (min-width: bp($name)) {
+    @content;
+  }
+}
+
+/* `max-lg:` — 그 폭 미만. Tailwind와 같은 식(`not all and (min-width)`)이라 경계 1px이 겹치지 않는다 */
+@mixin down($name) {
+  @media not all and (min-width: bp($name)) {
+    @content;
+  }
+}

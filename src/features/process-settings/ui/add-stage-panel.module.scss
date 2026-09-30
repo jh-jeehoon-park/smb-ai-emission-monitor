@@ -1,0 +1,144 @@
+@use 'shared/styles' as *;
+
+.root {
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-nested);
+  background-color: var(--surface);
+  padding: sp(3.5);
+  box-shadow: var(--card-shadow);
+}
+
+.head {
+  margin-bottom: sp(3);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: sp(3);
+}
+
+.position {
+  display: block;
+  min-width: 200px;
+}
+
+.fieldLabel {
+  display: block;
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+.field {
+  margin-top: sp(1);
+  min-height: sp(10);
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background-color: var(--surface);
+  padding-inline: sp(2);
+  font-size: 13px;
+  color: var(--fg);
+
+  @include up(lg) {
+    min-height: sp(9);
+  }
+}
+
+.catalog {
+  display: grid;
+  gap: sp(1.5);
+
+  @include up(sm) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @include up(xl) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.catalogItem {
+  display: flex;
+  min-height: sp(11);
+  width: 100%;
+  cursor: pointer;
+  align-items: center;
+  justify-content: space-between;
+  gap: sp(2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background-color: var(--surface);
+  padding: sp(2) sp(3);
+  text-align: left;
+  @include transition-colors(200ms);
+
+  @include hover {
+    &:hover {
+      border-color: var(--accent);
+      border-color: color-mix(in oklab, var(--accent) 50%, transparent);
+      background-color: var(--accent-weak);
+    }
+  }
+}
+
+.catalogText {
+  min-width: 0;
+}
+
+.catalogName {
+  @include truncate;
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--fg);
+}
+
+.catalogMeta {
+  @include truncate;
+  display: block;
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+.catalogPlus {
+  width: sp(4);
+  height: sp(4);
+  flex-shrink: 0;
+  color: var(--fg-subtle);
+}
+
+.custom {
+  :where(& > :not(:last-child)) {
+    margin-block-start: 0;
+    margin-block-end: sp(3);
+  }
+}
+
+.nameField {
+  display: block;
+  max-width: 24rem;
+}
+
+.typeLabel {
+  margin-bottom: sp(1);
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+.addButton {
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+  }
+}
+
+.glyph {
+  width: sp(3.5);
+  height: sp(3.5);
+}
+
+.foot {
+  margin-top: sp(3);
+  display: flex;
+  justify-content: flex-end;
+}

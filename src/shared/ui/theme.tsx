@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useState, type ReactNode } from 'react';
 import { Moon, Sun } from 'lucide-react';
 import { cn } from '@/shared/lib/cn';
+import styles from './theme.module.scss';
 import {
   DEFAULT_THEME,
   normalizeTheme,
@@ -62,18 +63,14 @@ export function ThemeToggle({ className }: { className?: string }) {
     <button
       type="button"
       onClick={toggle}
-      className={cn(
-        'inline-flex size-7 cursor-pointer items-center justify-center rounded-chip',
-        'text-fg-muted transition-colors duration-200 hover:bg-surface-2 hover:text-fg',
-        className,
-      )}
+      className={cn(styles.toggle, className)}
     >
       <Sun aria-hidden size={16} strokeWidth={1.9} className="theme-when-dark" />
       <Moon aria-hidden size={16} strokeWidth={1.9} className="theme-when-light" />
 
       {/* display:none인 쪽은 스크린리더도 읽지 않으므로 현재 상태에 맞는 문구만 전달된다 */}
-      <span className="sr-only theme-when-dark">라이트 테마로 전환</span>
-      <span className="sr-only theme-when-light">다크 테마로 전환</span>
+      <span className={cn(styles.srOnly, 'theme-when-dark')}>라이트 테마로 전환</span>
+      <span className={cn(styles.srOnly, 'theme-when-light')}>다크 테마로 전환</span>
     </button>
   );
 }

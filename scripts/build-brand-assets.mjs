@@ -21,7 +21,7 @@ import sharp from 'sharp';
 
 const APP = join(process.cwd(), 'src/app');
 
-/** 포인트색과 그 한 단 밝은 쪽. `globals.css`의 `--accent`(Material Blue 900)와 같은 값 */
+/** 포인트색과 그 한 단 밝은 쪽. `globals.scss`의 `--accent`(Material Blue 900)와 같은 값 */
 const ACCENT = '#0d47a1';
 const ACCENT_LIGHT = '#1565c0';
 

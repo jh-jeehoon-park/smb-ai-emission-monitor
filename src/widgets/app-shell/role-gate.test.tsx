@@ -1,9 +1,11 @@
 // @vitest-environment jsdom
+import { readFileSync } from 'node:fs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { ROLES, canRoleSee } from '@/entities/user';
 import { NAV_ITEMS } from './config/navigation';
 import { RoleGate } from './ui/role-gate';
+import styles from './ui/role-gate.module.scss';
 
 /**
  * 403을 **첫 페인트부터** 가르는지 잠근다.
@@ -16,8 +18,9 @@ import { RoleGate } from './ui/role-gate';
  * 전환과 겹쳐 «마지막 `replace`가 이기는» 경쟁이 된다 `[설계 2026-09-16: 리다이렉트 검토]`. 여기서는
  * **보내지 않는다는 것까지** 단정한다.
  *
- * jsdom은 `globals.css`를 읽지 않으므로 «가려졌는가»는 **클래스 문자열로** 검사한다.
- * 실제로 감춰지는지는 `role-visibility.test.ts`가 CSS 쪽에서 따로 지킨다.
+ * jsdom은 `globals.scss`도 모듈 SCSS도 읽지 않으므로 «가려졌는가»는 **클래스 문자열로** 검사하고,
+ * 그 클래스가 무엇을 하는지는 SCSS 소스로 따로 본다. 실제로 감춰지는지는
+ * `role-visibility.test.ts`가 CSS 쪽에서 따로 지킨다.
  */
 const mockPath = vi.hoisted(() => ({ current: '/' }));
 const mockRole = vi.hoisted(() => ({ current: 'system' as string }));
@@ -90,7 +93,13 @@ describe('RoleGate — 닫힌 화면', () => {
     draw('/wallboard', 'site');
     const wrapper = gate();
     expect(wrapper).not.toBeNull();
-    expect(wrapper!.className).toContain('contents');
+    expect(wrapper!.className).toContain(styles.contents);
+  });
+
+  /** 래퍼가 `<main>`의 자식 자리를 차지하면 본문 배치가 한 겹 밀린다 — 레이아웃에 투명해야 한다 */
+  it('래퍼의 클래스가 레이아웃에 투명하다', () => {
+    const sheet = readFileSync('src/widgets/app-shell/ui/role-gate.module.scss', 'utf8');
+    expect(sheet).toMatch(/\.contents\s*\{[^}]*display:\s*contents/);
   });
 });
 

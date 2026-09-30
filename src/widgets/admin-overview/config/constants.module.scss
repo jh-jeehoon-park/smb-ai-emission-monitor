@@ -1,0 +1,8 @@
+@use 'shared/styles' as *;
+
+/* 알람 카드 본문의 상한(`ALARM_PREVIEW_MAX_HEIGHT`). 클래스 상수라 덮을 수 있게 `components` 레이어 */
+@layer components {
+  .alarmPreviewMaxHeight {
+    max-height: 280px;
+  }
+}

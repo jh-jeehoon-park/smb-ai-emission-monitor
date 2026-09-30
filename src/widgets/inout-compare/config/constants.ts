@@ -1,4 +1,5 @@
 import { HISTORY_WINDOW_HOURS } from '@/shared/config/measurement';
+import styles from './constants.module.scss';
 
 /** 관측 창 — 계측이 24시간이다. 눈금은 6시간마다: 1시간마다 그으면 격자가 되어 질감으로 읽힌다 */
 export const WINDOW_HOURS = HISTORY_WINDOW_HOURS;
@@ -136,7 +137,7 @@ export const INLET_MARK_COLOR = 'color-mix(in srgb, var(--actual) 55%, var(--sur
  * **`shared`에 올리지 않는다.** 소비처가 이 화면 하나뿐이고, 공용으로 올리면 다른 화면이
  * 큰 값을 쓰기 시작해 §8이 억제해 온 «어휘 확산»이 된다. 두 번째 소비처가 생기면 그때 올린다.
  */
-export const HERO_VALUE = 'text-[38px] font-bold leading-none tracking-tight';
+export const HERO_VALUE = styles.heroValue;
 
 /**
  * **이상 점수의 크기 — 히어로보다 한 단 아래다.**
@@ -152,7 +153,7 @@ export const HERO_VALUE = 'text-[38px] font-bold leading-none tracking-tight';
  * `type-scale.ts`의 두 단(22·18) 위에 있는 값이라 그쪽에 올리지 않는다. 그 파일은 «카드 안
  * 값»의 관할이고 이것은 화면 머리의 상태값이다.
  */
-export const SCORE_VALUE = 'text-[28px] font-bold leading-none tracking-tight';
+export const SCORE_VALUE = styles.scoreValue;
 
 /**
  * 아주 짧은 구간도 한 줄기로는 보이게 하는 최소 폭.

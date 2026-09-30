@@ -1,0 +1,160 @@
+@use 'shared/styles' as *;
+
+.root {
+  & > :not(:last-child) {
+    margin-block-end: sp(6);
+  }
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: sp(2);
+}
+
+.tiles {
+  display: grid;
+  gap: sp(6);
+
+  @include up(sm) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @include up(lg) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.notice {
+  max-width: 86ch;
+  font-size: 12px;
+  line-height: 1.625;
+  color: var(--fg-muted);
+}
+
+.noticeStrong {
+  color: var(--fg);
+}
+
+.dischargeUnknown {
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+/* 색은 인라인 `style`이 등급 잉크로 준다 */
+.dischargeNone {
+  font-size: 12px;
+}
+
+.dischargeHours {
+  color: var(--fg-muted);
+}
+
+.dischargeWindow {
+  color: var(--fg-subtle);
+}
+
+.reportTable {
+  min-width: 860px;
+  font-size: 12px;
+  text-align: center;
+}
+
+.sensorTable {
+  min-width: 680px;
+  font-size: 12px;
+  text-align: center;
+}
+
+.estimateTable {
+  min-width: 420px;
+  font-size: 12px;
+  text-align: center;
+}
+
+.caption {
+  @include sr-only;
+}
+
+.cell {
+  padding: sp(3.5) sp(3);
+}
+
+.cellSubtle {
+  padding: sp(3.5) sp(3);
+  color: var(--fg-subtle);
+}
+
+/* 계측·점수 칸 — 색은 뜻에 따라 셋이다(주 값 · 곁 값 · 결측 건수) */
+.value {
+  padding: sp(3.5) sp(3);
+  text-align: center;
+}
+
+.valueStrong {
+  padding: sp(3.5) sp(3);
+  text-align: center;
+  color: var(--fg);
+}
+
+.valueMuted {
+  padding: sp(3.5) sp(3);
+  text-align: center;
+  color: var(--fg-muted);
+}
+
+.valueSubtle {
+  padding: sp(3.5) sp(3);
+  text-align: center;
+  color: var(--fg-subtle);
+}
+
+.siteName {
+  display: block;
+  color: var(--fg);
+}
+
+.siteMeta {
+  display: block;
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+.statusMissing {
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+.itemName {
+  font-weight: 600;
+  color: var(--fg);
+}
+
+/* 이름 곁의 한 마디 — 항목 이름 · 판정 근거 */
+.secondary {
+  margin-left: sp(1.5);
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+.unit {
+  color: var(--fg-muted);
+}
+
+.unitKo {
+  margin-top: sp(0.5);
+  display: block;
+  font-size: 12px;
+  line-height: 1.25;
+  color: var(--fg-subtle);
+}
+
+.verdictUnjudged {
+  color: var(--fg-subtle);
+}
+
+/* 색은 인라인 `style`이 판정 잉크로 덮는다 — 잉크가 없을 때의 글자색이다 */
+.verdict {
+  color: var(--fg);
+}

@@ -5,6 +5,7 @@ import { cn } from '@/shared/lib/cn';
 import type { Contribution } from '@/entities/anomaly';
 import { WALL_LABEL, WALL_META, WALL_UNIT } from '../config/constants';
 import { WallBar } from './wall-bar';
+import styles from './contribution-bars.module.scss';
 
 /**
  * **`weight`는 0~1이다 — 100을 곱해야 퍼센트가 된다.**
@@ -40,7 +41,7 @@ export function ContributionBars({ rows }: { rows: readonly Contribution[] }) {
   if (rows.length === 0) {
     /* 두절이면 기여도도 없다 — 빈 막대를 그리면 «기여가 0»이라는 주장이 된다(E4) */
     return (
-      <p className={cn('m-auto text-fg-subtle', WALL_META)}>
+      <p className={cn(styles.empty, WALL_META)}>
         점수를 받지 못해 기여 변수를 낼 수 없습니다
       </p>
     );
@@ -49,18 +50,18 @@ export function ContributionBars({ rows }: { rows: readonly Contribution[] }) {
   const top = Math.max(...rows.map((row) => row.weight));
 
   return (
-    <ul className="wall-gap-sm flex min-h-0 flex-1 flex-col justify-between">
+    <ul className={cn('wall-gap-sm', styles.list)}>
       {rows.map((row) => (
-        /* `wall-contrib-row` — 세로가 낮은 화면에서 아래 순위를 감춘다(globals.css) */
+        /* `wall-contrib-row` — 세로가 낮은 화면에서 아래 순위를 감춘다(globals.scss) */
         <li key={row.code} className="wall-contrib-row">
-          <p className="flex items-baseline justify-between gap-2">
-            <span className="flex min-w-0 items-baseline gap-1.5">
-              <span aria-hidden className={cn('shrink-0 text-fg-subtle', WALL_META)}>
+          <p className={styles.rowHead}>
+            <span className={styles.name}>
+              <span aria-hidden className={cn(styles.direction, WALL_META)}>
                 {row.direction === 'up' ? '▲' : '▼'}
               </span>
-              <span className={cn('min-w-0 truncate', WALL_LABEL)}>{row.label}</span>
+              <span className={cn(styles.label, WALL_LABEL)}>{row.label}</span>
             </span>
-            <span className={cn('num shrink-0 font-bold text-fg-muted', WALL_UNIT)}>
+            <span className={cn('num', styles.percent, WALL_UNIT)}>
               {percentOf(row.weight)}%
             </span>
           </p>
@@ -68,7 +69,7 @@ export function ContributionBars({ rows }: { rows: readonly Contribution[] }) {
           <WallBar
             percent={(row.weight / top) * 100}
             color="var(--fg-muted)"
-            className="mt-1.5 h-2"
+            className={styles.bar}
           />
         </li>
       ))}

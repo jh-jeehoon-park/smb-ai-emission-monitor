@@ -16,6 +16,7 @@ import {
   STATUS_VISUAL,
   statusInk,
 } from '@/shared/config/status-visual';
+import { cn } from '@/shared/lib/cn';
 import { formatClock, formatValue } from '@/shared/lib/format';
 import { ABSENT_ITEM_LABEL, ABSENT_ITEM_REASON } from '@/features/site-provisioning';
 import { LiveValue } from '@/shared/ui/live-value';
@@ -38,6 +39,7 @@ import { thinForCode } from '../lib/thin-series';
 import { WaterQualityGridSkeleton } from './water-quality-grid-skeleton';
 import { limitZone, type LimitZone } from '../lib/limit-zone';
 import { useChartSurface } from '@/shared/lib/use-chart-hover';
+import styles from './water-quality-grid.module.scss';
 
 /**
  * 격자 한 묶음. **제목이 없으면 소절을 만들지 않는다** — 묶음이 하나뿐인 화면에서
@@ -142,28 +144,23 @@ export function WaterQualityGrid({
    */
   const has = (code: MeasurementItemCode) => !absentCodes.includes(code);
 
-  /**
-   * 열 수는 뷰포트가 아니라 **이 그리드가 실제로 받은 폭**을 따라야 한다.
-   * 같은 위젯이 통합 관제(지도 옆 좁은 열)와 시계열 화면(전폭)에 함께 쓰인다 —
-   * 뷰포트로 나누면 한쪽이 반드시 어긋나고, 단위 표기가 값에 가려진다.
-   */
   return (
-    <div className="@container">
+    <div className={styles.root}>
       {/*
        * 칸을 **선이 아니라 면과 간격으로** 나눈다 `[사용자 지시 2026-08-24]`.
        *
-       * 예전에는 칸마다 `border-r border-b`를 걸고 음수 여백으로 끝단을 잘라 냈다. 칸의
+       * 예전에는 칸마다 오른쪽·아래 테두리를 걸고 음수 여백으로 끝단을 잘라 냈다. 칸의
        * 높이가 서로 다르면(pH만 기준 문구가 한 줄 더 있다) 짧은 칸의 아래 선이 격자 바닥에
        * 닿지 않아 선이 끊겨 보였고, 열 수가 컨테이너 폭에 따라 2↔4로 바뀌어 `nth-child`로
        * 끝단을 고르는 방법도 서로를 되돌렸다. 면은 높이와 무관하게 칸을 그대로 보여 준다.
        */}
-      <div className="space-y-3">
+      <div className={styles.sections}>
         {sections.map((section) => (
           <section key={section.title ?? 'main'}>
             {section.title && (
-              <p className="mb-1.5 text-[12px] font-medium text-fg-subtle">{section.title}</p>
+              <p className={styles.sectionTitle}>{section.title}</p>
             )}
-            <StaggerGroup className="grid grid-cols-2 gap-2 @[560px]:grid-cols-4">
+            <StaggerGroup className={styles.grid}>
               {section.codes.map((code) => (
                 <RiseItem key={code}>
                   {/*
@@ -214,19 +211,19 @@ export function WaterQualityGrid({
 function NotInstalled({ code }: { code: MeasurementItemCode }) {
   const item = MEASUREMENT_ITEMS[code];
   return (
-    <div className="h-full rounded-nested border border-dashed border-border bg-surface-2 p-3">
-      <div className="flex items-baseline justify-between gap-2">
+    <div className={cn(styles.card, styles.cardAbsent)}>
+      <div className={styles.symbolRow}>
         <span
-          className="text-[12px] font-medium tracking-[0.08em] text-fg-subtle"
+          className={styles.symbol}
           title={`${item.label} · ${item.unitKo}`}
         >
           {item.symbol}
         </span>
       </div>
 
-      <p className={`mt-1 ${VALUE_MD} text-fg-subtle`}>{ABSENT_ITEM_LABEL}</p>
-      <p className="mt-0.5 truncate text-[12px] text-fg-muted">{item.label}</p>
-      <p className="mt-1 truncate text-[12px] text-fg-subtle" title={ABSENT_ITEM_REASON}>
+      <p className={cn(styles.valueNote, VALUE_MD)}>{ABSENT_ITEM_LABEL}</p>
+      <p className={styles.label}>{item.label}</p>
+      <p className={styles.note} title={ABSENT_ITEM_REASON}>
         이 사업장에 없음
       </p>
     </div>
@@ -236,19 +233,19 @@ function NotInstalled({ code }: { code: MeasurementItemCode }) {
 function NoChannel({ code }: { code: MeasurementItemCode }) {
   const item = MEASUREMENT_ITEMS[code];
   return (
-    <div className="h-full rounded-nested bg-surface-2 p-3">
-      <div className="flex items-baseline justify-between gap-2">
+    <div className={styles.card}>
+      <div className={styles.symbolRow}>
         <span
-          className="text-[12px] font-medium tracking-[0.08em] text-fg-subtle"
+          className={styles.symbol}
           title={`${item.label} · ${item.unitKo}`}
         >
           {item.symbol}
         </span>
       </div>
 
-      <p className={`mt-1 ${VALUE_MD} text-fg-subtle`}>계측 없음</p>
-      <p className="mt-0.5 truncate text-[12px] text-fg-muted">{item.label}</p>
-      <p className="mt-1 truncate text-[12px] text-fg-subtle">채널 미확정</p>
+      <p className={cn(styles.valueNote, VALUE_MD)}>계측 없음</p>
+      <p className={styles.label}>{item.label}</p>
+      <p className={styles.note}>채널 미확정</p>
     </div>
   );
 }
@@ -283,33 +280,33 @@ function DiffCard({
   const noOutflow = last !== undefined && last[b] === 0;
 
   return (
-    <div className="h-full rounded-nested bg-surface-2 p-3">
-      <div className="flex items-baseline justify-between gap-2">
+    <div className={styles.card}>
+      <div className={styles.symbolRow}>
         {/*
          * **기호에 단위 한글을 병기한다** — 같은 격자의 다른 두 카드가 이미 그렇게 하는데
          * 이 카드만 빠져 있었다 `[사용자 지적 2026-08-28]`. `Δ`는 항목 기호가 아니라 두 값의
          * 차이를 뜻하므로 라벨 자리에 `spec.label`(`유입 − 유출`)이 온다.
          */}
         <span
-          className="text-[12px] font-medium tracking-[0.08em] text-fg-subtle"
+          className={styles.symbol}
           title={`${spec.label} · 단위 ${item.unit || '없음'} ${item.unitKo}`}
         >
           Δ
         </span>
       </div>
 
-      <div className="mt-1 flex items-baseline gap-1">
+      <div className={styles.reading}>
         <span
-          className={`num ${VALUE_MD}`}
+          className={cn('num', VALUE_MD)}
           style={suspect ? { color: statusInk(STATUS_VISUAL.critical) } : undefined}
         >
           {value === null ? '—' : `${value > 0 ? '+' : ''}${formatValue(a, value)}`}
         </span>
-        <span className="text-[12px] text-fg-subtle">{item.unit}</span>
+        <span className={styles.unit}>{item.unit}</span>
       </div>
 
-      <p className="mt-0.5 truncate text-[12px] text-fg-muted">{spec.label}</p>
-      <p className="mt-1 truncate text-[12px] text-fg-subtle">
+      <p className={styles.label}>{spec.label}</p>
+      <p className={styles.note}>
         {value === null
           ? '수신 없음'
           : suspect
@@ -345,7 +342,7 @@ function LiveReading({
   return (
     <LiveValue
       value={formatValue(code, live?.values[code] ?? fallback)}
-      className={`${VALUE_MD} text-fg`}
+      className={cn(VALUE_MD, styles.value)}
     />
   );
 }
@@ -410,10 +407,9 @@ function MiniSeries({
    */
   const chartData = useMemo(() => thinForCode(data, code), [data, code]);
 
-  /* `h-full`이 있어야 칸 높이가 서로 달라도 격자 한 행이 같은 높이로 선다 */
   return (
-    <div className="h-full rounded-nested bg-surface-2 p-3" {...surfaceProps}>
-      <div className="flex items-baseline justify-between gap-2">
+    <div className={styles.card} {...surfaceProps}>
+      <div className={styles.symbolRow}>
         {/*
          * 단위 한글 병기를 **기호에** 붙인다 `[회의 피드백 2026-08-24]`. 아래 단위 span에만
          * 달면 pH·진동처럼 `unit`이 빈 항목은 그 span이 아예 안 그려져 병기가 사라진다 —
@@ -423,32 +419,32 @@ function MiniSeries({
          * 맡고, 표 형태(리포트·항목별 요약)는 열이 있어 거기서 두 줄로 낸다.
          */}
         <span
-          className="text-[12px] font-medium tracking-[0.08em] text-fg-subtle"
+          className={styles.symbol}
           title={`${item.label} · 단위 ${item.unit || '없음'} ${item.unitKo}`}
         >
           {item.symbol}
         </span>
         {isMissingNow && (
-          <span className={`${BADGE_BASE} bg-missing/20 text-fg-subtle`}>
+          <span className={cn(BADGE_BASE, styles.missingBadge)}>
             수신 없음
           </span>
         )}
       </div>
 
-      <div className="mt-1 flex items-baseline gap-1">
+      <div className={styles.reading}>
         {/*
           * **현재값은 수집 주기마다 갈린다** `[사용자 요청 2026-09-16]`. 5초로 보내는 사업장에서
           * 툭툭 바뀌던 것을 전환으로 잇는다 — 숫자 자체는 보간하지 않는다.
           */}
         {siteId === undefined ? (
-          <LiveValue value={formatValue(code, latest)} className={`${VALUE_MD} text-fg`} />
+          <LiveValue value={formatValue(code, latest)} className={cn(VALUE_MD, styles.value)} />
         ) : (
           <LiveReading siteId={siteId} code={code} fallback={latest} />
         )}
-        {item.unit && <span className="text-[12px] text-fg-subtle">{item.unit}</span>}
+        {item.unit && <span className={styles.unit}>{item.unit}</span>}
       </div>
 
-      <p className="mt-0.5 truncate text-[12px] text-fg-muted">{item.label}</p>
+      <p className={styles.label}>{item.label}</p>
 
       {/* 기준을 아는 항목인지, 안다면 넘었는지 — 두 사실을 구분해 적는다 */}
       <LimitNote
@@ -466,7 +462,7 @@ function MiniSeries({
           item.unit ? `, 단위 ${item.unit} ${item.unitKo}` : ''
         }, KST 기준. 현재값 ${formatValue(code, latest)}`}
       >
-        <div ref={chartRef} className="-mx-1 mt-2 h-10">
+        <div ref={chartRef} className={styles.spark}>
           <ResponsiveContainer width="100%" height="100%">
             {/*
              * `accessibilityLayer={false}` — **툴팁이 화면에 얼어붙는 것을 막는다.**
@@ -590,7 +586,7 @@ function LimitNote({
 
   const range = formatLimitRange(limit, decimals);
   if (!zone || !overCount || overCount.count === null || range === null) {
-    return <p className="mt-1 truncate text-[12px] text-fg-subtle">{UNRESOLVED_LIMIT_TEXT}</p>;
+    return <p className={styles.note}>{UNRESOLVED_LIMIT_TEXT}</p>;
   }
 
   /*
@@ -600,7 +596,7 @@ function LimitNote({
   const label = overCount.basis === 'none' ? LIMIT_LABEL.legal : LIMIT_LABEL[overCount.basis];
 
   return (
-    <p className="mt-1 truncate text-[12px] text-fg-subtle" title={limit.source}>
+    <p className={styles.note} title={limit.source}>
       <span className="num">
         {label} {range}
       </span>{' '}

@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react';
 import { TAP_AREA_Y } from '@/shared/ui/action-button';
+import { cn } from '@/shared/lib/cn';
 import { DEMO_NOW_ISO } from '@/shared/config/demo';
 import { buildAnomalyScores, downsample } from '@/shared/lib/anomaly-score';
 import { HISTORY_WINDOW_HOURS } from '@/shared/config/measurement';
@@ -41,6 +42,7 @@ import { IDLE_DISCHARGE_NOTE, IdleDischargePanel } from './idle-discharge-panel'
 import { RunInvestigation } from './run-investigation';
 import { RunInvestigationSkeleton } from './run-investigation-skeleton';
 import { SiteScoreTable } from './site-score-table';
+import styles from './anomaly-view.module.scss';
 
 const RANKING_SPARK_POINTS = 40;
 
@@ -83,7 +85,7 @@ export function AnomalyView() {
    * 표만 바뀌면 무엇이 일어났는지 화면에 보이지 않는다 — 바뀐 곳이 스크롤 아래에 있어서다.
    * 구역으로 스크롤하면 "무엇이 바뀌었는가"와 "어디를 봐야 하는가"가 한 동작으로 이어진다.
    *
-   * 스크롤은 **선택을 화면에 반영한 다음** 실행한다. 목적지 요소는 `scroll-mt`으로 헤더와
+   * 스크롤은 **선택을 화면에 반영한 다음** 실행한다. 목적지 요소는 `scroll-margin-top`으로 헤더와
    * 붙은 탭 줄만큼 여유를 갖는다 — 그것이 없으면 구역 제목이 헤더 뒤로 들어간다.
    */
   const selectAndReveal = (id: string) => {
@@ -161,7 +163,7 @@ export function AnomalyView() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className={styles.root}>
       {/*
        * **사업장별 이상 점수가 맨 위 전폭이고, 형태는 표다** `[사용자 지시 2026-08-24]`.
        *
@@ -188,14 +190,10 @@ export function AnomalyView() {
       </Panel>
 
       {/* 통합 관제와 같은 구성 — 제목 · 탭을 한 구역으로 묶고 스크롤 중에도 위에 남긴다 */}
-      <section
-        id={DETAIL_SECTION_ID}
-        /* 붙은 탭 줄(`--sticky-bar-h`) + 헤더만큼 위를 비워 둔다 — 스크롤 목적지가 그 뒤로 숨지 않게 */
-        className="scroll-mt-[calc(var(--header-h)_+_var(--sticky-bar-h,0px)_+_1rem)] space-y-3 rounded-panel border border-card-border bg-section-bg p-4 lg:p-5"
-      >
+      <section id={DETAIL_SECTION_ID} className={styles.detailSection}>
         <StickyBar>
-          <div className="flex items-center gap-1.5">
-            <h2 className="text-[16px] font-bold leading-tight tracking-tight text-fg">
+          <div className={styles.detailHeading}>
+            <h2 className={styles.detailTitle}>
               선택 사업장 이상 탐지
             </h2>
             <InfoTip
@@ -222,13 +220,13 @@ export function AnomalyView() {
               sites={scopedSites}
               selectedId={siteId}
               onSelect={setSiteId}
-              className="hidden lg:flex"
+              className={styles.siteTabs}
             />
             <SiteList
               sites={scopedSites}
               selectedId={siteId}
               onSelect={setSiteId}
-              className="lg:hidden"
+              className={styles.siteList}
             />
           </div>
         </StickyBar>
@@ -258,12 +256,12 @@ export function AnomalyView() {
             />
           }
           action={
-            <span className="text-[12px] text-fg-subtle">
+            <span className={styles.window}>
               최근 {HISTORY_WINDOW_HOURS}시간 ·{' '}
               {detail.canJudgeRuns ? (
-                <span className="num text-fg-muted">{detail.runs.length}건</span>
+                <span className={cn(styles.windowValue, 'num')}>{detail.runs.length}건</span>
               ) : (
-                <span className="text-fg-muted">판정 불가</span>
+                <span className={styles.windowValue}>판정 불가</span>
               )}
             </span>
           }
@@ -283,7 +281,7 @@ export function AnomalyView() {
           )}
         </Panel>
 
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,420px)]">
+        <div className={styles.lower}>
           <Panel
             title="이상 점수 타임라인"
             action={
@@ -291,7 +289,7 @@ export function AnomalyView() {
                  판단 어려움". 어느 공정 단계인지 짚으려면 공정도로 갈 수 있어야 한다 */
               <Link
                 href={withSite('/process')}
-                className={`${TAP_AREA_Y} text-[12px] text-accent underline decoration-accent/40 underline-offset-2 transition-colors duration-200 hover:decoration-accent`}
+                className={cn(TAP_AREA_Y, styles.processLink)}
               >
                 공정에서 보기
               </Link>
@@ -303,12 +301,11 @@ export function AnomalyView() {
               outage={detail.outage}
               focus={selectedRun && { fromIso: selectedRun.fromIso, toIso: selectedRun.toIso }}
             />
-            <div className="mt-3 border-t border-border pt-2">
+            <div className={styles.legend}>
               <AnomalyBandLegend />
             </div>
           </Panel>
 
-          {/* 목록 길이가 격자 높이를 정하지 않는다 — 자기 안에서만 스크롤한다 */}
           <Panel
             title="관련 알람"
             titleAside={
@@ -317,7 +314,7 @@ export function AnomalyView() {
                 content="이상 판정으로 올라온 알람만 모읍니다. 알람을 누르면 그 시각이 든 이상 구간이 위에서 열립니다 — 조회 구간(24시간) 밖에서 올라온 알람은 짚을 자리가 없어 움직이지 않습니다."
               />
             }
-            bodyClassName="max-h-[420px] overflow-auto"
+            bodyClassName={styles.alarmsBody}
           >
             <AlarmList
               alarms={detail.alarms}

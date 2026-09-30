@@ -6,6 +6,7 @@ import { DISCHARGE_LIMITS } from '@/shared/config/discharge-limits';
 import { WATER_QUALITY_CODES } from '@/shared/config/measurement';
 import { getMeasurementSeries } from '@/entities/measurement';
 import { WaterQualityGrid } from './water-quality-grid';
+import styles from './water-quality-grid.module.scss';
 
 /**
  * **이 사업장에 없는 계측기** `[사용자 요청 2026-09-28]` `[TBD-61]`.
@@ -43,7 +44,7 @@ describe('미설치 항목', () => {
     const { container } = draw(['chromaticity']);
 
     /* 8종이 그대로 선다 — 일곱으로 줄지 않는다 */
-    const cards = container.querySelectorAll('[class*="rounded-nested"]');
+    const cards = container.querySelectorAll(`.${CSS.escape(styles.card)}`);
     expect(cards.length).toBeGreaterThanOrEqual(WATER_QUALITY_CODES.length);
     expect(screen.getByText('미설치')).toBeInTheDocument();
   });

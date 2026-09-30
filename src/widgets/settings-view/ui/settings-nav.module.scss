@@ -1,0 +1,149 @@
+@use 'shared/styles' as *;
+
+/* 목차 겉면은 호출부가 `className`으로 역할·고정 위치를 얹는다 — 그래서 `components` 레이어다 */
+@layer components {
+  .root {
+    min-width: 0;
+
+    @include up(lg) {
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-panel);
+      background-color: var(--surface);
+      padding: sp(3) sp(2);
+      box-shadow: var(--card-shadow);
+    }
+  }
+}
+
+/* 넓은 화면에서 `scroll-hint`의 가리개(`background-image`)를 걷는다 — 남기면 목차 양 끝에 흰 띠가 된다 */
+.list {
+  --scroll-hint-bg: var(--bg);
+  margin-inline: sp(-1);
+  display: flex;
+  gap: sp(1);
+  padding-inline: sp(1);
+  padding-bottom: sp(1);
+
+  @include up(lg) {
+    margin-inline: 0;
+    flex-direction: column;
+    gap: sp(4);
+    overflow: visible;
+    background-image: none;
+    padding-inline: 0;
+    padding-bottom: 0;
+  }
+}
+
+.group {
+  display: flex;
+  flex-shrink: 0;
+  gap: sp(1);
+
+  @include up(lg) {
+    flex-direction: column;
+  }
+}
+
+.groupLabel {
+  display: none;
+  padding-inline: sp(3);
+  padding-bottom: sp(1);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--fg-subtle);
+
+  @include up(lg) {
+    display: block;
+  }
+}
+
+.item {
+  display: flex;
+  min-height: sp(10);
+  flex-shrink: 0;
+  cursor: pointer;
+  align-items: center;
+  gap: sp(2.5);
+  border-radius: var(--radius-nested);
+  padding: sp(2) sp(3);
+  text-align: left;
+  @include transition-colors(200ms);
+}
+
+.itemActive {
+  background-color: var(--accent-weak);
+  color: var(--accent);
+}
+
+.itemIdle {
+  color: var(--fg-muted);
+
+  @include hover {
+    &:hover {
+      background-color: var(--surface-2);
+      color: var(--fg);
+    }
+  }
+}
+
+.icon {
+  display: grid;
+  width: sp(7);
+  height: sp(7);
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 6px;
+  @include transition-colors(200ms);
+}
+
+.iconActive {
+  background-color: var(--surface);
+  color: var(--accent);
+  box-shadow: var(--card-shadow);
+}
+
+.iconIdle {
+  background-color: var(--surface-2);
+  color: var(--fg-subtle);
+}
+
+@include hover {
+  .item:hover .iconIdle {
+    color: var(--fg-muted);
+  }
+}
+
+.glyph {
+  width: sp(4);
+  height: sp(4);
+}
+
+.text {
+  min-width: 0;
+}
+
+.label {
+  display: block;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.labelActive {
+  font-weight: 600;
+}
+
+.labelIdle {
+  font-weight: 500;
+}
+
+.status {
+  @include truncate;
+  display: none;
+  font-size: 12px;
+  color: var(--fg-subtle);
+
+  @include up(lg) {
+    display: block;
+  }
+}

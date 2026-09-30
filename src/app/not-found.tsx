@@ -8,12 +8,13 @@ import { BrandMark } from '@/shared/ui/brand-mark';
 import { Notice } from '@/shared/ui/notice';
 import { ROLES } from '@/entities/user';
 import { homeHrefFor, navLabelOf } from '@/widgets/app-shell';
+import styles from './not-found.module.scss';
 
 /**
  * 없는 주소 `[사용자 요청 2026-09-15]`.
  *
  * **이 파일 하나가 매칭되지 않는 모든 URL을 받는다**(Next 16 `not-found.js` 규약). root layout
- * 안에서 렌더되므로 `globals.css`·테마 토큰·프로바이더가 그대로 먹는다 — 여기 없을 때 뜨던
+ * 안에서 렌더되므로 `globals.scss`·테마 토큰·프로바이더가 그대로 먹는다 — 여기 없을 때 뜨던
  * Next 기본 화면은 **영문이고 앱 테마를 읽지 않아**(OS `prefers-color-scheme`을 따른다) 다크로
  * 쓰는 사람에게 흰 화면이 떴다.
  *
@@ -27,11 +28,11 @@ import { homeHrefFor, navLabelOf } from '@/widgets/app-shell';
  */
 export default function NotFound() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-bg px-4">
+    <main className={styles.main}>
       <Link
         href="/"
         aria-label={BRAND_NAME}
-        className="flex items-center gap-2 rounded-chip text-[14px] font-bold text-fg-muted transition-colors duration-200 hover:text-fg"
+        className={styles.brand}
       >
         <BrandMark size={28} />
         {BRAND_NAME}

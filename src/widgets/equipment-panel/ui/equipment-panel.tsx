@@ -12,6 +12,7 @@ import { BADGE_BASE } from '@/shared/ui/badge';
 import { cn } from '@/shared/lib/cn';
 import { VALUE_LG, VALUE_MD } from '@/shared/ui/type-scale';
 import { EQUIPMENT_SIGNAL_LABELS, type Equipment } from '@/entities/equipment';
+import styles from './equipment-panel.module.scss';
 
 export function EquipmentPanel({
   items,
@@ -37,10 +38,10 @@ export function EquipmentPanel({
      멀쩡한 숫자를 띄우면 한 화면이 서로 다른 말을 한다(E3·R19). */
   if (!online) {
     return (
-      <div className="flex flex-col items-center justify-center gap-1.5 py-8 text-center">
-        <p className={`num ${VALUE_LG} text-fg-subtle`}>—</p>
-        <p className="text-[12px] text-fg-muted">설비 수신값 없음</p>
-        <p className="max-w-[46ch] text-[12px] leading-relaxed text-fg-subtle">
+      <div className={styles.offline}>
+        <p className={cn('num', VALUE_LG, styles.offlineValue)}>—</p>
+        <p className={styles.offlineLabel}>설비 수신값 없음</p>
+        <p className={styles.offlineNote}>
           ECP 통신이 두절되어 설비 상태를 수신하지 못했습니다. 복구 시 로컬 버퍼가 일괄 전송됩니다.
         </p>
       </div>
@@ -60,14 +61,6 @@ export function EquipmentPanel({
    */
   return (
     /*
-     * **열 수를 뷰포트가 아니라 이 격자가 놓인 폭으로 정한다** `[사용자 결정 2026-09-18]`.
-     * `screens.md` §8이 「중첩 격자는 뷰포트가 아니라 컨테이너로 묻는다」를 이미 규약으로
-     * 세워 두었고, 이 격자가 그 규약을 어기고 있었다.
-     *
-     * 한때 `sm:grid-cols-2 xl:grid-cols-4`였다. 그 결과가 **뒤집혀 있었다** — 통합 관제의
-     * 오른쪽 열은 1280px에서 428px뿐인데 `xl`이 켜져 **카드가 98px(안쪽 66px)**이 됐고,
-     * 반대로 640~1279px(단일 열이라 훨씬 넓다)에서는 2열만 섰다(실측).
-     *
      * **이 위젯이 스스로 컨테이너를 연다.** 네 화면이 쓰는데 컨테이너 안은 둘뿐이라
      * (통합 관제·관내 감독), 열지 않으면 나머지 둘(자사 현황·설비 예지보전)은 **질의가 한 번도
      * 맞지 않아 1열로 굳는다** — 화면에는 「좀 세로로 길다」로만 보인다.
@@ -75,27 +68,21 @@ export function EquipmentPanel({
      *
      * **격자와 같은 요소에 얹으면 안 된다** — 컨테이너 질의는 **조상**만 본다. 같은 요소에
      * 둘을 적으면 조용히 아무 분기도 걸리지 않는다(`equipment-grid.test.ts`가 잠근다).
-     *
-     * 임계는 **카드 하한 190px**에서 나온다 — `site-wallboard`의 `@[190px]`이 「이름 왼쪽 ·
-     * 뱃지 오른쪽 한 줄」이 성립하는 실측 하한이고, 위 주석대로 이 카드가 그 구성을 베꼈다.
-     * 2열 400px → 카드 194px · 4열 832px → 카드 199px. **3열은 두지 않는다**: 설비가 4대라
-     * 마지막 줄에 한 장이 남는다.
      */
-    <div className="@container">
-      <StaggerGroup className="grid grid-cols-1 gap-3 @[25rem]:grid-cols-2 @[52rem]:grid-cols-4">
+    <div className={styles.container}>
+      <StaggerGroup className={styles.grid}>
         {items.map((eq) => {
           const state = operatingStateOf(eq.running);
           return (
-            <RiseItem key={eq.id} className="h-full">
+            <RiseItem key={eq.id} className={styles.cell}>
               <div
                 className={cn(
-                  'flex h-full flex-col gap-2 rounded-nested border border-border bg-surface p-4',
-                  'transition-colors duration-200',
+                  styles.card,
                   /* 누를 수 있을 때만 반응한다 — 표시에 hover를 주면 조작으로 읽힌다 */
-                  onSelect && 'hover:border-border-strong hover:bg-surface-2',
+                  onSelect && styles.cardInteractive,
                 )}
               >
-                <div className="flex items-start justify-between gap-2">
+                <div className={styles.cardHead}>
                   {/* 이름만 누르게 둔다 — 카드 전체를 버튼으로 만들면 값까지 눌리는 영역이 된다 */}
                   {onSelect ? (
                     /*
@@ -107,17 +94,12 @@ export function EquipmentPanel({
                     <button
                       type="button"
                       onClick={() => onSelect(eq)}
-                      className={cn(
-                        TAP_AREA_Y,
-                        'min-w-0 cursor-pointer truncate text-left text-[14px] font-bold leading-tight text-fg',
-                        'underline decoration-transparent underline-offset-2 transition-colors duration-200',
-                        'hover:text-accent hover:decoration-accent',
-                      )}
+                      className={cn(TAP_AREA_Y, styles.nameButton)}
                     >
                       {eq.name}
                     </button>
                   ) : (
-                    <p className="min-w-0 truncate text-[14px] font-bold leading-tight text-fg">
+                    <p className={styles.name}>
                       {eq.name}
                     </p>
                   )}
@@ -132,26 +114,26 @@ export function EquipmentPanel({
                  * 색은 등급이 아니라 운전 상태다(`OPERATING_FILL`) — 초록으로 칠한 `가동`은
                  * 화면에서 `정상 등급`으로 읽힌다(`design-system §2`).
                  */}
-                <p className={`flex items-center gap-2 ${VALUE_MD} text-fg`}>
+                <p className={cn(styles.operating, VALUE_MD)}>
                   <span
                     aria-hidden
-                    className="size-2 shrink-0 rounded-full"
+                    className={styles.operatingDot}
                     style={{ backgroundColor: OPERATING_FILL[state] }}
                   />
                   {OPERATING_LABELS[state]}
                 </p>
 
                 {/* 아래 줄은 바닥에 붙는다 — 신호가 없는 카드와 있는 카드의 높이가 갈리지 않는다 */}
-                <div className="mt-auto flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px]">
-                  <span className="text-fg-subtle">이상 신호</span>
-                  <span className="min-w-0 text-fg-muted">
+                <div className={styles.signals}>
+                  <span className={styles.signalsLabel}>이상 신호</span>
+                  <span className={styles.signalsValue}>
                     {eq.signals.length === 0
                       ? '없음'
                       : eq.signals.map((signal) => EQUIPMENT_SIGNAL_LABELS[signal]).join(' · ')}
                   </span>
                   {/* 지속은 이상이 있을 때만 뜻이 있다 — 없을 때 `—`를 두면 빈 칸이 하나 더 늘어난다 */}
                   {eq.anomalyHours !== null && (
-                    <span className={`${BADGE_BASE} bg-surface-3 text-fg-muted`}>
+                    <span className={cn(BADGE_BASE, styles.chip)}>
                       <span className="num">{eq.anomalyHours}</span>시간 이어짐
                     </span>
                   )}
@@ -163,7 +145,7 @@ export function EquipmentPanel({
                    * 적지 않는다: 대부분이 미선정이라 «미계측»을 달면 그 말이 카드를 덮는다.
                    */}
                   {meteredIds.includes(eq.id) && (
-                    <span className={`${BADGE_BASE} bg-surface-3 text-fg-muted`}>전력 계측</span>
+                    <span className={cn(BADGE_BASE, styles.chip)}>전력 계측</span>
                   )}
                 </div>
               </div>

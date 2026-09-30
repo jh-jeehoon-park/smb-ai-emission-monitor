@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { cn } from '@/shared/lib/cn';
+import styles from './notice.module.scss';
 
 /**
  * 안내·오류를 말하는 블록 `[사용자 요청 2026-09-15]`.
@@ -39,20 +40,20 @@ export function Notice({
   className?: string;
 }) {
   return (
-    <div className={cn('flex flex-col items-center gap-3 px-4 py-10 text-center', className)}>
+    <div className={cn(styles.root, className)}>
       {/*
        * 코드가 가장 큽니다 — 무슨 일인지를 한 낱말로 말하는 자리다. `num`은 숫자를
        * 표 눈금에 맞추는 기존 클래스이고, 여기서도 자릿수가 흔들리지 않게 한다.
        */}
-      <p className="num text-[44px] font-bold leading-none tracking-tight text-fg-subtle">{code}</p>
+      <p className={cn(styles.code, 'num')}>{code}</p>
 
-      <h2 className="text-[18px] font-bold leading-tight text-fg">{title}</h2>
+      <h2 className={styles.title}>{title}</h2>
 
-      <p className="max-w-[46ch] text-[13px] leading-relaxed text-fg-muted">{description}</p>
+      <p className={styles.description}>{description}</p>
 
-      {actions && <div className="mt-2 flex flex-wrap items-center justify-center gap-2">{actions}</div>}
+      {actions && <div className={styles.actions}>{actions}</div>}
 
-      {footnote && <p className="mt-1 text-[12px] text-fg-subtle">{footnote}</p>}
+      {footnote && <p className={styles.footnote}>{footnote}</p>}
     </div>
   );
 }
@@ -83,13 +84,10 @@ export function NoticeBar({
       role="status"
       /* `SkeletonRegion`도 `role="status"`라 역할만으로는 이 띠를 집을 수 없다 — 검사와 실측이 가릴 표식 */
       data-notice-bar
-      className={cn(
-        'mb-4 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 rounded-nested border border-border bg-surface-2 px-3 py-2 lg:mb-5',
-        className,
-      )}
+      className={cn(styles.bar, className)}
     >
-      <p className="min-w-0 text-[12px] leading-relaxed text-fg-muted">{message}</p>
-      {action && <div className="shrink-0">{action}</div>}
+      <p className={styles.barMessage}>{message}</p>
+      {action && <div className={styles.barAction}>{action}</div>}
     </div>
   );
 }

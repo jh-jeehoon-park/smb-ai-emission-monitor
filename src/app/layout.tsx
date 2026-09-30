@@ -5,7 +5,8 @@ import { MotionPreferences } from '@/shared/ui/motion';
 import { ThemeProvider } from '@/shared/ui/theme';
 import { RoleProvider, SESSION_INIT_SCRIPT } from '@/entities/user';
 import { BRAND_NAME } from '@/shared/config/constants';
-import './globals.css';
+import './globals.scss';
+import styles from './layout.module.scss';
 
 /**
  * 선택 사업장이 URL 쿼리에 있고 사이드바가 그 값을 읽어 링크에 얹는다.
@@ -53,8 +54,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         <script dangerouslySetInnerHTML={{ __html: SESSION_INIT_SCRIPT }} />
       </head>
-      {/* 폰트는 globals.css가 Pretendard 하나로 불러온다 — 한글 계측 라벨의 가독성이 우선이다 */}
-      <body className="antialiased">
+      {/* 폰트는 globals.scss가 Pretendard 하나로 불러온다 — 한글 계측 라벨의 가독성이 우선이다 */}
+      <body className={styles.body}>
         <QueryProvider>
           <ThemeProvider>
             <RoleProvider>

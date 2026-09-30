@@ -68,10 +68,13 @@ describe('기준 표기', () => {
  */
 describe('hover 면', () => {
   const source = readFileSync('src/widgets/water-quality-grid/ui/water-quality-grid.tsx', 'utf8');
+  const scss = readFileSync('src/widgets/water-quality-grid/ui/water-quality-grid.module.scss', 'utf8');
 
   it('카드 루트가 hover 면이고 차트 상자는 중계 대상일 뿐이다', () => {
-    expect(source).toMatch(/rounded-nested bg-surface-2 p-3" \{\.\.\.surfaceProps\}/);
-    expect(source).toMatch(/ref=\{chartRef\}[^>]*h-10/);
+    expect(source).toMatch(/className=\{styles\.card\} \{\.\.\.surfaceProps\}/);
+    /* 중계 대상은 40px 스파크라인 상자다 — 카드가 아니라 그 띠에 `chartRef`가 붙는다 */
+    expect(source).toMatch(/ref=\{chartRef\} className=\{styles\.spark\}/);
+    expect(scss).toMatch(/\.spark \{[^}]*height: sp\(10\);/);
   });
 
   /** 차트 상자에 hover 면을 두던 옛 훅이 남아 있으면 둘이 겹쳐 돈다 */

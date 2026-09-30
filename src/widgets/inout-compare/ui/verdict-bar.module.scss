@@ -1,0 +1,125 @@
+@use 'shared/styles' as *;
+
+.root {
+  display: flex;
+  overflow: hidden;
+}
+
+/* 부모 상자가 테두리·면을 쥐고 있을 때 — 위 모서리만 따라 깎는다 */
+.embedded {
+  border-top-left-radius: var(--radius-panel);
+  border-top-right-radius: var(--radius-panel);
+}
+
+.standalone {
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-panel);
+  background-color: var(--surface);
+  box-shadow: var(--card-shadow);
+}
+
+.levelBar {
+  width: sp(1.5);
+  flex-shrink: 0;
+}
+
+.body {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: sp(6);
+  row-gap: sp(3);
+  padding: sp(4) sp(5);
+}
+
+.score {
+  display: flex;
+  align-items: baseline;
+  gap: sp(3);
+}
+
+.scoreSkeleton {
+  display: block;
+  height: sp(7);
+  width: sp(14);
+  border-radius: var(--radius-chip);
+  background-color: var(--surface-3);
+}
+
+.levelLabel {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.noScore {
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+/*
+ * **최소 폭을 준다.** 이 열이 `flex: 1`뿐이던 판본은 오른쪽 두 근거 줄이 폭을 다 먹어
+ * 여기가 눌리고, 한글은 어디서나 줄바꿈이 되므로 `계측 서버 수신 중`이 **«계 / 측»으로
+ * 한 자에서 갈렸다**(1440px 캡처에서 드러났다). 최소 폭을 넘기지 못하면 근거 줄이
+ * 아래로 접히는 쪽이 맞다 — 그쪽은 접혀도 낱말이 깨지지 않는다.
+ */
+.site {
+  min-width: sp(52);
+  flex: 1;
+}
+
+.siteName {
+  @include truncate;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--fg);
+}
+
+.siteMeta {
+  margin-top: sp(0.5);
+  font-size: 12px;
+  color: var(--fg-muted);
+}
+
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: sp(5);
+  row-gap: sp(1);
+  font-size: 12px;
+}
+
+.detailLink {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: sp(0.5);
+  font-size: 12px;
+  color: var(--fg-subtle);
+  @include transition-colors(200ms);
+
+  @include hover {
+    &:hover {
+      color: var(--accent);
+    }
+  }
+}
+
+.fact {
+  display: flex;
+  align-items: baseline;
+  gap: sp(1.5);
+}
+
+/* 라벨은 접지 않는다 — 390px에서 «AI 산 / 출»로 갈라졌다 */
+.factLabel {
+  flex-shrink: 0;
+  white-space: nowrap;
+  color: var(--fg-subtle);
+}
+
+.factValue {
+  color: var(--fg-muted);
+}

@@ -5,14 +5,15 @@ import { FlaskConical, MapPinned, Scale, Workflow, Zap } from 'lucide-react';
 import { cn } from '@/shared/lib/cn';
 import { TABLE_SCROLL } from '@/shared/ui/table';
 import { SETTINGS_TAB_GROUPS, SETTINGS_TAB_OPTIONS, type SettingsTab } from '../config/constants';
+import styles from './settings-nav.module.scss';
 
 /** 탭마다 그림 하나 — 다섯 줄이 글자만으로 늘어서면 목차가 훑어지지 않는다 */
 const TAB_ICON: Record<SettingsTab, ReactNode> = {
-  classification: <MapPinned className="size-4" strokeWidth={1.8} />,
-  limits: <Scale className="size-4" strokeWidth={1.8} />,
-  process: <Workflow className="size-4" strokeWidth={1.8} />,
-  instruments: <FlaskConical className="size-4" strokeWidth={1.8} />,
-  metering: <Zap className="size-4" strokeWidth={1.8} />,
+  classification: <MapPinned className={styles.glyph} strokeWidth={1.8} />,
+  limits: <Scale className={styles.glyph} strokeWidth={1.8} />,
+  process: <Workflow className={styles.glyph} strokeWidth={1.8} />,
+  instruments: <FlaskConical className={styles.glyph} strokeWidth={1.8} />,
+  metering: <Zap className={styles.glyph} strokeWidth={1.8} />,
 };
 
 const LABEL = Object.fromEntries(SETTINGS_TAB_OPTIONS.map((o) => [o.value, o.label])) as Record<
@@ -52,29 +53,21 @@ export function SettingsNav({
   return (
     <nav
       aria-label="설정 항목"
-      className={cn(
-        'min-w-0 lg:rounded-panel lg:border lg:border-card-border lg:bg-surface lg:p-2 lg:py-3 lg:shadow-panel',
-        className,
-      )}
+      className={cn(styles.root, className)}
     >
       {/*
        * 좁은 화면에서는 가로로 밀리는 한 줄이라 **옆에 더 있다**는 신호(`scroll-hint`)를 단다 —
        * 가리개 색은 이 줄이 놓인 본문 배경이다. 넓은 화면은 밀리지 않으므로 신호를 걷는다
        * (걷지 않으면 가리개가 목차 양 끝에 흰 띠로 남는다 — 캡처로 잡았다).
        */}
-      <div
-        className={cn(
-          TABLE_SCROLL,
-          '-mx-1 flex gap-1 px-1 pb-1 [--scroll-hint-bg:var(--bg)] lg:mx-0 lg:flex-col lg:gap-4 lg:overflow-visible lg:bg-none lg:px-0 lg:pb-0',
-        )}
-      >
+      <div className={cn(TABLE_SCROLL, styles.list)}>
         {SETTINGS_TAB_GROUPS.map((group) => {
           const items = group.tabs.filter((value) => tabs.includes(value));
           if (items.length === 0) return null;
 
           return (
-            <div key={group.label} className="flex shrink-0 gap-1 lg:flex-col">
-              <p className="hidden px-3 pb-1 text-[12px] font-semibold text-fg-subtle lg:block">
+            <div key={group.label} className={styles.group}>
+              <p className={styles.groupLabel}>
                 {group.label}
               </p>
               {items.map((value) => {
@@ -85,25 +78,19 @@ export function SettingsNav({
                     type="button"
                     aria-current={on ? 'page' : undefined}
                     onClick={() => onSelect(value)}
-                    className={cn(
-                      'group flex min-h-10 shrink-0 cursor-pointer items-center gap-2.5 rounded-nested px-3 py-2 text-left transition-colors duration-200',
-                      on ? 'bg-accent-weak text-accent' : 'text-fg-muted hover:bg-surface-2 hover:text-fg',
-                    )}
+                    className={cn(styles.item, on ? styles.itemActive : styles.itemIdle)}
                   >
                     <span
                       aria-hidden
-                      className={cn(
-                        'grid size-7 shrink-0 place-items-center rounded-[6px] transition-colors duration-200',
-                        on ? 'bg-surface text-accent shadow-panel' : 'bg-surface-2 text-fg-subtle group-hover:text-fg-muted',
-                      )}
+                      className={cn(styles.icon, on ? styles.iconActive : styles.iconIdle)}
                     >
                       {TAB_ICON[value]}
                     </span>
-                    <span className="min-w-0">
-                      <span className={cn('block whitespace-nowrap text-[13px]', on ? 'font-semibold' : 'font-medium')}>
+                    <span className={styles.text}>
+                      <span className={cn(styles.label, on ? styles.labelActive : styles.labelIdle)}>
                         {LABEL[value]}
                       </span>
-                      <span className="hidden truncate text-[12px] text-fg-subtle lg:block">
+                      <span className={styles.status}>
                         {status[value]}
                       </span>
                     </span>

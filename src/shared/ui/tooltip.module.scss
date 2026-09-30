@@ -1,0 +1,39 @@
+@use 'shared/styles' as *;
+
+.content {
+  z-index: 50;
+  max-width: min(320px, calc(100vw - 2rem));
+  border-radius: var(--radius-nested);
+  border: 1px solid var(--border-strong);
+  background-color: var(--surface);
+  padding: sp(2) sp(2.5);
+  font-size: 12px;
+  line-height: 1.625;
+  color: var(--fg-muted);
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+
+.arrow {
+  fill: var(--surface);
+}
+
+/* 누르는 자리를 사방 12px 넓힌다 — 근거는 `InfoTip` 곁에 있다 */
+.trigger {
+  position: relative;
+  flex-shrink: 0;
+  cursor: help;
+  color: var(--fg-subtle);
+  @include transition-colors(200ms);
+
+  &::before {
+    position: absolute;
+    inset: sp(-3);
+    content: '';
+  }
+
+  @include hover {
+    &:hover {
+      color: var(--accent);
+    }
+  }
+}

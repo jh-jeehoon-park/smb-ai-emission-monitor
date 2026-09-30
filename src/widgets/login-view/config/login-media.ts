@@ -33,7 +33,7 @@ export const LOGIN_VIDEO_LABEL = '하늘에서 내려다본 폐수처리장의 �
  *
  * **왜 세로본이 따로 있는가** `[사용자 지적 2026-09-17: 정지된 이미지는 흐려보이며 화질이
  * 좋지 않아보임]` — 한 장(1080×608)으로 둘을 겸하던 판본이 **세로 화면에서 네 배로 늘어났다.**
- * `object-cover`는 짧은 쪽을 기준으로 채우므로, 390×844 화면(DPR 3 → 1170×2532)을 16:9
+ * `object-fit: cover`는 짧은 쪽을 기준으로 채우므로, 390×844 화면(DPR 3 → 1170×2532)을 16:9
  * 그림으로 덮으려면 **가로 4,500px이 필요하다.** 원본이 1080이라 그만큼 확대됐다.
  * 화면과 같은 세로 모양으로 잘라 두면 그 곱이 1.2배로 떨어진다 — 같은 무게로 선명해진다.
  * 잘라내는 자리는 **가로 가운데**이며, 좁은 화면이 지금 실제로 보고 있던 구간 그대로다.
@@ -61,11 +61,11 @@ export const LOGIN_POSTER_PORTRAIT_SRC = '/login-poster-portrait.jpg';
  *
  * **세 곳이 같은 값을 봐야 한다.**
  *   ① 이 상수 — 배경 영상을 **마운트할지**(CSS로는 내려받기를 못 막는다)
- *   ② `login-view.tsx`의 `md:` 클래스 — 배치·타이포
- *   ③ `globals.css`의 `.login-glass` 미디어 쿼리 — 흐린 유리
+ *   ② `login-view.module.scss`의 `@include up(md)` — 배치·타이포
+ *   ③ `globals.scss`의 `.login-glass` 미디어 쿼리 — 흐린 유리
  *
  * 어긋나면 «영상은 붙었는데 유리 기둥은 아직 카드»처럼 한 화면이 두 판본으로 그려진다.
- * `48rem`이 Tailwind의 `md`이고 `login-media.test.ts`가 셋을 함께 못박는다.
+ * `48rem`이 `shared/styles`의 `md`이고 `login-media.test.ts`가 셋을 함께 못박는다.
  */
 export const LOGIN_WIDE_QUERY = '(min-width: 48rem)';
 

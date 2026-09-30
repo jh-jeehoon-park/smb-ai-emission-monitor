@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { cn } from '@/shared/lib/cn';
+import styles from './panel.module.scss';
 
 interface PanelProps {
   title?: string;
@@ -29,13 +30,7 @@ interface PanelProps {
  */
 export function Panel({ title, titleAside, action, children, className, bodyClassName }: PanelProps) {
   return (
-    <section
-      className={cn(
-        // min-w-0 이 없으면 그리드·플렉스 안에서 내용 폭만큼 늘어나 좁은 화면을 넘어간다
-        'flex min-w-0 flex-col rounded-panel border border-card-border bg-surface p-4 shadow-panel lg:p-5',
-        className,
-      )}
-    >
+    <section className={cn(styles.root, className)}>
       {(title || titleAside || action) && (
         /*
          * 좁은 화면에서는 필터 묶음이 제목 아래로 내려간다. 한 줄에 붙들면 카드가 화면을 넘는다.
@@ -44,16 +39,15 @@ export function Panel({ title, titleAside, action, children, className, bodyClas
          * 가르는 것은 여백뿐이라, 아래 여백(16px)을 카드 여백(20px)보다 좁게 두어 제목이
          * 내용에 붙어 보이게 한다.
          */
-        <header className="mb-4 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-          <div className="flex min-w-0 items-center gap-1.5">
-            {title && <h2 className="truncate text-[15px] font-bold text-fg">{title}</h2>}
+        <header className={styles.header}>
+          <div className={styles.heading}>
+            {title && <h2 className={styles.title}>{title}</h2>}
             {titleAside}
           </div>
-          {/* max-w-full 이 없으면 필터 묶음이 내용 폭을 그대로 주장해 헤더가 화면을 넘는다 */}
-          {action && <div className="max-w-full shrink-0">{action}</div>}
+          {action && <div className={styles.action}>{action}</div>}
         </header>
       )}
-      <div className={cn('flex-1', bodyClassName)}>{children}</div>
+      <div className={cn(styles.body, bodyClassName)}>{children}</div>
     </section>
   );
 }

@@ -1,0 +1,54 @@
+@use 'shared/styles' as *;
+
+/* 오른쪽 아래 — §8 `되감기 버튼`이 이미 쓰는 자리라 같은 곳에서 찾게 된다 */
+.exit {
+  position: fixed;
+  bottom: sp(6);
+  right: sp(6);
+  z-index: 30;
+  display: flex;
+  cursor: pointer;
+  align-items: center;
+  gap: sp(2);
+  border: 1px solid var(--accent);
+  border-radius: 9999px;
+  background-color: var(--accent);
+  padding-inline: sp(4);
+  padding-block: sp(2.5);
+  font-size: 14px;
+  font-weight: 600;
+  color: white;
+  box-shadow: var(--card-shadow);
+  transition-property: opacity;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 300ms;
+
+  /* 숨어 있어도 포커스가 오면 드러난다 — 특이도(0,2,0)가 `.exitHidden`(0,1,0)을 이긴다 */
+  &:focus-visible {
+    pointer-events: auto;
+    opacity: 1;
+    outline-style: solid;
+    outline-width: 2px;
+    outline-offset: 2px;
+    outline-color: var(--accent);
+  }
+}
+
+.exitShown {
+  opacity: 1;
+}
+
+.exitHidden {
+  pointer-events: none;
+  opacity: 0;
+}
+
+.key {
+  border-radius: var(--radius-chip);
+  background-color: rgb(255 255 255 / 20%);
+  background-color: color-mix(in oklab, white 20%, transparent);
+  padding-inline: sp(1.5);
+  padding-block: sp(0.5);
+  font-size: 12px;
+  font-weight: 500;
+}

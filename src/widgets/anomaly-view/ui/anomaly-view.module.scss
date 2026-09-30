@@ -1,0 +1,98 @@
+@use 'shared/styles' as *;
+
+.root {
+  & > :not(:last-child) {
+    margin-block-end: sp(6);
+  }
+}
+
+/* 붙은 탭 줄(`--sticky-bar-h`) + 헤더만큼 위를 비워 둔다 — 스크롤 목적지가 그 뒤로 숨지 않게 */
+.detailSection {
+  scroll-margin-top: calc(var(--header-h) + var(--sticky-bar-h, 0px) + 1rem);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-panel);
+  background-color: var(--section-bg);
+  padding: sp(4);
+
+  & > :not(:last-child) {
+    margin-block-end: sp(3);
+  }
+
+  @include up(lg) {
+    padding: sp(5);
+  }
+}
+
+.detailHeading {
+  display: flex;
+  align-items: center;
+  gap: sp(1.5);
+}
+
+.detailTitle {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.025em;
+  color: var(--fg);
+}
+
+.siteTabs {
+  display: none;
+
+  @include up(lg) {
+    display: flex;
+  }
+}
+
+.siteList {
+  @include up(lg) {
+    display: none;
+  }
+}
+
+.window {
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+.windowValue {
+  color: var(--fg-muted);
+}
+
+.lower {
+  display: grid;
+  gap: sp(6);
+
+  @include up(xl) {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 420px);
+  }
+}
+
+.processLink {
+  font-size: 12px;
+  color: var(--accent);
+  text-decoration-line: underline;
+  text-decoration-color: var(--accent);
+  text-decoration-color: color-mix(in oklab, var(--accent) 40%, transparent);
+  text-underline-offset: 2px;
+  @include transition-colors(200ms);
+
+  @include hover {
+    &:hover {
+      text-decoration-color: var(--accent);
+    }
+  }
+}
+
+.legend {
+  margin-top: sp(3);
+  border-top: 1px solid var(--border);
+  padding-top: sp(2);
+}
+
+/* 목록 길이가 격자 높이를 정하지 않는다 — 자기 안에서만 스크롤한다 */
+.alarmsBody {
+  max-height: 420px;
+  overflow: auto;
+}

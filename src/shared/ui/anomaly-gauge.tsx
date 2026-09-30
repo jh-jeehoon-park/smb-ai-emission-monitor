@@ -6,6 +6,7 @@ import {
 } from '@/shared/config/provisional';
 import { STATUS_BAND, STATUS_VISUAL } from '@/shared/config/status-visual';
 import { cn } from '@/shared/lib/cn';
+import styles from './anomaly-gauge.module.scss';
 
 interface AnomalyGaugeProps {
   score: number;
@@ -22,9 +23,9 @@ export function AnomalyGauge({ score, className, showScale = true }: AnomalyGaug
   const visual = STATUS_VISUAL[level];
 
   return (
-    <div className={cn('w-full', className)}>
+    <div className={cn(styles.root, className)}>
       <div
-        className="relative h-2.5 w-full overflow-hidden rounded-full bg-surface-3 shadow-track"
+        className={styles.track}
         role="meter"
         aria-valuenow={score}
         aria-valuemin={0}
@@ -38,7 +39,7 @@ export function AnomalyGauge({ score, className, showScale = true }: AnomalyGaug
           return (
             <span
               key={band.level}
-              className="absolute inset-y-0"
+              className={styles.band}
               style={{
                 left: `${band.min}%`,
                 width: `${end - band.min}%`,
@@ -48,17 +49,17 @@ export function AnomalyGauge({ score, className, showScale = true }: AnomalyGaug
           );
         })}
         <span
-          className="absolute inset-y-0 left-0 transition-[width] duration-500 ease-out"
+          className={styles.fill}
           style={{ width: `${score}%`, backgroundColor: visual.hex, opacity: 0.45 }}
         />
         <span
-          className="absolute inset-y-0 w-[2px] transition-[left] duration-500 ease-out"
+          className={styles.marker}
           style={{ left: `calc(${score}% - 1px)`, backgroundColor: visual.hex }}
         />
       </div>
 
       {showScale && (
-        <div className="mt-1.5 flex justify-between text-[12px] tabular-nums text-fg-subtle">
+        <div className={styles.scale}>
           {PROVISIONAL_ANOMALY_TICKS.map((tick) => (
             <span key={tick}>{tick}</span>
           ))}

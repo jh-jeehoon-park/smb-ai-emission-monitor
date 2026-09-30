@@ -11,6 +11,7 @@ import {
   UNIT_PROCESS_CATALOG,
   type TreatmentType,
 } from '@/entities/process';
+import styles from './add-stage-panel.module.scss';
 
 export interface NewStageDraft {
   origin: 'catalog' | 'custom';
@@ -22,9 +23,6 @@ const MODES = [
   { value: 'catalog', label: '목록에서 고르기' },
   { value: 'custom', label: '직접 입력' },
 ] as const;
-
-const FIELD =
-  'mt-1 min-h-10 w-full rounded-[4px] border border-border bg-surface px-2 text-[13px] text-fg lg:min-h-9';
 
 /**
  * 단계를 더하는 **한 곳** `[사용자 지적 2026-09-29: 공정 구성 UX가 너무 복잡함]`.
@@ -55,15 +53,15 @@ export function AddStagePanel({
   const [position, setPosition] = useState(stageNames.length);
 
   return (
-    <div className="rounded-nested border border-border-strong bg-surface p-3.5 shadow-panel">
-      <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
-        <label htmlFor={positionId} className="block min-w-[200px]">
-          <span className="block text-[12px] text-fg-subtle">넣을 위치</span>
+    <div className={styles.root}>
+      <div className={styles.head}>
+        <label htmlFor={positionId} className={styles.position}>
+          <span className={styles.fieldLabel}>넣을 위치</span>
           <select
             id={positionId}
             value={position}
             onChange={(event) => setPosition(Number(event.target.value))}
-            className={FIELD}
+            className={styles.field}
           >
             <option value={0}>맨 앞</option>
             {stageNames.map((stageName, index) => (
@@ -77,39 +75,39 @@ export function AddStagePanel({
       </div>
 
       {mode === 'catalog' ? (
-        <ul className="grid gap-1.5 sm:grid-cols-2 xl:grid-cols-3">
+        <ul className={styles.catalog}>
           {UNIT_PROCESS_CATALOG.map((unit) => (
             <li key={unit.id}>
               <button
                 type="button"
                 onClick={() => onAdd({ origin: 'catalog', name: unit.name, type: unit.type }, position)}
-                className="flex min-h-11 w-full cursor-pointer items-center justify-between gap-2 rounded-[6px] border border-border bg-surface px-3 py-2 text-left transition-colors duration-200 hover:border-accent/50 hover:bg-accent-weak"
+                className={styles.catalogItem}
               >
-                <span className="min-w-0">
-                  <span className="block truncate text-[13px] font-medium text-fg">{unit.name}</span>
-                  <span className="block truncate text-[12px] text-fg-subtle">
+                <span className={styles.catalogText}>
+                  <span className={styles.catalogName}>{unit.name}</span>
+                  <span className={styles.catalogMeta}>
                     {TREATMENT_TYPE_LABELS[unit.type]} · {unit.seenAt.join(', ')}
                   </span>
                 </span>
-                <Plus aria-hidden className="size-4 shrink-0 text-fg-subtle" strokeWidth={2} />
+                <Plus aria-hidden className={styles.catalogPlus} strokeWidth={2} />
               </button>
             </li>
           ))}
         </ul>
       ) : (
-        <div className="space-y-3">
-          <label htmlFor={nameId} className="block max-w-sm">
-            <span className="block text-[12px] text-fg-subtle">단계 이름</span>
+        <div className={styles.custom}>
+          <label htmlFor={nameId} className={styles.nameField}>
+            <span className={styles.fieldLabel}>단계 이름</span>
             <input
               id={nameId}
               value={name}
               onChange={(event) => setName(event.target.value)}
               placeholder="예: 가압부상조"
-              className={FIELD}
+              className={styles.field}
             />
           </label>
           <div>
-            <p className="mb-1 text-[12px] text-fg-subtle">처리 유형</p>
+            <p className={styles.typeLabel}>처리 유형</p>
             <SegmentedControl
               ariaLabel="처리 유형"
               value={type}
@@ -119,17 +117,17 @@ export function AddStagePanel({
           </div>
           <button
             type="button"
-            className={cn(ACTION_BUTTON, 'disabled:cursor-not-allowed disabled:opacity-45')}
+            className={cn(ACTION_BUTTON, styles.addButton)}
             disabled={name.trim() === ''}
             onClick={() => onAdd({ origin: 'custom', name: name.trim(), type }, position)}
           >
-            <Plus aria-hidden className="size-3.5" strokeWidth={2.2} />
+            <Plus aria-hidden className={styles.glyph} strokeWidth={2.2} />
             이 단계 추가
           </button>
         </div>
       )}
 
-      <div className="mt-3 flex justify-end">
+      <div className={styles.foot}>
         <button type="button" className={ACTION_BUTTON_QUIET} onClick={onCancel}>
           닫기
         </button>

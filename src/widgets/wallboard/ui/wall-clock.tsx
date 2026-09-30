@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { DISPLAY_TIMEZONE, formatKstWallMinute } from '@/shared/lib/format';
 import { WALL_CLOCK_TICK_MS } from '../config/constants';
+import styles from './wall-clock.module.scss';
 
 /**
  * 벽시계 — **셸의 `LiveClock`을 쓰지 않는다.**
@@ -31,7 +32,7 @@ export function WallClock({ className }: { className?: string }) {
   return (
     <span className={className}>
       <span className="num">{now ?? '--:--'}</span>
-      <span className="ml-1.5 font-medium text-fg-subtle">{DISPLAY_TIMEZONE}</span>
+      <span className={styles.zone}>{DISPLAY_TIMEZONE}</span>
     </span>
   );
 }

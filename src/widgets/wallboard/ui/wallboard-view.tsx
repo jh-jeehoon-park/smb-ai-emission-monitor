@@ -38,6 +38,7 @@ import { ScoreArc } from './score-arc';
 import { WallHeader } from './wall-header';
 import { WallPanel } from './wall-panel';
 import { WallTrend } from './wall-trend';
+import styles from './wallboard-view.module.scss';
 
 /**
  * **현황판**(`SCR-AD-006`) — 사업장 사무실 벽의 TV에 띄워 두는 화면 `[사용자 요청 2026-09-10]`.
@@ -124,11 +125,7 @@ export function WallboardView() {
   const scoreVisual = anomaly.level ? STATUS_VISUAL[anomaly.level] : null;
 
   return (
-    /*
-     * **화면 하나에 딱 맞춘다.** `h-screen` + `overflow-hidden`이라 넘치는 것이 **잘려서 눈에
-     * 띈다** — 스크롤로 흘려 보내면 «스크롤 없이 한 눈에»라는 요구가 조용히 깨진 채로 남는다.
-     */
-    <div className="wall-gap wall-pad flex h-screen flex-col overflow-hidden bg-bg">
+    <div className={cn('wall-gap wall-pad', styles.root)}>
       <WallHeader
         siteName={site.name}
         region={site.region}
@@ -141,26 +138,21 @@ export function WallboardView() {
        * 세 열 — 레퍼런스의 짜임이다. 왼쪽이 «지금 어떤 상태인가»(계기와 그 근거), 가운데가
        * 계측 격자, 오른쪽이 «무엇을 해야 하나»(알람·설비)다.
        */}
-      {/*
-       * 열 폭이 **고정 px에서 비율로** 바뀌었다 `[사용자 결정 2026-09-11]`. 360·420px이던
-       * 판본은 화면이 좁아질수록 좌우가 비대해져(1366에서 좌우 합 57%) 가운데 주인공이
-       * 눌렸고, 넓어지면 반대로 20%까지 쪼그라들었다. 비율은 어디서나 같다.
-       */}
-      <div className="grid min-h-0 flex-1 grid-cols-[18.75%_minmax(0,1fr)_21.875%] wall-gap">
-        <div className="flex min-h-0 flex-col wall-gap">
+      <div className={cn('wall-gap', styles.columns)}>
+        <div className={cn('wall-gap', styles.column)}>
           <WallPanel
             title="이상 점수"
             aside={anomaly.modelLabel}
-            bodyClassName="flex min-h-0 flex-col items-center justify-center wall-pad-sm"
+            bodyClassName={cn('wall-pad-sm', styles.scoreBody)}
           >
             <ScoreArc score={anomaly.score} level={anomaly.level} />
             {/*
              * 계기 안이 아니라 **아래**에 적는다 — 반원 안쪽은 바늘이 지나는 자리라 숫자를
              * 넣으면 겹친다. 색만으로 말하지 않도록 등급 이름이 늘 곁에 있다(**E2**).
              */}
-            <p className="-mt-3 flex items-baseline gap-2.5">
+            <p className={styles.score}>
               {anomaly.score === null || scoreVisual === null ? (
-                <span className={cn('text-fg-subtle', WALL_META)}>이상 점수 수신 없음</span>
+                <span className={cn(styles.scoreMissing, WALL_META)}>이상 점수 수신 없음</span>
               ) : (
                 <>
                   <span
@@ -177,7 +169,7 @@ export function WallboardView() {
             </p>
           </WallPanel>
 
-          <WallPanel title="기여 변수" aside={anomaly.windowLabel} className="flex-1">
+          <WallPanel title="기여 변수" aside={anomaly.windowLabel} className={styles.grow}>
             <ContributionBars rows={anomaly.contributions} />
           </WallPanel>
         </div>
@@ -185,7 +177,7 @@ export function WallboardView() {
         <WallPanel
           title={`수질 ${WATER_SERIES_CODES.length}종`}
           aside="지금 값과 기준"
-          bodyClassName="grid min-h-0 grid-cols-4 grid-rows-2 wall-gap wall-pad-sm"
+          bodyClassName={cn('wall-gap wall-pad-sm', styles.qualityBody)}
         >
           {WATER_SERIES_CODES.map((code) => (
             <QualityCell
@@ -197,8 +189,8 @@ export function WallboardView() {
           ))}
         </WallPanel>
 
-        <div className="flex min-h-0 flex-col wall-gap">
-          <WallPanel title="알람" aside="확인 필요" className="flex-1" bodyClassName="wall-pad-sm">
+        <div className={cn('wall-gap', styles.column)}>
+          <WallPanel title="알람" aside="확인 필요" className={styles.grow} bodyClassName="wall-pad-sm">
             <AlarmTally
               open={countOpen(alarms)}
               byPriority={countByPriorityIn(alarms, 'open', siteId)}
@@ -224,7 +216,7 @@ export function WallboardView() {
        * **새 데이터가 아니다.** 이 계열은 이 화면의 오른쪽 칸이 이미 «지금 값»으로 적고 있던
        * 것이고, 추이는 그 값이 하루를 어떻게 지나왔는지일 뿐이다.
        */}
-      <div className="grid shrink-0 grid-cols-[minmax(0,1fr)_13.5%_13.5%_13.5%] wall-gap">
+      <div className={cn('wall-gap', styles.dischargeBand)}>
         <WallPanel
           title="유출 유량 추이"
           aside={`${MEASUREMENT_ITEMS.flow.unit} · 최근 24시간 · ${DISPLAY_TIMEZONE}`}
@@ -254,17 +246,17 @@ export function WallboardView() {
           note={unreceived.includes('level') ? '채널 없음' : '지금'}
         />
 
-        <WallPanel title="방류 상태" bodyClassName="flex flex-col justify-center wall-pad">
+        <WallPanel title="방류 상태" bodyClassName={cn('wall-pad', styles.stateBody)}>
           {/* 방류 여부는 셋이다 — 하고 있다 · 안 하고 있다 · 모른다. 셋째를 둘째와 섞지 않는다(E4) */}
           <p
             className={cn(
               WALL_VALUE_LG,
-              discharging === null ? 'text-fg-subtle' : 'text-fg',
+              discharging === null ? styles.stateUnknown : styles.stateKnown,
             )}
           >
             {discharging === null ? '판정 불가' : discharging ? '방류 중' : '방류 없음'}
           </p>
-          <p className={cn('mt-2 text-fg-subtle', WALL_META)}>
+          <p className={cn(styles.note, WALL_META)}>
             {discharging === null ? '수신이 없어 판정할 수 없습니다' : '지금'}
           </p>
         </WallPanel>
@@ -309,21 +301,18 @@ function BigCell({
   return (
     <WallPanel
       title={title}
-      bodyClassName={cn(
-        'flex flex-col justify-center wall-pad transition-colors duration-500',
-        flashing && 'bg-accent-weak',
-      )}
+      bodyClassName={cn('wall-pad', styles.bigBody, flashing && styles.bigBodyFlashing)}
     >
       {value === null ? (
         /* 결측은 «0»이 아니라 모름이다 — 0으로 적으면 «안 내보냈다»는 사실 주장이 된다(E4) */
-        <p className={cn('text-fg-subtle', WALL_VALUE_LG)}>수신 없음</p>
+        <p className={cn(styles.bigMissing, WALL_VALUE_LG)}>수신 없음</p>
       ) : (
-        <p className="flex items-baseline gap-1.5">
-          <span className={cn('num text-fg', WALL_VALUE_XL)}>{shown}</span>
+        <p className={styles.bigValue}>
+          <span className={cn('num', styles.bigCount, WALL_VALUE_XL)}>{shown}</span>
           <span className={WALL_UNIT}>{unit}</span>
         </p>
       )}
-      <p className={cn('mt-2 text-fg-subtle', WALL_META)}>{note}</p>
+      <p className={cn(styles.note, WALL_META)}>{note}</p>
     </WallPanel>
   );
 }

@@ -1,0 +1,155 @@
+@use 'shared/styles' as *;
+
+.empty {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  justify-content: center;
+  gap: sp(2);
+  padding-block: sp(6);
+  text-align: center;
+}
+
+.emptyValue {
+  color: var(--fg-subtle);
+}
+
+.emptyLabel {
+  font-size: 12px;
+  color: var(--fg-muted);
+}
+
+.emptyNote {
+  max-width: 34ch;
+  align-self: center;
+  font-size: 12px;
+  line-height: 1.625;
+  color: var(--fg-subtle);
+}
+
+.container {
+  container-type: inline-size;
+}
+
+.layout {
+  display: grid;
+  gap: sp(5);
+
+  @container (min-width: 32rem) {
+    grid-template-columns: minmax(0, 260px) minmax(0, 1fr);
+    align-items: stretch;
+  }
+}
+
+.scoreBlock {
+  border-radius: var(--radius-nested);
+  padding: sp(4);
+}
+
+.scoreRow {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: sp(3);
+}
+
+.score {
+  font-size: 56px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.025em;
+}
+
+.scoreAside {
+  padding-bottom: sp(1.5);
+  text-align: right;
+}
+
+.scoreScale {
+  margin-top: sp(1.5);
+  font-size: 12px;
+  color: var(--fg-muted);
+}
+
+.gauge {
+  margin-top: sp(4);
+}
+
+.metaRow {
+  margin-top: sp(4);
+  display: flex;
+  flex-wrap: wrap;
+  gap: sp(1.5);
+}
+
+.contributions {
+  display: flex;
+  height: 100%;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.eyebrow {
+  margin-bottom: sp(2);
+}
+
+.contributionList {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: sp(2.5);
+}
+
+.contributionHead {
+  margin-bottom: sp(1.5);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: sp(2);
+}
+
+.contributionLabel {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: sp(1.5);
+  font-size: 12px;
+  color: var(--fg-muted);
+}
+
+.arrow {
+  flex-shrink: 0;
+}
+
+.truncate {
+  @include truncate;
+}
+
+.srOnly {
+  @include sr-only;
+}
+
+.contributionPercent {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--fg-muted);
+}
+
+.legend {
+  margin-top: sp(3);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.meta {
+  max-width: 100%;
+  background-color: var(--surface);
+  color: var(--fg-muted);
+}
+
+.metaLabel {
+  flex-shrink: 0;
+  color: var(--fg-subtle);
+}

@@ -46,6 +46,8 @@ import { SiteMapLegend, SiteMapPanel } from '@/widgets/site-map';
 import { SiteWallboard } from '@/widgets/site-wallboard';
 import { useDischargeLimits } from '@/features/discharge-limit-settings';
 import { WaterQualityGrid } from '@/widgets/water-quality-grid';
+import { cn } from '@/shared/lib/cn';
+import styles from './dashboard-view.module.scss';
 
 export function DashboardView() {
   const {
@@ -95,7 +97,7 @@ export function DashboardView() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className={styles.root}>
       <Panel
         title="사업장 현황 요약"
         titleAside={
@@ -106,20 +108,20 @@ export function DashboardView() {
         }
         /* 전 사업장 합계는 여기에만 둔다 — 아래 카드는 전부 선택 사업장 축이다 */
         action={
-          <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1 text-[12px]">
-            <span className="text-fg-subtle">
+          <div className={styles.summaryAction}>
+            <span className={styles.muted}>
               전체 미확인 알람{' '}
               <span
-                className="num font-bold"
+                className={cn('num', styles.count)}
                 style={{
-                  color: totalOpen > 0 ? statusInk(STATUS_VISUAL.critical) : 'var(--color-fg)',
+                  color: totalOpen > 0 ? statusInk(STATUS_VISUAL.critical) : 'var(--fg)',
                 }}
               >
                 {totalOpen}
               </span>
               건
             </span>
-            {priorityBreakdown && <span className="text-fg-subtle">{priorityBreakdown}</span>}
+            {priorityBreakdown && <span className={styles.muted}>{priorityBreakdown}</span>}
             <DetailLink href={withSite('/alarms')} label="알람 이력으로 이동" text="전체 보기" />
           </div>
         }
@@ -143,17 +145,17 @@ export function DashboardView() {
           cardHref={(s) => withSite('/overview', s.id)}
           cardLabel={(s) => `${s.name} 사업장 상세로 이동`}
           renderFooter={(s) => (
-            <span className="text-[12px] text-fg-subtle">
-              미확인 알람 <span className="num font-bold text-fg">{alarmCounts[s.id] ?? 0}</span>건
+            <span className={styles.cardFooter}>
+              미확인 알람 <span className={cn('num', styles.cardCount)}>{alarmCounts[s.id] ?? 0}</span>건
             </span>
           )}
         />
       </Panel>
 
-      <section className="space-y-3 rounded-panel border border-card-border bg-section-bg p-4 lg:p-5">
+      <section className={styles.section}>
         <StickyBar>
-          <div className="flex items-center gap-1.5">
-            <h2 className="text-[16px] font-bold leading-tight tracking-tight text-fg">
+          <div className={styles.sectionHeading}>
+            <h2 className={styles.sectionTitle}>
               선택 사업장 현황
             </h2>
             <InfoTip
@@ -198,32 +200,23 @@ export function DashboardView() {
               sites={SITES}
               selectedId={selectedSiteId}
               onSelect={setSelectedSiteId}
-              className="hidden lg:flex"
+              className={styles.wideOnly}
             />
             <SiteList
               sites={SITES}
               selectedId={selectedSiteId}
               onSelect={setSelectedSiteId}
-              className="lg:hidden"
+              className={styles.narrowOnly}
             />
           </div>
         </StickyBar>
 
-        {/*
-         * 레일 폭은 오른쪽 열의 하한이 정한다 — xl에서 470px을 쓰면 오른쪽이 354px이 되어
-         * 타일 2열 하한(384px) 밑으로 떨어진다. 1280 미만은 나누지 않는다(오른쪽 210px).
-         */}
-        <div className="grid gap-6 xl:grid-cols-[420px_minmax(0,1fr)] 2xl:grid-cols-[470px_minmax(0,1fr)]">
+        <div className={styles.split}>
           <Panel
             title="사업장 위치"
             action={<SiteMapLegend />}
-            /*
-             * 붙은 탭 줄 높이(`--sticky-bar-h`)를 자리와 높이에서 함께 뺀다 — 빼지 않으면
-             * 지도 머리가 탭 뒤로 들어간다. 세로 768px에서 88svh가 한계다(90svh면 잘린다).
-             */
-            className="xl:sticky xl:top-[calc(var(--header-h)_+_var(--sticky-bar-h,0px)_+_1.5rem)] xl:h-[calc(88svh_-_var(--sticky-bar-h,0px)_-_1.5rem)] xl:max-h-[753px] xl:self-start"
-            /* flex 자식의 자동 최소 높이는 내용 높이다 — 잠그지 않으면 카드 밖으로 밀린다 */
-            bodyClassName="min-h-0"
+            className={styles.mapPanel}
+            bodyClassName={styles.mapBody}
           >
             {/* 새로고침해도 고른 사업장의 시도로 남아 있게 한다 — 상세는 `SiteMap`의 `siteChosen` */}
             <SiteMapPanel
@@ -234,12 +227,12 @@ export function DashboardView() {
             />
           </Panel>
 
-          <div className="@container min-w-0 space-y-6">
+          <div className={styles.column}>
             <Panel
               title={`이상 탐지 결과 · ${site.name}`}
               action={<DetailLink href={withSite('/anomaly')} label="이상 탐지 상세로 이동" />}
             >
-              <div className="space-y-5">
+              <div className={styles.anomalyStack}>
                 <AnomalyPanel
                   summary={detail.anomalySummary}
                   legend={<AnomalyBandLegend />}
@@ -302,22 +295,8 @@ export function DashboardView() {
                 limits={limits.table}
               />
 
-              {/*
-               * 세 칸을 나누면 한 칸이 좁아져 근거 줄(`R² 0.87 · 계측`)이 접힌다 — 쌓는다.
-               * 파탄 지점은 실측으로 **106px**이었다(390px 뷰포트).
-               *
-               * **묻는 축을 뷰포트에서 컨테이너로 옮겼다** `[사용자 결정 2026-09-18]`.
-               * 한때 `sm:`(뷰포트 640px)이었는데, 이 칸들은 지도 레일 옆의 **오른쪽 열** 안에
-               * 있어 뷰포트와 실제 폭이 어긋난다 — 1280px에서 그 열의 카드 본문이 428px뿐인데
-               * `sm`이 켜져 **칸이 143px**이 됐다(위의 106px과 같은 부류다).
-               *
-               * `@[32rem]`(512px)은 **같은 열이 이미 쓰는 값**이다 — `AnomalyPanel`이 그
-               * 폭에서 2칸을 쌓고 `SCR-OP-001` §3.1이 「카드 본문 512px 미만」으로 적어 두었다.
-               * 지금 `sm`이 만드는 실질 임계(카드 본문 536px)의 24px 아래라 **되던 폭은
-               * 그대로 된다.** 그 임계에서 칸 170.7px · 안쪽 146.7px이다.
-               */}
-              <div className="@container mt-4">
-                <div className="grid grid-cols-1 divide-y divide-border border-t border-border pt-3 @[32rem]:grid-cols-3 @[32rem]:divide-x @[32rem]:divide-y-0">
+              <div className={styles.trendWrap}>
+                <div className={styles.trendGrid}>
                   {/*
                    * **농도를 적지 않는다** `[회의 2026-08-20]` — 소프트 센싱 값을 숫자로 띄우면
                    * 계측된 농도로 읽힌다(E3). 판정 문구·색은 `entities/prediction`이 낸다.
@@ -331,21 +310,21 @@ export function DashboardView() {
                     return (
                       <div
                         key={t.code}
-                        className="py-2 first:pt-0 last:pb-0 @[32rem]:px-3 @[32rem]:py-0 @[32rem]:first:pl-0 @[32rem]:last:pr-0"
+                        className={styles.trend}
                       >
-                        <div className="flex items-center justify-between gap-1">
-                          <span className="text-[12px] uppercase tracking-[0.1em] text-fg-subtle">
+                        <div className={styles.trendHead}>
+                          <span className={styles.trendCode}>
                             {t.code}
                           </span>
                           <TrendChip trend={t.trend} />
                         </div>
                         <p
-                          className="mt-1.5 text-[14px] font-semibold leading-snug text-fg"
+                          className={styles.trendVerdict}
                           style={{ color: verdict.ink }}
                         >
                           {verdict.text}
                         </p>
-                        <p className="num mt-1 text-[12px] text-fg-subtle">
+                        <p className={cn('num', styles.trendBasis)}>
                           R² {formatR2(t.r2)} · {SERIES_ORIGIN_LABELS[t.origin]}
                         </p>
                       </div>
@@ -398,9 +377,9 @@ function DetailLink({
       href={href}
       aria-label={label}
       /* 알람 줄·사업장 점수표의 `상세 ›`와 **같은 부품**이다 — 셋이 같은 문자열을 각자 적고 있었다 */
-      className={`${ACTION_LINK} shrink-0 text-fg-subtle`}
+      className={cn(ACTION_LINK, styles.detailLink)}
     >
-      <span className="hidden sm:inline">{text}</span>
+      <span className={styles.detailText}>{text}</span>
       <ChevronRight aria-hidden size={16} strokeWidth={2} />
     </Link>
   );

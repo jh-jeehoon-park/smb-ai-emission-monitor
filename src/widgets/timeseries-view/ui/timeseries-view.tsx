@@ -43,6 +43,8 @@ import { BUCKET_QUERY_KEY, STAT_QUERY_KEY } from '../config/constants';
 import { statsToCsv } from '../lib/stats-csv';
 import { TABLE_HEAD_CELL, TABLE_HEAD_ROW, TABLE_ROOT, TABLE_ROW, TABLE_SCROLL } from '@/shared/ui/table';
 import { ACTION_BUTTON_QUIET } from '@/shared/ui/action-button';
+import { cn } from '@/shared/lib/cn';
+import styles from './timeseries-view.module.scss';
 
 export function TimeseriesView() {
   const { siteId } = useSelectedSiteId();
@@ -83,11 +85,11 @@ export function TimeseriesView() {
   const [stat, setStat] = useQueryState(STAT_QUERY_KEY, BUCKET_STATS, DEFAULT_STAT);
 
   return (
-    <div className="space-y-6">
+    <div className={styles.stack}>
       <Panel
         title="수질·설비 시계열"
         action={
-          <span className="flex flex-wrap items-center gap-2">
+          <span className={styles.actions}>
             <MeasurementFilterBar filter={filter} />
             <InfoTip
               label="조회 조건과 결측 표시 방식"
@@ -131,7 +133,7 @@ export function TimeseriesView() {
       <Panel
         title="항목별 요약"
         action={
-          <div className="flex flex-wrap items-center gap-2">
+          <div className={styles.actions}>
             {/*
               * **리포트 형식으로도 볼 수 있어야 한다** `[회의 2026-08-20]`. 리포트 화면과
               * 같은 CSV 유틸을 쓴다(`shared/lib/csv`) — 화면마다 따로 만들면 한쪽이 BOM을
@@ -154,12 +156,12 @@ export function TimeseriesView() {
          * 적었고, 적용 구간은 사업장마다 허가증으로 갈린다. 나머지 항목은 표를 고를 2축
          * (지역구분·배출량 규모)이 없어 아예 판정하지 않는다.
          */}
-        <div className="max-w-[80ch] space-y-2 border-t border-border py-2.5 text-[12px] leading-relaxed text-fg-subtle">
+        <div className={styles.notes}>
           <p>
             pH 기준 5.80–8.60은 통상 적용 범위이며, 정확한 구간은 사업장 폐수배출시설
             설치허가(신고)증에서 확인한다. 나머지 항목은 아래 두 축이 정해져야
             기준표를 고를 수 있다 —{' '}
-            <span className="text-fg-muted">
+            <span className={styles.muted}>
               지역구분 {limits.classification.regionGrade ?? '미확인'} · 배출량 규모{' '}
               {limits.classification.dischargeScale ?? '미확인'}
             </span>{' '}.
@@ -174,7 +176,7 @@ export function TimeseriesView() {
             {LEGAL_CHECK_ITEMS.map((item, i) => (
               <span key={item.label}>
                 {i > 0 && ' · '}
-                <span className={item.code === null ? 'text-caution-ink' : 'text-fg-muted'}>
+                <span className={item.code === null ? styles.caution : styles.muted}>
                   {item.label}
                   {item.code === null && '(계측 없음)'}
                 </span>
@@ -257,9 +259,9 @@ function StatsTable({
 }) {
   return (
     <div className={TABLE_SCROLL}>
-      <table className={`${TABLE_ROOT} min-w-[560px] text-[12px] text-center`}>
+      <table className={cn(TABLE_ROOT, styles.statsTable)}>
         {/* 대기 중임을 여기서 말한다 — `<td>` 사이에는 `role="status"`를 끼울 수 없다 */}
-        <caption className="sr-only">
+        <caption className={styles.srOnly}>
           항목별 기간 통계.{pending && ` ${TELEMETRY_PENDING_NOTE}`}
         </caption>
         <thead>
@@ -280,22 +282,22 @@ function StatsTable({
             const item = MEASUREMENT_ITEMS[code];
             return (
               <tr key={code} className={TABLE_ROW}>
-                <td className="px-3 py-3.5">
-                  <span className="font-semibold text-fg">{item.symbol}</span>
-                  <span className="ml-1.5 text-[12px] text-fg-subtle">{item.label}</span>
+                <td className={styles.cell}>
+                  <span className={styles.symbol}>{item.symbol}</span>
+                  <span className={styles.itemLabel}>{item.label}</span>
                 </td>
                 {/*
                  * **단위를 기호와 한글로 함께 낸다** `[회의 피드백 2026-08-24]`. `NTU`·`Pt-Co`처럼
                  * 기호만으로는 무엇의 단위인지 알 수 없다. 기호는 계측 사양의 표기라 그대로 두고
                  * `[원문 p.55]` 한글을 아래 줄에 덧붙인다.
                  */}
-                <td className="px-3 py-3.5">
-                  <span className="text-fg-muted">{item.unit || '—'}</span>
-                  <span className="mt-0.5 block text-[12px] leading-tight text-fg-subtle">
+                <td className={styles.cell}>
+                  <span className={styles.muted}>{item.unit || '—'}</span>
+                  <span className={styles.unitKo}>
                     {item.unitKo}
                   </span>
                 </td>
-                <td className="num px-3 py-3.5 text-fg-subtle">{limitText(code, item.decimals, limits)}</td>
+                <td className={cn('num', styles.limitCell)}>{limitText(code, item.decimals, limits)}</td>
                 {pending ? (
                   <SkeletonCells count={STAT_COLUMNS.length} />
                 ) : (
@@ -305,16 +307,16 @@ function StatsTable({
                       * 숫자는 그대로 갈아 끼우고 나타나는 방식만 다루므로, 계측된 적 없는
                       * 중간값이 뜨지 않는다(`shared/ui/live-value.tsx`).
                       */}
-                    <td className="px-3 py-3.5 text-center text-fg-muted">
+                    <td className={cn(styles.statCell, styles.statMuted)}>
                       <LiveValue value={formatValue(code, stats.min)} />
                     </td>
-                    <td className="px-3 py-3.5 text-center text-fg">
+                    <td className={cn(styles.statCell, styles.statStrong)}>
                       <LiveValue value={formatValue(code, stats.avg)} />
                     </td>
-                    <td className="px-3 py-3.5 text-center text-fg-muted">
+                    <td className={cn(styles.statCell, styles.statMuted)}>
                       <LiveValue value={formatValue(code, stats.max)} />
                     </td>
-                    <td className="px-3 py-3.5 text-center text-fg">
+                    <td className={cn(styles.statCell, styles.statStrong)}>
                       {/*
                         * **«최신»은 서버의 가장 새로운 표본이다.** 격자의 마지막 칸은 분
                         * 경계라 최대 2분 묵는데, 이 열의 이름이 «최신»이므로 들은 것 중
@@ -322,7 +324,7 @@ function StatsTable({
                         */}
                       <LatestCell siteId={siteId} code={code} fallback={stats.latest} />
                     </td>
-                    <td className="px-3 py-3.5 text-center text-fg-subtle">
+                    <td className={cn(styles.statCell, styles.statSubtle)}>
                       <LiveValue
                         value={
                           stats.missingCount > 0

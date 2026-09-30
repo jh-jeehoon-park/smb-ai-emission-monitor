@@ -14,6 +14,8 @@ import { TABLE_SCROLL } from './table';
  * 360px에서 719px. `screens.md` §8의 *"390px에서 가로 스크롤 없음"* 을 어기고 있었다.
  *
  * **레이아웃은 jsdom이 재 주지 않으므로** 렌더가 아니라 소스를 읽어 «손으로 적은 상자»를 막는다.
+ * 값은 `.module.scss`에 있다 `[2026-09-29: Tailwind → SCSS 모듈]` — 한때 Tailwind 클래스
+ * (`relative overflow-x-auto`)를 읽었고 지키는 뜻은 그대로다.
  */
 const ROOT = 'src';
 
@@ -24,8 +26,8 @@ const ROOT = 'src';
  * 좌우 화살표는 이 상자 **밖**에서 카드 줄에 걸터앉는다. 기준면을 만들 이유가 없다.
  */
 const ALLOWED = new Set([
-  join('src', 'shared', 'ui', 'table.ts'),
-  join('src', 'widgets', 'site-wallboard', 'ui', 'site-wallboard.tsx'),
+  join('src', 'shared', 'ui', 'table.module.scss'),
+  join('src', 'widgets', 'site-wallboard', 'ui', 'site-wallboard.module.scss'),
 ]);
 
 /**
@@ -40,7 +42,7 @@ function walk(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     const full = join(dir, entry.name);
     if (entry.isDirectory()) walk(full, out);
-    else if (/\.tsx?$/.test(entry.name) && !/\.test\.tsx?$/.test(entry.name)) out.push(full);
+    else if (/\.(tsx?|scss)$/.test(entry.name) && !/\.test\.tsx?$/.test(entry.name)) out.push(full);
   }
   return out;
 }
@@ -53,13 +55,19 @@ describe('가로 스크롤 상자', () => {
   });
 
   it('`TABLE_SCROLL`이 기준면을 만든다', () => {
-    expect(TABLE_SCROLL).toContain('relative');
-    expect(TABLE_SCROLL).toContain('overflow-x-auto');
+    const scss = withoutComments(readFileSync(join(ROOT, 'shared', 'ui', 'table.module.scss'), 'utf8'));
+    const start = scss.indexOf('.scroll {');
+    const rule = scss.slice(start, scss.indexOf('}', start));
+    expect(rule).toMatch(/position:\s*relative/);
+    expect(rule).toMatch(/overflow-x:\s*auto/);
+    expect(TABLE_SCROLL).toContain('scroll-hint');
   });
 
-  it('`overflow-x-auto`를 손으로 적은 자리가 없다', () => {
+  it('가로 스크롤을 손으로 적은 자리가 없다', () => {
+    /* Tailwind 시절의 `overflow-x-auto`와 모듈의 `overflow-x: auto|scroll` 둘 다 본다 */
+    const HANDWRITTEN = /overflow-x-auto|overflow-x:\s*(auto|scroll)/;
     const handwritten = FILES.filter(
-      (file) => !ALLOWED.has(file) && withoutComments(readFileSync(file, 'utf8')).includes('overflow-x-auto'),
+      (file) => !ALLOWED.has(file) && HANDWRITTEN.test(withoutComments(readFileSync(file, 'utf8'))),
     );
 
     expect(handwritten, `${TABLE_SCROLL} 를 쓴다`).toEqual([]);
@@ -68,7 +76,7 @@ describe('가로 스크롤 상자', () => {
   it('`TABLE_SCROLL`을 쓰는 곳이 실제로 있다 — 상수만 있고 아무도 안 쓰면 규약이 죽는다', () => {
     /* 낱말 경계로 본다 — `includes`는 `TABLE_SCROLL_X`로 바꿔치기해도 그대로 통과한다 */
     const users = FILES.filter(
-      (file) => file !== join(ROOT, 'shared', 'ui', 'table.ts') &&
+      (file) => file !== join(ROOT, 'shared', 'ui', 'table.ts') && /\.tsx?$/.test(file) &&
         /\bTABLE_SCROLL\b/.test(readFileSync(file, 'utf8')),
     );
 

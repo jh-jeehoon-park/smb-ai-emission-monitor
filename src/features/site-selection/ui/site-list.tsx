@@ -7,6 +7,7 @@ import { Eyebrow } from '@/shared/ui/eyebrow';
 import { StatusBadge } from '@/shared/ui/status-badge';
 import type { Site } from '@/entities/site';
 import { SITE_LIST_MAX_HEIGHT } from '../config/constants';
+import styles from './site-list.module.scss';
 
 /**
  * 사업장 고르기 — **좁은 화면용 목록** `[사용자 요청 2026-09-18: 첨부 이미지]`.
@@ -54,11 +55,11 @@ export function SiteList({
      *   · 고른 곳의 면(`--accent-weak` = 흰면에 포인트색 8%)이 회색 구역면과 겹쳐
      *     **#ecf0f7 대 #e9eef4**, 즉 «고른 것»이라는 뜻을 나르던 색이 거의 사라졌다
      *
-     * `lg` 이상에는 이 목록 자체가 없으므로(`lg:hidden`) **PC는 닿지 않는다.**
+     * `lg` 이상에는 이 목록 자체가 없으므로(호출부가 그 폭에서 감춘다) **PC는 닿지 않는다.**
      */
     <div
       className={cn(
-        'space-y-3 rounded-panel border border-card-border bg-surface p-4 shadow-panel',
+        styles.root,
         className,
       )}
     >
@@ -70,10 +71,10 @@ export function SiteList({
        * 여기서 그 색이 뜻하는 것은 등급이 아니라 **지금 고른 것**이다.
        */}
       {selected && (
-        <div className="flex items-center justify-between gap-3 rounded-nested border border-accent/40 bg-accent-weak px-3.5 py-3">
-          <div className="min-w-0">
-            <Eyebrow className="text-accent">현재 선택 사업장</Eyebrow>
-            <p className="mt-0.5 truncate text-[16px] font-bold leading-tight text-fg">
+        <div className={styles.selected}>
+          <div className={styles.selectedText}>
+            <Eyebrow className={styles.selectedLabel}>현재 선택 사업장</Eyebrow>
+            <p className={styles.selectedName}>
               {selected.name}
             </p>
           </div>
@@ -90,7 +91,7 @@ export function SiteList({
            */}
           <Eyebrow>{`다른 사업장 ${others.length}곳`}</Eyebrow>
           {/*
-           * 한 줄이 한 사업장이다. **실높이 44px**을 지킨다(`py-3` 24 + 줄높이 20) —
+           * 한 줄이 한 사업장이다. **실높이 44px**을 지킨다(위아래 여백 24 + 줄높이 20) —
            * 탭 알약의 26px이 손가락 최소를 밑돌던 것을 이 배치가 함께 고친다.
            *
            * **세 줄만 보이고 나머지는 상자 안에서 밀린다** `[사용자 요청 2026-09-18: 사업장이
@@ -101,16 +102,15 @@ export function SiteList({
            * 상한보다 짧아 **스크롤바가 저절로 뜨지 않는다.** 조건을 코드로 또 적으면 같은
            * 규칙이 두 곳에 살게 된다.
            *
-           * `overscroll-contain`은 상자 끝에서 스크롤이 페이지로 **넘어가지 않게** 한다 —
+           * `overscroll-behavior: contain`은 상자 끝에서 스크롤이 페이지로 **넘어가지 않게** 한다 —
            * 없으면 목록을 넘기다 페이지가 함께 튄다.
            */}
           <div
             role="group"
             aria-label="사업장 선택"
             className={cn(
-              'mt-1 divide-y divide-border',
+              styles.rows,
               SITE_LIST_MAX_HEIGHT,
-              'overflow-y-auto overscroll-contain',
             )}
           >
             {others.map((site) => (
@@ -118,12 +118,12 @@ export function SiteList({
                 key={site.id}
                 type="button"
                 onClick={() => onSelect(site.id)}
-                className="flex w-full cursor-pointer items-center justify-between gap-3 px-1 py-3 text-left transition-colors duration-200 hover:bg-surface-2"
+                className={styles.row}
               >
-                <span className="min-w-0 truncate text-[14px] text-fg">{site.name}</span>
-                <span className="flex shrink-0 items-center gap-2">
+                <span className={styles.rowName}>{site.name}</span>
+                <span className={styles.rowAside}>
                   <SiteStatus site={site} />
-                  <ChevronRight aria-hidden size={16} strokeWidth={1.9} className="text-fg-subtle" />
+                  <ChevronRight aria-hidden size={16} strokeWidth={1.9} className={styles.chevron} />
                 </span>
               </button>
             ))}
@@ -140,7 +140,7 @@ export function SiteList({
  */
 function SiteStatus({ site }: { site: Site }) {
   if (!site.status) {
-    return <span className={`${BADGE_BASE} shrink-0 bg-surface-3 text-fg-muted`}>통신 두절</span>;
+    return <span className={cn(BADGE_BASE, styles.outageBadge)}>통신 두절</span>;
   }
-  return <StatusBadge level={site.status} className="shrink-0" />;
+  return <StatusBadge level={site.status} className={styles.statusBadge} />;
 }

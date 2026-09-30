@@ -1,0 +1,90 @@
+@use 'shared/styles' as *;
+
+/* `CHART_SURFACE`는 다른 화면이 그대로 가져다 쓰는 상수라 덮을 수 있게 `components` 레이어다 */
+@layer components {
+  .surface {
+    border-radius: var(--radius-nested);
+    background-color: var(--surface-2);
+    padding: sp(3);
+  }
+}
+
+.figure {
+  margin: 0;
+}
+
+.tabs {
+  margin-bottom: sp(2);
+}
+
+.tabLabel {
+  position: relative;
+}
+
+.stage {
+  position: relative;
+}
+
+.chartPanel {
+  transition-property: opacity;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 200ms;
+}
+
+.tablePanel {
+  position: absolute;
+  inset: 0;
+  transition-property: opacity;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 200ms;
+}
+
+.panelShown {
+  opacity: 1;
+}
+
+/*
+ * 감출 때 `display: none`이 아니라 `visibility: hidden`인 이유: `display:none`이면 Recharts의
+ * `ResponsiveContainer`가 폭 0을 읽어 다시 보일 때 차트를 못 그린다.
+ */
+.panelHidden {
+  pointer-events: none;
+  visibility: hidden;
+  opacity: 0;
+}
+
+.tableScroll {
+  height: 100%;
+  overflow: auto;
+  border-radius: var(--radius-nested);
+  background-color: var(--surface-2);
+  padding: sp(3);
+}
+
+.table {
+  font-size: 12px;
+  text-align: center;
+}
+
+.caption {
+  @include sr-only;
+}
+
+.head {
+  position: sticky;
+  top: 0;
+}
+
+.headCell {
+  white-space: nowrap;
+  padding-inline: sp(3);
+  padding-block: sp(2.5);
+  text-align: center;
+}
+
+.cell {
+  white-space: nowrap;
+  padding-inline: sp(3);
+  padding-block: sp(2.5);
+  color: var(--fg);
+}

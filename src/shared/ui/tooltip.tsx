@@ -3,6 +3,7 @@
 import * as RadixTooltip from '@radix-ui/react-tooltip';
 import { Info } from 'lucide-react';
 import type { ReactNode } from 'react';
+import styles from './tooltip.module.scss';
 
 /**
  * 호버·포커스로 열리는 짧은 설명.
@@ -31,10 +32,10 @@ export function Tooltip({
             side={side}
             sideOffset={6}
             collisionPadding={12}
-            className="z-50 max-w-[min(320px,calc(100vw-2rem))] rounded-nested border border-border-strong bg-surface px-2.5 py-2 text-[12px] leading-relaxed text-fg-muted shadow-lg"
+            className={styles.content}
           >
             {content}
-            <RadixTooltip.Arrow className="fill-surface" />
+            <RadixTooltip.Arrow className={styles.arrow} />
           </RadixTooltip.Content>
         </RadixTooltip.Portal>
       </RadixTooltip.Root>
@@ -62,13 +63,13 @@ export function InfoTip({
     <Tooltip content={content} side={side}>
       {/*
        * **보이는 크기는 16px인데 누르는 자리는 40px이다** `[사용자 요청 2026-09-21]`.
-       * `ICON_BUTTON`이 헤더에서 쓰는 것과 같은 짜임이다 — `before`가 여백을 넓히므로
+       * `ICON_BUTTON`이 헤더에서 쓰는 것과 같은 짜임이다 — `::before`가 여백을 넓히므로
        * **줄 높이를 바꾸지 않아** 제목 옆에 붙은 자리가 그대로다(실측으로 전 화면 16px였다).
        */}
       <button
         type="button"
         aria-label={label}
-        className='relative shrink-0 cursor-help text-fg-subtle transition-colors duration-200 before:absolute before:-inset-3 before:content-[""] hover:text-accent'
+        className={styles.trigger}
       >
         <Info aria-hidden size={16} strokeWidth={1.9} />
       </button>

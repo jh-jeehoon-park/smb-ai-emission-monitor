@@ -12,6 +12,7 @@ import {
 } from '@/entities/measurement';
 import { getSite } from '@/entities/site';
 import { useSelectedSiteId } from '@/features/site-selection';
+import styles from './receive-indicator.module.scss';
 
 /**
  * 계측을 지금 받고 있는가 — **점 하나로 말하고, 누르면 글로 말한다**
@@ -55,7 +56,7 @@ export function ReceiveIndicator() {
       : telemetrySourceLabel(status, failure);
 
   return (
-    <div ref={boxRef} className="relative">
+    <div ref={boxRef} className={styles.root}>
       <button
         ref={triggerRef}
         type="button"
@@ -65,10 +66,10 @@ export function ReceiveIndicator() {
         className={cn(
           ICON_BUTTON,
           /*
-           * **정상일 때 `text-normal-ink`가 반드시 남는다.** `.live-pulse::before`가
+           * **정상일 때 `styles.toneLive`가 반드시 남는다.** `.live-pulse::before`가
            * `background: currentColor`라, 색 클래스를 걷으면 파동이 검게 뜬다.
            */
-          live ? 'text-normal-ink' : !site.online ? 'text-critical-ink' : 'text-fg-subtle',
+          live ? styles.toneLive : !site.online ? styles.toneOutage : styles.toneFallback,
         )}
       >
         {/*
@@ -80,9 +81,9 @@ export function ReceiveIndicator() {
         <span
           aria-hidden
           className={cn(
-            'relative size-2 rounded-full',
+            styles.dot,
             /* 속이 찼는가 / 비었는가 — 색을 못 봐도 갈리는 축 */
-            live ? 'live-pulse bg-current' : 'border-[1.5px] border-current',
+            live ? cn('live-pulse', styles.dotFilled) : styles.dotHollow,
           )}
         />
       </button>
@@ -90,15 +91,15 @@ export function ReceiveIndicator() {
       {open && (
         <div
           role="status"
-          className="absolute right-0 z-20 mt-1.5 w-[min(260px,calc(100vw-2rem))] rounded-nested border border-border-strong bg-surface p-3 text-[12px] shadow-lg"
+          className={styles.popover}
         >
-          <p className="font-medium text-fg">{label}</p>
+          <p className={styles.label}>{label}</p>
           {/*
            * **어느 사업장의 수신인가.** 사업장 선택이 헤더를 떠나 메뉴 기둥으로 갔으므로,
            * 좁은 화면에서는 서랍을 열기 전까지 «지금 무엇을 보고 있는가»가 헤더에 없다
            * (본문 `h1`은 화면명이다). 이 줄이 그 구멍을 메운다.
            */}
-          <p className="mt-1 text-fg-subtle">
+          <p className={styles.site}>
             {site.name} · {site.region}
           </p>
         </div>

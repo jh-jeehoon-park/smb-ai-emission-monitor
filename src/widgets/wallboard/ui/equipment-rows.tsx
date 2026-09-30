@@ -10,6 +10,7 @@ import { STATUS_VISUAL, statusInk } from '@/shared/config/status-visual';
 import { cn } from '@/shared/lib/cn';
 import { EQUIPMENT_SIGNAL_LABELS, type Equipment } from '@/entities/equipment';
 import { WALL_GRADE_SM, WALL_LABEL, WALL_META } from '../config/constants';
+import styles from './equipment-rows.module.scss';
 
 /**
  * 설비 — **대당 한 줄.**
@@ -28,14 +29,14 @@ export function EquipmentRows({ items, online }: { items: Equipment[]; online: b
   if (!online) {
     /* 두절이면 «정상»이 아니라 모른다 — 등급을 그리지 않는다(E4) */
     return (
-      <p className={cn('m-auto text-center text-fg-subtle', WALL_META)}>
+      <p className={cn(styles.offline, WALL_META)}>
         통신이 두절되어 설비 상태를 확인할 수 없습니다
       </p>
     );
   }
 
   return (
-    <ul className="wall-gap-sm flex min-h-0 flex-1 flex-col justify-between">
+    <ul className={cn('wall-gap-sm', styles.list)}>
       {items.map((item) => {
         const visual = STATUS_VISUAL[item.status];
         const state = operatingStateOf(item.running);
@@ -43,21 +44,21 @@ export function EquipmentRows({ items, online }: { items: Equipment[]; online: b
         return (
           <li
             key={item.id}
-            className="wall-row-pad flex min-w-0 items-center gap-3 rounded-nested border border-border bg-surface-2"
+            className={cn('wall-row-pad', styles.row)}
           >
             <span
               aria-hidden
-              className="size-2.5 shrink-0 rounded-full"
+              className={styles.dot}
               style={{ backgroundColor: OPERATING_FILL[state] }}
             />
-            <span className={cn('min-w-0 flex-1 truncate', WALL_LABEL)}>{item.name}</span>
-            <span className={cn('shrink-0 text-fg-subtle', WALL_META)}>
+            <span className={cn(styles.name, WALL_LABEL)}>{item.name}</span>
+            <span className={cn(styles.signals, WALL_META)}>
               {item.signals.length > 0
                 ? item.signals.map((signal) => EQUIPMENT_SIGNAL_LABELS[signal]).join(' · ')
                 : OPERATING_LABELS[state]}
             </span>
             <span
-              className={cn('shrink-0', WALL_GRADE_SM)}
+              className={cn(styles.grade, WALL_GRADE_SM)}
               style={{ color: statusInk(visual) }}
             >
               {PROVISIONAL_STATUS_LABELS[item.status]}

@@ -1,0 +1,124 @@
+@use 'shared/styles' as *;
+
+.root {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: sp(3);
+}
+
+.summary {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: sp(5);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-nested);
+  background-color: var(--surface-2);
+  @include transition-colors(500ms);
+}
+
+.summaryFlashing {
+  background-color: var(--accent-weak);
+}
+
+.total {
+  flex-shrink: 0;
+}
+
+.totalLabel {
+  color: var(--fg-subtle);
+}
+
+.totalValue {
+  margin-top: sp(1.5);
+  display: flex;
+  align-items: baseline;
+  gap: sp(1.5);
+}
+
+.totalCount {
+  color: var(--fg);
+}
+
+.priorities {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.priority {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: sp(3);
+  border-radius: var(--radius-chip);
+  background-color: var(--surface);
+}
+
+.priorityName {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: sp(2);
+}
+
+.priorityDot {
+  width: sp(2.5);
+  height: sp(2.5);
+  flex-shrink: 0;
+  border-radius: calc(infinity * 1px);
+}
+
+.priorityLabel {
+  @include truncate;
+}
+
+.priorityCount {
+  flex-shrink: 0;
+}
+
+.recent {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+}
+
+.recentRow {
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-nested);
+  background-color: var(--surface-2);
+}
+
+.recentHead {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  gap: sp(2);
+}
+
+.recentDot {
+  width: sp(2);
+  height: sp(2);
+  flex-shrink: 0;
+  translate: 0 -2px;
+  border-radius: calc(infinity * 1px);
+}
+
+.recentTitle {
+  min-width: 0;
+  flex: 1;
+  @include truncate;
+}
+
+.recentCondition {
+  margin-top: sp(1);
+  @include truncate;
+  color: var(--fg-subtle);
+}

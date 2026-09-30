@@ -12,6 +12,7 @@ import {
 } from '../config/constants';
 import { niceCeil, trendTicks } from '../lib/trend-axis';
 import { WallSpark } from './wall-spark';
+import styles from './wall-trend.module.scss';
 
 /**
  * 축이 있는 추이 — **벽에는 마우스가 없어서 눈금을 글자로 적는다.**
@@ -65,8 +66,8 @@ export function WallTrend({
   const lastIndex = times.length - 1;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex min-w-0 gap-2">
+    <div className={styles.root}>
+      <div className={styles.row}>
         {/*
          * 세로 눈금. **절대 위치로 격자선에 정확히 맞춘다** — `justify-between`으로 늘어놓으면
          * 맨 위·아래 라벨이 글자 높이의 절반만큼 안쪽으로 밀려, 천장 눈금이 천장보다 낮은
@@ -74,23 +75,23 @@ export function WallTrend({
          *
          * 폭은 `ch`라 글자 크기를 따라간다 — 화면이 커지면 글자와 함께 넓어진다.
          */}
-        <div className={cn('wall-axis-y relative shrink-0 text-fg-subtle', WALL_META)}>
+        <div className={cn('wall-axis-y', styles.axisY, WALL_META)}>
           {WALL_TREND_GRID_AT.map((fraction) => (
             <span
               key={fraction}
-              className="num absolute right-0 -translate-y-1/2"
+              className={cn('num', styles.axisYTick)}
               style={{ top: `${fraction * 100}%` }}
             >
               {formatValue(code, top * (1 - fraction))}
             </span>
           ))}
-          <span className="num absolute right-0 bottom-0 translate-y-1/2">
+          <span className={cn('num', styles.axisYZero)}>
             {formatValue(code, 0)}
           </span>
         </div>
 
         {/* 바닥의 hairline이 «0 축선»이다 — 격자선(파선)과 갈라 놓는다 */}
-        <div className="min-w-0 flex-1 border-b border-border">
+        <div className={styles.plot}>
           <WallSpark
             values={values}
             className={WALL_SPARK_CLASS}
@@ -104,17 +105,17 @@ export function WallTrend({
        * 가로 눈금. 세로 눈금 칸만큼 비우고 시작해야 **`0` 라벨 아래가 아니라 그림 아래**에 선다.
        * 맨 끝 라벨은 오른쪽 밖으로 나가지 않게 안쪽으로 붙인다.
        */}
-      <div className="flex min-w-0 gap-2">
-        <div className="wall-axis-y shrink-0" aria-hidden />
-        <div className={cn('relative min-w-0 flex-1 text-fg-subtle', WALL_META)}>
+      <div className={styles.row}>
+        <div className={cn('wall-axis-y', styles.axisGap)} aria-hidden />
+        <div className={cn(styles.axisX, WALL_META)}>
           {/* 라벨 한 줄 높이를 흐름으로 확보한다 — 절대 위치만 두면 줄이 접힌다 */}
-          <span className="invisible">0</span>
+          <span className={styles.strut}>0</span>
           {ticks.map((tick) => {
             const percent = (tick.index / Math.max(1, lastIndex)) * 100;
             return (
               <span
                 key={tick.index}
-                className="num absolute top-0 whitespace-nowrap"
+                className={cn('num', styles.axisXTick)}
                 style={{
                   left: `${percent}%`,
                   transform: percent > 95 ? 'translateX(-100%)' : 'translateX(-50%)',
@@ -127,7 +128,7 @@ export function WallTrend({
         </div>
       </div>
 
-      <p className={cn('mt-auto flex justify-between pt-2 text-fg-subtle', WALL_META)}>
+      <p className={cn(styles.footnote, WALL_META)}>
         <span>{missing > 0 ? `결측 ${missing}건` : '결측 없음'}</span>
         {/* 바닥에 닿은 구간은 **받은 값이 0**이지 못 받은 것이 아니다(E4) */}
         <span>방류를 멈춘 구간은 0</span>

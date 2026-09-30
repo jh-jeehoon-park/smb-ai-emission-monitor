@@ -18,20 +18,18 @@ import {
   type AlarmState,
 } from '@/entities/alarm';
 import { AlarmStateActions } from '@/features/alarm-ack';
+import styles from './alarm-row.module.scss';
 
-/* 마크 색(--{level})은 3:1만 만족한다. 글자에는 4.5:1을 맞춘 --{level}-ink를 쓴다 */
 const PRIORITY_CHIP: Record<AlarmPriority, string> = {
-  urgent: 'bg-chip-critical text-critical-ink',
-  caution: 'bg-chip-warning text-warning-ink',
-  /* 원문 팔레트의 `정보 활성화` = 파랑. `알람 목록`의 우선순위 칩과 같은 값이다 */
-  info: 'bg-chip-info text-info-ink',
+  urgent: styles.priorityUrgent,
+  caution: styles.priorityCaution,
+  info: styles.priorityInfo,
 };
 
-/* 상태는 등급이 아니다 — 상태색을 쓰지 않고 중립 면의 밝기로 셋을 가른다 */
 const STATE_CHIP: Record<AlarmState, string> = {
-  open: 'bg-surface-3 text-fg',
-  acknowledged: 'bg-surface-2 text-fg-muted',
-  resolved: 'bg-surface-2 text-fg-subtle',
+  open: styles.stateOpen,
+  acknowledged: styles.stateAcknowledged,
+  resolved: styles.stateResolved,
 };
 
 /**
@@ -54,11 +52,7 @@ export function AlarmRow({
   onOpen: () => void;
 }) {
   return (
-    /*
-     * **줄이 상세 모달로 데려간다**(§8 `누르는 줄`) — hover에서 면을 한 단 올리고 누르는
-     * 동안 한 단 내린다. 눌렀다는 것이 손을 떼기 전에 보인다.
-     */
-    <div className="relative flex flex-wrap items-start gap-x-3 gap-y-2 rounded-nested py-3 transition-colors duration-200 hover:bg-surface-2 active:bg-surface-3">
+    <div className={styles.row}>
       {/*
        * **줄 아무 데나 눌러도 열린다** — 덮개 버튼이다 `[사용자 요청 2026-09-08]`.
        *
@@ -74,17 +68,17 @@ export function AlarmRow({
         aria-hidden
         tabIndex={-1}
         onClick={onOpen}
-        className="absolute inset-0 z-10 cursor-pointer rounded-nested"
+        className={styles.cover}
       />
 
-      <div className="min-w-0 flex-1 basis-[280px]">
+      <div className={styles.body}>
         {/*
          * 제목은 글자로 둔다. 예전에는 이것만이 모달로 가는 유일한 입구였는데, 밑줄을 투명하게
          * 두어 **가만히 있을 때는 굵은 글자와 구분되지 않았다** — 상세가 있다는 사실 자체가
          * 화면에 없었다(§8 `상세 이동`: "글자는 누를 수 있다는 신호가 약하다").
          */}
-        <p className="text-[14px] font-bold leading-snug text-fg">{alarm.title}</p>
-        <p className="mt-1.5 line-clamp-2 max-w-[60ch] text-[13px] leading-relaxed text-fg-muted">
+        <p className={styles.title}>{alarm.title}</p>
+        <p className={styles.detail}>
           {alarm.detail}
         </p>
 
@@ -97,7 +91,7 @@ export function AlarmRow({
          *
          * 둘 사이는 세로선으로 가른다 — 간격만으로는 줄바꿈됐을 때 어디까지가 분류인지 사라진다.
          */}
-        <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1.5">
+        <div className={styles.meta}>
           {/*
            * **등급과 우선순위는 다른 축이다** `[원문 발표 p.20 그림]` — 그 표가
            * `등급 · 구분 · 발생 시간 · 우선순위` 순서로 둘을 양 끝에 둔다. 대응 규칙은 원문에
@@ -105,17 +99,17 @@ export function AlarmRow({
            * 조건 칩을 끼워** 위험(빨강)과 긴급(빨강)이 붙어 한 덩어리로 보이지 않게 한다.
            */}
           <StatusBadge level={alarm.level} />
-          <span className={cn(BADGE_BASE, 'bg-surface-3 text-fg-muted')}>
+          <span className={cn(BADGE_BASE, styles.conditionChip)}>
             {ALARM_CONDITION_LABELS[alarm.condition]}
           </span>
-          <span className={cn(BADGE_BASE, 'font-medium', PRIORITY_CHIP[alarm.priority])}>
+          <span className={cn(BADGE_BASE, styles.priorityChip, PRIORITY_CHIP[alarm.priority])}>
             {ALARM_PRIORITY_LABELS[alarm.priority]}
           </span>
 
-          <span aria-hidden className="h-3 w-px shrink-0 bg-border" />
+          <span aria-hidden className={styles.metaDivider} />
 
-          <span className="flex flex-wrap items-center gap-x-1.5 text-[12px] text-fg-subtle">
-            <span className="truncate">{alarm.siteName}</span>
+          <span className={styles.context}>
+            <span className={styles.siteName}>{alarm.siteName}</span>
             <span aria-hidden>·</span>
             <span className="num">
               {formatDateTime(alarm.raisedAtIso)} {DISPLAY_TIMEZONE}
@@ -127,7 +121,7 @@ export function AlarmRow({
           {/* 방류하지 않는 동안의 수질값은 배출 수질이 아니다. 배출기준 초과로 읽히면 안 된다 */}
           {raisedWhileNotDischarging(alarm) && (
             <span
-              className={cn(BADGE_BASE, 'bg-chip-caution')}
+              className={cn(BADGE_BASE, styles.notDischargingChip)}
               style={{ color: statusInk(STATUS_VISUAL.caution) }}
             >
               비방류 중 발생
@@ -138,10 +132,9 @@ export function AlarmRow({
 
       {/*
        * 이 화면의 본업 — 처리 상태와 그 조작. 오른쪽 끝에 고정해 세로로 훑힌다.
-       * 덮개 위로 올린다(`z-20`) — 아니면 덮개가 먹어 확인 처리 대신 모달이 열린다.
        */}
-      <div className="relative z-20 flex shrink-0 items-center gap-2">
-        <span className={cn(BADGE_BASE, 'whitespace-nowrap', STATE_CHIP[alarm.state])}>
+      <div className={styles.actions}>
+        <span className={cn(BADGE_BASE, styles.stateChip, STATE_CHIP[alarm.state])}>
           {ALARM_STATE_LABELS[alarm.state]}
         </span>
 
@@ -154,7 +147,7 @@ export function AlarmRow({
           type="button"
           onClick={onOpen}
           aria-label={`${alarm.title} 상세 보기`}
-          className={`${ACTION_LINK} text-fg-subtle`}
+          className={cn(ACTION_LINK, styles.detailLink)}
         >
           상세
           <ChevronRight aria-hidden size={14} strokeWidth={2} />

@@ -10,6 +10,7 @@ import { SPARK_H_PX } from '../config/constants';
 import type { ComparePoint, InOutCompare, PointReading } from '../lib/point-readings';
 import { SectionPanel } from './section-panel';
 import { TrendRail } from './trend-rail';
+import styles from './flow-aside.module.scss';
 
 /**
  * 물의 양 — **보조다.**
@@ -38,7 +39,7 @@ export function FlowAside({
     <SectionPanel
       title="물의 양 — 흐르고 있는가"
       aside={
-        <p className="rounded-chip bg-surface-3 px-2 py-0.5 text-[12px] text-fg-muted">
+        <p className={styles.dischargeChip}>
           {dischargingNow === null ? '방류 여부 모름' : dischargingNow ? '방류 중' : '방류 없음'}
         </p>
       }
@@ -51,7 +52,7 @@ export function FlowAside({
        * 안에 머리 띠(`유입수`·`유출수`)가 붙는다. 이름이 값과 같은 크기의 글자로 흩어져
        * 있던 판본에서는 어느 숫자가 어느 지점 것인지 가운데 `유입 − 유출`까지 읽어야 알았다.
        */}
-      <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:items-stretch lg:gap-4">
+      <div className={styles.columns}>
         <Pillar point={compare.inlet} pending={pending} />
         <Held compare={compare} pending={pending} reuse={reuse} />
         <Pillar point={compare.outlet} pending={pending} align="right" />
@@ -72,35 +73,30 @@ function Pillar({
   const right = align === 'right';
 
   return (
-    <section className="flex flex-col overflow-hidden rounded-nested border border-border">
+    <section className={styles.pillar}>
       {/* 머리 띠 — 어느 지점인지가 값보다 먼저 읽혀야 한다 */}
-      <p
-        className={cn(
-          'border-b border-border bg-surface-2 px-3 py-1.5 text-[12px] font-semibold uppercase tracking-wide text-fg-subtle',
-          right && 'text-right',
-        )}
-      >
+      <p className={cn(styles.pillarHead, right && styles.alignRight)}>
         {point.label}
       </p>
 
-      <div className={cn('flex flex-1 flex-col gap-2 px-3 py-2.5', right && 'items-end text-right')}>
+      <div className={cn(styles.pillarBody, right && styles.pillarBodyRight)}>
       {pending ? (
-        <span className="block h-6 w-28 animate-pulse rounded-chip bg-surface-3" />
+        <span className={cn(styles.flowSkeleton, 'pulse')} />
       ) : point.flow.unreceived ? (
-        <p className="text-[12px] leading-relaxed text-fg-subtle">
+        <p className={styles.unreceived}>
           이 사업장은 {point.flow.label}을 받지 않습니다
         </p>
       ) : point.flow.value === null ? (
-        <p className="text-[12px] text-fg-subtle">최근 24시간 수신 없음</p>
+        <p className={styles.note}>최근 24시간 수신 없음</p>
       ) : (
-        <p className="flex items-baseline gap-1.5">
+        <p className={styles.reading}>
           <span
-            className="num text-[22px] font-bold leading-none tracking-tight"
+            className={cn('num', styles.flowValue)}
             style={{ color: ACTUAL_HEX }}
           >
             {point.flow.valueText}
           </span>
-          <span className="text-[12px] text-fg-subtle">{point.flow.unit}</span>
+          <span className={styles.note}>{point.flow.unit}</span>
         </p>
       )}
 
@@ -109,7 +105,7 @@ function Pillar({
        * 1분쯤 뒤에 써서 맨 끝 칸이 늘 비는데, 그 사실을 감추면 옛 값이 현재값으로 읽힌다.
        */}
       {!pending && point.flow.observedIso && (
-        <p className="num text-[12px] text-fg-subtle">
+        <p className={cn('num', styles.note)}>
           {`${formatClock(point.flow.observedIso)} ${DISPLAY_TIMEZONE} 관측`}
         </p>
       )}
@@ -119,17 +115,12 @@ function Pillar({
           values={point.history}
           average={point.flow.average}
           color={ACTUAL_HEX}
-          className="w-full"
+          className={styles.rail}
           {...{ style: { height: SPARK_H_PX } }}
         />
       )}
 
-      <dl
-        className={cn(
-          'mt-auto flex flex-wrap gap-x-4 gap-y-1 border-t border-border pt-2',
-          right && 'justify-end',
-        )}
-      >
+      <dl className={cn(styles.asides, right && styles.asidesRight)}>
         {point.aside.map((reading) => (
           <Aside key={reading.code} reading={reading} pending={pending} />
         ))}
@@ -171,29 +162,29 @@ function Held({
      * 그래서 **한 단 물렸다** — `font-semibold` + `--fg-muted`. 값·부호·단위는 그대로이고
      * 새 문구도 붙이지 않았다. 판정하지 않는 값이 판정하는 값보다 조용해진 것뿐이다.
      */
-    <section className="flex flex-col items-center justify-center gap-1 lg:w-[160px]">
-      <span aria-hidden className="flex w-full items-center gap-1">
-        <span className="h-px flex-1 bg-border-strong" />
-        <span className="size-2 shrink-0 rotate-45 border-r-2 border-t-2 border-border-strong" />
-        <span className="h-px flex-1 bg-border-strong" />
+    <section className={styles.held}>
+      <span aria-hidden className={styles.connector}>
+        <span className={styles.connectorLine} />
+        <span className={styles.connectorHead} />
+        <span className={styles.connectorLine} />
       </span>
 
-      <p className="mt-1 text-[12px] font-semibold uppercase tracking-wide text-fg-subtle">
+      <p className={styles.heldLabel}>
         유입 − 유출
       </p>
 
       {pending ? (
-        <span className="block h-6 w-16 animate-pulse rounded-chip bg-surface-3" />
+        <span className={cn(styles.heldSkeleton, 'pulse')} />
       ) : compare.held !== null ? (
-        <p className="flex items-baseline gap-1">
-          <span className="num text-[22px] font-semibold leading-none tracking-tight text-fg-muted">
+        <p className={styles.heldReading}>
+          <span className={cn('num', styles.heldValue)}>
             {compare.heldText}
           </span>
-          <span className="text-[12px] text-fg-subtle">{MEASUREMENT_ITEMS.inflow.unit}</span>
+          <span className={styles.note}>{MEASUREMENT_ITEMS.inflow.unit}</span>
         </p>
       ) : (
         /* 한쪽이라도 모르면 모른다 — 0으로 채우면 «머문 양 0»이라는 사실 주장이 된다(E4) */
-        <p className="text-[12px] text-fg-subtle">수신 없음</p>
+        <p className={styles.note}>수신 없음</p>
       )}
 
       {/*
@@ -203,7 +194,7 @@ function Held({
        * 44 아래 적혀 모순으로 읽혔다). 양은 입력한 자릿수 그대로다.
        */}
       {!pending && reuse.status === 'partial' && (
-        <p className="mt-1 text-center text-[12px] leading-snug text-fg-subtle">
+        <p className={styles.reuse}>
           처리수 일부 재이용
           <br />
           {reuse.dailyM3 === null
@@ -217,17 +208,17 @@ function Held({
 
 function Aside({ reading, pending }: { reading: PointReading; pending: boolean }) {
   return (
-    <div className="flex items-baseline gap-1.5">
-      <dt className="text-[12px] text-fg-subtle">{reading.label}</dt>
-      <dd className="flex items-baseline gap-1">
+    <div className={styles.aside}>
+      <dt className={styles.note}>{reading.label}</dt>
+      <dd className={styles.asideValue}>
         {pending ? (
-          <span className="block h-4 w-10 animate-pulse rounded-chip bg-surface-3" />
+          <span className={cn(styles.asideSkeleton, 'pulse')} />
         ) : reading.value === null ? (
-          <span className="text-[12px] text-fg-subtle">수신 없음</span>
+          <span className={styles.note}>수신 없음</span>
         ) : (
           <>
-            <span className="num text-[14px] font-bold text-fg">{reading.valueText}</span>
-            {reading.unit && <span className="text-[12px] text-fg-subtle">{reading.unit}</span>}
+            <span className={cn('num', styles.asideNumber)}>{reading.valueText}</span>
+            {reading.unit && <span className={styles.note}>{reading.unit}</span>}
           </>
         )}
       </dd>

@@ -1,0 +1,15 @@
+@use 'shared/styles' as *;
+
+/* 머리글은 `className`으로 호출부가 덮는다 — 그래서 `components` 레이어다 */
+@layer components {
+  .root {
+    font-size: 12px;
+    color: var(--fg-subtle);
+  }
+
+  /* 라틴 표기에만 — 한글은 자간을 벌리면 낱글자로 흩어져 읽힌다 */
+  .latin {
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+  }
+}

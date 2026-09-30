@@ -11,6 +11,7 @@ import { cn } from '@/shared/lib/cn';
 import { BAND_ROW_H_PX, MIN_BAND_PX, TICK_HOURS, WINDOW_HOURS } from '../config/constants';
 import type { Band, RunBands } from '../lib/run-bands';
 import { SectionPanel } from './section-panel';
+import styles from './duty-lanes.module.scss';
 
 /**
  * **가동 ↔ 방류 두 줄** — 이 화면 전용으로 새로 짠다.
@@ -42,11 +43,11 @@ export function DutyLanes({
     <SectionPanel
       title="방지시설 가동과 방류"
       aside={
-        <span className="text-[12px] text-fg-subtle">빗금은 통신 두절 — 0으로 채우지 않습니다</span>
+        <span className={styles.aside}>빗금은 통신 두절 — 0으로 채우지 않습니다</span>
       }
-      bodyClassName="space-y-2 p-5"
+      bodyClassName={styles.body}
     >
-      <div className="text-[12px] text-fg-muted">
+      <div className={styles.window}>
         {`최근 ${WINDOW_HOURS}시간 · ${COLLECTION_INTERVAL_MINUTES}분 주기 (${DISPLAY_TIMEZONE})`}
       </div>
 
@@ -56,7 +57,7 @@ export function DutyLanes({
        * 레인이 여백 위에 떠 있던 것을 hairline 상자로 묶어 «이 둘은 같은 시간축»이 형태로
        * 읽히게 했다(카드·유량 그래프와 같은 틀이라 화면 안에서 어휘가 하나다).
        */}
-      <div className="space-y-1.5 rounded-nested border border-border bg-surface-2 px-3 py-2.5">
+      <div className={styles.lanes}>
         <BandRow
           label="가동"
           bands={bands.running}
@@ -75,25 +76,25 @@ export function DutyLanes({
         />
       </div>
 
-      <div className="flex items-baseline justify-between text-[12px] text-fg-subtle">
+      <div className={styles.axis}>
         <span>{`${WINDOW_HOURS}시간 전`}</span>
         <span className="num">{`${formatClock(observedAtIso)} ${DISPLAY_TIMEZONE}`}</span>
       </div>
 
-      <p className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[12px]">
+      <p className={styles.summary}>
         {bands.judgeable ? (
-          <span className={bands.suspect.length > 0 ? 'text-critical-ink' : 'text-fg-muted'}>
+          <span className={bands.suspect.length > 0 ? styles.suspect : styles.clear}>
             {bands.suspect.length > 0
               ? `방지시설이 멈춘 채 방류가 이어진 구간 ${bands.suspect.length}건`
               : '두 줄이 어긋난 구간이 없습니다'}
           </span>
         ) : (
           /* 전 구간 결측이면 0건이 아니라 모름이다 — 0건은 «확인했더니 없었다»는 주장이다(E4) */
-          <span className="text-fg-subtle">전 구간 수신 없음 — 판정할 수 없습니다</span>
+          <span className={styles.unknown}>전 구간 수신 없음 — 판정할 수 없습니다</span>
         )}
         <Link
           href={anomalyHref}
-          className={`${TAP_AREA_Y} inline-flex items-center gap-0.5 text-fg-subtle transition-colors duration-200 hover:text-accent`}
+          className={cn(TAP_AREA_Y, styles.anomalyLink)}
         >
           이상 탐지에서 보기
           <ArrowRight aria-hidden size={14} strokeWidth={2} />
@@ -119,11 +120,11 @@ function BandRow({
   suspect?: Band[];
 }) {
   return (
-    <div className="flex items-center gap-2">
-      <span className="w-9 shrink-0 text-[12px] text-fg-muted">{label}</span>
+    <div className={styles.row}>
+      <span className={styles.rowLabel}>{label}</span>
 
       <div
-        className="relative flex-1 overflow-hidden rounded-chip bg-surface"
+        className={styles.track}
         style={{ height: BAND_ROW_H_PX, boxShadow: 'var(--track-inset)' }}
       >
         {bands.map((b) => (
@@ -152,7 +153,7 @@ function BandRow({
           <span
             key={i}
             aria-hidden
-            className="absolute inset-y-0 w-px bg-border-strong"
+            className={styles.tick}
             style={{ left: `${(i / ticks) * 100}%`, opacity: 0.45 }}
           />
         ))}
@@ -165,7 +166,7 @@ function Segment({ band, style }: { band: Band; style: React.CSSProperties }) {
   return (
     <span
       aria-hidden
-      className={cn('absolute inset-y-0')}
+      className={cn(styles.segment)}
       style={{
         left: `${band.fromPct}%`,
         /* 아주 짧은 구간도 한 줄기로는 보이게 한다 — 0폭이면 그 사실이 화면에서 사라진다 */

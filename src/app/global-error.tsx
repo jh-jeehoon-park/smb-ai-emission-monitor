@@ -8,11 +8,11 @@ import { NOTICE_ERROR, NOTICE_RETRY_LABEL } from '@/shared/config/notices';
  * root layout까지 무너졌을 때의 마지막 화면 `[사용자 요청 2026-09-15]`.
  *
  * **이 파일은 문서를 통째로 대신한다** — `<html>`·`<body>`를 직접 그려야 하고, 그 대가로
- * **`globals.css`가 적용되지 않는다**(Next 문서가 못박는다). 그래서 여기서는 토큰(`--fg`·
+ * **`globals.scss`가 적용되지 않는다**(Next 문서가 못박는다). 그래서 여기서는 토큰(`--fg`·
  * `--surface`…)이 아무 값도 갖지 않는다 — `Notice`·`BrandMark` 같은 부품을 쓸 수 없고,
  * R9(토큰만 쓴다)가 성립하지 않는 **이 저장소의 유일한 자리**다.
  *
- * **그래서 색을 손으로 적는다.** 팔레트는 `globals.css`의 `--bg`·`--surface`·`--fg`·
+ * **그래서 색을 손으로 적는다.** 팔레트는 `globals.scss`의 `--bg`·`--surface`·`--fg`·
  * `--fg-muted`·`--border`·`--accent`에서 그대로 베껴 온 여섯 값이고, 아래 `<style>` 안에만 산다.
  * 값이 갈릴 위험이 있지만 **그것이 이 화면이 뜨는 상황보다 낫다** — 앱이 무너진 마당에
  * 스타일시트를 불러오려다 또 무너지는 것이 더 나쁘다.
@@ -68,8 +68,8 @@ export default function GlobalError({
 }
 
 /**
- * `globals.css`에서 베낀 여섯 값. **라이트가 기본이고 다크가 덮는다** — 스크립트가 막힌
- * 순간에도 읽히게 하려는 것이며 `globals.css`가 이미 그 방향이다.
+ * `globals.scss`에서 베낀 여섯 값. **라이트가 기본이고 다크가 덮는다** — 스크립트가 막힌
+ * 순간에도 읽히게 하려는 것이며 `globals.scss`가 이미 그 방향이다.
  */
 const STYLE = `
 :root{--bg:#f1f4f8;--surface:#ffffff;--fg:#0f1620;--fg-muted:#48566a;--border:#e3e8ef;--accent:#0d47a1}

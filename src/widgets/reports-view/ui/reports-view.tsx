@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react';
 import { MEASUREMENT_ITEMS } from '@/shared/config/measurement';
 import { PROVISIONAL_DISPLAY_DECIMALS, PROVISIONAL_STATUS_LABELS } from '@/shared/config/provisional';
 import { STATUS_VISUAL, statusInk } from '@/shared/config/status-visual';
+import { cn } from '@/shared/lib/cn';
 import { csvFileName, downloadCsv } from '@/shared/lib/csv';
 import { DISPLAY_TIMEZONE, formatDateTime, formatValue } from '@/shared/lib/format';
 import { DEMO_NOW_ISO } from '@/shared/config/demo';
@@ -45,6 +46,7 @@ import {
 } from '../lib/build-sensor-report';
 import { InfoTip } from '@/shared/ui/tooltip';
 import { ACTION_BUTTON_QUIET } from '@/shared/ui/action-button';
+import styles from './reports-view.module.scss';
 
 export function ReportsView() {
   const [period, setPeriod] = useQueryState(PERIOD_QUERY_KEY, PERIOD_HOURS, '24');
@@ -116,7 +118,7 @@ export function ReportsView() {
     downloadCsv(csvFileName('센서통계', DEMO_NOW_ISO, hours), sensorReportToCsv(sensors));
 
   return (
-    <div className="space-y-6">
+    <div className={styles.root}>
       <Panel
         /* 한 줄짜리를 `사업장별`이라 부르면 거짓이 된다 — 관할도 여러 곳이라 `사업장별`이 맞다 */
         title={rows.length === 1 ? '배출 집계' : '사업장별 배출 집계'}
@@ -128,7 +130,7 @@ export function ReportsView() {
           />
         }
         action={
-          <div className="flex flex-wrap items-center gap-2">
+          <div className={styles.actions}>
             {/* 사업장은 자사 1개소뿐이라 고를 것이 없다 */}
             <div className="role-hide-site">
               <SegmentedControl
@@ -158,7 +160,7 @@ export function ReportsView() {
         <ReportTable rows={rows} />
       </Panel>
 
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      <div className={styles.tiles}>
         <StatTile label="집계 대상" value={`${rows.length}개소`} note={`최근 ${hours}시간`} />
         <StatTile
           label="누적 알람"
@@ -243,9 +245,9 @@ export function ReportsView() {
       </Panel>
 
       <Panel title="이 리포트가 정하지 않은 것">
-        <p className="max-w-[86ch] text-[12px] leading-relaxed text-fg-muted">
+        <p className={styles.notice}>
           원문은 &ldquo;유지관리·리포트·운영지원 포함 통합 서비스&rdquo;라고만 적고{' '}
-          <strong className="text-fg">리포트 항목·양식·발행 주기를 규정하지 않았다</strong>(FR-38).
+          <strong className={styles.noticeStrong}>리포트 항목·양식·발행 주기를 규정하지 않았다</strong>(FR-38).
           그래서 여기서는 화면에 이미 있는 값만 모아 보여주고, 일간·주간·월간 같은 주기나 법정
           서식은 임의로 만들지 않았다. 집계 구간도 시연 데이터가 가진 축적 구간 24시간 안에서만
           고른다. 기준 시각은 {formatDateTime(DEMO_NOW_ISO)} {DISPLAY_TIMEZONE}이다.
@@ -262,21 +264,21 @@ export function ReportsView() {
  * 두절은 애초에 받지 못한 것이다. 두절을 0으로 적으면 배출이 없었다고 주장하게 된다(E4).
  */
 function DischargeCell({ hours, windowHours }: { hours: number | null; windowHours: number }) {
-  if (hours === null) return <span className="text-[12px] text-fg-subtle">—</span>;
+  if (hours === null) return <span className={styles.dischargeUnknown}>—</span>;
 
   if (hours === 0) {
     return (
-      <span className="text-[12px]" style={{ color: statusInk(STATUS_VISUAL.caution) }}>
+      <span className={styles.dischargeNone} style={{ color: statusInk(STATUS_VISUAL.caution) }}>
         배출 없음
       </span>
     );
   }
 
   return (
-    <span className="num text-fg-muted">
+    <span className={cn('num', styles.dischargeHours)}>
       {/* 올리지 않는다 — 23.9시간을 24로 적으면 확인되지 않은 시간을 방류로 주장하게 된다 */}
       {Math.floor(hours)}
-      <span className="text-fg-subtle">/{windowHours}h</span>
+      <span className={styles.dischargeWindow}>/{windowHours}h</span>
     </span>
   );
 }
@@ -284,7 +286,7 @@ function DischargeCell({ hours, windowHours }: { hours: number | null; windowHou
 function ReportTable({ rows }: { rows: SiteReportRow[] }) {
   return (
     <div className={TABLE_SCROLL}>
-      <table className={`${TABLE_ROOT} min-w-[860px] text-[12px] text-center`}>
+      <table className={cn(TABLE_ROOT, styles.reportTable)}>
         <thead>
           <tr className={TABLE_HEAD_ROW}>
             <th className={TABLE_HEAD_CELL}>사업장</th>
@@ -304,42 +306,42 @@ function ReportTable({ rows }: { rows: SiteReportRow[] }) {
             const ink = row.status ? statusInk(STATUS_VISUAL[row.status]) : 'var(--fg-subtle)';
             return (
               <tr key={row.siteId} className={TABLE_ROW}>
-                <td className="px-3 py-3.5">
-                  <span className="block text-fg">{row.siteName}</span>
-                  <span className="block text-[12px] text-fg-subtle">
+                <td className={styles.cell}>
+                  <span className={styles.siteName}>{row.siteName}</span>
+                  <span className={styles.siteMeta}>
                     {row.region} · {row.industry}
                   </span>
                 </td>
-                <td className="px-3 py-3.5">
+                <td className={styles.cell}>
                   {row.status ? (
                     <StatusBadge level={row.status} />
                   ) : (
-                    <span className="text-[12px] text-fg-subtle">수신 없음</span>
+                    <span className={styles.statusMissing}>수신 없음</span>
                   )}
                 </td>
-                <td className="px-3 py-3.5 text-center">
+                <td className={styles.value}>
                   <DischargeCell hours={row.dischargeHours} windowHours={row.windowHours} />
                 </td>
-                <td className="num px-3 py-3.5 text-center" style={{ color: ink }}>
+                <td className={cn('num', styles.value)} style={{ color: ink }}>
                   {row.latestScore ?? '—'}
                 </td>
-                <td className="num px-3 py-3.5 text-center text-fg-muted">{row.maxScore ?? '—'}</td>
-                <td className="num px-3 py-3.5 text-center text-fg-muted">
+                <td className={cn('num', styles.valueMuted)}>{row.maxScore ?? '—'}</td>
+                <td className={cn('num', styles.valueMuted)}>
                   {row.avgScore === null
                     ? '—'
                     : row.avgScore.toFixed(PROVISIONAL_DISPLAY_DECIMALS.anomalyScoreAverage)}
                 </td>
-                <td className="num px-3 py-3.5 text-center text-fg-subtle">
+                <td className={cn('num', styles.valueSubtle)}>
                   {row.missingCount > 0 ? `${row.missingCount}/${row.totalCount}` : '없음'}
                 </td>
-                <td className="num px-3 py-3.5 text-center text-fg-muted">
+                <td className={cn('num', styles.valueMuted)}>
                   {row.alarmsByPriority.urgent} · {row.alarmsByPriority.caution} ·{' '}
                   {row.alarmsByPriority.info}
                 </td>
-                <td className="num px-3 py-3.5 text-center text-fg-muted">
+                <td className={cn('num', styles.valueMuted)}>
                   {row.dataThroughput.toFixed(PROVISIONAL_DISPLAY_DECIMALS.dataThroughput)}%
                 </td>
-                <td className="num px-3 py-3.5 text-center text-fg-muted">
+                <td className={cn('num', styles.valueMuted)}>
                   {row.uptime.toFixed(PROVISIONAL_DISPLAY_DECIMALS.uptime)}%
                 </td>
               </tr>
@@ -366,9 +368,9 @@ const STAT_COLUMNS = ['최소', '평균', '최대', '최신', '결측'];
 function SensorTable({ rows, pending }: { rows: SensorReportRow[]; pending: boolean }) {
   return (
     <div className={TABLE_SCROLL}>
-      <table className={`${TABLE_ROOT} min-w-[680px] text-[12px] text-center`}>
+      <table className={cn(TABLE_ROOT, styles.sensorTable)}>
         {/* 대기 중임을 여기서 말한다 — `<td>` 사이에는 `role="status"`를 끼울 수 없다 */}
-        <caption className="sr-only">
+        <caption className={styles.caption}>
           센서 값 기간 통계.{pending && ` ${TELEMETRY_PENDING_NOTE}`}
         </caption>
         <thead>
@@ -387,18 +389,18 @@ function SensorTable({ rows, pending }: { rows: SensorReportRow[]; pending: bool
         <tbody>
           {rows.map((row) => (
             <tr key={row.code} className={TABLE_ROW}>
-              <td className="px-3 py-3.5">
-                <span className="font-semibold text-fg">{row.symbol}</span>
-                <span className="ml-1.5 text-[12px] text-fg-subtle">{row.label}</span>
+              <td className={styles.cell}>
+                <span className={styles.itemName}>{row.symbol}</span>
+                <span className={styles.secondary}>{row.label}</span>
               </td>
                 {/*
                * **단위를 기호와 한글로 함께 낸다** `[회의 피드백 2026-08-24]`. `NTU`·`Pt-Co`처럼
                * 기호만으로는 무엇의 단위인지 알 수 없다. 기호는 계측 사양의 표기라 그대로 두고
                * `[원문 p.55]` 한글을 아래 줄에 덧붙인다.
                */}
-              <td className="px-3 py-3.5">
-                <span className="text-fg-muted">{row.unit || '—'}</span>
-                <span className="mt-0.5 block text-[12px] leading-tight text-fg-subtle">
+              <td className={styles.cell}>
+                <span className={styles.unit}>{row.unit || '—'}</span>
+                <span className={styles.unitKo}>
                   {MEASUREMENT_ITEMS[row.code].unitKo}
                 </span>
               </td>
@@ -406,30 +408,30 @@ function SensorTable({ rows, pending }: { rows: SensorReportRow[]; pending: bool
                 <SkeletonCells count={STAT_COLUMNS.length} />
               ) : (
                 <>
-                  <td className="num px-3 py-3.5 text-center text-fg-muted">
+                  <td className={cn('num', styles.valueMuted)}>
                     {formatValue(row.code, row.stats.min)}
                   </td>
-                  <td className="num px-3 py-3.5 text-center text-fg">
+                  <td className={cn('num', styles.valueStrong)}>
                     {formatValue(row.code, row.stats.avg)}
                   </td>
-                  <td className="num px-3 py-3.5 text-center text-fg-muted">
+                  <td className={cn('num', styles.valueMuted)}>
                     {formatValue(row.code, row.stats.max)}
                   </td>
-                  <td className="num px-3 py-3.5 text-center text-fg">
+                  <td className={cn('num', styles.valueStrong)}>
                     {formatValue(row.code, row.stats.latest)}
                   </td>
-                  <td className="num px-3 py-3.5 text-center text-fg-subtle">
+                  <td className={cn('num', styles.valueSubtle)}>
                     {row.stats.missingCount}/{row.stats.totalCount}
                   </td>
                 </>
               )}
-              <td className="px-3 py-3.5">
+              <td className={styles.cell}>
                 {/* 기준이 없으면 `미판정`이다. `정상`으로 적으면 없는 판정을 만든다(E4) */}
                 <span
                   style={{
                     color: row.over ? statusInk(STATUS_VISUAL.critical) : undefined,
                   }}
-                  className={row.over === null ? 'text-fg-subtle' : undefined}
+                  className={row.over === null ? styles.verdictUnjudged : undefined}
                 >
                   {limitVerdictLabel(row.over)}
                 </span>
@@ -446,7 +448,7 @@ function SensorTable({ rows, pending }: { rows: SensorReportRow[]; pending: bool
 function EstimateTable({ rows }: { rows: EstimateReportRow[] }) {
   return (
     <div className={TABLE_SCROLL}>
-      <table className={`${TABLE_ROOT} min-w-[420px] text-[12px] text-center`}>
+      <table className={cn(TABLE_ROOT, styles.estimateTable)}>
         <thead>
           <tr className={TABLE_HEAD_ROW}>
             <th className={TABLE_HEAD_CELL}>항목</th>
@@ -458,19 +460,19 @@ function EstimateTable({ rows }: { rows: EstimateReportRow[] }) {
         <tbody>
           {rows.map((row) => (
             <tr key={row.code} className={TABLE_ROW}>
-              <td className="px-3 py-3.5">
-                <span className="font-semibold text-fg">{row.code}</span>
-                <span className="ml-1.5 text-[12px] text-fg-subtle">{row.label}</span>
+              <td className={styles.cell}>
+                <span className={styles.itemName}>{row.code}</span>
+                <span className={styles.secondary}>{row.label}</span>
               </td>
-              <td className="px-3 py-3.5 text-fg-subtle">{SERIES_ORIGIN_LABELS[row.origin]}</td>
-              <td className="px-3 py-3.5">
-                <span className="text-fg" style={{ color: row.verdict.ink }}>
+              <td className={styles.cellSubtle}>{SERIES_ORIGIN_LABELS[row.origin]}</td>
+              <td className={styles.cell}>
+                <span className={styles.verdict} style={{ color: row.verdict.ink }}>
                   {row.verdict.text}
                 </span>
                 {/* 무엇을 근거로 한 판정인지 적는다 — 기준 판정과 관측 판정이 한 열에 섞인다 */}
-                <span className="ml-1.5 text-[12px] text-fg-subtle">{row.verdict.basis}</span>
+                <span className={styles.secondary}>{row.verdict.basis}</span>
               </td>
-              <td className="px-3 py-3.5">
+              <td className={styles.cell}>
                 {/* 표에서는 배경 없는 변형을 쓴다 — 행마다 칩이 들어가면 표가 시끄러워진다 */}
                 <TrendChip trend={row.trend} bare />
               </td>

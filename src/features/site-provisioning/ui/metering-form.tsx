@@ -5,6 +5,7 @@ import { ACTION_BUTTON_QUIET } from '@/shared/ui/action-button';
 import { ToggleCard } from '@/shared/ui/toggle-card';
 import { useMetering } from '../model/use-metering';
 import { useProvisioningStore } from '../model/provisioning-context';
+import styles from './metering-form.module.scss';
 
 /** 그 사업장의 설비 — 목록은 화면이 넘긴다(이 feature는 설비 도메인을 모른다) */
 export interface MeterableUnit {
@@ -33,7 +34,7 @@ export function MeteringForm({ siteId, units }: { siteId: string; units: Meterab
     setMeteredEquipment(siteId, next ? [...ids, id] : ids.filter((x) => x !== id));
 
   if (units.length === 0) {
-    return <p className="text-[12px] text-fg-subtle">이 사업장의 설비 목록이 아직 없습니다.</p>;
+    return <p className={styles.empty}>이 사업장의 설비 목록이 아직 없습니다.</p>;
   }
 
   /*
@@ -43,15 +44,15 @@ export function MeteringForm({ siteId, units }: { siteId: string; units: Meterab
    * 죽어 보인다.
    */
   return (
-    <div className="space-y-4">
-      <div className="@container">
-        <ul className="grid gap-2 @[34rem]:grid-cols-2 @[56rem]:grid-cols-3">
+    <div className={styles.root}>
+      <div className={styles.cards}>
+        <ul className={styles.cardGrid}>
           {units.map((unit) => (
             <li key={unit.id}>
               <ToggleCard
                 checked={isMetered(unit.id)}
                 onChange={(next) => setOn(unit.id, next)}
-                mark={<Zap className="size-4" strokeWidth={1.8} />}
+                mark={<Zap className={styles.mark} strokeWidth={1.8} />}
                 title={unit.name}
                 meta={unit.id}
                 offMeaning="selection"
@@ -68,9 +69,9 @@ export function MeteringForm({ siteId, units }: { siteId: string; units: Meterab
 
       {/* 되돌릴 것이 없으면 줄 자체를 그리지 않는다. 공용 조작 버튼이 좁은 화면 40px을 채운다 */}
       {isUserSet && (
-        <div className="flex justify-end">
+        <div className={styles.foot}>
           <button type="button" onClick={() => reset(siteId)} className={ACTION_BUTTON_QUIET}>
-            <RotateCcw aria-hidden className="size-3.5" strokeWidth={2} />
+            <RotateCcw aria-hidden className={styles.glyph} strokeWidth={2} />
             선정 전으로 되돌리기
           </button>
         </div>

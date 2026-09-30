@@ -17,6 +17,7 @@ import { StatusBadge } from '@/shared/ui/status-badge';
 import { VALUE_LG } from '@/shared/ui/type-scale';
 import { CountUp, RiseItem, StaggerGroup } from '@/shared/ui/motion';
 import type { Site } from '@/entities/site';
+import styles from './site-wallboard.module.scss';
 
 interface SiteWallboardBase {
   sites: Site[];
@@ -61,23 +62,17 @@ export function SiteWallboard(props: SiteWallboardProps) {
   const { sites, cardLabel, renderFooter } = props;
   const { trackRef, page, pages, goTo, onScroll } = useCardPager(sites.length);
 
-  /* 몇 장이 보이는지는 뷰포트가 아니라 이 상자가 받은 폭을 따른다 — 레일이 넓어지면 알아서 줄어든다 */
   return (
-    <div className="@container">
+    <div className={styles.root}>
       {/*
        * **화살표는 판(Panel)의 바깥 테두리에 걸터앉는다** `[사용자 지시 2026-08-25]`.
        *
        * 아래 한 줄에 모아 두었던 판본은 조작이 카드에서 멀어 "이 줄을 넘긴다"가 잘 읽히지
        * 않았다. 판의 테두리를 반씩 물면 **무엇을 넘기는 것인지**가 자리로 말해진다.
        *
-       * 자리는 두 걸음이다 — `-ml-5`가 트랙 가장자리에서 판 테두리까지(안쪽 여백 20px) 밀고,
-       * `-translate-x-1/2`가 그 선 위에 단추의 가운데를 얹는다. 판에는 `overflow-hidden`이
-       * 없어 밖으로 나온 절반(14px)이 잘리지 않고, 그 절반은 본문 좌우 여백(16~24px) 안에
-       * 떨어진다 — 390px에서도 화면을 넘지 않는다.
-       *
        * 트랙 **바깥**에 두어야 한다 — 안에 두면 스크롤 상자의 내용이라 카드와 함께 밀려 나간다.
        */}
-      <div className="relative">
+      <div className={styles.rail}>
         <StaggerGroup>
           {/*
            * **한 줄로 세우고 옆으로 넘긴다** `[사용자 지시 2026-08-25]`. 기본은 다섯 장이다.
@@ -88,23 +83,13 @@ export function SiteWallboard(props: SiteWallboardProps) {
            * 넘기는 방법을 셋 다 남긴다 — 화살표·인디케이터·손가락(트랙 자체가 스크롤 상자다).
            * 스크롤바는 감춘다: 인디케이터가 같은 것을 더 정확히 말하고, 막대까지 있으면
            * 같은 사실이 두 번 그려진다.
-           *
-           * `snap`이 카드 경계에 세워 준다 — 넘긴 뒤 카드가 반쯤 잘려 서는 일이 없다.
-           * `py-2 -my-1`은 hover 그림자의 자리다 — `overflow-x`는 세로도 함께 자르므로
-           * (CSS 규정) 여백이 없으면 떠오른 카드의 아래 그림자가 잘린 선으로 남는다.
-           * 8px을 안에서 벌고 4px을 밖에서 되돌려, 격자였을 때와 **자리가 거의 같다**.
            */}
           <div
             ref={trackRef}
             onScroll={onScroll}
             role="group"
             aria-label="사업장 카드"
-            className={cn(
-              'flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-smooth py-2 -my-1',
-              /* 막대를 감춘다 — 두 브라우저 계열이 방법이 달라 둘 다 적는다 */
-              '[scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
-              'motion-reduce:scroll-auto',
-            )}
+            className={styles.track}
           >
             {sites.map((site) => {
               const visual = site.status ? STATUS_VISUAL[site.status] : null;
@@ -112,15 +97,7 @@ export function SiteWallboard(props: SiteWallboardProps) {
               const inside = <CardInside site={site} visual={visual} renderFooter={renderFooter} />;
 
               return (
-                /*
-                 * **한 화면에 몇 장인가**를 카드 폭으로 정한다 — 기본 5장, 좁아지면 3장·2장.
-                 * 값은 `(100% - 사이 간격 합) / 장수`이고 간격은 `gap-3`(0.75rem)이다.
-                 * `GAP_PX`가 같은 값을 숫자로 갖는다 — 한쪽만 바꾸면 인디케이터 칸 수가 어긋난다.
-                 */
-                <RiseItem
-                  key={site.id}
-                  className="shrink-0 basis-[calc((100%-0.75rem)/2)] snap-start @[520px]:basis-[calc((100%-1.5rem)/3)] @[860px]:basis-[calc((100%-3rem)/5)]"
-                >
+                <RiseItem key={site.id} className={styles.slot}>
                   {props.action === 'link' ? (
                     /* 고르는 카드가 아니므로 선택 강조가 없다 — 눌러도 이 화면에 머물지 않는다 */
                     <Link
@@ -156,20 +133,13 @@ export function SiteWallboard(props: SiteWallboardProps) {
               dir="prev"
               disabled={page <= 0}
               onClick={() => goTo(page - 1)}
-              /*
-               * 히트 영역은 **판 안쪽으로만** 넓힌다 — 바깥으로 넓히면 페이지가 가로로 밀린다.
-               *
-               * **걸터앉는 깊이도 좁은 화면에서 얕다**(20 → 12px). 패널 여백이 좁은 화면에서
-               * 16px로 줄자 판 경계가 4px 밖으로 나왔고, 그만큼 화살표가 **뷰포트를 넘었다**
-               * (실측: 768px에서 문서가 2px 밀렸다). `lg` 이상은 20px 그대로다.
-               */
-              className="left-0 -ml-3 -translate-x-1/2 before:-right-2 lg:-ml-5 lg:before:right-0"
+              className={styles.arrowPrev}
             />
             <PagerArrow
               dir="next"
               disabled={page >= pages - 1}
               onClick={() => goTo(page + 1)}
-              className="right-0 -mr-3 translate-x-1/2 before:-left-2 lg:-mr-5 lg:before:left-0"
+              className={styles.arrowNext}
             />
           </>
         )}
@@ -218,14 +188,7 @@ function cardTint(visual: StatusVisual | null): CSSProperties | undefined {
  * 카드의 생김새는 같아야 한다. 둘로 적으면 한쪽만 고쳐져 같은 카드가 화면마다 달라진다.
  */
 function cardClass(selected: boolean): string {
-  return cn(
-    /* 카드 자신을 컨테이너로 둔다 — 줄바꿈 기준이 격자가 아니라 **이 카드의 폭**이다 */
-    '@container group flex h-full w-full cursor-pointer items-center gap-2 rounded-nested border bg-surface px-4 py-3 text-left',
-    'transition-[border-color,box-shadow,color] duration-200',
-    selected
-      ? 'border-accent/40 bg-accent-weak'
-      : 'border-border hover:border-accent/50 hover:bg-surface-2 hover:shadow-panel',
-  );
+  return cn(styles.card, selected ? styles.cardSelected : styles.cardIdle);
 }
 
 /**
@@ -252,9 +215,9 @@ function CardInside({
 }) {
   return (
     <>
-      <span className="flex min-w-0 flex-1 flex-col gap-1.5 @[190px]:flex-row @[190px]:items-center @[190px]:gap-3">
-        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <span className="truncate text-[14px] font-bold leading-tight text-fg">{site.name}</span>
+      <span className={styles.body}>
+        <span className={styles.identity}>
+          <span className={styles.name}>{site.name}</span>
           {renderFooter(site)}
         </span>
 
@@ -263,9 +226,9 @@ function CardInside({
          * 붙어 있어야 한 값으로 읽힌다. 통신 두절은 등급이 아니라 수신 상태라
          * 등급색을 쓰지 않고 중립면에 둔다.
          */}
-        <span className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
+        <span className={styles.verdict}>
           <span
-            className={`num ${VALUE_LG}`}
+            className={cn('num', VALUE_LG)}
             style={{ color: visual ? statusInk(visual) : 'var(--fg-subtle)' }}
           >
             {site.anomalyScore === null ? '—' : <CountUp value={site.anomalyScore} />}
@@ -273,7 +236,7 @@ function CardInside({
           {site.status ? (
             <StatusBadge level={site.status} />
           ) : (
-            <span className={`${BADGE_BASE} bg-surface-3 text-fg-muted`}>통신 두절</span>
+            <span className={cn(BADGE_BASE, styles.offlineBadge)}>통신 두절</span>
           )}
         </span>
       </span>
@@ -282,17 +245,17 @@ function CardInside({
         aria-hidden
         size={18}
         strokeWidth={2}
-        className="shrink-0 text-fg-subtle transition-colors duration-200 group-hover:text-accent"
+        className={styles.chevron}
       />
     </>
   );
 }
 
-/** `gap-3`의 픽셀 값. 위 `basis` 식과 **같은 간격**을 가리킨다 */
+/** 트랙 `gap`(0.75rem)의 픽셀 값. 모듈의 카드 폭(`flex-basis`) 식과 **같은 간격**을 가리킨다 */
 const GAP_PX = 12;
 
 /**
- * 재기 전에 쓰는 장수. 위 `@[860px]` 분기의 **5장과 같은 값**이다.
+ * 재기 전에 쓰는 장수. 모듈의 `860px` 컨테이너 분기가 정한 **5장과 같은 값**이다.
  *
  * 서버는 상자 폭을 모르므로 첫 렌더에는 잴 것이 없다. 1로 두면 인디케이터가 없다가
  * 하이드레이션 직후 나타나 화면이 한 번 밀린다 — 넓은 화면(대부분)에서는 이 값이 곧 정답이라
@@ -307,8 +270,8 @@ const ASSUMED_PER_VIEW = 5;
  * **몇 장이 보이는지를 JS가 정하지 않는다** — CSS가 정한 카드 폭을 **재서** 되짚는다.
  * 분기값(520·860px)을 양쪽에 두면 한쪽만 고쳐져 인디케이터 칸 수가 화면과 어긋난다.
  *
- * 페이지 이동은 `scrollTo`로만 한다. 부드럽게 움직일지는 CSS(`scroll-smooth` ·
- * `motion-reduce:scroll-auto`)가 정하므로 감속 설정도 그쪽 한 곳에서 지켜진다.
+ * 페이지 이동은 `scrollTo`로만 한다. 부드럽게 움직일지는 CSS(`scroll-behavior` ·
+ * 감속 설정 분기)가 정하므로 감속 설정도 그쪽 한 곳에서 지켜진다.
  */
 function useCardPager(count: number) {
   const trackRef = useRef<HTMLDivElement>(null);
@@ -380,7 +343,7 @@ function CardPager({
   onMove: (next: number) => void;
 }) {
   return (
-    <div className="mt-3 flex items-center justify-center gap-1.5">
+    <div className={styles.pager}>
       {Array.from({ length: pages }, (_, i) => (
         <button
           key={i}
@@ -388,17 +351,7 @@ function CardPager({
           onClick={() => onMove(i)}
           aria-label={`${i + 1}번째 묶음 보기`}
           aria-current={i === page ? 'true' : undefined}
-          /*
-           * **점은 6px인데 누르는 자리는 그보다 넓다** `[사용자 요청 2026-09-21]`. 점을 키우면
-           * 인디케이터가 조작 버튼처럼 무거워진다 — `before`로 위아래·좌우만 넓혀 **보이는
-           * 크기는 그대로 두고** 손가락이 닿게 한다. 줄 간격(`gap-1.5`)보다 넓어도 겹치는
-           * 것은 투명한 히트 영역뿐이라 서로의 점을 가리지 않는다.
-           */
-          className={cn(
-            'relative h-1.5 cursor-pointer rounded-full transition-[width,background-color] duration-200',
-            'before:absolute before:-inset-x-1 before:-inset-y-[17px] before:content-[""] lg:before:content-none',
-            i === page ? 'w-5 bg-accent' : 'w-1.5 bg-border-strong hover:bg-fg-subtle',
-          )}
+          className={cn(styles.dot, i === page ? styles.dotCurrent : styles.dotIdle)}
         />
       ))}
     </div>
@@ -434,36 +387,14 @@ function PagerArrow({
       onClick={onClick}
       disabled={disabled}
       aria-label={dir === 'prev' ? '이전 사업장 보기' : '다음 사업장 보기'}
-      className={cn(
-        /* 카드 줄의 세로 가운데. 인디케이터 줄은 이 상자 밖이라 카드 높이만 기준이 된다 */
-        'absolute top-1/2 z-10 -translate-y-1/2',
-        'inline-flex size-7 shrink-0 items-center justify-center rounded-chip border border-border bg-surface text-fg-muted shadow-panel',
-        /*
-         * 보이는 크기는 28px인데 누르는 자리는 44px 높이다 — 셸 헤더의 `ICON_BUTTON`과 같은 짜임.
-         *
-         * **위아래로만 넓힌다.** 이 버튼은 `-ml-5`/`-mr-5`로 **판 밖에 걸터앉아 있어서**,
-         * 사방으로 넓히면 그 8px이 페이지 밖으로 나간다 — 실측으로 768px에서 문서가 8px
-         * 밀렸다(§8이 못박은 «가로 스크롤 없음»을 어긴다). 좌우는 쓰는 쪽이 **안쪽으로만**
-         * 넓힌다(아래 `before:-right-2`·`before:-left-2`).
-         *
-         * **`relative`를 붙이지 않는다**: 이미 `absolute`라 스스로 기준면이고, 둘 다 적으면
-         * `twMerge`가 뒤엣것만 남겨 **버튼이 흐름 안으로 돌아온다**(실측: 그 상태로 넓은
-         * 화면의 통합 관제가 2,630 → 2,658px로 자랐다).
-         */
-        'before:absolute before:-inset-y-2 before:inset-x-0 before:content-[""] lg:before:content-none',
-        'transition-colors duration-200',
-        disabled
-          ? 'cursor-not-allowed'
-          : 'cursor-pointer hover:border-accent/50 hover:bg-accent-weak hover:text-accent',
-        className,
-      )}
+      className={cn(styles.arrow, disabled ? styles.arrowDisabled : styles.arrowEnabled, className)}
     >
       {/* 흐려지는 것은 글리프뿐이다 — 면·테두리·그림자는 누를 때와 같다 */}
       <Icon
         aria-hidden
         size={16}
         strokeWidth={2}
-        className={cn('transition-opacity duration-200', disabled && 'opacity-40')}
+        className={cn(styles.glyph, disabled && styles.glyphDisabled)}
       />
     </button>
   );

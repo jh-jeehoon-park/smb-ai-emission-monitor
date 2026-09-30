@@ -1,0 +1,45 @@
+@use 'shared/styles' as *;
+
+/*
+ * 벽 글자의 굵기·행간·자간·색 — 글자 크기는 곁에 붙는 전역 `.wall-*`(`globals.scss`)가 갖는다.
+ * 쓰는 쪽이 색·여백을 얹어 덮으므로 `components` 레이어다.
+ */
+@layer components {
+  /* `WALL_VALUE_XL`·`_LG`·`_MD`가 함께 쓴다 — 셋은 크기만 다르다 */
+  .value {
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.025em;
+  }
+
+  .title {
+    font-weight: 700;
+    line-height: 1.25;
+    letter-spacing: -0.025em;
+    color: var(--fg);
+  }
+
+  .label {
+    font-weight: 600;
+    line-height: 1.25;
+    color: var(--fg);
+  }
+
+  .meta {
+    line-height: 1.25;
+  }
+
+  .unit {
+    font-weight: 500;
+    color: var(--fg-muted);
+  }
+
+  .grade {
+    font-weight: 700;
+  }
+
+  .gradeSm {
+    font-weight: 700;
+    line-height: 1;
+  }
+}

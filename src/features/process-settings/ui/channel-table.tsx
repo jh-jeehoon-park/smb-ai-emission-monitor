@@ -14,9 +14,7 @@ import {
 import type { ChannelRow, ChannelTarget } from '../lib/edit';
 import { channelStateOf } from '../lib/resolve';
 import type { SiteStage } from '../lib/storage';
-
-const SELECT =
-  'min-h-10 w-full rounded-[4px] border border-border bg-surface px-2 text-[13px] text-fg lg:min-h-9';
+import styles from './channel-table.module.scss';
 
 /** `<select>` 값 ↔ 갈 곳. 단계 id가 우리 예약어와 겹치지 않게 접두사를 붙인다 */
 const STAGE_PREFIX = 'stage:';
@@ -60,28 +58,28 @@ export function ChannelTable({ rows, stages, sourceLabel, onAssign, onAddManual 
   const [adding, setAdding] = useState(false);
 
   return (
-    <div className="space-y-3">
-      <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-fg-subtle">
+    <div className={styles.root}>
+      <p className={styles.summary}>
         <span>
-          ECP 채널 <span className="num font-semibold text-fg">{rows.length}</span>
-          <span className="ml-1">({sourceLabel})</span>
+          ECP 채널 <span className={cn(styles.summaryCount, 'num')}>{rows.length}</span>
+          <span className={styles.summarySource}>({sourceLabel})</span>
         </span>
         {unassigned > 0 && (
-          <span className="font-semibold text-caution-ink">
+          <span className={styles.summaryPending}>
             아직 정하지 않은 채널 <span className="num">{unassigned}</span>
           </span>
         )}
       </p>
 
-      <div className="overflow-hidden rounded-nested border border-border">
+      <div className={styles.table}>
         {/* 넓은 화면에서만 열 머리 — 좁으면 줄마다 두 층으로 쌓여 머리가 뜻을 잃는다 */}
-        <div className="hidden grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,1.4fr)_96px] gap-3 border-b border-border bg-table-head px-3.5 py-2 text-[12px] font-semibold text-fg-subtle sm:grid">
+        <div className={styles.head}>
           <span>채널</span>
           <span>무엇을 재는가</span>
           <span>어느 단계의 값인가</span>
           <span>상태</span>
         </div>
-        <ul className="divide-y divide-border">
+        <ul className={styles.rows}>
           {rows.map((row) => (
             <ChannelRowItem key={row.key} row={row} stages={stages} onAssign={onAssign} />
           ))}
@@ -100,7 +98,7 @@ export function ChannelTable({ rows, stages, sourceLabel, onAssign, onAddManual 
         />
       ) : (
         <button type="button" className={ACTION_BUTTON_QUIET} onClick={() => setAdding(true)}>
-          <Plus aria-hidden className="size-3.5" strokeWidth={2.2} />
+          <Plus aria-hidden className={styles.glyph} strokeWidth={2.2} />
           목록에 없는 채널 추가
         </button>
       )}
@@ -136,33 +134,26 @@ function ChannelRowItem({
 
   return (
     <li
-      className={cn(
-        /*
-         * 좁으면 두 줄 — «채널 · 항목 … 상태» / «어느 단계» 선택. 한 칸씩 쌓던 판본은 줄마다 네 층이라
-         * 390px에서 표가 3,500px이었다(실측). 넓으면 네 열이고 상태가 `order-last`로 끝에 간다.
-         */
-        'grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 px-3.5 py-2.5 sm:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,1.4fr)_96px]',
-        row.target.kind === 'unassigned' && 'bg-chip-caution',
-      )}
+      className={cn(styles.row, row.target.kind === 'unassigned' && styles.rowUnassigned)}
     >
-      <div className="min-w-0">
-        <span className="num truncate text-[13px] font-semibold text-fg">{row.key}</span>
+      <div className={styles.channel}>
+        <span className={cn(styles.channelKey, 'num')}>{row.key}</span>
         {/* 좁은 화면에서만 채널 옆에 항목을 붙인다 — 넓으면 항목 열이 따로 있다 */}
         {row.itemFixed && item && (
-          <span className="ml-1.5 text-[12px] text-fg-subtle sm:hidden">{MEASUREMENT_ITEMS[item].label}</span>
+          <span className={styles.channelItem}>{MEASUREMENT_ITEMS[item].label}</span>
         )}
         {row.target.kind === 'unused' && row.reason && (
-          <span className="block text-[12px] leading-snug text-fg-subtle">{row.reason}</span>
+          <span className={styles.channelReason}>{row.reason}</span>
         )}
       </div>
 
-      <span className={cn('text-right text-[12px] sm:order-last sm:text-left', stateTone(row))}>
+      <span className={cn(styles.state, stateTone(row))}>
         {stateLabel(row)}
       </span>
 
       {!row.itemFixed ? (
-        <label htmlFor={itemId} className="col-span-2 block sm:col-span-1">
-          <span className="sr-only">{row.key}이(가) 재는 항목</span>
+        <label htmlFor={itemId} className={styles.cell}>
+          <span className={styles.srOnly}>{row.key}이(가) 재는 항목</span>
           <select
             id={itemId}
             value={item ?? ''}
@@ -173,7 +164,7 @@ function ChannelRowItem({
               /* 이미 단계에 걸린 채널이면 항목만 바꿔 다시 건다 */
               if (row.target.kind === 'stage') onAssign(row.key, { ...row.target, item: next });
             }}
-            className={SELECT}
+            className={styles.select}
           >
             <option value="" disabled>
               항목 고르기
@@ -186,16 +177,16 @@ function ChannelRowItem({
           </select>
         </label>
       ) : (
-        <span className="hidden text-[12px] text-fg-muted sm:block">{item ? MEASUREMENT_ITEMS[item].label : '—'}</span>
+        <span className={styles.itemFixed}>{item ? MEASUREMENT_ITEMS[item].label : '—'}</span>
       )}
 
-      <label htmlFor={selectId} className="col-span-2 block sm:col-span-1">
-        <span className="sr-only">{row.key}을(를) 연결할 단계</span>
+      <label htmlFor={selectId} className={styles.cell}>
+        <span className={styles.srOnly}>{row.key}을(를) 연결할 단계</span>
         <select
           id={selectId}
           value={targetValue(row.target)}
           onChange={(event) => assign(event.target.value)}
-          className={SELECT}
+          className={styles.select}
         >
           <option value="unassigned">{CHANNEL_TARGET_LABELS.unassigned}</option>
           {stages.map((stage, index) => (
@@ -205,7 +196,7 @@ function ChannelRowItem({
           ))}
           <option value="unused">{CHANNEL_TARGET_LABELS.unused}</option>
         </select>
-        {error && <span className="mt-1 block text-[12px] text-critical-ink">{error}</span>}
+        {error && <span className={styles.rowError}>{error}</span>}
       </label>
     </li>
   );
@@ -219,9 +210,9 @@ function stateLabel(row: ChannelRow): string {
 }
 
 function stateTone(row: ChannelRow): string {
-  if (row.target.kind === 'unassigned') return 'font-semibold text-caution-ink';
-  if (row.target.kind === 'unused') return 'text-fg-subtle';
-  return 'text-fg-muted';
+  if (row.target.kind === 'unassigned') return styles.stateUnassigned;
+  if (row.target.kind === 'unused') return styles.stateUnused;
+  return styles.stateStage;
 }
 
 /** 서버에 닿지 않아 목록에 없는 채널을 손으로 적는다 — 이름 · 항목 · 단계를 한 번에 */
@@ -243,10 +234,10 @@ function ManualAdder({
   const [error, setError] = useState<string | null>(null);
 
   return (
-    <div className="rounded-nested border border-dashed border-border-strong p-3.5">
-      <div className="grid gap-3 sm:grid-cols-3">
-        <label htmlFor={keyId} className="block">
-          <span className="block text-[12px] text-fg-subtle">ECP 채널 이름</span>
+    <div className={styles.adder}>
+      <div className={styles.adderFields}>
+        <label htmlFor={keyId} className={styles.adderField}>
+          <span className={styles.adderLabel}>ECP 채널 이름</span>
           <input
             id={keyId}
             value={key}
@@ -255,16 +246,16 @@ function ManualAdder({
               setError(null);
             }}
             placeholder="예: DO_aeration"
-            className={cn(SELECT, 'num mt-1')}
+            className={cn(styles.select, 'num', styles.selectStacked)}
           />
         </label>
-        <label htmlFor={itemId} className="block">
-          <span className="block text-[12px] text-fg-subtle">무엇을 재는가</span>
+        <label htmlFor={itemId} className={styles.adderField}>
+          <span className={styles.adderLabel}>무엇을 재는가</span>
           <select
             id={itemId}
             value={item}
             onChange={(event) => setItem(event.target.value as MeasurementItemCode)}
-            className={cn(SELECT, 'mt-1')}
+            className={cn(styles.select, styles.selectStacked)}
           >
             {CHANNEL_ITEM_OPTIONS.map((code) => (
               <option key={code} value={code}>
@@ -273,13 +264,13 @@ function ManualAdder({
             ))}
           </select>
         </label>
-        <label htmlFor={stageId} className="block">
-          <span className="block text-[12px] text-fg-subtle">어느 단계의 값인가</span>
+        <label htmlFor={stageId} className={styles.adderField}>
+          <span className={styles.adderLabel}>어느 단계의 값인가</span>
           <select
             id={stageId}
             value={target}
             onChange={(event) => setTarget(event.target.value)}
-            className={cn(SELECT, 'mt-1')}
+            className={cn(styles.select, styles.selectStacked)}
           >
             {stages.map((stage, index) => (
               <option key={stage.id} value={stage.id}>
@@ -289,14 +280,14 @@ function ManualAdder({
           </select>
         </label>
       </div>
-      {error && <p className="mt-2 text-[12px] text-critical-ink">{error}</p>}
-      <div className="mt-3 flex justify-end gap-2">
+      {error && <p className={styles.adderError}>{error}</p>}
+      <div className={styles.adderActions}>
         <button type="button" className={ACTION_BUTTON_QUIET} onClick={onCancel}>
           취소
         </button>
         <button
           type="button"
-          className={cn(ACTION_BUTTON, 'disabled:cursor-not-allowed disabled:opacity-45')}
+          className={cn(ACTION_BUTTON, styles.addButton)}
           disabled={key.trim() === '' || target === ''}
           onClick={() => setError(onAdd(key.trim(), item, target))}
         >

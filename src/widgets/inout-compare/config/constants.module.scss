@@ -1,0 +1,18 @@
+@use 'shared/styles' as *;
+
+/* 화면 머리의 값 크기 두 단(`HERO_VALUE` · `SCORE_VALUE`). 쓰는 쪽이 색·여백을 얹는다 — 덮을 수 있게 `components` 레이어 */
+@layer components {
+  .heroValue {
+    font-size: 38px;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.025em;
+  }
+
+  .scoreValue {
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.025em;
+  }
+}

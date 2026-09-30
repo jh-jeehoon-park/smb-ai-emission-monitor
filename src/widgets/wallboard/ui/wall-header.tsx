@@ -5,6 +5,7 @@ import { cn } from '@/shared/lib/cn';
 import { DISPLAY_TIMEZONE, formatDateTime } from '@/shared/lib/format';
 import { WALL_META } from '../config/constants';
 import { WallClock } from './wall-clock';
+import styles from './wall-header.module.scss';
 
 /**
  * 머리줄 — **셸이 하던 일을 대신한다.**
@@ -34,19 +35,17 @@ export function WallHeader({
   observedAtIso: string;
 }) {
   return (
-    <header className="flex shrink-0 items-center gap-6 rounded-panel border border-card-border bg-surface px-6 py-4 shadow-panel">
-      <span aria-hidden className="h-9 w-1 shrink-0 rounded-full bg-accent" />
+    <header className={styles.root}>
+      <span aria-hidden className={styles.tick} />
 
-      <div className="min-w-0">
-        <h1 className="truncate text-[30px] font-bold leading-tight tracking-tight text-fg">
-          {siteName}
-        </h1>
-        <p className={cn('mt-0.5 text-fg-subtle', WALL_META)}>
+      <div className={styles.heading}>
+        <h1 className={styles.siteName}>{siteName}</h1>
+        <p className={cn(styles.siteMeta, WALL_META)}>
           {region} · {industry}
         </p>
       </div>
 
-      <div className="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-2">
+      <div className={styles.facts}>
         <Chip label="원천">{sourceLabel}</Chip>
         <Chip label="기준">
           <span className="num">{`${formatDateTime(observedAtIso)} ${DISPLAY_TIMEZONE}`}</span>
@@ -54,21 +53,16 @@ export function WallHeader({
         <Chip label="주기">{`${COLLECTION_INTERVAL_MINUTES}분`}</Chip>
       </div>
 
-      <WallClock className="shrink-0 rounded-chip bg-surface-2 px-4 py-2 text-[19px] font-bold text-fg" />
+      <WallClock className={styles.clock} />
     </header>
   );
 }
 
 function Chip({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <span
-      className={cn(
-        'inline-flex items-baseline gap-1.5 rounded-chip bg-surface-2 px-2.5 py-1.5',
-        WALL_META,
-      )}
-    >
-      <span className="text-fg-subtle">{label}</span>
-      <span className="font-semibold text-fg-muted">{children}</span>
+    <span className={cn(styles.chip, WALL_META)}>
+      <span className={styles.chipLabel}>{label}</span>
+      <span className={styles.chipValue}>{children}</span>
     </span>
   );
 }

@@ -1,0 +1,122 @@
+@use 'shared/styles' as *;
+
+.unjudged {
+  color: var(--fg-subtle);
+}
+
+.countCritical {
+  font-weight: 600;
+  color: var(--critical-ink);
+}
+
+.countCaution {
+  font-weight: 600;
+  color: var(--caution-ink);
+}
+
+.countZero {
+  color: var(--fg-muted);
+}
+
+.countNote {
+  margin-top: sp(0.5);
+  display: block;
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+.empty {
+  padding-block: sp(8);
+  text-align: center;
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+.emptyStrong {
+  color: var(--fg-muted);
+}
+
+.table {
+  min-width: 720px;
+  table-layout: fixed;
+  text-align: center;
+  font-size: 12px;
+}
+
+.caption {
+  @include sr-only;
+}
+
+.colSite {
+  text-align: left;
+}
+
+.colIndustry {
+  width: 92px;
+}
+
+.colStatus {
+  width: 120px;
+}
+
+.colCount {
+  width: 104px;
+}
+
+.colOpen {
+  width: 84px;
+}
+
+.colDetail {
+  width: 76px;
+}
+
+.srOnly {
+  @include sr-only;
+}
+
+.row {
+  cursor: pointer;
+  @include transition-colors;
+
+  @include hover {
+    &:hover {
+      background-color: var(--surface-2);
+    }
+  }
+}
+
+.rowSelected {
+  background-color: var(--surface-2);
+}
+
+.cell {
+  padding: sp(3.5) sp(3);
+}
+
+.cellSite {
+  text-align: left;
+}
+
+.cellMuted {
+  color: var(--fg-muted);
+}
+
+.siteName {
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.statusMissing {
+  color: var(--fg-subtle);
+}
+
+.statusValue {
+  display: inline-flex;
+  align-items: center;
+  gap: sp(1.5);
+}
+
+.statusScore {
+  color: var(--fg-muted);
+}

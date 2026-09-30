@@ -8,6 +8,9 @@
  * (FSD §8) 여기 둬도 셸이 읽지 못하고, 읽지 못하는 상수는 두 곳에 같은 문자열을 적는 일만 된다.
  */
 
+import { cn } from '@/shared/lib/cn';
+import styles from './constants.module.scss';
+
 /**
  * 화면이 스스로 다시 그리는 주기(ms).
  *
@@ -51,25 +54,25 @@ export const WALL_COUNT_MS = 1200;
  * 값은 **1080을 기준으로 환산**했다 — 52px ÷ 1080 = 4.81vh 식이다. 그래서 1920×1080에서는
  * 지금까지의 화면과 **픽셀 단위로 같다.**
  *
- * **실제 `clamp()` 값은 `globals.css`의 `.wall-*` 클래스가 갖는다.** Tailwind의 arbitrary
+ * **실제 `clamp()` 값은 `globals.scss`의 `.wall-*` 클래스가 갖는다.** Tailwind의 arbitrary
  * 임의 속성 문법으로 CSS 변수를 넣으면 값이 `var(...)`로 잘못 생성돼 CSS 파싱을 깨뜨렸다(실제로
  * 밟았다). 여기는 그 클래스에 굵기·자간을 얹은 조합만 갖는다.
  */
-export const WALL_VALUE_XL = 'wall-xl font-bold leading-none tracking-tight';
-export const WALL_VALUE_LG = 'wall-lg font-bold leading-none tracking-tight';
-export const WALL_VALUE_MD = 'wall-md font-bold leading-none tracking-tight';
+export const WALL_VALUE_XL = cn('wall-xl', styles.value);
+export const WALL_VALUE_LG = cn('wall-lg', styles.value);
+export const WALL_VALUE_MD = cn('wall-md', styles.value);
 /** 패널 제목. 레퍼런스의 머리줄 글자 크기다 */
-export const WALL_TITLE = 'wall-title font-bold leading-tight tracking-tight text-fg';
+export const WALL_TITLE = cn('wall-title', styles.title);
 /** 항목 이름 */
-export const WALL_LABEL = 'wall-label font-semibold leading-tight text-fg';
+export const WALL_LABEL = cn('wall-label', styles.label);
 /** 곁의 사실(단위·기준·시각). 이 화면의 **최소 글자**이며 §8 `글자 최소`(12px)를 넘는다 */
-export const WALL_META = 'wall-meta leading-tight';
+export const WALL_META = cn('wall-meta', styles.meta);
 /** 큰 수에 붙는 단위(`m³`·`건`). 값과 함께 커져야 «붙어 있는 글자»로 읽힌다 */
-export const WALL_UNIT = 'wall-unit font-medium text-fg-muted';
+export const WALL_UNIT = cn('wall-unit', styles.unit);
 /** 값 곁의 등급 이름. 색만으로 말하지 않게 늘 함께 선다(**E2**) */
-export const WALL_GRADE = 'wall-grade font-bold';
+export const WALL_GRADE = cn('wall-grade', styles.grade);
 /** 설비 줄 끝의 등급. 한 줄 안이라 계기 곁의 것보다 한 단 낮다 */
-export const WALL_GRADE_SM = 'wall-grade-sm font-bold leading-none';
+export const WALL_GRADE_SM = cn('wall-grade-sm', styles.gradeSm);
 
 /**
  * **이상 점수 반원 게이지의 치수.**

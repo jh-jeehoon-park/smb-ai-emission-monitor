@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { cn } from '@/shared/lib/cn';
 import { DEMO_NOW_ISO } from '@/shared/config/demo';
 import { SCOPE_FILTERS, SCOPE_OPTIONS, SCOPE_QUERY_KEY } from '@/shared/config/scope';
 import { useQueryState } from '@/shared/lib/use-query-state';
@@ -25,6 +26,7 @@ import {
   STATE_OPTIONS,
   STATE_QUERY_KEY,
 } from '../config/constants';
+import styles from './alarms-view.module.scss';
 
 /** 최신 알람이 위로. 이력 화면의 기본 관심은 방금 무슨 일이 있었는가다 */
 function byRaisedAtDesc(a: Alarm, b: Alarm): number {
@@ -88,8 +90,8 @@ export function AlarmsView() {
   const groups = useMemo(() => groupAlarmsByDay(visible, DEMO_NOW_ISO), [visible]);
 
   return (
-    <div className="space-y-6">
-      <div className="grid gap-6 sm:grid-cols-3">
+    <div className={styles.root}>
+      <div className={styles.tiles}>
         <StatTile
           label="미확인"
           value={`${tally.open}건`}
@@ -115,7 +117,7 @@ export function AlarmsView() {
           />
         }
         action={
-          <div className="flex flex-wrap items-center gap-2">
+          <div className={styles.filters}>
             {/* 사업장은 자사 1개소뿐이라 고를 것이 없다. 가드가 scope=site로 고정한다 */}
             <div className="role-hide-site">
               <SegmentedControl
@@ -141,7 +143,7 @@ export function AlarmsView() {
         }
       >
         {visible.length === 0 ? (
-          <p className="py-10 text-center text-[12px] text-fg-subtle">
+          <p className={styles.empty}>
             조건에 맞는 알람이 없습니다.
           </p>
         ) : (
@@ -151,17 +153,16 @@ export function AlarmsView() {
            * 날짜가 목록의 위계를 만든다.
            *
            * 그룹 머리는 스크롤 중에도 붙어 있다(`sticky`) — 긴 하루를 내려가는 동안 지금 보는
-           * 날이 화면 밖으로 나가면 묶은 의미가 없다. 카드 여백을 음수로 되돌려 띠가 카드 폭을
-           * 채우고, 그 위로 지나가는 줄이 비치지 않게 불투명 면을 깐다.
+           * 날이 화면 밖으로 나가면 묶은 의미가 없다.
            */
-          <div className="space-y-4">
+          <div className={styles.days}>
             {groups.map((group) => (
               <section key={group.date}>
-                <div className="sticky top-[calc(var(--header-h)_+_0.5rem)] z-10 -mx-5 flex items-center justify-between gap-2 border-b border-border bg-surface px-5 pb-1.5 pt-1">
-                  <h3 className="text-[12px] font-bold text-fg">{group.label}</h3>
-                  <span className="num text-[12px] text-fg-subtle">{group.alarms.length}건</span>
+                <div className={styles.dayHead}>
+                  <h3 className={styles.dayLabel}>{group.label}</h3>
+                  <span className={cn(styles.dayCount, 'num')}>{group.alarms.length}건</span>
                 </div>
-                <ul className="divide-y divide-border">
+                <ul className={styles.rows}>
                   {group.alarms.map((alarm) => (
                     <li key={alarm.id}>
                       <AlarmRow
@@ -185,9 +186,9 @@ export function AlarmsView() {
       />
 
       <Panel title="상태 전이">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="max-w-[68ch] text-[12px] leading-relaxed text-fg-muted">
-            확인·조치 버튼은 <strong className="text-fg">이 브라우저 안에서만</strong> 상태를
+        <div className={styles.transition}>
+          <p className={styles.transitionNote}>
+            확인·조치 버튼은 <strong className={styles.transitionEmphasis}>이 브라우저 안에서만</strong> 상태를
             바꿉니다. 서버가 없어 처리 이력이 저장되지 않으며 새로고침하면 되돌아갑니다. 알람 발송
             채널(SMS·이메일·푸시)과 우선순위–등급 대응 관계는 원문에 정의가 없어 화면에
             임의로 만들지 않았습니다.
@@ -196,7 +197,7 @@ export function AlarmsView() {
             <button
               type="button"
               onClick={reset}
-              className="cursor-pointer whitespace-nowrap rounded-[3px] border border-border px-2.5 py-1.5 text-[12px] text-fg-muted transition-colors duration-200 hover:border-border-strong hover:text-fg"
+              className={styles.resetButton}
             >
               변경 {changedCount}건 되돌리기
             </button>

@@ -1,0 +1,160 @@
+@use 'shared/styles' as *;
+
+.offline {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: sp(1.5);
+  padding-block: sp(8);
+  text-align: center;
+}
+
+.offlineValue {
+  color: var(--fg-subtle);
+}
+
+.offlineLabel {
+  font-size: 12px;
+  color: var(--fg-muted);
+}
+
+.offlineNote {
+  max-width: 46ch;
+  font-size: 12px;
+  line-height: 1.625;
+  color: var(--fg-subtle);
+}
+
+.container {
+  container-type: inline-size;
+}
+
+/*
+ * **열 수를 뷰포트가 아니라 이 격자가 놓인 폭으로 정한다** `[사용자 결정 2026-09-18]`.
+ * `screens.md` §8이 「중첩 격자는 뷰포트가 아니라 컨테이너로 묻는다」를 이미 규약으로
+ * 세워 두었고, 이 격자가 그 규약을 어기고 있었다.
+ *
+ * 한때 뷰포트 문턱(`sm` 2열 · `xl` 4열)이었다. 그 결과가 **뒤집혀 있었다** — 통합 관제의
+ * 오른쪽 열은 1280px에서 428px뿐인데 `xl`이 켜져 **카드가 98px(안쪽 66px)**이 됐고,
+ * 반대로 640~1279px(단일 열이라 훨씬 넓다)에서는 2열만 섰다(실측).
+ *
+ * 임계는 **카드 하한 190px**에서 나온다 — `site-wallboard`의 190px 문턱이 「이름 왼쪽 ·
+ * 뱃지 오른쪽 한 줄」이 성립하는 실측 하한이고, 카드가 그 구성을 베꼈다.
+ * 2열 400px → 카드 194px · 4열 832px → 카드 199px. **3열은 두지 않는다**: 설비가 4대라
+ * 마지막 줄에 한 장이 남는다.
+ */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: sp(3);
+
+  @container (min-width: 25rem) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @container (min-width: 52rem) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.cell {
+  height: 100%;
+}
+
+.card {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  gap: sp(2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-nested);
+  background-color: var(--surface);
+  padding: sp(4);
+  @include transition-colors(200ms);
+}
+
+.cardInteractive {
+  @include hover {
+    &:hover {
+      border-color: var(--border-strong);
+      background-color: var(--surface-2);
+    }
+  }
+}
+
+.cardHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: sp(2);
+}
+
+.nameButton {
+  min-width: 0;
+  cursor: pointer;
+  @include truncate;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--fg);
+  text-decoration-line: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 2px;
+  @include transition-colors(200ms);
+
+  @include hover {
+    &:hover {
+      color: var(--accent);
+      text-decoration-color: var(--accent);
+    }
+  }
+}
+
+.name {
+  min-width: 0;
+  @include truncate;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--fg);
+}
+
+.operating {
+  display: flex;
+  align-items: center;
+  gap: sp(2);
+  color: var(--fg);
+}
+
+.operatingDot {
+  width: sp(2);
+  height: sp(2);
+  flex-shrink: 0;
+  border-radius: calc(infinity * 1px);
+}
+
+.signals {
+  margin-top: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: sp(2);
+  row-gap: sp(1);
+  font-size: 12px;
+}
+
+.signalsLabel {
+  color: var(--fg-subtle);
+}
+
+.signalsValue {
+  min-width: 0;
+  color: var(--fg-muted);
+}
+
+.chip {
+  background-color: var(--surface-3);
+  color: var(--fg-muted);
+}

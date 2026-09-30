@@ -1,0 +1,232 @@
+@use 'shared/styles' as *;
+
+.root {
+  :where(& > :not(:last-child)) {
+    margin-block-start: 0;
+    margin-block-end: sp(3);
+  }
+}
+
+.select {
+  min-height: sp(10);
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background-color: var(--surface);
+  padding-inline: sp(2);
+  font-size: 13px;
+  color: var(--fg);
+
+  @include up(lg) {
+    min-height: sp(9);
+  }
+}
+
+.selectStacked {
+  margin-top: sp(1);
+}
+
+.summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: sp(3);
+  row-gap: sp(1);
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+.summaryCount {
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.summarySource {
+  margin-left: sp(1);
+}
+
+.summaryPending {
+  font-weight: 600;
+  color: var(--caution-ink);
+}
+
+.table {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-nested);
+}
+
+.head {
+  display: none;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 1.4fr) 96px;
+  gap: sp(3);
+  border-bottom: 1px solid var(--border);
+  background-color: var(--table-head);
+  padding: sp(2) sp(3.5);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--fg-subtle);
+
+  @include up(sm) {
+    display: grid;
+  }
+}
+
+.rows {
+  :where(& > :not(:last-child)) {
+    border-top-width: 0;
+    border-bottom: 1px solid var(--border);
+  }
+}
+
+/*
+ * 좁으면 두 줄 — «채널 · 항목 … 상태» / «어느 단계» 선택. 한 칸씩 쌓던 판본은 줄마다 네 층이라
+ * 390px에서 표가 3,500px이었다(실측). 넓으면 네 열이고 상태가 `.state`의 `order`로 끝에 간다.
+ */
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: sp(3);
+  row-gap: sp(2);
+  padding: sp(2.5) sp(3.5);
+
+  @include up(sm) {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 1.4fr) 96px;
+  }
+}
+
+.rowUnassigned {
+  background-color: var(--chip-caution);
+}
+
+.channel {
+  min-width: 0;
+}
+
+.channelKey {
+  @include truncate;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.channelItem {
+  margin-left: sp(1.5);
+  font-size: 12px;
+  color: var(--fg-subtle);
+
+  @include up(sm) {
+    display: none;
+  }
+}
+
+.channelReason {
+  display: block;
+  font-size: 12px;
+  line-height: 1.375;
+  color: var(--fg-subtle);
+}
+
+.state {
+  text-align: right;
+  font-size: 12px;
+
+  @include up(sm) {
+    order: 9999;
+    text-align: left;
+  }
+}
+
+.stateUnassigned {
+  font-weight: 600;
+  color: var(--caution-ink);
+}
+
+.stateUnused {
+  color: var(--fg-subtle);
+}
+
+.stateStage {
+  color: var(--fg-muted);
+}
+
+.cell {
+  grid-column: span 2 / span 2;
+  display: block;
+
+  @include up(sm) {
+    grid-column: span 1 / span 1;
+  }
+}
+
+.srOnly {
+  @include sr-only;
+}
+
+.itemFixed {
+  display: none;
+  font-size: 12px;
+  color: var(--fg-muted);
+
+  @include up(sm) {
+    display: block;
+  }
+}
+
+.rowError {
+  margin-top: sp(1);
+  display: block;
+  font-size: 12px;
+  color: var(--critical-ink);
+}
+
+.glyph {
+  width: sp(3.5);
+  height: sp(3.5);
+}
+
+.adder {
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-nested);
+  padding: sp(3.5);
+}
+
+.adderFields {
+  display: grid;
+  gap: sp(3);
+
+  @include up(sm) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.adderField {
+  display: block;
+}
+
+.adderLabel {
+  display: block;
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+.adderError {
+  margin-top: sp(2);
+  font-size: 12px;
+  color: var(--critical-ink);
+}
+
+.adderActions {
+  margin-top: sp(3);
+  display: flex;
+  justify-content: flex-end;
+  gap: sp(2);
+}
+
+.addButton {
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+  }
+}

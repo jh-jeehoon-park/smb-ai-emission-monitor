@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { cn } from '@/shared/lib/cn';
+import styles from './setting-row.module.scss';
 
 /**
  * 설정 한 줄 — **왼쪽은 무엇인가, 오른쪽은 고치는 칸** `[사용자 요청 2026-09-29: 사업장 설정 UI/UX 개편]`.
@@ -29,19 +30,19 @@ export function SettingRow({
   htmlFor?: string;
 }) {
   return (
-    <div className={cn('@container border-t border-border py-4 first:border-t-0 first:pt-0 last:pb-0', className)}>
-      <div className="grid gap-2.5 @[40rem]:grid-cols-[200px_minmax(0,1fr)] @[40rem]:gap-6">
-        <div className="min-w-0">
+    <div className={cn(styles.root, className)}>
+      <div className={styles.grid}>
+        <div className={styles.cell}>
           {htmlFor ? (
-            <label htmlFor={htmlFor} className="block text-[13px] font-semibold text-fg">
+            <label htmlFor={htmlFor} className={styles.labelFor}>
               {label}
             </label>
           ) : (
-            <p className="text-[13px] font-semibold text-fg">{label}</p>
+            <p className={styles.label}>{label}</p>
           )}
-          {hint && <p className="mt-1 text-[12px] leading-relaxed text-fg-subtle">{hint}</p>}
+          {hint && <p className={styles.hint}>{hint}</p>}
         </div>
-        <div className="min-w-0">{children}</div>
+        <div className={styles.cell}>{children}</div>
       </div>
     </div>
   );

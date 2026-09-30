@@ -1,0 +1,50 @@
+@use 'shared/styles' as *;
+
+.sentinel {
+  height: 1px;
+}
+
+/* 띠는 `className`으로 호출부가 덮는다 — 그래서 `components` 레이어다(붙은 겉면도 같은 뿌리다) */
+@layer components {
+  /*
+   * **`lg` 이상에서만 붙는다** `[사용자 결정 2026-09-18]`. 이 문턱은 `STICKY_BAR_QUERY`(관측기·변수를
+   * 켤지)와 같은 값이어야 한다 — `sticky-bar.test.tsx`가 둘을 잠근다.
+   */
+  .bar {
+    margin-top: sp(-2.5);
+    padding-block: sp(2.5);
+    transition-property: margin, padding, background-color, box-shadow;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 200ms;
+
+    :where(& > :not(:last-child)) {
+      margin-block-start: 0;
+      margin-block-end: sp(3);
+    }
+
+    @include up(lg) {
+      position: sticky;
+      top: var(--header-h);
+      z-index: 10;
+    }
+  }
+
+  /*
+   * 붙었을 때 좌우로 넘기는 음수 여백은 **구역 패딩 + 본문 패딩**이다 — 20+24=**44px**.
+   * 구역 패딩만 되돌리면 본문 여백만큼 좁은 띠가 되어 헤더와 폭이 어긋난다.
+   * 그 위에 다시 주는 좌우 패딩은 **헤더와 같은 값**(24px)이라 붙은 순간 제목의 왼쪽 끝이
+   * 헤더의 인사말과 한 줄로 선다 `[사용자 지시 2026-08-24]`.
+   *
+   * 위쪽 패딩은 **붙었을 때만** 준다 `[사용자 지시 2026-08-24]` — 헤더 바로 밑에 글자가
+   * 닿아 두 줄이 붙어 보였다.
+   */
+  .barStuck {
+    margin-inline: sp(-11);
+    border-bottom: 1px solid var(--border);
+    background-color: var(--surface);
+    padding-inline: sp(6);
+    padding-bottom: sp(3);
+    padding-top: sp(4);
+    box-shadow: var(--card-shadow);
+  }
+}

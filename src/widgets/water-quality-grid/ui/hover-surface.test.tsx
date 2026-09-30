@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DISCHARGE_LIMITS } from '@/shared/config/discharge-limits';
 import { getMeasurementSeries } from '@/entities/measurement';
 import { WaterQualityGrid } from './water-quality-grid';
+import styles from './water-quality-grid.module.scss';
 
 /**
  * **끝에서 끝까지 — 카드 어디에 올려도 툴팁이 뜬다** `[사용자 지적 2026-09-07]`.
@@ -68,7 +69,7 @@ function draw() {
     />,
   );
 
-  const card = view.container.querySelector('.rounded-nested.bg-surface-2') as HTMLElement;
+  const card = view.container.querySelector(`.${CSS.escape(styles.card)}`) as HTMLElement;
   expect(card, '카드를 찾지 못했다 — 클래스가 바뀌었나').toBeTruthy();
   expect(view.container.querySelector('.recharts-wrapper'), '차트가 그려지지 않았다').toBeTruthy();
 

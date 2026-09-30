@@ -1,0 +1,117 @@
+@use 'shared/styles' as *;
+
+.offline {
+  padding-block: sp(8);
+  text-align: center;
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+.root {
+  & > :not(:last-child) {
+    margin-block-end: sp(2);
+  }
+}
+
+.frame {
+  position: relative;
+}
+
+/*
+ * 격자를 **홈 안에 앉힌다** `[사용자 지시 2026-08-24]` — 옅은 면 + 안쪽 그림자
+ * (`--track-inset`, 막대·게이지 트랙과 같은 값)라 칸들이 파인 자리에 놓인 것으로 읽힌다.
+ * 홈이 없던 판본은 120칸이 카드 면 위에 떠 있어 어디까지가 격자인지 경계가 없었다.
+ *
+ * 가리개는 상자 뒤 면과 같은 색이어야 한다 — 흰 면 기본값을 쓰면 홈 위에 흰 띠가 남는다
+ * (전역 `scroll-hint`가 `--scroll-hint-bg`를 읽는다).
+ */
+.well {
+  --scroll-hint-bg: var(--surface-2);
+  border-radius: var(--radius-nested);
+  background-color: var(--surface-2);
+  padding: sp(2.5);
+  box-shadow: var(--track-inset);
+}
+
+.table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 1px 1px;
+  text-align: center;
+}
+
+.srOnly {
+  @include sr-only;
+}
+
+.headLabel {
+  padding-bottom: sp(1);
+  text-align: left;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--fg-subtle);
+}
+
+.headTick {
+  padding-bottom: sp(1);
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--fg-subtle);
+}
+
+.rowHead {
+  @include truncate;
+  padding-right: sp(2);
+  text-align: left;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--fg-muted);
+}
+
+.cellMissing {
+  height: sp(5);
+  border-radius: 3px;
+}
+
+.cell {
+  height: sp(5);
+  border-radius: 3px;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.tooltip {
+  pointer-events: none;
+  position: absolute;
+  z-index: 10;
+}
+
+.tooltipName {
+  font-size: 12px;
+  color: var(--fg-muted);
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: sp(3);
+  row-gap: sp(1);
+  border-top: 1px solid var(--border);
+  padding-top: sp(2);
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: sp(1);
+}
+
+.legendSwatch {
+  height: sp(2.5);
+  width: sp(3.5);
+  border-radius: 2px;
+}

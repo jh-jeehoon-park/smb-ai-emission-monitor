@@ -3,6 +3,7 @@
 import { useId, type ReactNode } from 'react';
 import { cn } from '@/shared/lib/cn';
 import { Switch } from './switch';
+import styles from './toggle-card.module.scss';
 
 /**
  * **켜고 끄는 대상 하나가 카드 한 장**이다 `[사용자 요청 2026-09-29: 사업장 설정 UI/UX 개편]`.
@@ -48,17 +49,17 @@ function lookOf(checked: boolean, offMeaning: 'absence' | 'selection'): Look {
 }
 
 const CARD_BY_LOOK: Record<Look, string> = {
-  absent: 'border-dashed border-border-strong bg-surface-2 hover:border-fg-subtle',
-  picked: 'border-accent/50 bg-accent-weak hover:border-accent',
-  on: 'border-border bg-surface hover:border-border-strong hover:shadow-panel',
-  idle: 'border-border bg-surface hover:border-border-strong hover:shadow-panel',
+  absent: styles.cardAbsent,
+  picked: styles.cardPicked,
+  on: styles.cardPlain,
+  idle: styles.cardPlain,
 };
 
 const MARK_BY_LOOK: Record<Look, string> = {
-  absent: 'bg-surface-3 text-fg-subtle',
-  picked: 'bg-surface text-accent',
-  on: 'bg-accent-weak text-accent',
-  idle: 'bg-surface-2 text-fg-subtle',
+  absent: styles.markAbsent,
+  picked: styles.markPicked,
+  on: styles.markOn,
+  idle: styles.markIdle,
 };
 
 export function ToggleCard({
@@ -78,26 +79,20 @@ export function ToggleCard({
   return (
     <label
       htmlFor={id}
-      className={cn(
-        'flex min-h-[64px] cursor-pointer items-center gap-3 rounded-nested border px-3 py-3 transition-[border-color,background-color,box-shadow] duration-200',
-        CARD_BY_LOOK[look],
-      )}
+      className={cn(styles.card, CARD_BY_LOOK[look])}
     >
       <span
         aria-hidden
-        className={cn(
-          'grid size-10 shrink-0 place-items-center rounded-nested text-[13px] font-bold transition-colors duration-200',
-          MARK_BY_LOOK[look],
-        )}
+        className={cn(styles.mark, MARK_BY_LOOK[look])}
       >
         {mark}
       </span>
-      <span className="min-w-0 flex-1">
-        <span className={cn('block truncate text-[13px] font-semibold', look === 'absent' ? 'text-fg-muted' : 'text-fg')}>
+      <span className={styles.text}>
+        <span className={cn(styles.title, look === 'absent' ? styles.titleAbsent : styles.titlePresent)}>
           {title}
         </span>
-        {meta && <span className="mt-0.5 block truncate text-[12px] text-fg-subtle">{meta}</span>}
-        {note && <span className="mt-1 block text-[12px] text-fg-subtle">{note}</span>}
+        {meta && <span className={styles.meta}>{meta}</span>}
+        {note && <span className={styles.note}>{note}</span>}
       </span>
       <Switch id={id} checked={checked} onChange={(event) => onChange(event.target.checked)} />
     </label>

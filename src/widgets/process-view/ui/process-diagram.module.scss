@@ -1,0 +1,74 @@
+@use 'shared/styles' as *;
+
+.diagram {
+  width: 100%;
+  min-width: 900px;
+}
+
+/*
+ * 초점 테두리는 이 `<g>`의 `:focus-visible`을 보고 켠다(`.node:focus-visible .focusRing`).
+ * `outline`을 쓰지 않는 이유는 SVG 요소의 outline 렌더가 브라우저마다 갈리기 때문이다 —
+ * 직접 그린 테두리는 어디서나 같은 자리에 같은 굵기로 나온다.
+ */
+.node {
+  cursor: pointer;
+  outline-style: none;
+}
+
+.focusRing {
+  display: none;
+}
+
+.node:focus-visible .focusRing {
+  display: block;
+}
+
+.order {
+  fill: var(--fg);
+  font-size: 34px;
+  font-weight: 700;
+}
+
+.type {
+  fill: var(--fg-subtle);
+  font-size: 10px;
+}
+
+.name {
+  fill: var(--fg);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.grade {
+  font-size: 10px;
+}
+
+.reuse {
+  fill: var(--fg-muted);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.readingSkeleton {
+  fill: var(--surface-3);
+}
+
+.reading {
+  fill: var(--fg);
+  font-size: 10px;
+}
+
+.readingRest {
+  fill: var(--fg-subtle);
+}
+
+.estimateLabel {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.estimateNote {
+  fill: var(--fg-subtle);
+  font-size: 10px;
+}

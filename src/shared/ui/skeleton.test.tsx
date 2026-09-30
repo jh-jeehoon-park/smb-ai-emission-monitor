@@ -1,7 +1,25 @@
 // @vitest-environment jsdom
 import { render } from '@testing-library/react';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { Skeleton } from './skeleton';
+import styles from './skeleton.module.scss';
+
+const SCSS = readFileSync(join(process.cwd(), 'src', 'shared', 'ui', 'skeleton.module.scss'), 'utf8');
+
+/** `@layer components { … }`의 본문 — 괄호를 세어 끝을 찾는다(안에 규칙이 여럿 있다) */
+function componentsLayer(source: string): string {
+  const start = source.indexOf('@layer components');
+  if (start < 0) return '';
+  const open = source.indexOf('{', start);
+  let depth = 0;
+  for (let i = open; i < source.length; i++) {
+    if (source[i] === '{') depth++;
+    else if (source[i] === '}' && --depth === 0) return source.slice(open + 1, i);
+  }
+  return '';
+}
 
 /**
  * **`Skeleton`은 `<span>`이다** `[사용자 지적 2026-09-07]`.
@@ -19,20 +37,34 @@ describe('Skeleton 태그', () => {
   });
 
   /** `<span>`이면 기본이 인라인이다 — 눕히지 않으면 폭·높이가 먹지 않는다 */
-  it('기본은 `block`이다', () => {
+  it('기본은 `display: block`이다', () => {
     const { container } = render(<Skeleton />);
-    expect(container.firstElementChild?.className).toContain('block');
+    expect(container.firstElementChild?.className).toContain(styles.root);
+    expect(SCSS).toMatch(/\.root\s*\{[^}]*display:\s*block/);
   });
 
   /**
-   * 글자 흐름 안에 둬야 하는 자리가 있다(타일 보조줄). `cn`이 `tailwind-merge`라 나중에 온
-   * 것이 이기는데, 그 성질에 기대고 있으므로 값으로 확인한다.
+   * 글자 흐름 안에 둬야 하는 자리가 있다(타일 보조줄). 넘긴 클래스가 이기는 것은 **뼈대가
+   * `components` 레이어에 있어서**다 — 레이어 없는 호출부 규칙이 선언 순서와 무관하게 이긴다.
+   * 뼈대가 레이어 밖으로 나오면 `display: block`이 호출부의 `inline-block`과 순서 싸움을 한다.
    */
-  it('`inline-block`을 넘기면 그것이 이긴다', () => {
-    const { container } = render(<Skeleton className="inline-block" />);
-    const classes = container.firstElementChild?.className ?? '';
-    expect(classes).toContain('inline-block');
-    expect(classes.split(/\s+/)).not.toContain('block');
+  it('넘긴 클래스를 함께 달고, 뼈대는 덮을 수 있는 레이어에 있다', () => {
+    const { container } = render(<Skeleton className="caller-inline" />);
+    const classes = (container.firstElementChild?.className ?? '').split(/\s+/);
+    expect(classes).toContain('caller-inline');
+    expect(classes).toContain(styles.root);
+    expect(componentsLayer(SCSS)).toMatch(/\.root\s*\{[^}]*display:\s*block/);
+  });
+
+  /**
+   * 숨쉬기는 **전역 클래스**다. CSS 모듈은 `animation`의 이름을 파일마다 바꿔 붙여서, 모듈 안에
+   * `animation: pulse`를 적으면 키프레임을 못 찾아 조용히 멈춘다(화면 대조는 애니메이션을 끄고 찍어
+   * 이것을 잡지 못한다). 감속 설정을 따르는 쪽(`pulse-motion-safe`)이어야 한다.
+   */
+  it('숨쉬기는 감속 설정을 따르는 전역 클래스가 맡는다', () => {
+    const { container } = render(<Skeleton />);
+    expect((container.firstElementChild?.className ?? '').split(/\s+/)).toContain('pulse-motion-safe');
+    expect(SCSS).not.toMatch(/\banimation(-name)?\s*:/);
   });
 
   /** 값을 대신하는 면이라 읽히지 않아야 한다 — 자리를 알리는 일은 `SkeletonRegion`이 한다 */

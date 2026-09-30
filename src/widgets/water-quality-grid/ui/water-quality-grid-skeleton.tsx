@@ -1,7 +1,9 @@
 import { MEASUREMENT_ITEMS } from '@/shared/config/measurement';
+import { cn } from '@/shared/lib/cn';
 import { Skeleton, SkeletonRegion } from '@/shared/ui/skeleton';
 import { VALUE_MD } from '@/shared/ui/type-scale';
 import type { GridSection } from './water-quality-grid';
+import styles from './water-quality-grid-skeleton.module.scss';
 
 /**
  * 계측 격자가 **아직 답을 모르는 동안** 그 자리를 지킨다 `[사용자 요청 2026-09-07]`.
@@ -19,14 +21,14 @@ import type { GridSection } from './water-quality-grid';
  */
 export function WaterQualityGridSkeleton({ sections }: { sections: GridSection[] }) {
   return (
-    <SkeletonRegion label="계측값을 받고 있습니다" className="@container">
-      <div className="space-y-3">
+    <SkeletonRegion label="계측값을 받고 있습니다" className={styles.root}>
+      <div className={styles.sections}>
         {sections.map((section) => (
           <section key={section.title ?? 'main'}>
             {section.title && (
-              <p className="mb-1.5 text-[12px] font-medium text-fg-subtle">{section.title}</p>
+              <p className={styles.sectionTitle}>{section.title}</p>
             )}
-            <div className="grid grid-cols-2 gap-2 @[560px]:grid-cols-4">
+            <div className={styles.grid}>
               {section.codes.map((code) => (
                 <Card key={code} symbol={MEASUREMENT_ITEMS[code].symbol} label={MEASUREMENT_ITEMS[code].label} />
               ))}
@@ -47,25 +49,24 @@ export function WaterQualityGridSkeleton({ sections }: { sections: GridSection[]
  */
 function Card({ symbol, label }: { symbol: string; label: string }) {
   return (
-    <div className="h-full rounded-nested bg-surface-2 p-3">
-      <span className="text-[12px] font-medium tracking-[0.08em] text-fg-subtle">{symbol}</span>
+    <div className={styles.card}>
+      <span className={styles.symbol}>{symbol}</span>
 
       {/*
        * 값 — **막대를 실제 값과 같은 요소 안에 둔다.** 그 요소의 단(`VALUE_MD`)이 높이를
        * 정하고 `1em`이 그 글자 크기다. 픽셀을 박으면 단이 바뀔 때 한쪽만 남아 값이 도착할 때
        * 칸이 튄다 — 같은 화면의 타일에서 실제로 6px 어긋나 있었다.
        */}
-      <p className={`num mt-1 ${VALUE_MD}`}>
-        <Skeleton className="h-[1em] w-14" />
+      <p className={cn('num', styles.value, VALUE_MD)}>
+        <Skeleton className={styles.valueBar} />
       </p>
 
-      <p className="mt-0.5 truncate text-[12px] text-fg-muted">{label}</p>
+      <p className={styles.label}>{label}</p>
 
       {/* 기준 문구 한 줄 */}
-      <Skeleton className="mt-1 h-3 w-20" />
+      <Skeleton className={styles.noteBar} />
 
-      {/* 스파크라인 — 실제 상자와 같은 클래스다(`-mx-1 mt-2 h-10`) */}
-      <Skeleton className="-mx-1 mt-2 h-10" />
+      <Skeleton className={styles.sparkBar} />
     </div>
   );
 }

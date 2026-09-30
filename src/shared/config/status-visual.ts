@@ -1,4 +1,5 @@
 import type { MeasurementGrade, StatusLevel } from './provisional';
+import styles from './status-visual.module.scss';
 
 /**
  * 등급의 라벨·색·정렬 순서를 한 세트로 묶는다.
@@ -6,7 +7,7 @@ import type { MeasurementGrade, StatusLevel } from './provisional';
  */
 export interface StatusVisual {
   token: 'normal' | 'caution' | 'warning' | 'critical';
-  /** Tailwind 클래스 — 테마 전환은 CSS 변수가 알아서 처리한다 */
+  /** CSS 모듈 클래스 — 테마 전환은 CSS 변수가 알아서 처리한다 */
   text: string;
   bg: string;
   /**
@@ -19,35 +20,35 @@ export interface StatusVisual {
 }
 
 /**
- * 실제 색값은 globals.css의 CSS 변수에 있다. 라이트/다크 두 조합 모두
+ * 실제 색값은 globals.scss의 CSS 변수에 있다. 라이트/다크 두 조합 모두
  * dataviz의 validate_palette.js를 통과한 값이며, 서로의 반전이 아니다.
  */
 export const STATUS_VISUAL: Record<StatusLevel, StatusVisual> = {
   normal: {
     token: 'normal',
-    text: 'text-normal-ink',
-    bg: 'bg-chip-normal',
+    text: styles.normalText,
+    bg: styles.normalBg,
     hex: 'var(--normal)',
     ink: 'var(--normal-ink)',
   },
   caution: {
     token: 'caution',
-    text: 'text-caution-ink',
-    bg: 'bg-chip-caution',
+    text: styles.cautionText,
+    bg: styles.cautionBg,
     hex: 'var(--caution)',
     ink: 'var(--caution-ink)',
   },
   warning: {
     token: 'warning',
-    text: 'text-warning-ink',
-    bg: 'bg-chip-warning',
+    text: styles.warningText,
+    bg: styles.warningBg,
     hex: 'var(--warning)',
     ink: 'var(--warning-ink)',
   },
   critical: {
     token: 'critical',
-    text: 'text-critical-ink',
-    bg: 'bg-chip-critical',
+    text: styles.criticalText,
+    bg: styles.criticalBg,
     hex: 'var(--critical)',
     ink: 'var(--critical-ink)',
   },

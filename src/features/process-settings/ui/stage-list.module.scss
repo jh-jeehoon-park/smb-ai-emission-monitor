@@ -1,0 +1,282 @@
+@use 'shared/styles' as *;
+
+.list {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-nested);
+
+  :where(& > :not(:last-child)) {
+    border-top-width: 0;
+    border-bottom: 1px solid var(--border);
+  }
+}
+
+.stageOpen {
+  background-color: var(--surface-2);
+}
+
+.row {
+  display: flex;
+  min-height: sp(14);
+  width: 100%;
+  cursor: pointer;
+  align-items: center;
+  gap: sp(3);
+  padding: sp(2.5) sp(3.5);
+  text-align: left;
+  @include transition-colors(200ms);
+}
+
+.rowOpen {
+  background-color: var(--accent-weak);
+}
+
+.rowClosed {
+  @include hover {
+    &:hover {
+      background-color: var(--surface-2);
+    }
+  }
+}
+
+.order {
+  display: grid;
+  width: sp(7);
+  height: sp(7);
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: calc(infinity * 1px);
+  background-color: var(--surface-3);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--fg);
+}
+
+.rowText {
+  min-width: 0;
+  flex: 1;
+}
+
+.rowName {
+  @include truncate;
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.rowMeta {
+  @include truncate;
+  display: block;
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+.reuseBadge {
+  background-color: var(--surface-3);
+  color: var(--fg-muted);
+}
+
+.chevron {
+  width: sp(4);
+  height: sp(4);
+  flex-shrink: 0;
+  color: var(--fg-subtle);
+  transition-property: transform, translate, scale, rotate;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 200ms;
+}
+
+.chevronOpen {
+  rotate: 180deg;
+}
+
+.editor {
+  border-top: 1px solid var(--border);
+  padding: sp(3) sp(3.5) sp(3.5);
+
+  :where(& > :not(:last-child)) {
+    margin-block-start: 0;
+    margin-block-end: sp(3.5);
+  }
+
+  @include up(sm) {
+    padding-left: 52px;
+  }
+}
+
+.fields {
+  display: grid;
+  gap: sp(3);
+
+  @include up(sm) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.field {
+  display: block;
+}
+
+.fieldLabel {
+  display: block;
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+.input {
+  margin-top: sp(1);
+  min-height: sp(10);
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background-color: var(--surface);
+  padding-inline: sp(2);
+  font-size: 13px;
+  color: var(--fg);
+
+  @include up(lg) {
+    min-height: sp(9);
+  }
+}
+
+.typeRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: sp(3);
+}
+
+.reuseSwitch {
+  display: flex;
+  min-height: sp(10);
+  cursor: pointer;
+  align-items: center;
+  gap: sp(2);
+  font-size: 12px;
+  color: var(--fg-muted);
+}
+
+.channels {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: sp(2);
+  row-gap: sp(1);
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+.channelCount {
+  font-weight: 600;
+  color: var(--fg-muted);
+}
+
+.channelLink {
+  display: inline-flex;
+  min-height: sp(10);
+  cursor: pointer;
+  align-items: center;
+  color: var(--accent);
+  text-decoration-line: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 2px;
+  @include transition-colors(200ms);
+
+  @include hover {
+    &:hover {
+      text-decoration-color: currentColor;
+    }
+  }
+
+  @include up(lg) {
+    min-height: 0;
+  }
+}
+
+.points {
+  display: flex;
+  flex-wrap: wrap;
+  gap: sp(1.5);
+}
+
+.point {
+  display: inline-flex;
+  align-items: center;
+  gap: sp(1);
+  border-radius: var(--radius-chip);
+  background-color: var(--chip-caution);
+  padding-block: sp(0.5);
+  padding-left: sp(2);
+  font-size: 12px;
+  color: var(--caution-ink);
+}
+
+/* 보이는 24px 둘레로 8px씩 누르는 자리를 더한다 */
+.pointRemove {
+  position: relative;
+  display: inline-flex;
+  width: sp(6);
+  height: sp(6);
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-chip);
+
+  &::before {
+    position: absolute;
+    inset: sp(-2);
+    content: '';
+  }
+
+  @include hover {
+    &:hover {
+      color: var(--fg);
+    }
+  }
+}
+
+.pointGlyph {
+  width: sp(3);
+  height: sp(3);
+}
+
+.foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: sp(2);
+  border-top: 1px solid var(--border);
+  padding-top: sp(3);
+}
+
+.move {
+  display: flex;
+  gap: sp(2);
+}
+
+/* 끝에서 더 밀 수 없는 쪽 — 누를 수 없다는 것이 보여야 한다 */
+.moveButton {
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+  }
+}
+
+.removeButton {
+  @include hover {
+    &:hover {
+      border-color: var(--critical);
+      border-color: color-mix(in oklab, var(--critical) 40%, transparent);
+      background-color: var(--chip-critical);
+      color: var(--critical-ink);
+    }
+  }
+}
+
+.glyph {
+  width: sp(3.5);
+  height: sp(3.5);
+}

@@ -1,0 +1,149 @@
+@use 'shared/styles' as *;
+
+.root {
+  position: relative;
+}
+
+.trigger {
+  color: var(--fg-muted);
+
+  /* 레이어 밖의 색이 `ICON_BUTTON`의 hover 색까지 이기므로 hover를 다시 적는다 */
+  @include hover {
+    &:hover {
+      color: var(--fg);
+      background-color: var(--surface-2);
+    }
+  }
+}
+
+.menu {
+  position: absolute;
+  right: 0;
+  z-index: 20;
+  margin-top: sp(1.5);
+  width: min(320px, calc(100vw - 2rem));
+  overflow: hidden;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-nested);
+  background-color: var(--surface);
+  box-shadow:
+    0 10px 15px -3px rgb(0 0 0 / 0.1),
+    0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+
+/* 알림 종 위에 걸터앉는 숫자. 바탕색은 상태색이라 인라인 `style`이 준다 */
+.countBadge {
+  position: absolute;
+  right: sp(-1);
+  top: sp(-1);
+  min-width: 15px;
+  border-radius: 9999px;
+  padding-inline: sp(1);
+  text-align: center;
+  font-size: 12px;
+  line-height: 15px;
+  color: var(--bg);
+}
+
+.panelHead {
+  border-bottom: 1px solid var(--border);
+  padding-inline: sp(3);
+  padding-block: sp(2);
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+.panelHeadCount {
+  color: var(--fg-muted);
+}
+
+.empty {
+  padding-inline: sp(3);
+  padding-block: sp(6);
+  text-align: center;
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+.item {
+  border-bottom: 1px solid var(--border);
+  padding-inline: sp(3);
+  padding-block: sp(2.5);
+
+  &:last-child {
+    border-width: 0;
+  }
+}
+
+.itemMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: sp(2);
+  font-size: 12px;
+}
+
+.itemSite {
+  @include truncate;
+  min-width: 0;
+  flex: 1;
+  color: var(--fg-subtle);
+}
+
+.itemTime {
+  flex-shrink: 0;
+  color: var(--fg-subtle);
+}
+
+.itemBody {
+  margin-top: sp(1);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: sp(2);
+}
+
+.itemTitle {
+  min-width: 0;
+  flex: 1;
+  font-size: 12px;
+  line-height: 1.375;
+  color: var(--fg);
+}
+
+.acknowledge {
+  flex-shrink: 0;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding-inline: sp(1.5);
+  padding-block: sp(0.5);
+  font-size: 12px;
+  color: var(--fg-muted);
+  @include transition-colors(200ms);
+
+  @include hover {
+    &:hover {
+      border-color: var(--border-strong);
+      background-color: var(--surface-2);
+      color: var(--fg);
+    }
+  }
+}
+
+.historyLink {
+  display: block;
+  border-top: 1px solid var(--border);
+  padding-inline: sp(3);
+  padding-block: sp(2);
+  text-align: right;
+  font-size: 12px;
+  color: var(--fg-muted);
+  @include transition-colors(200ms);
+
+  @include hover {
+    &:hover {
+      color: var(--fg);
+    }
+  }
+}

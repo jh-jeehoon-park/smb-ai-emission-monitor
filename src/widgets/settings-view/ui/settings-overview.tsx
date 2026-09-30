@@ -1,6 +1,7 @@
 import { Check, Factory } from 'lucide-react';
 import { cn } from '@/shared/lib/cn';
 import { BADGE_BASE } from '@/shared/ui/badge';
+import styles from './settings-overview.module.scss';
 
 export interface ReadinessStep {
   label: string;
@@ -43,74 +44,68 @@ export function SettingsOverview({
   return (
     <section
       aria-label="판정 준비 현황"
-      className="rounded-panel border border-card-border bg-surface p-4 shadow-panel lg:p-5"
+      className={styles.root}
     >
-      <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
-        <div className="flex min-w-0 items-center gap-3">
+      <div className={styles.head}>
+        <div className={styles.site}>
           <span
             aria-hidden
-            className="grid size-11 shrink-0 place-items-center rounded-nested bg-accent-weak text-accent"
+            className={styles.siteMark}
           >
-            <Factory className="size-5" strokeWidth={1.8} />
+            <Factory className={styles.siteGlyph} strokeWidth={1.8} />
           </span>
-          <div className="min-w-0">
-            <p className="truncate text-[16px] font-bold text-fg">{siteName}</p>
-            <p className="mt-0.5 truncate text-[12px] text-fg-subtle">{siteRegion}</p>
+          <div className={styles.siteText}>
+            <p className={styles.siteName}>{siteName}</p>
+            <p className={styles.siteRegion}>{siteRegion}</p>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[12px]">
-          <p className="text-fg-subtle">
+        <div className={styles.basis}>
+          <p className={styles.basisLine}>
             법정 판정{' '}
-            <span className="font-semibold text-fg">
+            <span className={styles.basisLegal}>
               {legalCodes.length > 0 ? legalCodes.join(' · ') : '없음'}
             </span>
           </p>
-          <span aria-hidden className="hidden h-3 w-px bg-border sm:block" />
-          <p className="text-fg-subtle">
+          <span aria-hidden className={styles.basisDivider} />
+          <p className={styles.basisLine}>
             시연 임계{' '}
-            <span className="font-semibold text-caution-ink">
+            <span className={styles.basisProvisional}>
               {provisionalCodes.length > 0 ? provisionalCodes.join(' · ') : '없음'}
             </span>
           </p>
         </div>
       </div>
 
-      <div className="mt-4 border-t border-border pt-4">
-        <div className="mb-3 flex items-baseline justify-between gap-3">
-          <p className="text-[12px] font-semibold text-fg-subtle">판정 준비</p>
-          <p className="text-[12px] text-fg-subtle">
-            <span className="num text-[14px] font-bold text-fg">{done}</span> / {steps.length}
+      <div className={styles.readiness}>
+        <div className={styles.readinessHead}>
+          <p className={styles.readinessTitle}>판정 준비</p>
+          <p className={styles.readinessCount}>
+            <span className={cn(styles.readinessDone, 'num')}>{done}</span> / {steps.length}
           </p>
         </div>
 
         {/* 번호가 순서를 말한다 — 앞 칸이 비면 뒤 칸을 채워도 판정이 열리지 않는다. 좁으면 두 칸씩 */}
-        <ol className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+        <ol className={styles.steps}>
           {steps.map((step, index) => {
             const filled = step.value !== null;
             return (
               <li
                 key={step.label}
-                className={cn(
-                  'flex min-w-0 items-center gap-2.5 rounded-nested border px-3 py-2.5',
-                  filled ? 'border-border bg-surface' : 'border-dashed border-border-strong bg-surface-2',
-                )}
+                className={cn(styles.step, filled ? styles.stepFilled : styles.stepEmpty)}
               >
                 <span
                   aria-hidden
-                  className={cn(
-                    'num grid size-6 shrink-0 place-items-center rounded-full text-[12px] font-bold',
-                    filled ? 'bg-fg text-surface' : 'border border-dashed border-border-strong text-fg-subtle',
-                  )}
+                  className={cn(styles.stepMark, 'num', filled ? styles.stepMarkDone : styles.stepMarkTodo)}
                 >
-                  {filled ? <Check className="size-3.5" strokeWidth={2.8} /> : index + 1}
+                  {filled ? <Check className={styles.stepCheck} strokeWidth={2.8} /> : index + 1}
                 </span>
-                <span className="min-w-0">
-                  <span className="block text-[12px] text-fg-subtle">{step.label}</span>
+                <span className={styles.stepText}>
+                  <span className={styles.stepLabel}>{step.label}</span>
                   {filled ? (
-                    <span className="block truncate text-[13px] font-semibold text-fg">{step.value}</span>
+                    <span className={styles.stepValue}>{step.value}</span>
                   ) : (
-                    <span className={cn(BADGE_BASE, 'mt-0.5 bg-surface-3 text-fg-subtle')}>미설정</span>
+                    <span className={cn(BADGE_BASE, styles.stepUnset)}>미설정</span>
                   )}
                 </span>
               </li>
@@ -120,8 +115,8 @@ export function SettingsOverview({
 
         {/* 비어 있다는 사실만으로는 무엇부터 할지 모른다 — 막고 있는 것 하나를 적는다 */}
         {nextAction && (
-          <p className="mt-3 text-[12px] leading-relaxed text-fg-subtle">
-            <span className="font-semibold text-fg-muted">다음 할 일</span> · {nextAction}
+          <p className={styles.next}>
+            <span className={styles.nextLabel}>다음 할 일</span> · {nextAction}
           </p>
         )}
       </div>

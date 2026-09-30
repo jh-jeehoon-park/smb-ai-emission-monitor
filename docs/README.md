@@ -5,7 +5,7 @@
 | 항목 | 내용 |
 |------|------|
 | 문서명 | 문서 색인 |
-| 버전 | v1.6.1 |
+| 버전 | v1.7.0 |
 | 작성일 | 2026-08-06 |
 | 기반 문서 | /docs/applications/HSKorea_AI_Application_Proposal.pdf, /docs/applications/AIoT_Emission_Control_System.pdf |
 
@@ -13,6 +13,7 @@
 
 | 버전 | 날짜 | 작성자 | 변경 내용 |
 |------|------|--------|-----------|
+| v1.7.0 | 2026-09-29 | Claude | 스타일링이 SCSS 모듈로 바뀐 것을 확정 스택 행에 적고 [`specs/styling.md`](specs/styling.md)를 이었다 `[사용자 요청 2026-09-29: develop 유지 · 새 브랜치에서 Tailwind > Sass(scss) 전환]` |
 | v1.6.1 | 2026-09-28 | Claude | TBD 건수 61 → **62** — `[TBD-62]` 허가증 값의 법적 지위 신설 |
 | v1.6.0 | 2026-09-28 | Claude | **[analysis/demonstration-sites.md](analysis/demonstration-sites.md) 등록** `[사용자 요청 2026-09-28]` — 주관사 현장조사(2026-09-11)로 실증 **1차 5개소**가 선정됐다. 원문도 우리 설계도 아닌 **제3의 근거**라 §2 구성표의 `applications/` 행에 그 성격을 적고 §3.1에 분석 문서를 등재했다. 이 문서가 저장소의 기존 전제를 **일곱 곳에서 뒤집는다**(측정 지점·색도·TN·TP 실측·설비 대수·전력 수집 범위·지역/관할·업종) — **화면과 fixture에는 반영하지 않는다** `[사용자 결정 2026-09-28: 실 데이터 연동 전까지는 내용만 참고]`. `[TBD-60]`·`[TBD-61]` 신설 |
 | v1.5.0 | 2026-08-27 | Claude | §3.4에 [integration/README.md](integration/README.md) 등록 — 계측 서버에 실제로 붙이면서 만든 **우리 쪽 구조** 문서다. PDF는 저쪽 계약이고 이 문서는 계층·자격증명 위치·폴백 규약을 적는다 |
@@ -139,7 +140,7 @@ docs/
 | 아키텍처 계층 수 | 4계층을 "3-Tier"로 표기 (INC-10) |
 | TOC·TN·TP의 실측/추정 구분 | 직접 계측과 AI 추정이 함께 규정됨 (INC-90, TBD-21) |
 | 역할별 세부 권한 매핑 | RBAC 3역할까지만 규정, 화면·기능 단위 매핑 없음 (TBD-07, TBD-08) |
-| 디자인시스템·차트 라이브러리 | 원문에 없음. 2026-08-11 사용자 확정 — Tailwind + shadcn/ui + Recharts (루트 `CLAUDE.md`) |
+| 디자인시스템·차트 라이브러리 | 원문에 없음. 2026-08-11 사용자 확정 — Tailwind + shadcn/ui + Recharts (루트 `CLAUDE.md`). **스타일링은 SCSS 모듈로 바꿨다** `[사용자 요청 2026-09-29: develop 유지 · 새 브랜치에서 Tailwind > Sass(scss) 전환]` — [`specs/styling.md`](specs/styling.md) |
 
 이 중 일부는 프로토타입 진행을 위해 **임시값으로 채택**했다. 무엇을 어떤 근거로 정했는지는 [specs/](specs/)가 `[PROVISIONAL]` 표기와 함께 기록하며, 값의 실체는 `src/shared/config/provisional.ts` 한 파일에만 있다. **여전히 확정된 값이 아니다.**
 

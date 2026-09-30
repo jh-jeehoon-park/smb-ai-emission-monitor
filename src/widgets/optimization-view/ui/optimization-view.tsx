@@ -28,6 +28,8 @@ import {
 } from '@/entities/optimization';
 import { useSelectedSiteId } from '@/features/site-selection';
 import { InfoTip } from '@/shared/ui/tooltip';
+import { cn } from '@/shared/lib/cn';
+import styles from './optimization-view.module.scss';
 
 export function OptimizationView() {
   const { siteId } = useSelectedSiteId();
@@ -67,10 +69,10 @@ export function OptimizationView() {
   if (!summary.online) {
     return (
       <Panel title="운영 최적화">
-        <div className="flex flex-col items-center justify-center gap-1.5 py-12 text-center">
-          <p className={`num ${VALUE_LG} text-fg-subtle`}>—</p>
-          <p className="text-[12px] text-fg-muted">산출값 없음</p>
-          <p className="max-w-[52ch] text-[12px] leading-relaxed text-fg-subtle">
+        <div className={styles.offline}>
+          <p className={cn('num', VALUE_LG, styles.offlineValue)}>—</p>
+          <p className={styles.offlineLabel}>산출값 없음</p>
+          <p className={styles.offlineText}>
             ECP 통신이 두절되어 최적화가 산출되지 않았습니다. 마지막 산출{' '}
             <span className="num">{formatDateTime(summary.computedAtIso)}</span> {DISPLAY_TIMEZONE}.
             옛 권장값을 현재값처럼 두지 않습니다.
@@ -83,13 +85,13 @@ export function OptimizationView() {
   const { dosing } = summary;
 
   return (
-    <div className="space-y-6">
+    <div className={styles.stack}>
       {/*
        * **타일 다섯 칸** `[사용자 지시 2026-08-25]`. `kWh/m³` 카드가 값 두 개(현재·적용 시)와
        * 절감률뿐이라 패널 한 장을 채우지 못했다 — 같은 성질의 값이 이미 넷 있어 그 줄에 넣는다.
        * 그 자리에는 `설비 운전 조건 제안`이 들어가 두 칸이 다시 찬다.
        */}
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+      <div className={styles.tiles}>
         <StatTile
           label="약품비 절감"
           value={`${dosing.savingRate}%`}
@@ -147,7 +149,7 @@ export function OptimizationView() {
         />
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+      <div className={styles.panels}>
         <Panel
           title="약품 주입량 최적화"
           titleAside={
@@ -171,17 +173,17 @@ export function OptimizationView() {
         >
           {pending ? (
             /* 조정 방향의 근거가 계측이라 아직 낼 수 없다 — «권하지 않는다»와 다른 상태다 */
-            <p className="py-3 text-[12px] leading-relaxed text-fg-subtle">
+            <p className={styles.note}>
               {TELEMETRY_PENDING_NOTE}
             </p>
           ) : summary.operating.length === 0 ? (
             /* 신호가 없으면 제안을 만들지 않는다 — 무엇이 없어서인지를 적는다(R19·E4) */
-            <p className="py-3 text-[12px] leading-relaxed text-fg-subtle">
+            <p className={styles.note}>
               최근 {OPERATING_WINDOW.recentHours}시간의 DO·유량 변화가 조정 문턱 아래이거나 표본이
               없어 조정을 권하지 않습니다.
             </p>
           ) : (
-            <ul className="divide-y divide-border">
+            <ul className={styles.operatingList}>
               {summary.operating.map((advice) => (
                 <li key={advice.id}>
                   <OperatingRow advice={advice} />
@@ -206,7 +208,7 @@ export function OptimizationView() {
           />
         }
       >
-        <dl className="grid grid-cols-1 gap-y-2 text-[12px]">
+        <dl className={styles.meta}>
           <Meta label="산출 모델" value={`${summary.modelLabel} (다중 에이전트 강화학습)`} />
           <Meta
             label="산출 시각"
@@ -227,27 +229,27 @@ function DosingCompare({ dosing }: { dosing: DosingAdvice }) {
 
   return (
     <div>
-      <div className="flex items-end justify-between gap-4">
+      <div className={styles.doseHead}>
         <div>
-          <p className="text-[12px] text-fg-subtle">권장 주입량</p>
-          <p className={`num mt-1 ${VALUE_LG}`} style={{ color: statusInk(STATUS_VISUAL.normal) }}>
+          <p className={styles.caption}>권장 주입량</p>
+          <p className={cn('num', styles.recommendedValue, VALUE_LG)} style={{ color: statusInk(STATUS_VISUAL.normal) }}>
             {dosing.recommendedDose.toFixed(DOSING_DECIMALS)}
-            <span className="ml-1.5 text-[12px] font-normal text-fg-subtle">{dosing.unit}</span>
+            <span className={styles.recommendedUnit}>{dosing.unit}</span>
           </p>
         </div>
-        <div className="text-right">
-          <p className="text-[12px] text-fg-subtle">현재</p>
-          <p className={`num mt-1 ${VALUE_MD} text-fg-muted`}>
+        <div className={styles.doseCurrent}>
+          <p className={styles.caption}>현재</p>
+          <p className={cn('num', styles.currentValue, VALUE_MD)}>
             {dosing.currentDose.toFixed(DOSING_DECIMALS)}
-            <span className="ml-1 text-[12px] text-fg-subtle">{dosing.unit}</span>
+            <span className={styles.currentUnit}>{dosing.unit}</span>
           </p>
-          <p className="num mt-1 text-[12px]" style={{ color: statusInk(STATUS_VISUAL.normal) }}>
+          <p className={cn('num', styles.savingRate)} style={{ color: statusInk(STATUS_VISUAL.normal) }}>
             −{dosing.savingRate}%
           </p>
         </div>
       </div>
 
-      <div className="mt-4 space-y-1.5">
+      <div className={styles.doseBars}>
         <DoseBar
           label="현재"
           value={dosing.currentDose}
@@ -264,12 +266,12 @@ function DosingCompare({ dosing }: { dosing: DosingAdvice }) {
         />
       </div>
 
-      <div className="mt-4 border-t border-border pt-2.5">
-        <p className="text-[12px] text-fg-subtle">권장 근거</p>
-        <ul className="mt-1.5 space-y-1">
+      <div className={styles.basis}>
+        <p className={styles.caption}>권장 근거</p>
+        <ul className={styles.basisList}>
           {dosing.basis.map((reason) => (
-            <li key={reason} className="flex gap-1.5 text-[12px] text-fg-muted">
-              <span aria-hidden className="text-fg-subtle">
+            <li key={reason} className={styles.basisItem}>
+              <span aria-hidden className={styles.basisBullet}>
                 ·
               </span>
               {reason}
@@ -296,14 +298,14 @@ function DoseBar({
 }) {
   /* 막대는 통합 관제의 XAI 기여 막대와 **같은 부품**이다 `[사용자 지시 2026-08-24]` */
   return (
-    <div className="flex items-center gap-2">
-      <span className="w-8 shrink-0 text-[12px] text-fg-subtle">{label}</span>
+    <div className={styles.doseBar}>
+      <span className={styles.doseBarLabel}>{label}</span>
       <MeterBar
         percent={(value / max) * 100}
         color={tone === 'normal' ? 'var(--normal)' : 'var(--missing)'}
-        className="flex-1"
+        className={styles.doseMeter}
       />
-      <span className="num w-[74px] shrink-0 text-right text-[12px] text-fg-muted">
+      <span className={cn('num', styles.doseBarValue)}>
         {value.toFixed(DOSING_DECIMALS)} {unit}
       </span>
     </div>
@@ -325,29 +327,29 @@ function OperatingRow({ advice }: { advice: OperatingAdvice }) {
    * (관측값)가 뒤, 크기·방향은 값과 막대가 함께 말한다.
    */
   return (
-    <div className="py-3">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-        <p className="min-w-0 text-[14px] font-bold leading-snug text-fg">
+    <div className={styles.operating}>
+      <div className={styles.operatingHead}>
+        <p className={styles.operatingTitle}>
           {advice.parameter}
-          <span className="ml-2 text-[12px] font-normal text-fg-subtle">{advice.target}</span>
+          <span className={styles.operatingTarget}>{advice.target}</span>
         </p>
         {/* 이 줄의 값이다 — 제목보다 크게 세워 조정 폭이 먼저 눈에 들어온다 */}
-        <p className={`num shrink-0 ${VALUE_MD}`} style={{ color: ink }}>
+        <p className={cn('num', styles.delta, VALUE_MD)} style={{ color: ink }}>
           {up ? '+' : ''}
           {advice.deltaPercent}%
         </p>
       </div>
 
-      <p className="mt-1.5 max-w-[70ch] text-[13px] leading-relaxed text-fg-muted">
+      <p className={styles.operatingReason}>
         {advice.reason}
       </p>
 
       {/* 관측값을 먼저 적는다 — 계측을 근거로 말하려면 그 값이 화면에 있어야 한다(E3) */}
-      <p className="num mt-1 text-[12px] leading-relaxed text-fg-subtle">{advice.observed}</p>
+      <p className={cn('num', styles.operatingObserved)}>{advice.observed}</p>
 
       {/* 방향과 크기를 같은 축의 막대로. 폭을 다 쓰므로 작은 차이도 길이로 읽힌다 */}
       <MeterBar
-        className="mt-2"
+        className={styles.operatingMeter}
         percent={magnitude}
         direction={up ? 'up' : 'down'}
         color={up ? 'var(--warning)' : 'var(--normal)'}
@@ -359,8 +361,8 @@ function OperatingRow({ advice }: { advice: OperatingAdvice }) {
 function Meta({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <div>
-      <dt className="text-fg-subtle">{label}</dt>
-      <dd className={mono ? 'num mt-0.5 text-fg-muted' : 'mt-0.5 leading-relaxed text-fg-muted'}>
+      <dt className={styles.metaTerm}>{label}</dt>
+      <dd className={mono ? cn('num', styles.metaValueMono) : styles.metaValue}>
         {value}
       </dd>
     </div>

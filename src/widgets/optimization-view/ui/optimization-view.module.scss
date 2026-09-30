@@ -1,0 +1,246 @@
+@use 'shared/styles' as *;
+
+.offline {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: sp(1.5);
+  padding-block: sp(12);
+  text-align: center;
+}
+
+.offlineValue {
+  color: var(--fg-subtle);
+}
+
+.offlineLabel {
+  font-size: 12px;
+  color: var(--fg-muted);
+}
+
+.offlineText {
+  max-width: 52ch;
+  font-size: 12px;
+  line-height: 1.625;
+  color: var(--fg-subtle);
+}
+
+.stack {
+  & > :not(:last-child) {
+    margin-block-end: sp(6);
+  }
+}
+
+.tiles {
+  display: grid;
+  gap: sp(6);
+
+  @include up(sm) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @include up(lg) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  @include up(xl) {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+.panels {
+  display: grid;
+  gap: sp(6);
+
+  @include up(xl) {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+.note {
+  padding-block: sp(3);
+  font-size: 12px;
+  line-height: 1.625;
+  color: var(--fg-subtle);
+}
+
+.operatingList {
+  & > :not(:last-child) {
+    border-bottom: 1px solid var(--border);
+  }
+}
+
+.meta {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  row-gap: sp(2);
+  font-size: 12px;
+}
+
+.doseHead {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: sp(4);
+}
+
+.caption {
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+.recommendedValue {
+  margin-top: sp(1);
+}
+
+.recommendedUnit {
+  margin-left: sp(1.5);
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--fg-subtle);
+}
+
+.doseCurrent {
+  text-align: right;
+}
+
+.currentValue {
+  margin-top: sp(1);
+  color: var(--fg-muted);
+}
+
+.currentUnit {
+  margin-left: sp(1);
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+.savingRate {
+  margin-top: sp(1);
+  font-size: 12px;
+}
+
+.doseBars {
+  margin-top: sp(4);
+
+  & > :not(:last-child) {
+    margin-block-end: sp(1.5);
+  }
+}
+
+.basis {
+  margin-top: sp(4);
+  border-top: 1px solid var(--border);
+  padding-top: sp(2.5);
+}
+
+.basisList {
+  margin-top: sp(1.5);
+
+  & > :not(:last-child) {
+    margin-block-end: sp(1);
+  }
+}
+
+.basisItem {
+  display: flex;
+  gap: sp(1.5);
+  font-size: 12px;
+  color: var(--fg-muted);
+}
+
+.basisBullet {
+  color: var(--fg-subtle);
+}
+
+.doseBar {
+  display: flex;
+  align-items: center;
+  gap: sp(2);
+}
+
+.doseBarLabel {
+  width: sp(8);
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+.doseMeter {
+  flex: 1;
+}
+
+.doseBarValue {
+  width: 74px;
+  flex-shrink: 0;
+  text-align: right;
+  font-size: 12px;
+  color: var(--fg-muted);
+}
+
+.operating {
+  padding-block: sp(3);
+}
+
+.operatingHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  column-gap: sp(3);
+  row-gap: sp(1);
+}
+
+.operatingTitle {
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.375;
+  color: var(--fg);
+}
+
+.operatingTarget {
+  margin-left: sp(2);
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--fg-subtle);
+}
+
+.delta {
+  flex-shrink: 0;
+}
+
+.operatingReason {
+  margin-top: sp(1.5);
+  max-width: 70ch;
+  font-size: 13px;
+  line-height: 1.625;
+  color: var(--fg-muted);
+}
+
+.operatingObserved {
+  margin-top: sp(1);
+  font-size: 12px;
+  line-height: 1.625;
+  color: var(--fg-subtle);
+}
+
+.operatingMeter {
+  margin-top: sp(2);
+}
+
+.metaTerm {
+  color: var(--fg-subtle);
+}
+
+.metaValueMono {
+  margin-top: sp(0.5);
+  color: var(--fg-muted);
+}
+
+.metaValue {
+  margin-top: sp(0.5);
+  line-height: 1.625;
+  color: var(--fg-muted);
+}

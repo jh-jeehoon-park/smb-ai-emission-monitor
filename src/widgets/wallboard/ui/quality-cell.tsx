@@ -24,6 +24,7 @@ import {
 import { useValueFlash } from '../lib/use-value-flash';
 import { WallBar } from './wall-bar';
 import { WallSpark } from './wall-spark';
+import styles from './quality-cell.module.scss';
 
 /** 기준을 넘지 않은 항목. 등급 색과 같은 축이라 새 색을 만들지 않는다 */
 const WITHIN_LIMIT = STATUS_VISUAL.normal.hex;
@@ -102,25 +103,15 @@ export function QualityCell({
         : WITHIN_LIMIT;
 
   return (
-    <article
-      className={cn(
-        /*
-         * **가운데로 모은다.** `justify-between`이던 판본은 칸이 내용보다 훨씬 높아
-         * 이름·값·막대가 위아래 끝으로 흩어졌다(캡처에서 드러났다) — 2~3m에서는 한 덩어리로
-         * 보여야 한 항목으로 읽힌다.
-         */
-        'flex min-w-0 flex-col justify-center rounded-nested border border-border bg-surface-2 wall-pad-sm transition-colors duration-500',
-        flashing && 'bg-accent-weak',
-      )}
-    >
-      <p className="flex min-w-0 items-baseline gap-2">
-        <span className={cn('min-w-0 truncate', WALL_LABEL)}>{item.label}</span>
-        <span className={cn('shrink-0 text-fg-subtle', WALL_META)}>{item.symbol}</span>
+    <article className={cn('wall-pad-sm', styles.cell, flashing && styles.cellFlashing)}>
+      <p className={styles.head}>
+        <span className={cn(styles.label, WALL_LABEL)}>{item.label}</span>
+        <span className={cn(styles.symbol, WALL_META)}>{item.symbol}</span>
       </p>
 
-      <p className="mt-2 flex items-baseline gap-1.5">
+      <p className={styles.reading}>
         {/* 결측은 «0»이 아니라 «수신 없음»이다 — 0으로 적으면 재 본 값이 된다(E4) */}
-        <span className={cn('num', WALL_VALUE_LG, latest === null ? 'text-fg-subtle' : 'text-fg')}>
+        <span className={cn('num', WALL_VALUE_LG, latest === null ? styles.valueMissing : styles.valuePresent)}>
           {latest === null ? '수신 없음' : formatValue(code, latest)}
         </span>
         {latest !== null && item.unit !== '' && (
@@ -137,23 +128,23 @@ export function QualityCell({
        *
        * 값을 새로 만들지 않는다 — 위의 `latest`와 같은 계열을 그대로 그린다.
        */}
-      <div className="mt-2">
+      <div className={styles.spark}>
         <WallSpark values={values} height={WALL_CELL_SPARK_H} className={WALL_CELL_SPARK_CLASS} />
       </div>
 
-      <WallBar percent={positionIn(track, latest)} color={color} className="mt-2.5 h-2" />
+      <WallBar percent={positionIn(track, latest)} color={color} className={styles.bar} />
 
-      <p className={cn('mt-2 truncate text-fg-subtle', WALL_META)}>
+      <p className={cn(styles.note, WALL_META)}>
         {judged ? (
           <>
             {/* 시연 임계값을 「기준」이라 부르지 않는다 — 2~3m 밖에서는 이 낱말만 읽힌다 */}
             {check.basis === 'none' ? LIMIT_LABEL.legal : LIMIT_LABEL[check.basis]}{' '}
-            <span className="num font-bold text-fg-muted">{limitText}</span>
+            <span className={cn('num', styles.limit)}>{limitText}</span>
             {check.over === true && (
               <span
                 className={cn(
-                  'ml-1.5 font-bold',
-                  check.basis === 'legal' ? 'text-critical-ink' : 'text-caution-ink',
+                  styles.over,
+                  check.basis === 'legal' ? styles.overLegal : styles.overProvisional,
                 )}
               >
                 초과

@@ -1,0 +1,44 @@
+@use 'shared/styles' as *;
+
+/* 표 부품 — 화면이 열 폭·정렬을 덧붙인다. 덮을 수 있게 `components` 레이어 */
+@layer components {
+  .root {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  .headRow {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--fg-muted);
+
+    & > th {
+      background-color: var(--table-head);
+    }
+
+    & > th:first-child {
+      border-top-left-radius: var(--radius-nested);
+      border-bottom-left-radius: var(--radius-nested);
+    }
+
+    & > th:last-child {
+      border-top-right-radius: var(--radius-nested);
+      border-bottom-right-radius: var(--radius-nested);
+    }
+  }
+
+  .headCell {
+    padding: sp(3);
+    text-align: center;
+  }
+
+  .row > * {
+    border-bottom: 1px solid var(--border);
+  }
+
+  .scroll {
+    position: relative;
+    overflow-x: auto;
+  }
+}

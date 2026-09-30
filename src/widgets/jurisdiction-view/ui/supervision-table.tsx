@@ -8,6 +8,7 @@ import { StatusBadge } from '@/shared/ui/status-badge';
 import { TABLE_HEAD_CELL, TABLE_HEAD_ROW, TABLE_ROOT, TABLE_ROW, TABLE_SCROLL } from '@/shared/ui/table';
 import type { SupervisionRow } from '../lib/supervision-rows';
 import { overLimitCell } from '../lib/over-limit-cell';
+import styles from './supervision-table.module.scss';
 
 /**
  * **판정할 수 없었다는 사실을 그대로 적는다.**
@@ -33,23 +34,23 @@ function CountCell({
   return (
     <>
       {value === null ? (
-        <span className="text-fg-subtle">{UNJUDGED}</span>
+        <span className={styles.unjudged}>{UNJUDGED}</span>
       ) : (
         <span
           className={cn(
             'num',
             value > 0
               ? tone === 'critical'
-                ? 'font-semibold text-critical-ink'
-                : 'font-semibold text-caution-ink'
-              : 'text-fg-muted',
+                ? styles.countCritical
+                : styles.countCaution
+              : styles.countZero,
           )}
         >
           {value}
           {unit}
         </span>
       )}
-      {note ? <span className="mt-0.5 block text-[12px] text-fg-subtle">{note}</span> : null}
+      {note ? <span className={styles.countNote}>{note}</span> : null}
     </>
   );
 }
@@ -78,8 +79,8 @@ export function SupervisionTable({
 }: SupervisionTableProps) {
   if (rows.length === 0) {
     return (
-      <p className="py-8 text-center text-[12px] text-fg-subtle">
-        이 관할에 등록된 사업장이 없습니다 — <strong className="text-fg-muted">0개소는 오류가
+      <p className={styles.empty}>
+        이 관할에 등록된 사업장이 없습니다 — <strong className={styles.emptyStrong}>0개소는 오류가
         아닙니다.</strong> 전국 243개 시·군·구 중 대부분이 그렇습니다.
       </p>
     );
@@ -87,32 +88,32 @@ export function SupervisionTable({
 
   return (
     <div className={TABLE_SCROLL}>
-      <table className={`${TABLE_ROOT} min-w-[720px] table-fixed text-center text-[12px]`}>
-        <caption className="sr-only">
+      <table className={cn(TABLE_ROOT, styles.table)}>
+        <caption className={styles.caption}>
           관내 사업장 감독 현황 — 조치 필요한 순(두절 · 등급 높은 순 · 미확인 많은 순)
         </caption>
         <thead>
           <tr className={TABLE_HEAD_ROW}>
-            <th scope="col" className={`text-left ${TABLE_HEAD_CELL}`}>
+            <th scope="col" className={cn(styles.colSite, TABLE_HEAD_CELL)}>
               사업장
             </th>
-            <th scope="col" className={`w-[92px] ${TABLE_HEAD_CELL}`}>
+            <th scope="col" className={cn(styles.colIndustry, TABLE_HEAD_CELL)}>
               업종
             </th>
-            <th scope="col" className={`w-[120px] ${TABLE_HEAD_CELL}`}>
+            <th scope="col" className={cn(styles.colStatus, TABLE_HEAD_CELL)}>
               상태
             </th>
-            <th scope="col" className={`w-[104px] ${TABLE_HEAD_CELL}`}>
+            <th scope="col" className={cn(styles.colCount, TABLE_HEAD_CELL)}>
               기준 초과
             </th>
-            <th scope="col" className={`w-[104px] ${TABLE_HEAD_CELL}`}>
+            <th scope="col" className={cn(styles.colCount, TABLE_HEAD_CELL)}>
               방류 의심
             </th>
-            <th scope="col" className={`w-[84px] ${TABLE_HEAD_CELL}`}>
+            <th scope="col" className={cn(styles.colOpen, TABLE_HEAD_CELL)}>
               미확인
             </th>
-            <th scope="col" className={`w-[76px] ${TABLE_HEAD_CELL}`}>
-              <span className="sr-only">상세</span>
+            <th scope="col" className={cn(styles.colDetail, TABLE_HEAD_CELL)}>
+              <span className={styles.srOnly}>상세</span>
             </th>
           </tr>
         </thead>
@@ -123,35 +124,35 @@ export function SupervisionTable({
               onClick={() => onSelect(row.site.id)}
               className={cn(
                 TABLE_ROW,
-                'cursor-pointer transition-colors duration-150 hover:bg-surface-2',
-                row.site.id === selectedId && 'bg-surface-2',
+                styles.row,
+                row.site.id === selectedId && styles.rowSelected,
               )}
             >
-              <td className="px-3 py-3.5 text-left">
-                <span className="font-semibold text-fg">{row.site.name}</span>
+              <td className={cn(styles.cell, styles.cellSite)}>
+                <span className={styles.siteName}>{row.site.name}</span>
               </td>
-              <td className="px-3 py-3.5 text-fg-muted">{row.site.industry}</td>
-              <td className="px-3 py-3.5">
+              <td className={cn(styles.cell, styles.cellMuted)}>{row.site.industry}</td>
+              <td className={styles.cell}>
                 {/* 두절이면 등급이 없다. 점수 자리에 0을 넣지 않는다(E4) */}
                 {row.status === null ? (
-                  <span className="text-fg-subtle">수신 없음</span>
+                  <span className={styles.statusMissing}>수신 없음</span>
                 ) : (
-                  <span className="inline-flex items-center gap-1.5">
+                  <span className={styles.statusValue}>
                     <StatusBadge level={row.status} />
-                    <span className="num text-fg-muted">{row.anomalyScore}</span>
+                    <span className={cn('num', styles.statusScore)}>{row.anomalyScore}</span>
                   </span>
                 )}
               </td>
-              <td className="px-3 py-3.5">
+              <td className={styles.cell}>
                 <CountCell unit="건" {...overLimitCell(row)} />
               </td>
-              <td className="px-3 py-3.5">
+              <td className={styles.cell}>
                 <CountCell value={row.idleRuns} unit="구간" />
               </td>
-              <td className="px-3 py-3.5">
+              <td className={styles.cell}>
                 <CountCell value={row.openAlarms} unit="건" />
               </td>
-              <td className="px-3 py-3.5">
+              <td className={styles.cell}>
                 {/*
                  * **이 버튼만 화면을 옮긴다** `[사용자 요청 2026-08-28]`. 줄·카드·탭·핀 넷은
                  * 그대로 선택이다.

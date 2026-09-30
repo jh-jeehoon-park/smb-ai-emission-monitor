@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { DEMO_NOW_ISO } from '@/shared/config/demo';
 import { COLLECTION_INTERVAL_MINUTES } from '@/shared/config/measurement';
 import { STATUS_VISUAL, statusInk } from '@/shared/config/status-visual';
+import { cn } from '@/shared/lib/cn';
 import { DISPLAY_TIMEZONE, formatDateTime } from '@/shared/lib/format';
 import { getOutageWindow } from '@/shared/lib/timeline';
 import { Panel } from '@/shared/ui/panel';
@@ -47,6 +48,7 @@ import { WaterQualityGrid } from '@/widgets/water-quality-grid';
 import { BYPASS_PIPE_NOTE } from '../config/constants';
 import { buildSupervisionRows } from '../lib/supervision-rows';
 import { SupervisionTable } from './supervision-table';
+import styles from './jurisdiction-view.module.scss';
 
 /**
  * 관내 감독 현황 — 기초지자체(`SCR-GU-001`).
@@ -139,7 +141,7 @@ export function JurisdictionView() {
   ).length;
 
   return (
-    <div className="space-y-6">
+    <div className={styles.root}>
       {/* 관내 합계는 여기에만 둔다 — 아래 구역은 전부 선택 사업장 축이다 */}
       <Panel
         title={`관내 사업장 현황 — ${GOV_MUNICIPALITY}`}
@@ -150,18 +152,18 @@ export function JurisdictionView() {
           />
         }
         action={
-          <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1 text-[12px] text-fg-subtle">
+          <div className={styles.summary}>
             {/* **분모를 함께 적는다** — `수신 1`만 적으면 나머지가 두절인지 없는지 모른다(E4) */}
             <span>
-              관내 <span className="num font-bold text-fg">{sites.length}</span>개소 · 수신{' '}
-              <span className="num font-bold text-fg">{online}</span>/{sites.length}
+              관내 <span className={cn('num', styles.figure)}>{sites.length}</span>개소 · 수신{' '}
+              <span className={cn('num', styles.figure)}>{online}</span>/{sites.length}
             </span>
             <span>
               조치 필요{' '}
               <span
-                className="num font-bold"
+                className={cn('num', styles.figureTone)}
                 style={{
-                  color: needsAction > 0 ? statusInk(STATUS_VISUAL.warning) : 'var(--color-fg)',
+                  color: needsAction > 0 ? statusInk(STATUS_VISUAL.warning) : 'var(--fg)',
                 }}
               >
                 {needsAction}
@@ -171,12 +173,12 @@ export function JurisdictionView() {
             <span>
               미확인{' '}
               <span
-                className="num font-bold"
+                className={cn('num', styles.figureTone)}
                 style={{
                   color:
                     countOpen(inMunicipality) > 0
                       ? statusInk(STATUS_VISUAL.critical)
-                      : 'var(--color-fg)',
+                      : 'var(--fg)',
                 }}
               >
                 {countOpen(inMunicipality)}
@@ -188,17 +190,17 @@ export function JurisdictionView() {
              * 두절된 사업장은 확인되지 않았을 뿐이다(E4).
              */}
             <span>
-              방류 의심 <span className="num font-bold text-fg">{idle.suspected}</span>개소
+              방류 의심 <span className={cn('num', styles.figure)}>{idle.suspected}</span>개소
               {idle.unjudged > 0 && (
-                <span className="ml-1">
-                  · 판정 불가 <span className="num font-bold text-fg">{idle.unjudged}</span>개소
+                <span className={styles.unjudged}>
+                  · 판정 불가 <span className={cn('num', styles.figure)}>{idle.unjudged}</span>개소
                 </span>
               )}
             </span>
           </div>
         }
       >
-        <div className="space-y-4">
+        <div className={styles.overview}>
           <SiteWallboard
             sites={sites}
             /* 카드는 **선택**이다. 화면을 옮기는 것은 표의 `상세` 버튼뿐이다 —
@@ -209,9 +211,9 @@ export function JurisdictionView() {
             onCardClick={setSiteId}
             cardLabel={(s) => `${s.name} 선택`}
             renderFooter={(s) => (
-              <span className="text-[12px] text-fg-subtle">
+              <span className={styles.cardFooter}>
                 미확인 알람{' '}
-                <span className="num font-bold text-fg">
+                <span className={cn('num', styles.figure)}>
                   {openAlarms(inMunicipality, s.id).length}
                 </span>
                 건
@@ -220,8 +222,8 @@ export function JurisdictionView() {
           />
 
           {/* 카드는 훑기, 표는 비교 — 둘 다 관내 전체 축이라 한 판에 둔다 */}
-          <div className="border-t border-border pt-3">
-            <p className="mb-2 px-1 text-[12px] font-medium text-fg-subtle">
+          <div className={styles.tableBlock}>
+            <p className={styles.tableTitle}>
               관내 감독 표 — 조치 필요한 순
             </p>
             <SupervisionTable
@@ -234,15 +236,15 @@ export function JurisdictionView() {
         </div>
       </Panel>
 
-      <section className="space-y-3 rounded-panel border border-card-border bg-section-bg p-4 lg:p-5">
+      <section className={styles.selected}>
         <StickyBar>
           {/*
            * **제목과 툴팁을 한 겹으로 묶는다.** `StickyBar`는 `space-y-3`이라 직계 자식마다
            * 한 줄이 된다 — 셋을 나란히 넘기면 인포 아이콘이 제목 아래 혼자 한 줄을 차지한다
            * `[사용자 지적 2026-08-28]`. 통합 관제의 같은 구역과 한 형태여야 한다.
            */}
-          <div className="flex items-center gap-1.5">
-            <h2 className="text-[16px] font-bold leading-tight tracking-tight text-fg">
+          <div className={styles.heading}>
+            <h2 className={styles.headingTitle}>
               선택 사업장 현황
             </h2>
             <InfoTip
@@ -261,18 +263,18 @@ export function JurisdictionView() {
               sites={sites}
               selectedId={siteId}
               onSelect={setSiteId}
-              className="hidden lg:flex"
+              className={styles.tabsWide}
             />
-            <SiteList sites={sites} selectedId={siteId} onSelect={setSiteId} className="lg:hidden" />
+            <SiteList sites={sites} selectedId={siteId} onSelect={setSiteId} className={styles.listNarrow} />
           </div>
         </StickyBar>
 
-        <div className="grid gap-6 xl:grid-cols-[420px_minmax(0,1fr)] 2xl:grid-cols-[470px_minmax(0,1fr)]">
+        <div className={styles.detail}>
           <Panel
             title="사업장 위치"
             action={<SiteMapLegend density={false} />}
-            className="xl:sticky xl:top-[calc(var(--header-h)_+_var(--sticky-bar-h,0px)_+_1.5rem)] xl:h-[calc(88svh_-_var(--sticky-bar-h,0px)_-_1.5rem)] xl:max-h-[753px] xl:self-start"
-            bodyClassName="flex min-h-0 flex-col gap-3"
+            className={styles.mapPanel}
+            bodyClassName={styles.mapBody}
           >
             <SiteMapPanel
               sites={sites}
@@ -284,9 +286,9 @@ export function JurisdictionView() {
             <LocatorInset municipality={GOV_MUNICIPALITY} sites={sites} />
           </Panel>
 
-          <div className="@container min-w-0 space-y-6">
+          <div className={styles.panels}>
             <Panel title={`이상 탐지 결과 · ${site.name}`}>
-              <div className="space-y-5">
+              <div className={styles.anomaly}>
                 <AnomalyPanel
                   summary={detail.anomalySummary}
                   legend={<AnomalyBandLegend />}
@@ -363,7 +365,7 @@ export function JurisdictionView() {
                     <>
                       {IDLE_DISCHARGE_NOTE}
                       {/* 못 잡는 경우를 함께 적는다 — 의심 0건이 "깨끗함"으로 읽히지 않게 */}
-                      <span className="mt-2 block">{BYPASS_PIPE_NOTE}</span>
+                      <span className={styles.bypassNote}>{BYPASS_PIPE_NOTE}</span>
                     </>
                   }
                 />

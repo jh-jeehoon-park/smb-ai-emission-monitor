@@ -1,8 +1,20 @@
+@use 'sass:meta';
+
 /* 한글 UI라 라틴 전용 폰트만으로는 부족하다. 본문은 Pretendard가 받는다.
    `<head>`에 <link>로 두면 React가 이 태그를 자기 트리로 끌어올려 순서를 다시 잡는다.
    폰트는 React가 관여할 일이 아니므로 CSS에서 직접 불러온다. */
 @import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css");
-@import "tailwindcss";
+
+/*
+ * **레이어 순서** — 모듈도 같은 선언을 먼저 싣는다(`shared/styles/_layers.scss`). 초기화(`base`)가
+ * 부품(`components`)보다 앞이어야 부품의 여백·테두리가 살아남는다. 레이어 밖 규칙(화면 모듈 · 아래
+ * 전역 도움 클래스)은 둘 다를 이긴다.
+ */
+@layer base, components;
+
+@layer base {
+  @include meta.load-css('reset');
+}
 
 /**
  * 두 테마는 서로의 반전이 아니다. 라이트는 별도로 값을 잡고 따로 검증했다.
@@ -279,55 +291,13 @@
   --track-inset: inset 0 1px 2px rgb(0 0 0 / 45%);
 }
 
-@theme inline {
-  --color-bg: var(--bg);
-  --color-surface: var(--surface);
-  --color-surface-2: var(--surface-2);
-  --color-surface-3: var(--surface-3);
-  --color-border: var(--border);
-  --color-border-strong: var(--border-strong);
-  --color-fg: var(--fg);
-  --color-fg-muted: var(--fg-muted);
-  --color-fg-subtle: var(--fg-subtle);
-  --color-fg-faint: var(--fg-faint);
-
-  --color-normal: var(--normal);
-  --color-caution: var(--caution);
-  --color-warning: var(--warning);
-  --color-critical: var(--critical);
-  --color-info: var(--info);
-
-  --color-normal-ink: var(--normal-ink);
-  --color-caution-ink: var(--caution-ink);
-  --color-warning-ink: var(--warning-ink);
-  --color-critical-ink: var(--critical-ink);
-  --color-info-ink: var(--info-ink);
-
-  --color-card-border: var(--card-border);
-  --color-section-bg: var(--section-bg);
-  --color-table-head: var(--table-head);
-  --color-accent: var(--accent);
-  --color-accent-weak: var(--accent-weak);
-  --color-cell-normal: var(--cell-normal);
-  --color-chip-normal: var(--chip-normal);
-  --color-chip-caution: var(--chip-caution);
-  --color-chip-warning: var(--chip-warning);
-  --color-chip-critical: var(--chip-critical);
-  --color-chip-info: var(--chip-info);
-
-  --color-ai: var(--ai);
-  --color-actual: var(--actual);
-  --color-series-1: var(--series-1);
-  --color-series-2: var(--series-2);
-  --color-series-3: var(--series-3);
-  --color-missing: var(--missing);
-
+/*
+ * **토큰 중 색이 아닌 것** — 한때 Tailwind `@theme`이 유틸리티 이름(`rounded-panel` · `shadow-panel`)과
+ * 함께 만들던 값이다 `[2026-09-29: Tailwind → SCSS 모듈]`. 모듈이 `var(--radius-nested)`처럼 직접 쓴다.
+ * 색 별칭(`--color-surface` 등)은 걷었다 — 모듈은 원래 토큰(`--surface`)을 쓴다.
+ */
+:root {
   --font-sans: 'Pretendard Variable', Pretendard, ui-sans-serif, system-ui, sans-serif;
-  /**
-   * 이 프로젝트에 모노스페이스 폰트는 없다. Tailwind 기본 `font-mono`가 시스템 모노로
-   * 떨어지는 것을 막으려고 남겨 둔 방어선이며, 새 코드에서 쓰지 않는다.
-   */
-  --font-mono: 'Pretendard Variable', Pretendard, ui-sans-serif, system-ui, sans-serif;
 
   /* 카드 모서리. 6px은 표 컨테이너처럼 읽혔다 — 면으로 보이게 키운다 */
   --radius-panel: 16px;
@@ -410,12 +380,21 @@
   }
 }
 
-@layer utilities {
-  /**
+/**
+ * **아래 전역 도움 클래스는 레이어 밖에 두고 선택자 앞에 `:root`를 붙인다** `[2026-09-29: SCSS 모듈 전환]`.
+ *
+ * 한때 `@layer utilities` 안에서 Tailwind 유틸리티보다 **뒤에 선언돼 이겼다.** SCSS 모듈은 레이어 밖이라
+ * 레이어 안 규칙을 특이도와 무관하게 이기고, 같은 특이도(0,1,0)끼리는 파일 순서가 승부를 가른다 —
+ * 그대로 두면 `role-hide-*`가 모듈의 `display`에 져서 **다른 역할의 화면이 보인다.**
+ * 레이어 밖 + 한 단 높은 특이도(0,2,0 이상)라서 모듈 클래스를 순서와 무관하게 이긴다.
+ */
+
+/**
    * 테마에 따라 보일 요소를 CSS로 고른다. 마크업은 한 벌만 두고 선택은 CSS가 하므로
    * 서버가 그린 HTML이 테마와 무관해진다 — 이 요소들에서는 hydration이 깨질 수 없다.
    */
-  /**
+
+/**
    * 로그인의 흰 유리 기둥 `[사용자 지시 2026-08-25]`.
    *
    * 면이 **흰색 그라데이션으로 못박혀 있어** 다크 테마에서도 밝다 — 그 위에 다크 팔레트의
@@ -423,7 +402,8 @@
    *
    * 토큰만 바꾸므로 안쪽 컴포넌트(입력·버튼·뱃지)는 고칠 것이 없다.
    */
-  .login-glass {
+
+:root .login-glass {
     --fg: #0f1620;
     --fg-muted: #48566a;
     --fg-subtle: #59677a;
@@ -452,7 +432,7 @@
     box-shadow: var(--shadow-panel);
   }
 
-  /**
+/**
    * **흐린 유리는 768px 이상에서만** — 그 폭부터 이 기둥이 열로 서서 옆으로 배경이 드러나고,
    * 그때 비로소 «흐린 유리 너머»가 성립한다.
    *
@@ -463,8 +443,9 @@
    *
    * 인라인 `style`이 아니라 여기 있는 이유: 인라인은 폭으로 가를 수 없다.
    */
-  @media (min-width: 48rem) {
-    .login-glass {
+
+@media (min-width: 48rem) {
+    :root .login-glass {
       background: linear-gradient(
         180deg,
         rgba(255, 255, 255, 0.6) 0%,
@@ -477,28 +458,31 @@
     }
   }
 
-  .theme-when-dark {
-    display: none;
-  }
-  :root[data-theme='dark'] .theme-when-dark {
-    display: block;
-  }
-  :root[data-theme='dark'] .theme-when-light {
+:root .theme-when-dark {
     display: none;
   }
 
-  /*
+:root[data-theme='dark'] .theme-when-dark {
+    display: block;
+  }
+
+:root[data-theme='dark'] .theme-when-light {
+    display: none;
+  }
+
+/*
    * 역할도 같은 문제를 갖는다 — 서버는 localStorage를 모른다.
    * 메뉴를 전부 렌더하고 CSS가 가린다. 숨은 항목이 DOM에 남지만 이건 인가가 아니라
    * 시연 표시다(E6 예외). 백엔드가 생기면 서버가 걸러 보낸다.
    */
-  :root[data-role='site'] .role-hide-site,
+
+:root[data-role='site'] .role-hide-site,
   :root[data-role='system'] .role-hide-system,
   :root[data-role='gov'] .role-hide-gov {
     display: none;
   }
 
-  /*
+/*
    * 현재 역할일 때만 보이는 것 — 설명 문구처럼 하나만 나와야 하는 자리.
    *
    * **가릴 때만 나선다.** 한때 보이는 쪽에 `display: block`을 세웠는데, 이 규칙이
@@ -508,7 +492,8 @@
    *
    * 기본이 «감춤»인 것은 그대로다 — `data-role`이 아직 없으면 셋 다 어긋나 전부 감춰진다.
    */
-  /*
+
+/*
    * **역할을 모르는 동안에는 «막혔다»고 말하지 않는다** `[사용자 결정 2026-09-15]`.
    *
    * 위 `role-hide-*`는 «어긋날 때 감추는» 규칙이라 `data-role`이 아예 없으면 아무것도 감추지
@@ -516,24 +501,26 @@
    * 그 스크립트가 막힌 순간(JS 차단)이 있고, 그때 «당신은 볼 수 없습니다»라고 적는 것은
    * **모르는 것을 주장하는 것**이다(**E4**). 모르면 안내를 내리고 지금까지처럼 본문을 둔다.
    */
-  :root:not([data-role]) .role-hide-unknown {
+
+:root:not([data-role]) .role-hide-unknown {
     display: none;
   }
 
-  :root:not([data-role='site']) .role-only-site,
+:root:not([data-role='site']) .role-only-site,
   :root:not([data-role='system']) .role-only-system,
   :root:not([data-role='gov']) .role-only-gov {
     display: none;
   }
 
-  /*
+/*
    * 사업장 계정 축. 역할이 site여도 **어느 계정인가**에 따라 숫자가 달라지는 자리가
    * 있다(사이드바 알람 배지). 역할 클래스만으로는 가를 수 없어 축을 하나 더 둔다.
    *
    * 클래스 이름의 `admin`은 역사다 — 2026-08-20 회의가 `관리자`를 `사업장`으로 바꿨지만
    * localStorage 키(`aquasense-admin`)와 묶여 있어 함께 고치지 않았다(`accounts.ts` 참조).
    */
-  /*
+
+/*
    * 위와 같은 이유로 **감추기만 한다.** 사이드바 알람 배지가 `BADGE_BASE`의 `inline-flex`를
    * 잃고 블록이 되어 **숫자가 원 안에서 왼쪽 위로 밀려 있었다** `[사용자 지적 2026-09-07]`.
    *
@@ -542,7 +529,8 @@
    * 배지가 보인다"* 였다(실제로 그랬다). 그것은 한쪽이 `block`을 세울 때의 이야기다 —
    * 넷 다 `none`이면 다툴 것이 없고, **하나라도 맞으면 감춰진다**는 성질만 남는다.
    */
-  :root:not([data-role='site']) .admin-only-1,
+
+:root:not([data-role='site']) .admin-only-1,
   :root:not([data-role='site']) .admin-only-2,
   :root:not([data-role='site']) .admin-only-3,
   :root:not([data-admin='admin-1']) .admin-only-1,
@@ -551,13 +539,14 @@
     display: none;
   }
 
-  /*
+/*
    * 고른 칸 — **탭 알약과 같은 모양**이다 `[사용자 지시 2026-08-25]`.
    * 흰 면 + hairline + 얕은 그림자 + 포인트색 굵은 글자. 다른 탭은 `SegPill`이 그리지만
    * 여기서는 그릴 수 없다: 지금 역할을 아는 것이 **CSS뿐**이라(서버는 localStorage를 모른다)
    * 마크업으로 알약을 넣으면 hydration이 깨진다. 그래서 같은 결과를 CSS로 만든다.
    */
-  :root[data-admin='admin-1'] .admin-pick-1,
+
+:root[data-admin='admin-1'] .admin-pick-1,
   :root[data-admin='admin-2'] .admin-pick-2,
   :root[data-admin='admin-3'] .admin-pick-3,
   :root[data-role='site'] .role-pick-site,
@@ -571,7 +560,7 @@
       var(--card-shadow);
   }
 
-  /**
+/**
    * 글자를 그라데이션으로 칠한다 `[사용자 지시 2026-08-24]`. 색은 쓰는 쪽이
    * `background-image`로 준다 — 등급마다 다르기 때문이다.
    *
@@ -580,37 +569,39 @@
    * 사라진다. 강제 색상 모드에서도 같은 이유로 되돌린다 — 그쪽은 배경을 시스템 색으로
    * 덮어써 그라데이션이 남지 않는다.
    */
-  .text-gradient {
+
+:root .text-gradient {
     color: var(--fg);
   }
 
-  @supports (background-clip: text) or (-webkit-background-clip: text) {
-    .text-gradient {
+@supports (background-clip: text) or (-webkit-background-clip: text) {
+    :root .text-gradient {
       -webkit-background-clip: text;
       background-clip: text;
       color: transparent;
     }
   }
 
-  @media (forced-colors: active) {
-    .text-gradient {
+@media (forced-colors: active) {
+    :root .text-gradient {
       background-image: none !important;
       color: CanvasText;
     }
   }
 
-  /* 물이 흐르는 방향만 전한다. 감속 설정에서는 아래 전역 규칙이 멈춘다 */
-  .process-flow {
+/* 물이 흐르는 방향만 전한다. 감속 설정에서는 아래 전역 규칙이 멈춘다 */
+
+:root .process-flow {
     animation: process-flow 1.8s linear infinite;
   }
 
-  @keyframes process-flow {
+@keyframes process-flow {
     to {
       stroke-dashoffset: -14;
     }
   }
 
-  /**
+/**
    * **값이 새로 들어올 때의 전환** `[사용자 요청 2026-09-16: 데이터가 새로 들어오는 순간
    * 데이터가 바로 바뀌어서 어색함이 있음]`.
    *
@@ -628,11 +619,12 @@
    * 감속 설정은 **CSS가 직접 받는다** — `matchMedia`를 렌더 중에 읽으면 서버가 모르는 값이
    * 마크업에 섞인다(이 저장소가 세 번 밟은 함정이다).
    */
-  .num-fade {
+
+:root .num-fade {
     animation: num-fade 160ms ease-out;
   }
 
-  @keyframes num-fade {
+@keyframes num-fade {
     from {
       opacity: 0.25;
     }
@@ -641,13 +633,13 @@
     }
   }
 
-  @media (prefers-reduced-motion: reduce) {
-    .num-fade {
+@media (prefers-reduced-motion: reduce) {
+    :root .num-fade {
       animation: none;
     }
   }
 
-  /**
+/**
    * **가로로 더 있다는 신호** `[사용자 요청 2026-09-21: 나머지 전체 화면 반응형]`.
    *
    * 고정 폭 표·공정도는 `TABLE_SCROLL` 상자 안에 있어 화면을 넘기지는 않는다. 그런데
@@ -671,13 +663,15 @@
    * 있다는 사실을 다시 말하지 못한다(실측으로 잡았다). 다크에서는 같은 자리에 **옅은 빛**을
    * 둔다 — 어두운 면 위에서 «가장자리가 이어진다»를 말하는 방향이 반대이기 때문이다.
    */
-  /*
+
+/*
    * **가리개 색을 여기서 선언하지 않고 기본값으로만 쓴다**(`var(--scroll-hint-bg, var(--surface))`)
    * `[2026-09-29]`. 이 규칙이 `--scroll-hint-bg`를 스스로 선언하던 판본은 소비처의 덮어쓰기
    * (`[--scroll-hint-bg:…]`)와 특이도가 같아 **CSS 순서로 이겼다** — 덮어쓰기가 조용히 무시되어
    * 흰 면이 아닌 자리(설비 상태 격자·설정 목차)에 흰 띠가 남았다(설정 목차 캡처로 잡았다).
    */
-  .scroll-hint {
+
+:root .scroll-hint {
     --scroll-hint-ink: rgb(15 23 42 / 0.13);
     background-image:
       linear-gradient(to right, var(--scroll-hint-bg, var(--surface)) 40%, transparent),
@@ -698,12 +692,13 @@
     background-attachment: local, local, scroll, scroll;
   }
 
-  /* 어두운 면에서는 그림자가 묻는다 — 같은 자리를 옅은 빛으로 바꾼다 */
-  :root[data-theme='dark'] .scroll-hint {
+/* 어두운 면에서는 그림자가 묻는다 — 같은 자리를 옅은 빛으로 바꾼다 */
+
+:root[data-theme='dark'] .scroll-hint {
     --scroll-hint-ink: rgb(226 236 248 / 0.16);
   }
 
-  .live-pulse::before {
+:root .live-pulse::before {
     content: "";
     position: absolute;
     inset: 0;
@@ -712,7 +707,7 @@
     animation: live-ping 2.4s cubic-bezier(0, 0, 0.2, 1) infinite;
   }
 
-  @keyframes live-ping {
+@keyframes live-ping {
     0% {
       transform: scale(1);
       opacity: 0.55;
@@ -723,7 +718,29 @@
       opacity: 0;
     }
   }
-}
+
+/*
+   * **대기 막대의 숨쉬기** — 한때 Tailwind `animate-pulse`였다. 전역에 두는 이유: CSS 모듈은
+   * `animation`의 이름을 파일마다 바꿔 붙여서, 모듈 안에 `animation: pulse`만 적으면 키프레임을
+   * 찾지 못해 **조용히 멈춘다**(화면 대조는 애니메이션을 끄고 찍어 이것을 잡지 못한다).
+   * `.pulse`는 늘 숨쉬고, `.pulse-motion-safe`는 감속 설정이 아닐 때만 숨쉰다(`motion-safe:`).
+   */
+
+:root .pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+@media (prefers-reduced-motion: no-preference) {
+    :root .pulse-motion-safe {
+      animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+  }
+
+@keyframes pulse {
+    50% {
+      opacity: 0.5;
+    }
+  }
 
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -754,28 +771,28 @@
  * 판본과 픽셀 단위로 같다. 하한은 §8 `글자 최소`(12px)를 지키고, 상한은 세로가 아주 긴
  * 모니터에서 글자만 커져 칸을 밀어내는 것을 막는다.
  */
-.wall-xl {
+:root .wall-xl {
   font-size: clamp(30px, 4.81vh, 96px);
 }
-.wall-lg {
+:root .wall-lg {
   font-size: clamp(22px, 3.15vh, 62px);
 }
-.wall-md {
+:root .wall-md {
   font-size: clamp(17px, 2.22vh, 44px);
 }
-.wall-title {
+:root .wall-title {
   font-size: clamp(14px, 1.57vh, 31px);
 }
-.wall-label {
+:root .wall-label {
   font-size: clamp(13px, 1.39vh, 27px);
 }
 /* 이 화면의 가장 작은 글자. 하한 12px이 §8 `글자 최소`다 */
-.wall-meta {
+:root .wall-meta {
   font-size: clamp(12px, 1.2vh, 24px);
 }
 
 /* 여백도 같은 축이다 — 글자만 늘고 간격이 그대로면 칸이 빽빽해진다 */
-.wall-gap {
+:root .wall-gap {
   gap: clamp(8px, 1.48vh, 30px);
 }
 /*
@@ -784,13 +801,13 @@
  * 겹침을 알아채지 못한다 — **두 클래스가 함께 남고 순서가 이긴다.** 뒤에 두면 덮으려던
  * 쪽이 도리어 무시된다.
  */
-.wall-pad-md {
+:root .wall-pad-md {
   padding: clamp(9px, 1.48vh, 30px);
 }
-.wall-pad {
+:root .wall-pad {
   padding: clamp(10px, 1.85vh, 36px);
 }
-.wall-pad-sm {
+:root .wall-pad-sm {
   padding: clamp(8px, 1.3vh, 26px);
 }
 
@@ -798,10 +815,10 @@
  * 추이선이 화면에서 차지하는 높이. viewBox 좌표계의 높이와 다른 값이며,
  * `preserveAspectRatio="none"`이라 그림이 세로로 늘어나 채운다.
  */
-.wall-spark-h {
+:root .wall-spark-h {
   height: clamp(70px, 13.9vh, 280px);
 }
-.wall-cell-spark-h {
+:root .wall-cell-spark-h {
   height: clamp(30px, 5.9vh, 120px);
 }
 
@@ -817,19 +834,19 @@
  *
  * `.wall-pad-md`는 덮어쓰기 순서 때문에 위쪽 묶음에 있다.
  */
-.wall-head-pad {
+:root .wall-head-pad {
   padding: clamp(6px, 0.93vh, 19px) clamp(9px, 1.48vh, 30px);
 }
-.wall-row-pad {
+:root .wall-row-pad {
   padding: clamp(6px, 0.93vh, 19px) clamp(8px, 1.3vh, 26px);
 }
-.wall-gap-sm {
+:root .wall-gap-sm {
   gap: clamp(5px, 0.74vh, 15px);
 }
-.wall-chip-pad {
+:root .wall-chip-pad {
   padding: clamp(4px, 0.56vh, 11px) clamp(8px, 1.11vh, 22px);
 }
-.wall-gap-xs {
+:root .wall-gap-xs {
   gap: clamp(4px, 0.56vh, 11px);
 }
 
@@ -838,14 +855,14 @@
  * 96px인데 단위가 16px로 남아 «값에 붙은 작은 글자»가 아니라 **다른 화면의 글자**처럼 보였다.
  * 1080 환산은 각각 16px·22px이다.
  */
-.wall-unit {
+:root .wall-unit {
   font-size: clamp(13px, 1.48vh, 30px);
 }
-.wall-grade {
+:root .wall-grade {
   font-size: clamp(15px, 2.04vh, 41px);
 }
 /** 설비 줄 끝의 등급. 계기 곁의 등급보다 한 단 낮다 — 1080 환산 17px */
-.wall-grade-sm {
+:root .wall-grade-sm {
   font-size: clamp(13px, 1.57vh, 31px);
 }
 
@@ -864,8 +881,8 @@
  * 클래스는 `WallboardExit`가 몸통에 붙였다 뗀다. 화면을 떠나면 effect 정리에서 걷히므로
  * 다른 화면으로 포인터가 사라진 채 넘어가지 않는다.
  */
-.wall-cursor-idle,
-.wall-cursor-idle * {
+:root .wall-cursor-idle,
+:root .wall-cursor-idle * {
   cursor: none !important;
 }
 
@@ -874,7 +891,7 @@
  * 함께 넓어진다 — px으로 박으면 4K에서 `1000`이 칸을 넘는다. 가로축 라벨 줄도 같은 폭만큼
  * 비우고 시작해 그림과 자리가 맞는다.
  */
-.wall-axis-y {
+:root .wall-axis-y {
   width: 5ch;
 }
 
@@ -895,13 +912,13 @@
  * 2160에서 3줄, 1440·1080에서 2줄, 900 이하에서 1줄이었다.
  */
 @media (max-height: 1550px) {
-  .wall-alarm-row:nth-child(n + 3) {
+  :root .wall-alarm-row:nth-child(n + 3) {
     display: none;
   }
 }
 
 @media (max-height: 1000px) {
-  .wall-alarm-row:nth-child(n + 2) {
+  :root .wall-alarm-row:nth-child(n + 2) {
     display: none;
   }
 }
@@ -912,19 +929,19 @@
  * 조건은 `/alarms`가 갖는다.
  */
 @media (max-height: 820px) {
-  .wall-alarm-cond {
+  :root .wall-alarm-cond {
     display: none;
   }
 }
 
 @media (max-height: 860px) {
-  .wall-contrib-row:nth-child(n + 5) {
+  :root .wall-contrib-row:nth-child(n + 5) {
     display: none;
   }
 }
 
 @media (max-height: 800px) {
-  .wall-contrib-row:nth-child(n + 4) {
+  :root .wall-contrib-row:nth-child(n + 4) {
     display: none;
   }
 }

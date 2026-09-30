@@ -1,0 +1,47 @@
+@use 'shared/styles' as *;
+
+.offline {
+  margin: auto;
+  text-align: center;
+  color: var(--fg-subtle);
+}
+
+.list {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.row {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: sp(3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-nested);
+  background-color: var(--surface-2);
+}
+
+.dot {
+  width: sp(2.5);
+  height: sp(2.5);
+  flex-shrink: 0;
+  border-radius: calc(infinity * 1px);
+}
+
+.name {
+  min-width: 0;
+  flex: 1;
+  @include truncate;
+}
+
+.signals {
+  flex-shrink: 0;
+  color: var(--fg-subtle);
+}
+
+.grade {
+  flex-shrink: 0;
+}

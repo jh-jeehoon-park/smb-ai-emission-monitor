@@ -2,6 +2,7 @@ import { cn } from '@/shared/lib/cn';
 import { BADGE_BASE } from '@/shared/ui/badge';
 import { TREND_VISUAL } from '../config/trend-visual';
 import { TREND_LABELS, type Trend } from '../model/types';
+import styles from './trend-chip.module.scss';
 
 /**
  * 경향 칩 — 상승·유지·하락.
@@ -36,13 +37,13 @@ export function TrendChip({
     <span
       className={cn(
         /* 표에서는 배경·테두리를 뺀다. 글자색과 글리프는 그대로 남는다 */
-        bare ? 'inline-flex shrink-0 items-center gap-1 text-[12px]' : cn(BADGE_BASE, visual.chip),
+        bare ? styles.bare : cn(BADGE_BASE, visual.chip),
         visual.text,
         className,
       )}
     >
       {/* 형태는 보조 부호다. 라벨이 바로 옆에 있어 보조기술에는 숨긴다 */}
-      <span aria-hidden className="leading-none">
+      <span aria-hidden className={styles.glyph}>
         {visual.glyph}
       </span>
       {TREND_LABELS[trend]}

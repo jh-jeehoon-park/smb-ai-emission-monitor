@@ -1,0 +1,205 @@
+@use 'shared/styles' as *;
+
+.dischargeChip {
+  border-radius: var(--radius-chip);
+  background-color: var(--surface-3);
+  padding: sp(0.5) sp(2);
+  font-size: 12px;
+  color: var(--fg-muted);
+}
+
+.columns {
+  display: grid;
+  gap: sp(3);
+
+  @include up(lg) {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: stretch;
+    gap: sp(4);
+  }
+}
+
+.pillar {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-nested);
+}
+
+.pillarHead {
+  border-bottom: 1px solid var(--border);
+  background-color: var(--surface-2);
+  padding: sp(1.5) sp(3);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  color: var(--fg-subtle);
+}
+
+.pillarBody {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: sp(2);
+  padding: sp(2.5) sp(3);
+}
+
+.alignRight {
+  text-align: right;
+}
+
+.pillarBodyRight {
+  align-items: flex-end;
+  text-align: right;
+}
+
+.flowSkeleton {
+  display: block;
+  height: sp(6);
+  width: sp(28);
+  border-radius: var(--radius-chip);
+  background-color: var(--surface-3);
+}
+
+.unreceived {
+  font-size: 12px;
+  line-height: 1.625;
+  color: var(--fg-subtle);
+}
+
+.note {
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+.reading {
+  display: flex;
+  align-items: baseline;
+  gap: sp(1.5);
+}
+
+.flowValue {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.025em;
+}
+
+.rail {
+  width: 100%;
+}
+
+.asides {
+  margin-top: auto;
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: sp(4);
+  row-gap: sp(1);
+  border-top: 1px solid var(--border);
+  padding-top: sp(2);
+}
+
+.asidesRight {
+  justify-content: flex-end;
+}
+
+.held {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: sp(1);
+
+  @include up(lg) {
+    width: 160px;
+  }
+}
+
+.connector {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: sp(1);
+}
+
+.connectorLine {
+  height: 1px;
+  flex: 1;
+  background-color: var(--border-strong);
+}
+
+.connectorHead {
+  width: sp(2);
+  height: sp(2);
+  flex-shrink: 0;
+  rotate: 45deg;
+  border-top: 2px solid var(--border-strong);
+  border-right: 2px solid var(--border-strong);
+}
+
+.heldLabel {
+  margin-top: sp(1);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  color: var(--fg-subtle);
+}
+
+.heldSkeleton {
+  display: block;
+  height: sp(6);
+  width: sp(16);
+  border-radius: var(--radius-chip);
+  background-color: var(--surface-3);
+}
+
+.heldReading {
+  display: flex;
+  align-items: baseline;
+  gap: sp(1);
+}
+
+.heldValue {
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.025em;
+  color: var(--fg-muted);
+}
+
+.reuse {
+  margin-top: sp(1);
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.375;
+  color: var(--fg-subtle);
+}
+
+.aside {
+  display: flex;
+  align-items: baseline;
+  gap: sp(1.5);
+}
+
+.asideValue {
+  display: flex;
+  align-items: baseline;
+  gap: sp(1);
+}
+
+.asideSkeleton {
+  display: block;
+  height: sp(4);
+  width: sp(10);
+  border-radius: var(--radius-chip);
+  background-color: var(--surface-3);
+}
+
+.asideNumber {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--fg);
+}

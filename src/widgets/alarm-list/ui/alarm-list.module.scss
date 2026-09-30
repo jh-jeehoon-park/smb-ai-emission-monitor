@@ -1,0 +1,150 @@
+@use 'shared/styles' as *;
+
+.empty {
+  padding-block: sp(6);
+  text-align: center;
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+.list {
+  & > :not(:last-child) {
+    border-bottom: 1px solid var(--border);
+  }
+}
+
+.item {
+  display: flex;
+  gap: sp(3);
+  padding-bottom: sp(3);
+}
+
+.itemAfterFirst {
+  padding-top: sp(3);
+}
+
+.itemRevealable {
+  position: relative;
+  border-radius: var(--radius-nested);
+  @include transition-colors(200ms);
+
+  @include hover {
+    &:hover {
+      background-color: var(--surface-2);
+    }
+  }
+}
+
+.cover {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  cursor: pointer;
+  border-radius: var(--radius-nested);
+}
+
+.srOnly {
+  @include sr-only;
+}
+
+.body {
+  min-width: 0;
+  flex: 1;
+}
+
+.title {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.375;
+  color: var(--fg);
+}
+
+.detail {
+  margin-top: sp(1.5);
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  display: -webkit-box;
+  overflow: hidden;
+  max-width: 60ch;
+  font-size: 13px;
+  line-height: 1.625;
+  color: var(--fg-muted);
+}
+
+.meta {
+  margin-top: sp(2);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: sp(2);
+  row-gap: sp(1.5);
+}
+
+.priorityChip {
+  font-weight: 500;
+}
+
+/*
+ * 우선순위 색은 상태 등급 색과 같은 팔레트를 쓰되, 두 축이 같다고 단정하지 않는다.
+ * 등급 4단계와 우선순위 3단계의 대응 관계는 원문에 없다(TBD-21).
+ */
+.priorityUrgent {
+  background-color: var(--chip-critical);
+  color: var(--critical-ink);
+}
+
+.priorityCaution {
+  background-color: var(--chip-warning);
+  color: var(--warning-ink);
+}
+
+/* 원문 팔레트가 파랑을 `정보 활성화`로 정해 두었다. 예전에는 중립 회색이었는데
+   그 이유가 "초록(정상)과 헷갈린다"였고, 파랑은 그 문제가 없다 */
+.priorityInfo {
+  background-color: var(--chip-info);
+  color: var(--info-ink);
+}
+
+.conditionChip {
+  background-color: var(--surface-3);
+  color: var(--fg-muted);
+}
+
+.metaDivider {
+  height: sp(3);
+  width: 1px;
+  flex-shrink: 0;
+  background-color: var(--border);
+}
+
+.context {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: sp(1.5);
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+.siteName {
+  @include truncate;
+}
+
+.stateChip {
+  margin-top: sp(0.5);
+  align-self: flex-start;
+}
+
+/*
+ * 처리 상태는 **끝난 것을 가라앉힌다** — 미확인만 면을 갖고 나머지는 글자만 남는다.
+ * 셋을 같은 무게로 칠하면 목록에서 아직 손대지 않은 것이 눈에 들어오지 않는다.
+ */
+.stateOpen {
+  background-color: var(--surface-3);
+  color: var(--fg);
+}
+
+.stateAcknowledged,
+.stateResolved {
+  color: var(--fg-subtle);
+}

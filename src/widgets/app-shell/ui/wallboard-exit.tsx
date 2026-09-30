@@ -8,6 +8,7 @@ import { useRole } from '@/entities/user';
 import { useSiteHref } from '@/features/site-selection';
 import { WALLBOARD_CURSOR_IDLE_CLASS, WALLBOARD_EXIT_HIDE_MS } from '../config/constants';
 import { homeHrefFor } from '../config/navigation';
+import styles from './wallboard-exit.module.scss';
 
 /**
  * 현황판에서 나가는 길 — **셸이 갖는다.**
@@ -36,7 +37,7 @@ import { homeHrefFor } from '../config/navigation';
  *
  * **마우스 포인터도 함께 사라진다** `[사용자 요청 2026-09-11: 현황판 나가기 출력되는 것처럼
  * 마우스 포인트도 사라지도록]`. 같은 상태를 보므로 둘이 갈리지 않는다 — 버튼은 없는데
- * 화살표만 벽에 남아 있으면 «누를 것이 있다»는 신호가 된다. 규칙은 `globals.css`의
+ * 화살표만 벽에 남아 있으면 «누를 것이 있다»는 신호가 된다. 규칙은 `globals.scss`의
  * `.wall-cursor-idle`이 갖는다.
  *
  * **새 무한 반복이 아니다**(§8 `모션`). 사람의 조작에 대한 한 번의 반응이고, 아무 일도
@@ -124,24 +125,19 @@ export function WallboardExit() {
       onClick={() => router.push(leaveTo.current)}
       aria-keyshortcuts="Escape"
       className={cn(
-        /* 오른쪽 아래 — §8 `되감기 버튼`이 이미 쓰는 자리라 같은 곳에서 찾게 된다 */
-        'fixed bottom-6 right-6 z-30 flex cursor-pointer items-center gap-2 rounded-full',
-        'border border-accent bg-accent px-4 py-2.5 text-[14px] font-semibold text-white shadow-panel',
-        'transition-opacity duration-300',
+        styles.exit,
         /*
          * 숨을 때 **탭 순서에서는 빠지지 않는다.** 이 화면의 유일한 조작이라 키보드 사용자가
          * 닿을 길이 여기뿐이고, 포커스가 오면 다시 드러난다.
          */
-        visible ? 'opacity-100' : 'pointer-events-none opacity-0',
-        'focus-visible:pointer-events-auto focus-visible:opacity-100',
-        'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
+        visible ? styles.exitShown : styles.exitHidden,
       )}
     >
       <LogOut aria-hidden size={16} strokeWidth={2} />
       현황판 나가기
       {/* 키 하나로도 나갈 수 있다는 것을 글자가 말한다 — 벽에는 이 버튼을 누를 손이 없다 */}
       {/* §8 `글자 최소`가 12px이라 더 줄이지 않는다 — 예외는 그래프 안의 글자뿐이다 */}
-      <span className="rounded-chip bg-white/20 px-1.5 py-0.5 text-[12px] font-medium">Esc</span>
+      <span className={styles.key}>Esc</span>
     </button>
   );
 }

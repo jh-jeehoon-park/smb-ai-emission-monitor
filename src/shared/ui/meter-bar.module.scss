@@ -1,0 +1,37 @@
+@use 'shared/styles' as *;
+
+/* 트랙은 `className`으로 호출부가 덮는다 — 그래서 `components` 레이어다 */
+@layer components {
+  /* 안쪽 그림자로 홈처럼 파이고, 채움이 그 위에 얹힌 것으로 읽힌다 */
+  .track {
+    position: relative;
+    height: sp(2);
+    width: 100%;
+    overflow: hidden;
+    border-radius: calc(infinity * 1px);
+    background-color: var(--surface-3);
+    box-shadow: var(--track-inset);
+  }
+}
+
+.fill {
+  height: 100%;
+  border-radius: calc(infinity * 1px);
+}
+
+.fillFromCenter {
+  position: absolute;
+  top: 0;
+  height: 100%;
+}
+
+.fillUp {
+  left: 50%;
+  border-top-right-radius: calc(infinity * 1px);
+  border-bottom-right-radius: calc(infinity * 1px);
+}
+
+.fillDown {
+  border-top-left-radius: calc(infinity * 1px);
+  border-bottom-left-radius: calc(infinity * 1px);
+}

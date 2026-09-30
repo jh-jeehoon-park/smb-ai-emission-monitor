@@ -15,6 +15,46 @@ import { describe, expect, it } from 'vitest';
 const SHELL = 'src/widgets/app-shell/ui/app-shell.tsx';
 const source = readFileSync(SHELL, 'utf8');
 
+/** 배치 규칙은 모듈 SCSS가 갖는다 — 마크업에는 `styles.x`만 남는다 */
+const STYLES = 'src/widgets/app-shell/ui/app-shell.module.scss';
+const sheet = readFileSync(STYLES, 'utf8');
+
+/** `{`부터 짝이 맞는 `}`까지의 안쪽 — 중첩 블록(`@include up(lg) { … }`)을 함께 담는다 */
+function blockAt(text: string, open: number): string {
+  let depth = 0;
+  for (let i = open; i < text.length; i++) {
+    if (text[i] === '{') depth++;
+    else if (text[i] === '}' && --depth === 0) return text.slice(open + 1, i);
+  }
+  throw new Error('괄호가 닫히지 않았다');
+}
+
+/** `.name { … }` 규칙. 같은 이름이 레이어 안팎에 나뉘어 있으면 이어 붙인다 */
+function rule(name: string): string {
+  const heads = [...sheet.matchAll(new RegExp(`\\.${name}\\s*\\{`, 'g'))];
+  expect(heads.length, `${STYLES}에 .${name}이 없다`).toBeGreaterThan(0);
+  return heads.map((m) => blockAt(sheet, m.index! + m[0].length - 1)).join('\n');
+}
+
+/** 규칙에서 중첩 블록을 걷은 것 — 폭과 무관하게 늘 걸리는 선언만 남는다 */
+function base(block: string): string {
+  let out = '';
+  let depth = 0;
+  for (const ch of block) {
+    if (ch === '{') depth++;
+    else if (ch === '}') depth--;
+    else if (depth === 0) out += ch;
+  }
+  return out;
+}
+
+/** `@include up(lg) { … }` 안쪽 — 그 폭 이상에서만 걸리는 선언 */
+function above(block: string, step: string): string {
+  const at = block.indexOf(`@include up(${step})`);
+  expect(at, `up(${step}) 블록이 없다`).toBeGreaterThan(-1);
+  return blockAt(block, block.indexOf('{', at));
+}
+
 /**
  * 주석은 세지 않는다. **옛 배치를 설명하는 글이 그대로 남아 있어서**다 — 「한때 `flex-wrap`
  * 이었다」·「사업장 선택 210」처럼 걷어낸 것의 이름이 근거로 적혀 있고, 그대로 훑으면
@@ -44,7 +84,15 @@ describe('셸 헤더 — 한 줄', () => {
    * 두껍네» 정도라 그냥 지나간다.
    */
   it('헤더 행이 접히지 않는다', () => {
-    expect(headerMarkup(source)).not.toMatch(/\bflex-wrap\b/);
+    const header = headerMarkup(source);
+    expect(header).not.toMatch(/\bflex-wrap\b/);
+
+    /* 줄바꿈은 이제 모듈 SCSS에 적힌다 — 헤더가 쓰는 클래스를 전부 훑는다 */
+    const names = [...new Set([...header.matchAll(/styles\.(\w+)/g)].map((m) => m[1]!))];
+    expect(names.length, '헤더가 모듈 클래스를 쓰지 않는다').toBeGreaterThan(0);
+    for (const name of names) {
+      expect(rule(name), `.${name}`).not.toMatch(/flex-wrap:\s*wrap/);
+    }
   });
 
   /**
@@ -76,9 +124,9 @@ describe('셸 헤더 — 한 줄', () => {
  * 마크업은 **두 곳에 있고 CSS가 고른다** — 폭을 렌더 중에 물으면 서버가 모르는 값이라
  * 하이드레이션이 깨지므로, 이 저장소가 역할 가림에 쓰는 것과 같은 짜임이다.
  *
- * 그래서 위험은 «없다»가 아니라 **«둘 다 보인다»**다. `lg` 이상에서 기둥의 `lg:hidden`이
- * 빠지면 선택기가 두 개 보이고, 그 상태는 **1024px 이상에서만** 드러나 좁은 화면만 확인하면
- * 지나간다. 두 클래스가 짝을 이루는지 여기서 못박는다.
+ * 그래서 위험은 «없다»가 아니라 **«둘 다 보인다»**다. `lg` 이상에서 기둥의 감춤(`up(lg)`의
+ * `display: none`)이 빠지면 선택기가 두 개 보이고, 그 상태는 **1024px 이상에서만** 드러나 좁은
+ * 화면만 확인하면 지나간다. 두 규칙이 짝을 이루는지 여기서 못박는다.
  */
 describe('사업장 선택 — 한 자리에만', () => {
   const header = headerMarkup(source);
@@ -87,14 +135,23 @@ describe('사업장 선택 — 한 자리에만', () => {
   it('헤더의 선택기는 `lg` 이상에서만 보인다', () => {
     const tag = header.match(/<SiteSelector[^/]*\/>/)?.[0];
     expect(tag, '헤더에 <SiteSelector />가 없다').toBeDefined();
-    expect(tag).toContain('hidden');
-    expect(tag).toContain('lg:inline-flex');
+    const name = tag!.match(/styles\.(\w+)/)?.[1];
+    expect(name, '헤더의 선택기에 모듈 클래스가 없다').toBeDefined();
+
+    const block = rule(name!);
+    expect(base(block)).toMatch(/display:\s*none/);
+    expect(above(block, 'lg')).toMatch(/display:\s*inline-flex/);
   });
 
   it('기둥의 선택기는 `lg` 미만에서만 보인다', () => {
     expect(column).toContain('<SiteSelector');
     /* 래퍼가 감춰야 한다 — 부품만 감추면 여백이 빈 틈으로 남는다 */
-    expect(column).toMatch(/role-hide-site[^"]*lg:hidden|lg:hidden[^"]*role-hide-site/);
+    const name = column.match(/cn\('role-hide-site', styles\.(\w+)\)/)?.[1];
+    expect(name, '기둥의 래퍼가 `role-hide-site`와 모듈 클래스를 함께 갖지 않는다').toBeDefined();
+
+    const block = rule(name!);
+    expect(base(block)).not.toMatch(/display:\s*none/);
+    expect(above(block, 'lg')).toMatch(/display:\s*none/);
   });
 
   /**

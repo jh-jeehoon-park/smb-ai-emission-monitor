@@ -21,13 +21,14 @@ import {
   REMEMBERED_ID_KEY,
   resolveLoginVideo,
 } from '../config/login-media';
+import styles from './login-view.module.scss';
 
 const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
 
 /**
  * 배경이 화면을 덮는 방법. **정지 이미지와 영상이 같은 문자열을 쓴다** `[사용자 결정 2026-09-17]`.
  *
- * `object-cover`가 비율을 지키며 덮고 `object-position`은 **넘치는 쪽에서 어디를 보여줄지**만
+ * `object-fit: cover`가 비율을 지키며 덮고 `object-position`은 **넘치는 쪽에서 어디를 보여줄지**만
  * 고른다 — 늘리거나 찌그러뜨리지 않는다. 50%(가운데)에서 35%로 내리면 위쪽이 더 보인다.
  *
  * 세로로 넘칠 때만 듣는다. 폭이 좁고 높은 화면(세로 모바일)에서는 배경이 가로로 넘쳐 세로
@@ -39,13 +40,13 @@ const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
  * **잘라내는 규칙은 하나여야 한다** — 세로본은 가로본의 가운데를 그대로 떼어 낸 것이라,
  * 두 폭이 보는 화각이 «같은 장면의 같은 자리»로 이어진다.
  */
-const BACKDROP_FRAMING = 'object-cover object-[center_35%]';
+const BACKDROP_FRAMING = styles.backdropFraming;
 
 /**
  * 화면을 덮는 자리. **영상만 쓴다** — 정지 이미지는 `next/image`의 `fill`이 같은 일을
  * 스스로 하므로 겹쳐 적으면 서로 다른 두 규칙이 같은 결과를 내는 척하게 된다.
  */
-const BACKDROP_FILL = 'absolute inset-0 size-full';
+const BACKDROP_FILL = styles.backdropFill;
 
 /**
  * 배경 영상 — **768px(`md`) 이상에서만 마운트된다** `[사용자 결정 2026-09-17]`.
@@ -64,7 +65,7 @@ function LoginVideo({ videoSrc }: { videoSrc: string }) {
   /*
    * 감속 설정이면 영상을 멈춘다 — 배경이 계속 움직이면 그 설정의 뜻이 없어진다.
    * 전역 `@media (prefers-reduced-motion: reduce)`는 CSS 애니메이션만 끄고 **영상 재생은
-   * 끄지 못한다**(`globals.css`).
+   * 끄지 못한다**(`globals.scss`).
    *
    * **`videoSrc`에 매달아 둔다.** 영상을 갈아 끼우면 새 파일이 자동재생으로 다시 도는데,
    * 마운트에서 한 번만 멈추면 그 순간부터 감속 설정이 무시된다. 목록에서 고를 수 있게 되면서
@@ -212,30 +213,25 @@ export function LoginView() {
   };
 
   return (
-    /*
-     * 바탕색이 **토큰이 아닌 리터럴**이다(§8 `토큰 밖 색`). 영상이 뜨기 전과 비율이 안 맞는
-     * 폭에서 이 색이 보이는데, `--bg`를 쓰면 라이트 테마에서 흰 면이 되어 영상 위아래로
-     * **흰 띠**가 생긴다. 이 화면의 바탕은 테마를 따라가면 안 된다.
-     */
-    <main className="relative min-h-[100dvh] overflow-hidden bg-[#0b1017]">
+    <main className={styles.page}>
       {/*
        * **좁은 화면은 정지 이미지, 넓은 화면은 영상** `[사용자 결정 2026-09-17]`.
        *
-       * 둘은 같은 프레이밍(`object-cover` + `center 35%`)을 쓰고, 이미지가 그 영상의 첫
+       * 둘은 같은 프레이밍(`object-fit: cover` + `center 35%`)을 쓰고, 이미지가 그 영상의 첫
        * 프레임이라 데스크톱에서 갈아 끼울 때 장면이 튀지 않는다.
        */}
       {!isWide && (
         <Image
           /*
            * **세로로 잘라 둔 판본이다** `[사용자 지적 2026-09-17: 화질이 좋지 않아보임]`.
-           * 가로본을 좁은 화면에 깔면 `object-cover`가 짧은 쪽(가로)에 맞춰 늘려 네 배로
+           * 가로본을 좁은 화면에 깔면 `object-fit: cover`가 짧은 쪽(가로)에 맞춰 늘려 네 배로
            * 확대된다 — 왜 그런지는 `login-media.ts`가 계산과 함께 갖고 있다.
            */
           src={LOGIN_POSTER_PORTRAIT_SRC}
           alt=""
           aria-hidden
           /*
-           * `fill`이 스스로 `absolute inset-0`을 깔므로 자리 잡는 클래스는 두지 않는다 —
+           * `fill`이 스스로 `position: absolute; inset: 0`을 깔므로 자리 잡는 클래스는 두지 않는다 —
            * 남기는 것은 영상과 **같은 프레이밍**뿐이다.
            */
           fill
@@ -270,7 +266,7 @@ export function LoginView() {
        */}
       <div
         aria-hidden
-        className="absolute inset-0"
+        className={styles.scrim}
         style={{ background: 'rgba(0, 0, 0, 0.2)' }}
       />
 
@@ -283,7 +279,7 @@ export function LoginView() {
        * 몰렸다. 두 칸을 자기 높이대로 두고 남는 여백을 위아래로 나누면 흔한 모바일 로그인의
        * 세로 가운데가 된다.
        *
-       * **`min-h`라서 넘칠 걱정이 없다.** `height`였다면 내용이 화면보다 클 때 `content-center`가
+       * **`min-h`라서 넘칠 걱정이 없다.** `height`였다면 내용이 화면보다 클 때 `align-content: center`가
        * 위로도 밀어내 그만큼 스크롤로 닿지 못한다 — `min-height`는 내용이 커지면 상자가 함께
        * 자라 나눌 여백이 0이 된다.
        *
@@ -295,7 +291,7 @@ export function LoginView() {
        * 기둥이 자기 최대까지 자라기 때문이다. 그 구간에서는 기둥을 **420px로 고정**해 왼쪽에
        * 348px을 남긴다.
        */}
-      <div className="relative grid min-h-[100dvh] content-center py-6 md:content-normal md:grid-cols-[1fr_420px] md:py-0 lg:grid-cols-[1fr_minmax(420px,600px)]">
+      <div className={styles.layout}>
         {/*
          * **좁은 화면의 브랜드** `[사용자 결정 2026-09-17]`.
          *
@@ -306,14 +302,14 @@ export function LoginView() {
          * 배경 위에 직접 놓이므로 대비는 프레임에 달렸다 — 왼쪽 열과 같은 그림자를 둔다.
          */}
         {/*
-         * 좌우 여백이 **아래 카드의 글자에 맞춰져 있다** — 카드가 `mx-4`만큼 들어오고 그 안이
-         * `px-6`이라 글이 40px에서 시작한다. 화면 여백(24px)에 맞추면 브랜드만 14px 왼쪽으로
+         * 좌우 여백이 **아래 카드의 글자에 맞춰져 있다** — 카드가 16px만큼 들어오고 그 안이
+         * 24px이라 글이 40px에서 시작한다. 화면 여백(24px)에 맞추면 브랜드만 14px 왼쪽으로
          * 튀어나와, 어긋났다는 것만 보이고 이유는 보이지 않는다.
          */}
-        <section className="flex flex-col px-10 pb-7 md:hidden">
+        <section className={styles.mobileBrand}>
           <BrandMark size={34} />
           <p
-            className="mt-3 max-w-[16ch] break-keep text-[24px] font-semibold leading-[30px] tracking-[-0.5px] text-[#fdfdfd]"
+            className={styles.mobileBrandName}
             style={{ textShadow: '0 2px 12px rgb(0 0 0 / 45%)' }}
           >
             {BRAND_NAME}
@@ -321,7 +317,7 @@ export function LoginView() {
         </section>
 
         {/* 왼쪽 — 무엇을 하는 시스템인가. 영상 위에 직접 놓인다 */}
-        <section className="hidden flex-col justify-start px-8 pt-16 md:flex lg:px-16 lg:pt-28 xl:px-24 xl:pt-32">
+        <section className={styles.intro}>
           {/* 마크와 머리글 줄을 걷었다 `[사용자 지시 2026-08-25]` — 제목이 곧 브랜드다 */}
           {/*
            * 지정한 타이포는 **48/52 · 600 · -1.2px** `[사용자 지시 2026-08-25]`.
@@ -343,7 +339,7 @@ export function LoginView() {
            * 글꼴은 지정한 `Pretendard Variable`이 이미 전역 `--font-sans`라 따로 걸지 않는다.
            */}
           <h1
-            className="max-w-[13ch] break-keep text-[26px] font-semibold leading-[32px] tracking-[-0.6px] text-[#fdfdfd] lg:text-[40px] lg:leading-[44px] lg:tracking-[-1px] xl:text-[48px] xl:leading-[52px] xl:tracking-[-1.2px]"
+            className={styles.introTitle}
             style={{ textShadow: '0 2px 12px rgb(0 0 0 / 45%)' }}
           >
             {/* 사업계획서 p.37·p.118의 국문 정식명. 줄여 쓰지 않는다(A2) */}
@@ -355,7 +351,7 @@ export function LoginView() {
            * 이 값에서도 그림자가 글자 가장자리를 세운다.
            */}
           <p
-            className="mt-5 max-w-[34ch] break-keep text-[14px] leading-relaxed text-white/70 xl:max-w-[540px]"
+            className={styles.introText}
             style={{ textShadow: '0 1px 8px rgb(0 0 0 / 45%)' }}
           >
             {/* AI 산출 4종을 줄여 적지 않는다 — 하나를 빼면 범위가 달라 보인다(A2) */}
@@ -372,9 +368,9 @@ export function LoginView() {
              * 이 공백은 살아 있고, 보일 때는 줄이 바뀌어 눈에 띄지 않는다.
              */}
             현장 센서와 ECP가 모은 수질·설비 시계열을 Cloud AI가 읽고,{' '}
-            <br className="hidden xl:inline" />
+            <br className={styles.introBreak} />
             이상 탐지 · 수질 예측 · 오염도 추정 · 설비 이상 탐지 결과를{' '}
-            <br className="hidden xl:inline" />한 화면으로 돌려줍니다.
+            <br className={styles.introBreak} />한 화면으로 돌려줍니다.
           </p>
         </section>
 
@@ -384,7 +380,7 @@ export function LoginView() {
          * 풀리는데 선은 끝까지 같은 굵기로 남아, 유리가 사라진 아래쪽에서 선만 떠 보였다.
          */}
         {/*
-         * 면·그림자·흐림은 `globals.css`의 `.login-glass`가 갖는다 — **폭으로 갈라야 해서**
+         * 면·그림자·흐림은 `globals.scss`의 `.login-glass`가 갖는다 — **폭으로 갈라야 해서**
          * 인라인 `style`에서 옮겼다(인라인은 미디어 쿼리를 쓸 수 없다). 좁은 화면은 불투명,
          * 768px 이상은 지금까지의 흐린 유리 그대로다.
          */}
@@ -399,16 +395,16 @@ export function LoginView() {
          * 768px 이상은 건드리지 않는다 — 그쪽은 화면 높이를 다 쓰는 **기둥**이고 `[사용자 지시
          * 2026-08-25: 첨부 이미지]`가 정한 구성이다. 여백과 모서리를 그 폭에서 되돌린다.
          */}
-        <section className="login-glass mx-4 flex items-center justify-center rounded-panel px-6 py-10 sm:mx-8 sm:px-10 md:mx-0 md:rounded-none md:py-16">
-          <StaggerGroup className="w-full max-w-[368px]">
+        <section className={cn('login-glass', styles.glass)}>
+          <StaggerGroup className={styles.formColumn}>
             <RiseItem>
-              <h2 className="text-[26px] font-bold leading-tight tracking-[-0.02em] text-fg">
+              <h2 className={styles.title}>
                 로그인
               </h2>
             </RiseItem>
 
             <RiseItem>
-              <form onSubmit={submit} className="mt-6 space-y-3.5">
+              <form onSubmit={submit} className={styles.form}>
                 <Field
                   id="account-id"
                   label="아이디"
@@ -419,7 +415,7 @@ export function LoginView() {
                 />
                 <PasswordField value={password} onChange={setPassword} />
 
-                <label className="flex cursor-pointer items-center gap-2 text-[13px] text-fg">
+                <label className={styles.remember}>
                   <Checkbox
                     checked={remember}
                     onChange={(event) => setRememberChoice(event.target.checked)}
@@ -431,7 +427,7 @@ export function LoginView() {
                 {/* 폼의 마지막 조작이라 위 간격을 한 단 더 준다 — 체크박스와 붙으면 한 덩어리로 읽힌다 */}
                 <button
                   type="submit"
-                  className="mt-1 w-full cursor-pointer rounded-nested bg-accent px-3 py-3.5 text-[14px] font-semibold text-white transition-opacity duration-200 hover:opacity-90"
+                  className={styles.submit}
                 >
                   로그인
                 </button>
@@ -458,18 +454,10 @@ export function LoginView() {
       <div
         role="group"
         aria-label="시연용 배경 영상 선택"
-        /*
-         * **768px 이상에서만** `[사용자 결정 2026-09-17]`. 좁은 화면에는 **고를 영상 자체가
-         * 없고**(그 폭에서는 정지 이미지를 쓴다), 폼 위에 겹쳐 뜨던 것과 버튼 높이가 약 26px이라
-         * 손가락 최소(44px)에 못 미치던 것도 함께 사라진다.
-         *
-         * 한때 «격자 밖이라 좁은 폭에서도 남는다»가 이 자리의 근거였는데, 그때는 좁은 폭에서도
-         * 고를 것이 있었다.
-         */
-        className="absolute bottom-4 left-4 z-10 hidden items-center gap-1.5 rounded-full border border-white/25 bg-black/35 px-2 py-1.5 backdrop-blur-sm md:flex"
+        className={styles.videoPicker}
       >
         {/* 무엇을 고르는 자리인지 적는다 — 아이콘만 두면 발표자도 무엇인지 모른다 */}
-        <span className="px-1 text-[12px] font-medium text-white/70">배경</span>
+        <span className={styles.videoPickerLabel}>배경</span>
         {LOGIN_VIDEOS.map((video) => {
           const on = video.src === videoSrc;
           return (
@@ -481,11 +469,7 @@ export function LoginView() {
                 chooseVideo(video.src);
               }}
               aria-pressed={on}
-              className={cn(
-                'cursor-pointer rounded-full px-2.5 py-1 text-[12px] font-medium transition-colors duration-200',
-                'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-white/70',
-                on ? 'bg-white text-[#0b1017]' : 'text-white/80 hover:bg-white/15',
-              )}
+              className={cn(styles.videoOption, on ? styles.videoOptionOn : styles.videoOptionOff)}
             >
               {video.name}
             </button>
@@ -495,15 +479,6 @@ export function LoginView() {
     </main>
   );
 }
-
-/**
- * 입력 칸 — **유리 위에서는 불투명한 흰 면**이다 `[사용자 지시 2026-08-25: 첨부 이미지]`.
- * 반투명이면 뒤 영상이 글자 뒤에서 움직여 읽기가 흔들린다.
- * 높이는 46px(`py-3` + 14px 글자) `[사용자 지시 2026-08-25: 좀 줄여]` — 44px(손가락 최소)을
- * 넘기는 선에서 가장 낮은 값이다. 더 줄이면 터치 대상 권고를 밑돈다.
- */
-const FIELD_CLASS =
-  'w-full rounded-nested border border-border bg-surface px-3.5 py-3 text-[14px] text-fg outline-none transition-colors duration-200 placeholder:text-fg-subtle hover:border-border-strong focus:border-accent focus-visible:ring-2 focus-visible:ring-accent/35';
 
 interface FieldProps {
   id: string;
@@ -517,7 +492,7 @@ interface FieldProps {
 function Field({ id, label, value, onChange, placeholder, autoComplete }: FieldProps) {
   return (
     <div>
-      <label htmlFor={id} className="block text-[13px] text-fg-muted">
+      <label htmlFor={id} className={styles.label}>
         {label}
       </label>
       <input
@@ -527,7 +502,7 @@ function Field({ id, label, value, onChange, placeholder, autoComplete }: FieldP
         placeholder={placeholder}
         autoComplete={autoComplete}
         onChange={(event) => onChange(event.target.value)}
-        className={cn(FIELD_CLASS, 'mt-2')}
+        className={cn(styles.field, styles.fieldInput)}
       />
     </div>
   );
@@ -545,10 +520,10 @@ function PasswordField({ value, onChange }: { value: string; onChange: (next: st
 
   return (
     <div>
-      <label htmlFor="account-password" className="block text-[13px] text-fg-muted">
+      <label htmlFor="account-password" className={styles.label}>
         비밀번호
       </label>
-      <div className="relative mt-2">
+      <div className={styles.passwordBox}>
         <input
           id="account-password"
           type={shown ? 'text' : 'password'}
@@ -556,14 +531,14 @@ function PasswordField({ value, onChange }: { value: string; onChange: (next: st
           placeholder="비밀번호를 입력하세요"
           autoComplete="current-password"
           onChange={(event) => onChange(event.target.value)}
-          className={cn(FIELD_CLASS, 'pr-12')}
+          className={cn(styles.field, styles.passwordInput)}
         />
         <button
           type="button"
           onClick={() => setShown((v) => !v)}
           aria-label={shown ? '비밀번호 가리기' : '비밀번호 보기'}
           aria-pressed={shown}
-          className="absolute inset-y-0 right-0 flex w-12 cursor-pointer items-center justify-center rounded-r-nested text-fg-subtle transition-colors duration-200 hover:text-accent"
+          className={styles.reveal}
         >
           <Icon aria-hidden size={18} strokeWidth={1.7} />
         </button>

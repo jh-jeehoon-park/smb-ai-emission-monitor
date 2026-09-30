@@ -5,6 +5,7 @@ import { WATER_SERIES_CODES, FLOW_SERIES_CODES } from '@/entities/measurement';
 import { MEASUREMENT_ITEMS } from '@/shared/config/measurement';
 import type { GridSection } from './water-quality-grid';
 import { WaterQualityGridSkeleton } from './water-quality-grid-skeleton';
+import styles from './water-quality-grid-skeleton.module.scss';
 
 /**
  * 계측 격자가 대기 중에 그리는 것 `[사용자 지적 2026-09-07]`.
@@ -51,7 +52,7 @@ describe('계측 격자 스켈레톤', () => {
   it('칸 수가 항목 수 + 차 칸이다', () => {
     const { container } = renderQuietly();
     const expected = WATER_SERIES_CODES.length + FLOW_SERIES_CODES.length + 1;
-    expect(container.querySelectorAll('.bg-surface-2')).toHaveLength(expected);
+    expect(container.querySelectorAll(`.${CSS.escape(styles.card)}`)).toHaveLength(expected);
   });
 
   /** 기호와 항목 이름은 사전이 아는 것이라 기다리지 않는다 — 모르는 것만 면으로 덮는다 */
@@ -77,7 +78,7 @@ describe('계측 격자 스켈레톤', () => {
   it('값 자리에 부재를 적지 않는다', () => {
     const { container } = renderQuietly();
     /* 칸 안만 본다 — 묶음 제목의 `유량 — 들어온 양과 나간 양`은 값이 아니라 산문이다 */
-    for (const card of container.querySelectorAll('.bg-surface-2')) {
+    for (const card of container.querySelectorAll(`.${CSS.escape(styles.card)}`)) {
       expect(card.textContent ?? '', card.textContent ?? '').not.toMatch(/수신 없음|계측 없음|—/);
     }
   });

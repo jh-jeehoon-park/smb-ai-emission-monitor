@@ -9,6 +9,7 @@ import { STATUS_VISUAL, statusInk } from '@/shared/config/status-visual';
 import { DISPLAY_TIMEZONE, formatDateTime } from '@/shared/lib/format';
 import { cn } from '@/shared/lib/cn';
 import { SCORE_VALUE, WINDOW_HOURS } from '../config/constants';
+import styles from './verdict-bar.module.scss';
 
 /**
  * 화면 맨 위의 판정 — **카드가 아니라 띠다.**
@@ -57,12 +58,7 @@ export function VerdictBar({
 
   return (
     <div
-      className={cn(
-        'flex overflow-hidden',
-        embedded
-          ? 'rounded-t-panel'
-          : 'rounded-panel border border-card-border bg-surface shadow-panel',
-      )}
+      className={cn(styles.root, embedded ? styles.embedded : styles.standalone)}
     >
       {/*
        * 등급 색 기둥. **색이 유일한 축이 아니다** — 오른쪽에 등급 라벨이 글자로 함께 있다
@@ -70,16 +66,16 @@ export function VerdictBar({
        */}
       <span
         aria-hidden
-        className="w-1.5 shrink-0"
+        className={styles.levelBar}
         style={{
           backgroundColor: visual ? statusInk(visual) : 'var(--missing)',
         }}
       />
 
-      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-6 gap-y-3 px-5 py-4">
-        <div className="flex items-baseline gap-3">
+      <div className={styles.body}>
+        <div className={styles.score}>
           {pending ? (
-            <span className="block h-7 w-14 animate-pulse rounded-chip bg-surface-3" />
+            <span className={cn(styles.scoreSkeleton, 'pulse')} />
           ) : score !== null && level && visual ? (
             <>
               {/*
@@ -91,29 +87,23 @@ export function VerdictBar({
               <span className={cn(SCORE_VALUE, 'num')} style={{ color: statusInk(visual) }}>
                 {score}
               </span>
-              <span className="text-[14px] font-bold" style={{ color: statusInk(visual) }}>
+              <span className={styles.levelLabel} style={{ color: statusInk(visual) }}>
                 {PROVISIONAL_STATUS_LABELS[level]}
               </span>
             </>
           ) : (
-            <span className="text-[12px] text-fg-subtle">이상 점수 수신 없음</span>
+            <span className={styles.noScore}>이상 점수 수신 없음</span>
           )}
         </div>
 
-        {/*
-         * **최소 폭을 준다.** 이 열이 `flex-1`뿐이던 판본은 오른쪽 두 근거 줄이 폭을 다 먹어
-         * 여기가 눌리고, 한글은 어디서나 줄바꿈이 되므로 `계측 서버 수신 중`이 **«계 / 측»으로
-         * 한 자에서 갈렸다**(1440px 캡처에서 드러났다). 최소 폭을 넘기지 못하면 근거 줄이
-         * 아래로 접히는 쪽이 맞다 — 그쪽은 접혀도 낱말이 깨지지 않는다.
-         */}
-        <div className="min-w-52 flex-1">
-          <p className="truncate text-[14px] font-bold leading-tight text-fg">{siteName}</p>
-          <p className="mt-0.5 text-[12px] text-fg-muted">
+        <div className={styles.site}>
+          <p className={styles.siteName}>{siteName}</p>
+          <p className={styles.siteMeta}>
             {`미확인 알람 ${openAlarms}건 · ${sourceLabel}`}
           </p>
         </div>
 
-        <dl className="flex flex-wrap gap-x-5 gap-y-1 text-[12px]">
+        <dl className={styles.facts}>
           <Fact label="기준 시각">
             {`${formatDateTime(observedAtIso)} ${DISPLAY_TIMEZONE} · ${COLLECTION_INTERVAL_MINUTES}분 주기 · 최근 ${WINDOW_HOURS}시간`}
           </Fact>
@@ -125,7 +115,7 @@ export function VerdictBar({
 
         <Link
           href={detailHref}
-          className={`${TAP_AREA_Y} inline-flex shrink-0 items-center gap-0.5 text-[12px] text-fg-subtle transition-colors duration-200 hover:text-accent`}
+          className={cn(TAP_AREA_Y, styles.detailLink)}
         >
           사업장 상세
           <ChevronRight aria-hidden size={16} strokeWidth={2} />
@@ -137,10 +127,9 @@ export function VerdictBar({
 
 function Fact({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex items-baseline gap-1.5">
-      {/* 라벨은 접지 않는다 — 390px에서 «AI 산 / 출»로 갈라졌다 */}
-      <dt className="shrink-0 whitespace-nowrap text-fg-subtle">{label}</dt>
-      <dd className="text-fg-muted">{children}</dd>
+    <div className={styles.fact}>
+      <dt className={styles.factLabel}>{label}</dt>
+      <dd className={styles.factValue}>{children}</dd>
     </div>
   );
 }

@@ -1,0 +1,154 @@
+@use 'shared/styles' as *;
+
+.root {
+  & > :not(:last-child) {
+    margin-block-end: sp(6);
+  }
+}
+
+.summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  column-gap: sp(3);
+  row-gap: sp(1);
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+.figure {
+  font-weight: 700;
+  color: var(--fg);
+}
+
+/* 색은 인라인 `style`이 조건에 따라 정한다 — 여기서는 굵기만 */
+.figureTone {
+  font-weight: 700;
+}
+
+.unjudged {
+  margin-left: sp(1);
+}
+
+.overview {
+  & > :not(:last-child) {
+    margin-block-end: sp(4);
+  }
+}
+
+.cardFooter {
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+.tableBlock {
+  border-top: 1px solid var(--border);
+  padding-top: sp(3);
+}
+
+.tableTitle {
+  margin-bottom: sp(2);
+  padding-inline: sp(1);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--fg-subtle);
+}
+
+.selected {
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-panel);
+  background-color: var(--section-bg);
+  padding: sp(4);
+
+  & > :not(:last-child) {
+    margin-block-end: sp(3);
+  }
+
+  @include up(lg) {
+    padding: sp(5);
+  }
+}
+
+.heading {
+  display: flex;
+  align-items: center;
+  gap: sp(1.5);
+}
+
+.headingTitle {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.025em;
+  color: var(--fg);
+}
+
+.tabsWide {
+  display: none;
+
+  @include up(lg) {
+    display: flex;
+  }
+}
+
+.listNarrow {
+  @include up(lg) {
+    display: none;
+  }
+}
+
+.detail {
+  display: grid;
+  gap: sp(6);
+
+  @include up(xl) {
+    grid-template-columns: 420px minmax(0, 1fr);
+  }
+
+  @include up('2xl') {
+    grid-template-columns: 470px minmax(0, 1fr);
+  }
+}
+
+/*
+ * 지도 레일은 헤더와 선택 띠(`StickyBar`) **아래**에서 멈춘다. 띠 높이는 붙는 폭에서만
+ * 내보내지므로 읽는 쪽이 `0px` 기본값을 든다 — 없으면 속성을 걷은 폭에서 `calc()` 전체가
+ * 무효가 되어 레일이 헤더 뒤로 들어간다(`sticky-bar.test.tsx`의 계약).
+ */
+.mapPanel {
+  @include up(xl) {
+    position: sticky;
+    top: calc(var(--header-h) + var(--sticky-bar-h, 0px) + 1.5rem);
+    height: calc(88svh - var(--sticky-bar-h, 0px) - 1.5rem);
+    max-height: 753px;
+    align-self: flex-start;
+  }
+}
+
+.mapBody {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  gap: sp(3);
+}
+
+.panels {
+  container-type: inline-size;
+  min-width: 0;
+
+  & > :not(:last-child) {
+    margin-block-end: sp(6);
+  }
+}
+
+.anomaly {
+  & > :not(:last-child) {
+    margin-block-end: sp(5);
+  }
+}
+
+.bypassNote {
+  margin-top: sp(2);
+  display: block;
+}

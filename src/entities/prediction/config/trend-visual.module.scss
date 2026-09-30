@@ -1,0 +1,25 @@
+@use 'shared/styles' as *;
+
+/* 경향 칩의 글자색·면 — 칩 뼈대(`BADGE_BASE`)와 호출부가 함께 쓰므로 `components` 레이어 */
+@layer components {
+  .risingText {
+    color: var(--caution-ink);
+  }
+
+  .risingChip {
+    background-color: var(--chip-caution);
+  }
+
+  .steadyText {
+    color: var(--fg-muted);
+  }
+
+  /* 유지·하락이 같은 중립면을 쓴다 — 둘은 글자색(명도)으로 갈린다 */
+  .neutralChip {
+    background-color: var(--surface-3);
+  }
+
+  .fallingText {
+    color: var(--actual);
+  }
+}

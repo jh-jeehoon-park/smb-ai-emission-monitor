@@ -13,6 +13,7 @@ import { VALUE_LG } from '@/shared/ui/type-scale';
 import type { AnomalyRun, AnomalySummary } from '@/entities/anomaly';
 import { ContributionEvidenceList } from './contribution-evidence';
 import type { ContributionEvidence } from '../lib/distribution';
+import styles from './run-investigation.module.scss';
 
 /**
  * **이상 구간 조사** — 이 화면에만 있는 것 `[사용자 요청 2026-09-08]`.
@@ -48,18 +49,18 @@ export function RunInvestigation({
 }) {
   if (!canJudge) {
     return (
-      <p className="text-[12px] leading-relaxed text-fg-subtle">
+      <p className={styles.note}>
         통신이 두절되어 이상 점수가 산출되지 않았습니다 —{' '}
-        <strong className="text-fg-muted">구간을 판정할 수 없습니다.</strong> 0건이 아닙니다.
+        <strong className={styles.noteEmphasis}>구간을 판정할 수 없습니다.</strong> 0건이 아닙니다.
       </p>
     );
   }
 
   if (runs.length === 0) {
     return (
-      <p className="text-[12px] leading-relaxed text-fg-subtle">
+      <p className={styles.note}>
         최근 24시간에 이상 점수가{' '}
-        <strong className="text-fg-muted">
+        <strong className={styles.noteEmphasis}>
           {PROVISIONAL_STATUS_LABELS.caution} 경계 위로 연속 {minMinutes}분 이상
         </strong>{' '}
         이어진 구간이 없습니다. 그보다 짧게 스친 것과 수신이 끊겨 확인되지 않은 시간은 여기에
@@ -71,7 +72,7 @@ export function RunInvestigation({
   const selected = runs.find((run) => run.fromIso === selectedIso) ?? runs[0]!;
 
   return (
-    <div className="@container grid gap-5 @[46rem]:grid-cols-[minmax(0,232px)_minmax(0,1fr)]">
+    <div className={styles.layout}>
       <RunList runs={runs} selectedIso={selected.fromIso} onSelect={onSelect} />
       <RunReading run={selected} summary={summary} evidence={evidence} />
     </div>
@@ -94,7 +95,7 @@ function RunList({
   onSelect: (fromIso: string) => void;
 }) {
   return (
-    <ul className="max-h-[320px] space-y-1.5 overflow-auto @[46rem]:max-h-[420px]">
+    <ul className={styles.runList}>
       {runs.map((run) => {
         const active = run.fromIso === selectedIso;
         const visual = STATUS_VISUAL[run.level];
@@ -105,28 +106,23 @@ function RunList({
               type="button"
               onClick={() => onSelect(run.fromIso)}
               aria-current={active ? 'true' : undefined}
-              className={cn(
-                'w-full cursor-pointer rounded-nested border px-3 py-2.5 text-left transition-colors duration-200',
-                active
-                  ? 'border-accent bg-accent-weak'
-                  : 'border-border bg-surface-2 hover:border-border-strong',
-              )}
+              className={cn(styles.run, active ? styles.runActive : styles.runIdle)}
             >
-              <div className="flex items-baseline justify-between gap-2">
-                <span className="num text-[12px] font-semibold text-fg">
+              <div className={styles.runHead}>
+                <span className={cn(styles.runRange, 'num')}>
                   {formatClock(run.fromIso)}–{run.isNow ? '지금' : formatClock(run.toIso)}
                 </span>
-                <span className="num shrink-0 text-[12px] text-fg-subtle">
+                <span className={cn(styles.runDuration, 'num')}>
                   {durationLabel(run.samples)}
                 </span>
               </div>
-              <div className="mt-1 flex items-baseline gap-1.5 text-[12px]">
-                <span className="text-fg-subtle">최고</span>
-                <span className="num font-semibold" style={{ color: statusInk(visual) }}>
+              <div className={styles.runPeak}>
+                <span className={styles.runPeakLabel}>최고</span>
+                <span className={cn(styles.peakValue, 'num')} style={{ color: statusInk(visual) }}>
                   {run.peak}
                 </span>
                 {/* 등급은 값의 색 + 라벨 글자 둘로만 말한다(§8 `등급 색`) */}
-                <span className="text-fg-muted">{PROVISIONAL_STATUS_LABELS[run.level]}</span>
+                <span className={styles.runLevel}>{PROVISIONAL_STATUS_LABELS[run.level]}</span>
               </div>
             </button>
           </li>
@@ -153,7 +149,7 @@ function RunReading({
 }) {
   if (summary === null || summary.score === null || summary.level === null) {
     return (
-      <p className="text-[12px] leading-relaxed text-fg-subtle">
+      <p className={styles.note}>
         이 구간의 판정을 불러오지 못했습니다.
       </p>
     );
@@ -163,7 +159,7 @@ function RunReading({
   const peakIso = summary.computedAtIso;
 
   return (
-    <div className="@container space-y-4" key={run.fromIso}>
+    <div className={styles.reading} key={run.fromIso}>
       {/*
        * **조사 대상을 한 문장으로 먼저 말한다.** 이 화면에 온 이유에 대한 직답이라 숫자보다
        * 앞에 온다 — 언제 넘었고 언제 가장 높았고 얼마나 이어졌는가.
@@ -172,29 +168,29 @@ function RunReading({
        * 따르는데(구십일 → `로`, 육십 → `으로`) 숫자가 값이라 어느 쪽인지 미리 알 수 없다.
        * 조사가 갈리지 않는 말로 쓰는 것이 유일하게 맞는 답이다.
        */}
-      <p className="text-[12px] leading-relaxed text-fg-muted">
-        <span className="num text-fg">{formatClock(run.fromIso)}</span>에 주의 경계를 넘었고{' '}
-        <span className="num text-fg">{formatClock(peakIso)}</span>에{' '}
-        <span className="num font-semibold" style={{ color: statusInk(visual) }}>
+      <p className={styles.summary}>
+        <span className={cn(styles.summaryTime, 'num')}>{formatClock(run.fromIso)}</span>에 주의 경계를 넘었고{' '}
+        <span className={cn(styles.summaryTime, 'num')}>{formatClock(peakIso)}</span>에{' '}
+        <span className={cn(styles.peakValue, 'num')} style={{ color: statusInk(visual) }}>
           {run.peak}
         </span>
         까지 올랐습니다 · {durationLabel(run.samples)} 이어졌{run.isNow ? '고 지금도 이어집니다' : '습니다'}.
       </p>
 
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-3 border-t border-border pt-3">
-        <div className="flex items-baseline gap-2">
-          <span className={`num ${VALUE_LG}`} style={{ color: statusInk(visual) }}>
+      <div className={styles.scoreRow}>
+        <div className={styles.score}>
+          <span className={cn('num', VALUE_LG)} style={{ color: statusInk(visual) }}>
             <CountUp value={summary.score} />
           </span>
           <StatusBadge level={summary.level} />
         </div>
-        <div className="min-w-[180px] flex-1">
+        <div className={styles.gauge}>
           <AnomalyGauge score={summary.score} />
         </div>
       </div>
 
       {/* AI 산출 근거는 값과 함께 노출한다 — 뱃지 셋, 라벨을 뱃지 안에 남긴다(**E3**·§8) */}
-      <div className="flex flex-wrap gap-1.5">
+      <div className={styles.metaRow}>
         <Meta label="모델" value={summary.modelLabel} />
         <Meta label="기간" value={summary.windowLabel} />
         <Meta
@@ -203,7 +199,7 @@ function RunReading({
         />
       </div>
 
-      <div className="border-t border-border pt-3">
+      <div className={styles.evidence}>
         <ContributionEvidenceList
           rows={evidence}
           level={summary.level}
@@ -216,8 +212,8 @@ function RunReading({
 
 function Meta({ label, value }: { label: string; value: string }) {
   return (
-    <span className={`${BADGE_BASE} gap-1 bg-surface-2 text-fg-muted`}>
-      <span className="text-fg-subtle">{label}</span>
+    <span className={cn(BADGE_BASE, styles.meta)}>
+      <span className={styles.metaLabel}>{label}</span>
       <span className="num">{value}</span>
     </span>
   );

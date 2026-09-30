@@ -1,4 +1,5 @@
 import { cn } from '@/shared/lib/cn';
+import styles from './section-panel.module.scss';
 
 /**
  * **상세 구역의 껍데기 한 벌** — 머리 띠 + 몸통.
@@ -28,14 +29,14 @@ export function SectionPanel({
   bodyClassName?: string;
 }) {
   return (
-    <section className="overflow-hidden rounded-panel border border-card-border bg-surface shadow-panel">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-b border-border bg-surface-2 px-5 py-2.5">
-        <h2 className="text-[12px] font-semibold uppercase tracking-wide text-fg-subtle">
+    <section className={styles.root}>
+      <div className={styles.head}>
+        <h2 className={styles.title}>
           {title}
         </h2>
         {aside}
       </div>
-      <div className={cn(bodyClassName ?? 'p-5')}>{children}</div>
+      <div className={cn(bodyClassName ?? styles.body)}>{children}</div>
     </section>
   );
 }

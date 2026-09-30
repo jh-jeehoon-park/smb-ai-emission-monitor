@@ -1,7 +1,10 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from 'vitest';
 import { cleanup, render } from '@testing-library/react';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { Eyebrow } from './eyebrow';
+import styles from './eyebrow.module.scss';
 
 afterEach(cleanup);
 
@@ -9,6 +12,10 @@ const classesOf = (text: string) => {
   const { container } = render(<Eyebrow>{text}</Eyebrow>);
   return container.firstElementChild?.className ?? '';
 };
+
+/** 규칙 본문 — 클래스 이름만 보면 그 안의 서식이 빠져도 통과한다 */
+const SCSS = readFileSync(join(process.cwd(), 'src', 'shared', 'ui', 'eyebrow.module.scss'), 'utf8');
+const ruleOf = (name: string) => SCSS.match(new RegExp(`\\.${name}\\s*\\{([^}]*)\\}`))?.[1] ?? '';
 
 /**
  * **한글이 한 자 섞이면 서식이 통째로 바뀐다.** 의도한 동작이지만(한글에 자간을 주면
@@ -22,25 +29,29 @@ const classesOf = (text: string) => {
 describe('Eyebrow — 한글 여부로 서식이 갈린다', () => {
   it('라틴만이면 대문자·넓은 자간을 준다', () => {
     const cls = classesOf('AutoEncoder');
-    expect(cls).toContain('uppercase');
-    expect(cls).toContain('tracking-[0.14em]');
+    expect(cls).toContain(styles.latin);
+    expect(ruleOf('latin')).toMatch(/text-transform:\s*uppercase/);
+    expect(ruleOf('latin')).toMatch(/letter-spacing:\s*0\.14em/);
+  });
+
+  /** 기본 서식에 대문자·자간이 들어가면 한글에도 붙는다 — 라틴 전용 규칙에만 있어야 한다 */
+  it('기본 서식에는 대문자·자간이 없다', () => {
+    expect(ruleOf('root')).not.toMatch(/text-transform|letter-spacing/);
   });
 
   it('한글이 섞이면 주지 않는다', () => {
     const cls = classesOf('AutoEncoder · 구미 염색 2공장');
-    expect(cls).not.toContain('uppercase');
-    expect(cls).not.toContain('tracking-');
+    expect(cls).not.toContain(styles.latin);
   });
 
   it('한글만이어도 주지 않는다', () => {
     const cls = classesOf('구미 염색 2공장');
-    expect(cls).not.toContain('uppercase');
-    expect(cls).not.toContain('tracking-');
+    expect(cls).not.toContain(styles.latin);
   });
 
   /** 숫자·기호는 라틴으로 센다 — `6단계 · 실측`은 한글이 있으니 평서 서식이다 */
   it('숫자와 기호만이면 라틴으로 센다', () => {
-    expect(classesOf('LSTM + Attention')).toContain('uppercase');
-    expect(classesOf('XMARL-PPO')).toContain('uppercase');
+    expect(classesOf('LSTM + Attention')).toContain(styles.latin);
+    expect(classesOf('XMARL-PPO')).toContain(styles.latin);
   });
 });

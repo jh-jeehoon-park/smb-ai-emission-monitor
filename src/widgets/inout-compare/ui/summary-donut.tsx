@@ -4,6 +4,8 @@ import { ACTUAL_HEX } from '@/shared/config/status-visual';
 import { motion } from '@/shared/ui/motion';
 import { SUMMARY_DONUT } from '../config/constants';
 import type { TreatmentVerdict } from '../lib/point-readings';
+import { cn } from '@/shared/lib/cn';
+import styles from './summary-donut.module.scss';
 
 const D = SUMMARY_DONUT;
 
@@ -23,8 +25,8 @@ export function SummaryDonut({ verdict }: { verdict: TreatmentVerdict }) {
   const share = treated / verdict.judgedCount;
 
   return (
-    <div className="relative shrink-0" style={{ width: D.size, height: D.size }}>
-      <svg viewBox={`0 0 ${D.size} ${D.size}`} className="h-full w-full" aria-hidden>
+    <div className={styles.root} style={{ width: D.size, height: D.size }}>
+      <svg viewBox={`0 0 ${D.size} ${D.size}`} className={styles.ring} aria-hidden>
         {/* 12시에서 시작해 시계 방향으로 돌게 회전시킨다 — 기본은 3시부터다 */}
         <g transform={`rotate(-90 ${D.size / 2} ${D.size / 2})`}>
           <circle
@@ -51,7 +53,7 @@ export function SummaryDonut({ verdict }: { verdict: TreatmentVerdict }) {
       </svg>
 
       {/* 고리가 «얼마나»를 보이고 글자가 «몇 개 중 몇 개»를 못박는다 */}
-      <p className="num absolute inset-0 flex items-center justify-center text-[14px] font-bold text-fg">
+      <p className={cn('num', styles.count)}>
         {treated}/{verdict.judgedCount}
       </p>
     </div>

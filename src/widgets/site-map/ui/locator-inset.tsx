@@ -1,6 +1,7 @@
 import { PROVINCE_SHAPES, PROVINCE_VIEWBOX } from '@/shared/config/korea-provinces';
 import { projectToMap } from '@/shared/lib/geo';
 import type { Site } from '@/entities/site';
+import styles from './locator-inset.module.scss';
 
 /** 표시 지름(뷰박스 단위). 인셋이 작아 화면에서는 3~4px이 된다 */
 const MARK_RADIUS = 9;
@@ -27,10 +28,10 @@ export function LocatorInset({ municipality, sites }: { municipality: string; si
   const { x, y } = projectToMap(first.coordinates[0], first.coordinates[1]);
 
   return (
-    <figure className="flex shrink-0 items-center gap-3 border-t border-border pt-2.5">
+    <figure className={styles.root}>
       <svg
         viewBox={`${PROVINCE_VIEWBOX.x} ${PROVINCE_VIEWBOX.y} ${PROVINCE_VIEWBOX.width} ${PROVINCE_VIEWBOX.height}`}
-        className="h-[74px] w-auto shrink-0"
+        className={styles.map}
         aria-hidden
       >
         {PROVINCE_SHAPES.map((province) => (
@@ -54,8 +55,8 @@ export function LocatorInset({ municipality, sites }: { municipality: string; si
         />
         <circle cx={x} cy={y} r={MARK_RADIUS} fill="var(--accent)" />
       </svg>
-      <figcaption className="min-w-0 text-[12px] leading-relaxed text-fg-subtle">
-        <span className="block font-medium text-fg-muted">전국에서의 위치</span>
+      <figcaption className={styles.caption}>
+        <span className={styles.captionTitle}>전국에서의 위치</span>
         {first.province} {municipality}
       </figcaption>
     </figure>

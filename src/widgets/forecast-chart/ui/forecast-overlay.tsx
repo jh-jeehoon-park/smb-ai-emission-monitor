@@ -30,6 +30,7 @@ import {
 } from '@/entities/prediction';
 import { PROVISIONAL_DISPLAY_DECIMALS } from '@/shared/config/provisional';
 import { FULL_HEIGHT, FUTURE_HOURS } from '../config/constants';
+import styles from './forecast-overlay.module.scss';
 
 /**
  * **색이 항목을, 실선·파선이 출처를 맡는다** `[사용자 요청 2026-09-07]`.
@@ -242,7 +243,7 @@ export function ForecastOverlay({
  */
 function OverlayLegend({ drawable }: { drawable: ForecastSummary[] }) {
   return (
-    <ul className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 px-1">
+    <ul className={styles.legend}>
       {drawable.map((s) => (
         <LegendItem
           key={s.code}

@@ -1,4 +1,5 @@
 import { cn } from '@/shared/lib/cn';
+import styles from './wall-bar.module.scss';
 
 /**
  * 막대 하나 — **`MeterBar`를 쓰지 않고 새로 만든다** `[사용자 요청 2026-09-11]`.
@@ -28,11 +29,11 @@ export function WallBar({
 
   return (
     <div
-      className={cn('w-full overflow-hidden rounded-full bg-surface-3', className)}
+      className={cn(styles.track, className)}
       style={{ boxShadow: 'var(--track-inset)' }}
     >
       <div
-        className="h-full rounded-full transition-[width] duration-500 ease-out"
+        className={styles.fill}
         style={{
           width: `${width}%`,
           backgroundImage: `linear-gradient(to right, ${color}, color-mix(in srgb, ${color} 55%, var(--surface)))`,

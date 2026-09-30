@@ -17,6 +17,7 @@ import {
 } from '../config/constants';
 import { useCountUp } from '../lib/use-count-up';
 import { useValueFlash } from '../lib/use-value-flash';
+import styles from './alarm-tally.module.scss';
 
 /**
  * 우선순위를 등급 색에 맞춘다 — **새 색을 만들지 않는다.**
@@ -58,41 +59,38 @@ export function AlarmTally({
   const shown = useCountUp(open, 0);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3">
+    <div className={styles.root}>
     <div
-      className={cn(
-        'wall-pad-md flex shrink-0 items-center gap-5 rounded-nested border border-border bg-surface-2 transition-colors duration-500',
-        flashing && 'bg-accent-weak',
-      )}
+      className={cn('wall-pad-md', styles.summary, flashing && styles.summaryFlashing)}
     >
-      <div className="shrink-0">
-        <p className={cn('text-fg-subtle', WALL_META)}>미확인</p>
-        <p className="mt-1.5 flex items-baseline gap-1.5">
-          <span className={cn('num text-fg', WALL_VALUE_XL)}>{shown}</span>
+      <div className={styles.total}>
+        <p className={cn(styles.totalLabel, WALL_META)}>미확인</p>
+        <p className={styles.totalValue}>
+          <span className={cn('num', styles.totalCount, WALL_VALUE_XL)}>{shown}</span>
           <span className={WALL_UNIT}>건</span>
         </p>
       </div>
 
-      <ul className="wall-gap-xs flex min-w-0 flex-1 flex-col">
+      <ul className={cn('wall-gap-xs', styles.priorities)}>
         {PRIORITIES.map((priority) => {
           const visual = STATUS_VISUAL[PRIORITY_TONE[priority]];
           return (
             <li
               key={priority}
-              className="wall-chip-pad flex items-center justify-between gap-3 rounded-chip bg-surface"
+              className={cn('wall-chip-pad', styles.priority)}
             >
-              <span className="flex min-w-0 items-center gap-2">
+              <span className={styles.priorityName}>
                 {/* 색 옆에 늘 이름이 있다 — 색만으로 등급을 전달하지 않는다(E2) */}
                 <span
                   aria-hidden
-                  className="size-2.5 shrink-0 rounded-full"
+                  className={styles.priorityDot}
                   style={{ backgroundColor: visual.hex }}
                 />
-                <span className={cn('truncate', WALL_LABEL)}>
+                <span className={cn(styles.priorityLabel, WALL_LABEL)}>
                   {ALARM_PRIORITY_LABELS[priority]}
                 </span>
               </span>
-              <span className={cn('num shrink-0', WALL_VALUE_MD)} style={{ color: statusInk(visual) }}>
+              <span className={cn('num', styles.priorityCount, WALL_VALUE_MD)} style={{ color: statusInk(visual) }}>
                 {byPriority[priority]}
               </span>
             </li>
@@ -113,25 +111,25 @@ export function AlarmTally({
        * 줄을 **고르게 펼친다** — 곁의 기여 변수·설비 목록과 같은 짜임이다. 위로 몰면 3840×2160
        * 에서 목록 아래에 빈 덩어리가 남아 «여기서 끊겼다»가 아니라 «덜 그려졌다»로 보였다.
        */}
-      <ul className="wall-gap-sm flex min-h-0 flex-1 flex-col justify-between overflow-hidden">
+      <ul className={cn('wall-gap-sm', styles.recent)}>
         {recent.map((alarm) => {
           const visual = STATUS_VISUAL[PRIORITY_TONE[alarm.priority]];
           return (
             <li
               key={alarm.id}
-              /* `wall-alarm-row` — 세로가 낮은 화면에서 뒤쪽 줄을 감춘다(globals.css) */
-              className="wall-alarm-row wall-row-pad min-w-0 rounded-nested border border-border bg-surface-2"
+              /* `wall-alarm-row` — 세로가 낮은 화면에서 뒤쪽 줄을 감춘다(globals.scss) */
+              className={cn('wall-alarm-row wall-row-pad', styles.recentRow)}
             >
-              <p className="flex min-w-0 items-baseline gap-2">
+              <p className={styles.recentHead}>
                 <span
                   aria-hidden
-                  className="size-2 shrink-0 translate-y-[-2px] rounded-full"
+                  className={styles.recentDot}
                   style={{ backgroundColor: visual.hex }}
                 />
-                <span className={cn('min-w-0 flex-1 truncate', WALL_LABEL)}>{alarm.title}</span>
+                <span className={cn(styles.recentTitle, WALL_LABEL)}>{alarm.title}</span>
               </p>
-              {/* `wall-alarm-cond` — 아주 낮은 화면에서 이 곁줄만 접는다(globals.css) */}
-              <p className={cn('wall-alarm-cond mt-1 truncate text-fg-subtle', WALL_META)}>
+              {/* `wall-alarm-cond` — 아주 낮은 화면에서 이 곁줄만 접는다(globals.scss) */}
+              <p className={cn('wall-alarm-cond', styles.recentCondition, WALL_META)}>
                 {ALARM_CONDITION_LABELS[alarm.condition]}
               </p>
             </li>

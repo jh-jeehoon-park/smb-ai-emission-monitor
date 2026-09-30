@@ -1,0 +1,50 @@
+@use 'shared/styles' as *;
+
+.sentinel {
+  height: 1px;
+}
+
+/* `fixed`는 뷰포트 기준이라 사이드바와 무관하게 오른쪽 아래에 남는다. 좁은 화면에서는 여백을 줄여(16px) 카드와 겹치는 폭을 아낀다 */
+.button {
+  position: fixed;
+  bottom: sp(4);
+  right: sp(4);
+  z-index: 20;
+  display: flex;
+  width: sp(10);
+  height: sp(10);
+  align-items: center;
+  justify-content: center;
+  border-radius: calc(infinity * 1px);
+  border: 1px solid var(--card-border);
+  background-color: var(--surface);
+  color: var(--fg-muted);
+  box-shadow: var(--card-shadow);
+  transition-property: opacity, transform, color, background-color;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 200ms;
+
+  @include hover {
+    &:hover {
+      background-color: var(--accent-weak);
+      color: var(--accent);
+    }
+  }
+
+  @include up(lg) {
+    bottom: sp(6);
+    right: sp(6);
+  }
+}
+
+.shown {
+  translate: 0 0;
+  cursor: pointer;
+  opacity: 1;
+}
+
+.hidden {
+  pointer-events: none;
+  translate: 0 sp(2);
+  opacity: 0;
+}

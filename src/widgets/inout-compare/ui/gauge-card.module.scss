@@ -1,0 +1,217 @@
+@use 'shared/styles' as *;
+
+.card {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-nested);
+}
+
+/* 유사한 카드만 면을 한 단 넣는다 — 색이 아니라 면이다 */
+.cardSimilar {
+  border-color: var(--border-strong);
+  background-color: var(--surface-2);
+}
+
+.cardPlain {
+  border-color: var(--border);
+  background-color: var(--surface);
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: sp(2);
+  border-bottom: 1px solid var(--border);
+  padding: sp(2) sp(3);
+}
+
+.label {
+  @include truncate;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.unit {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+.body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  padding: sp(3);
+}
+
+/* 세 열(`1fr auto 1fr`)이라 여덟 장이 전부 같은 기하를 갖는다 — 유입수는 왼쪽 끝, 유출수는 오른쪽 끝, `→`는 늘 가운데다 */
+.pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: baseline;
+  column-gap: sp(1);
+}
+
+/* 22px 값 둘 사이에서 14px은 묻혔다 — 방향이 «즉시» 보여야 하는 자리다 */
+.arrow {
+  flex-shrink: 0;
+  padding-inline: sp(0.5);
+  font-size: 17px;
+  line-height: 1;
+}
+
+.arrowKnown {
+  color: var(--fg-muted);
+}
+
+.arrowUnknown {
+  color: transparent;
+}
+
+.change {
+  margin-top: sp(2.5);
+  display: flex;
+  min-height: sp(5);
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: center;
+  column-gap: sp(1.5);
+}
+
+.changeSkeleton {
+  display: block;
+  height: sp(4);
+  width: sp(16);
+  border-radius: var(--radius-chip);
+  background-color: var(--surface-3);
+}
+
+/*
+ * **격자로 나눈다 — 게이지 폭이 카드마다 달라지지 않게.** `justify-content: space-between`이던
+ * 판본은 남는 폭을 상태 문구가 먼저 먹어 `판정 대상 아님 기준 이내`가 붙은 카드의 게이지가
+ * 다른 카드보다 좁게 그려졌다(1440px 캡처에서 드러났다) — 여덟 장을 훑을 때 같은
+ * 그림이 카드마다 다른 크기면 크기가 값을 뜻하는 것으로 오독된다.
+ *
+ * 지금은 게이지 열이 **고정 폭**이고 접히는 쪽은 상태 문구다.
+ */
+.status {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: sp(2);
+  border-top: 1px solid var(--border);
+  padding: sp(1.5) sp(3);
+}
+
+.statusText {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: sp(2);
+  row-gap: sp(0.5);
+}
+
+.note {
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+.gauge {
+  flex-shrink: 0;
+}
+
+.pointLabel {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: sp(1.5);
+}
+
+.pointLabelReverse {
+  flex-direction: row-reverse;
+}
+
+.pointMark {
+  display: inline-block;
+  width: sp(2);
+  height: sp(2);
+  flex-shrink: 0;
+  border-radius: calc(infinity * 1px);
+}
+
+.pointName {
+  @include truncate;
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+.valueSkeleton {
+  display: block;
+  width: sp(14);
+  border-radius: var(--radius-chip);
+  background-color: var(--surface-3);
+  color: transparent;
+}
+
+.pushRight {
+  margin-left: auto;
+}
+
+.noValue {
+  display: block;
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+/*
+ * **숫자를 자르지 않는다.** `truncate`가 붙어 있던 판본은 좁은 카드에서 `10.38`을
+ * `10…`으로 적었다 — 줄임표가 붙은 숫자는 읽는 사람에게 **다른 값**이다. 폭이 모자라는
+ * 문제는 열 수로 막고(`TreatmentScale`의 컨테이너 문턱), 여기서는 잘리지 않게만 한다.
+ */
+.value {
+  display: block;
+  white-space: nowrap;
+}
+
+.alignRight {
+  text-align: right;
+}
+
+.changeValue {
+  display: inline-flex;
+  align-items: baseline;
+  gap: sp(1);
+  white-space: nowrap;
+}
+
+.changeValueSimilar {
+  color: var(--fg);
+}
+
+.changeValuePlain {
+  color: var(--fg-muted);
+}
+
+.changeArrow {
+  font-size: 11px;
+  line-height: 1;
+}
+
+.direction {
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+.markSimilar {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--fg-muted);
+}

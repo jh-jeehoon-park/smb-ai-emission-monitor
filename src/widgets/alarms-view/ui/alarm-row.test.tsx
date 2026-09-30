@@ -1,11 +1,16 @@
 // @vitest-environment jsdom
+import { readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 import { fireEvent } from '@testing-library/dom';
 import { getAlarmsForView } from '@/entities/alarm';
 import { AlarmRow } from './alarm-row';
+import styles from './alarm-row.module.scss';
 
 afterEach(cleanup);
+
+/** 줄을 덮는 버튼 — 절대배치로 줄 전체에 깔린다 */
+const coverOf = (root: HTMLElement) => root.querySelector(`[aria-hidden].${styles.cover}`) as HTMLElement;
 
 /*
  * 상태를 바꿀 수 있는 알람이라야 `확인 처리` 버튼이 그려진다 — `조치 완료`는 다음 단계가 없어
@@ -42,7 +47,7 @@ describe('알람 이력 줄 — 상세 입구', () => {
   /** 줄 클릭은 편의다 — 칸마다 눌리는 곳을 찾지 않아도 된다(§8 `누르는 줄`) */
   it('줄 아무 데나 눌러도 열린다', () => {
     const { container, onOpen } = renderRow();
-    const cover = container.querySelector('[aria-hidden].absolute') as HTMLElement;
+    const cover = coverOf(container);
     fireEvent.click(cover);
     expect(onOpen).toHaveBeenCalledTimes(1);
   });
@@ -54,7 +59,7 @@ describe('알람 이력 줄 — 상세 입구', () => {
    */
   it('덮개는 탭 순서에 없다', () => {
     const { container } = renderRow();
-    const cover = container.querySelector('[aria-hidden].absolute') as HTMLElement;
+    const cover = coverOf(container);
     expect(cover.tabIndex).toBe(-1);
   });
 });
@@ -76,15 +81,24 @@ describe('알람 이력 줄 — 처리 조작', () => {
    * **여기서 클래스를 본다.** 덮개는 형제라 jsdom에서는 버튼의 클릭을 가로챌 수 없지만,
    * 실제 브라우저에서는 **쌓임 순서**가 어느 쪽이 눌리는지를 정한다 — jsdom에는 레이아웃이
    * 없어 그 판정을 재현할 방법이 없다. 순서가 뒤집히면 조작이 통째로 먹히므로 값으로 잠근다.
+   *
+   * 값은 모듈 SCSS에 있다 — 요소에 어느 규칙이 붙었는지와 그 규칙의 `z-index`를 함께 본다.
    */
   it('처리 조작이 덮개보다 위에 쌓인다', () => {
     const { container } = renderRow();
-    const cover = container.querySelector('[aria-hidden].absolute') as HTMLElement;
+    const cover = coverOf(container);
     const actions = screen
       .getByRole('button', { name: `${alarm.title} 확인 처리` })
       .closest('div') as HTMLElement;
 
-    expect(cover.className).toMatch(/(^|\s)z-10(\s|$)/);
-    expect(actions.className).toMatch(/(^|\s)z-20(\s|$)/);
+    expect(cover).not.toBeNull();
+    expect(actions.classList.contains(styles.actions)).toBe(true);
+
+    const scss = readFileSync('src/widgets/alarms-view/ui/alarm-row.module.scss', 'utf8');
+    const zIndexOf = (name: string) =>
+      Number(scss.match(new RegExp(String.raw`\.${name}\s*\{[^{}]*z-index:\s*(\d+)`))?.[1]);
+
+    expect(zIndexOf('cover')).toBe(10);
+    expect(zIndexOf('actions')).toBe(20);
   });
 });

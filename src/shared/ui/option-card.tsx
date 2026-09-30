@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react';
 import { cn } from '@/shared/lib/cn';
+import styles from './option-card.module.scss';
 
 /**
  * **설명이 붙는 단일 선택** — 선택지 하나가 카드 한 장이다
@@ -12,7 +13,7 @@ import { cn } from '@/shared/lib/cn';
  * 무엇이 달라지는지를 적을 자리도 없다 — 이 자리는 그 차이를 알고 골라야 하는 곳이다.
  *
  * **진짜 `<input type="radio">`다.** 같은 `name`으로 묶이면 화살표 키로 옮겨 다니고, 라벨을
- * 누르면 고른다. 원은 가리지 않고 그린다(`peer-checked`) — 화면 읽기 프로그램에는 입력이 그대로
+ * 누르면 고른다. 원은 가리지 않고 그린다(입력은 눈에서만 감춘다) — 화면 읽기 프로그램에는 입력이 그대로
  * 남는다.
  *
  * 고른 카드는 **포인트색 테두리 + 옅은 면**이다(§8 `포인트색` — 선택을 뜻하는 자리).
@@ -38,12 +39,7 @@ export function OptionCard({
 }: OptionCardProps) {
   return (
     <label
-      className={cn(
-        'group relative flex min-h-[64px] cursor-pointer items-start gap-3 rounded-nested border p-3 transition-[border-color,background-color,box-shadow] duration-200',
-        checked
-          ? 'border-accent bg-accent-weak shadow-[0_0_0_1px_var(--accent)]'
-          : 'border-border bg-surface hover:border-border-strong hover:shadow-panel',
-      )}
+      className={cn(styles.card, checked ? styles.cardChecked : styles.cardIdle)}
     >
       <input
         type="radio"
@@ -51,41 +47,35 @@ export function OptionCard({
         value={value}
         checked={checked}
         onChange={() => onSelect(value)}
-        className="peer sr-only"
+        className={styles.input}
       />
       {icon && (
         <span
           aria-hidden
-          className={cn(
-            'grid size-8 shrink-0 place-items-center rounded-nested transition-colors duration-200',
-            checked ? 'bg-surface text-accent' : 'bg-surface-2 text-fg-subtle group-hover:text-fg-muted',
-          )}
+          className={cn(styles.icon, checked ? styles.iconChecked : styles.iconIdle)}
         >
           {icon}
         </span>
       )}
-      <span className="min-w-0 flex-1">
-        <span className={cn('block text-[13px] font-semibold', checked ? 'text-accent' : 'text-fg')}>
+      <span className={styles.text}>
+        <span className={cn(styles.title, checked ? styles.titleChecked : styles.titleIdle)}>
           {title}
         </span>
         {description && (
-          <span className="mt-0.5 block text-[12px] leading-relaxed text-fg-subtle">{description}</span>
+          <span className={styles.description}>{description}</span>
         )}
       </span>
       {/* 고른 표시 — 원 안에 점. 테두리색만으로는 둘 중 무엇이 골라졌는지 한눈에 갈리지 않는다 */}
       <span
         aria-hidden
-        className={cn(
-          'mt-0.5 grid size-4 shrink-0 place-items-center rounded-full border transition-colors duration-200',
-          checked ? 'border-accent bg-accent' : 'border-border-strong bg-surface',
-        )}
+        className={cn(styles.radio, checked ? styles.radioChecked : styles.radioIdle)}
       >
-        <span className={cn('size-1.5 rounded-full bg-white', checked ? 'opacity-100' : 'opacity-0')} />
+        <span className={cn(styles.dot, checked ? styles.dotShown : styles.dotHidden)} />
       </span>
       {/* 키보드 초점은 입력이 받고 표시는 카드가 한다 */}
       <span
         aria-hidden
-        className="pointer-events-none absolute inset-0 rounded-nested ring-accent/35 peer-focus-visible:ring-2"
+        className={styles.focusRing}
       />
     </label>
   );

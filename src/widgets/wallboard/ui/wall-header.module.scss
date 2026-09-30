@@ -1,0 +1,77 @@
+@use 'shared/styles' as *;
+
+.root {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: sp(6);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-panel);
+  background-color: var(--surface);
+  padding: sp(4) sp(6);
+  box-shadow: var(--card-shadow);
+}
+
+.tick {
+  height: sp(9);
+  width: sp(1);
+  flex-shrink: 0;
+  border-radius: calc(infinity * 1px);
+  background-color: var(--accent);
+}
+
+.heading {
+  min-width: 0;
+}
+
+.siteName {
+  @include truncate;
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.025em;
+  color: var(--fg);
+}
+
+.siteMeta {
+  margin-top: sp(0.5);
+  color: var(--fg-subtle);
+}
+
+.facts {
+  margin-left: auto;
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: sp(2);
+}
+
+.clock {
+  flex-shrink: 0;
+  border-radius: var(--radius-chip);
+  background-color: var(--surface-2);
+  padding: sp(2) sp(4);
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--fg);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: sp(1.5);
+  border-radius: var(--radius-chip);
+  background-color: var(--surface-2);
+  padding: sp(1.5) sp(2.5);
+}
+
+.chipLabel {
+  color: var(--fg-subtle);
+}
+
+.chipValue {
+  font-weight: 600;
+  color: var(--fg-muted);
+}

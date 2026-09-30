@@ -1,0 +1,107 @@
+@use 'shared/styles' as *;
+
+.aside {
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+/* `SectionPanel`의 기본 몸통(여백)을 이 묶음이 통째로 대신한다 — 여백을 함께 적는다 */
+.body {
+  padding: sp(5);
+
+  & > :not(:last-child) {
+    margin-block-end: sp(2);
+  }
+}
+
+.window {
+  font-size: 12px;
+  color: var(--fg-muted);
+}
+
+.lanes {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-nested);
+  background-color: var(--surface-2);
+  padding: sp(2.5) sp(3);
+
+  & > :not(:last-child) {
+    margin-block-end: sp(1.5);
+  }
+}
+
+.axis {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+.summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: sp(3);
+  row-gap: sp(2);
+  font-size: 12px;
+}
+
+.suspect {
+  color: var(--critical-ink);
+}
+
+.clear {
+  color: var(--fg-muted);
+}
+
+.unknown {
+  color: var(--fg-subtle);
+}
+
+.anomalyLink {
+  display: inline-flex;
+  align-items: center;
+  gap: sp(0.5);
+  color: var(--fg-subtle);
+  @include transition-colors(200ms);
+
+  @include hover {
+    &:hover {
+      color: var(--accent);
+    }
+  }
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: sp(2);
+}
+
+.rowLabel {
+  width: sp(9);
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--fg-muted);
+}
+
+.track {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+  border-radius: var(--radius-chip);
+  background-color: var(--surface);
+}
+
+.tick {
+  position: absolute;
+  inset-block: 0;
+  width: 1px;
+  background-color: var(--border-strong);
+}
+
+.segment {
+  position: absolute;
+  inset-block: 0;
+}

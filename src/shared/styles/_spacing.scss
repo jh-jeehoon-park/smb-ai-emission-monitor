@@ -1,0 +1,11 @@
+@use 'sass:math';
+
+/**
+ * 간격 한 단 = 0.25rem. Tailwind의 `p-4`가 `sp(4)`다 — 화면이 쓰던 간격 체계를 그대로 잇는다.
+ * 소수 단(`gap-1.5` → `sp(1.5)`)도 같은 식이다.
+ */
+$space-unit: 0.25rem;
+
+@function sp($n) {
+  @return math.div(math.round($n * 10000), 10000) * $space-unit;
+}

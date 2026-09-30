@@ -1,0 +1,89 @@
+@use 'shared/styles' as *;
+
+/* 뿌리는 `className`으로 호출부가 덮는다 — 그래서 `components` 레이어다 */
+@layer components {
+  .root {
+    min-width: 0;
+  }
+}
+
+.label {
+  display: block;
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+.labelHidden {
+  @include sr-only;
+}
+
+.unit {
+  margin-left: sp(1);
+  color: var(--fg-subtle);
+}
+
+/*
+ * **좁은 화면에서는 40px을 채운다** `[사용자 요청 2026-09-21: 나머지 전체 화면 반응형]`.
+ * 위아래 여백 6px + 13px 글자면 실높이가 **34px**이라 손가락으로 정확히 짚기 어렵다(실측) —
+ * 기준치를 손으로 넣는 화면이라 잘못 짚으면 옆 항목의 값을 고치게 된다.
+ * `lg` 이상은 되돌려 **넓은 화면의 표 줄 높이가 그대로다**.
+ */
+.input {
+  min-height: sp(10);
+  width: 100%;
+  border-radius: 4px;
+  border-style: solid;
+  border-width: 1px;
+  background-color: var(--surface);
+  padding: sp(1.5) sp(2);
+  font-size: 13px;
+  color: var(--fg);
+  @include transition-colors(200ms);
+
+  &::placeholder {
+    color: var(--fg-subtle);
+  }
+
+  &:focus-visible {
+    outline-style: solid;
+    outline-width: 1px;
+    outline-offset: -1px;
+    outline-color: var(--border-strong);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    background-color: var(--surface-2);
+    color: var(--fg-subtle);
+  }
+
+  @include up(lg) {
+    min-height: 0;
+  }
+}
+
+.inputBelowLabel {
+  margin-top: sp(1);
+}
+
+.inputNormal {
+  border-color: var(--border);
+}
+
+.inputError {
+  border-color: var(--critical);
+}
+
+.note {
+  margin-top: sp(1);
+  font-size: 12px;
+  line-height: 1.375;
+}
+
+.noteHint {
+  color: var(--fg-subtle);
+}
+
+.noteError {
+  color: var(--critical-ink);
+}

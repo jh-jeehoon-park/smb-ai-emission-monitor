@@ -1,0 +1,223 @@
+@use 'shared/styles' as *;
+
+.wide {
+  display: none;
+
+  @include up(lg) {
+    display: block;
+  }
+}
+
+.narrow {
+  @include up(lg) {
+    display: none;
+  }
+}
+
+.table {
+  min-width: 880px;
+  table-layout: fixed;
+  text-align: center;
+  font-size: 12px;
+}
+
+.srOnly {
+  @include sr-only;
+}
+
+.colRank {
+  width: 52px;
+}
+
+.colRegion {
+  width: 156px;
+}
+
+.colLevel {
+  width: 92px;
+}
+
+.colScore {
+  width: 76px;
+}
+
+.colTrend {
+  width: 280px;
+}
+
+.colDetail {
+  width: 96px;
+}
+
+/* 줄 구분선은 칸에 준다 — `border-collapse: separate`인 표에서 `<tr>`의 테두리는 그려지지 않는다 */
+.row {
+  cursor: pointer;
+
+  & > * {
+    border-bottom: 1px solid var(--border);
+    @include transition-colors(200ms);
+  }
+}
+
+.rowSelected > * {
+  background-color: var(--accent-weak);
+}
+
+.rowIdle {
+  @include hover {
+    &:hover > * {
+      background-color: var(--surface-2);
+    }
+  }
+
+  &:active > * {
+    background-color: var(--surface-3);
+  }
+}
+
+.rank {
+  padding: sp(3);
+  text-align: center;
+  color: var(--fg-subtle);
+}
+
+.siteName {
+  display: block;
+  max-width: 100%;
+  @include truncate;
+  font-size: 13px;
+}
+
+.siteNameSelected {
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.siteNameIdle {
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.region {
+  @include truncate;
+  padding: sp(3);
+  color: var(--fg-muted);
+}
+
+.cell {
+  padding: sp(3);
+}
+
+.offlineChip {
+  background-color: var(--surface-3);
+  color: var(--fg-muted);
+}
+
+.score {
+  padding: sp(3);
+  text-align: center;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.trend {
+  padding: sp(2) sp(10);
+}
+
+.detailButton {
+  margin-inline: auto;
+}
+
+.detailButtonSelected {
+  color: var(--accent);
+}
+
+/*
+ * 레이어 밖 규칙은 `ACTION_LINK`의 hover 색까지 이긴다 — hover의 포인트색을 여기서 다시 적어야
+ * 가만히 있을 때만 흐린 글자가 된다(전에는 hover 변형의 특이도가 이겼다).
+ */
+.detailButtonIdle {
+  color: var(--fg-subtle);
+
+  @include hover {
+    &:hover {
+      color: var(--accent);
+    }
+  }
+}
+
+.list {
+  & > :not(:last-child) {
+    border-bottom: 1px solid var(--border);
+  }
+}
+
+.listRow {
+  display: flex;
+  width: 100%;
+  cursor: pointer;
+  align-items: center;
+  gap: sp(3);
+  padding: sp(2.5) sp(1);
+  text-align: left;
+  @include transition-colors(200ms);
+}
+
+.listRowSelected {
+  background-color: var(--accent-weak);
+}
+
+.listRowIdle {
+  @include hover {
+    &:hover {
+      background-color: var(--surface-2);
+    }
+  }
+}
+
+.listRank {
+  width: sp(5);
+  flex-shrink: 0;
+  text-align: center;
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+.listBody {
+  min-width: 0;
+  flex: 1;
+}
+
+.listName {
+  display: block;
+  @include truncate;
+  font-size: 14px;
+}
+
+.listRegion {
+  display: block;
+  @include truncate;
+  font-size: 12px;
+  color: var(--fg-muted);
+}
+
+.listScore {
+  flex-shrink: 0;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.shrink {
+  flex-shrink: 0;
+}
+
+.listOfflineChip {
+  flex-shrink: 0;
+  background-color: var(--surface-3);
+  color: var(--fg-muted);
+}
+
+.chevron {
+  flex-shrink: 0;
+  color: var(--fg-subtle);
+}

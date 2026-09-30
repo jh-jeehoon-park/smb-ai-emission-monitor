@@ -22,6 +22,7 @@ import { ALL_ALARMS, useAlarmStates } from '@/features/alarm-ack';
 import { useSiteHref } from '@/features/site-selection';
 import { ALARM_NAV_HREF } from '../config/navigation';
 import { HEADER_ALARM_LIMIT } from '../config/constants';
+import styles from './alarm-menu.module.scss';
 
 /**
  * 헤더 알림.
@@ -48,7 +49,7 @@ export function AlarmMenu() {
   const inMunicipality = withinScope(alarms, siteIdsInScope('municipality', GOV_SCOPE));
 
   return (
-    <div ref={boxRef} className="relative">
+    <div ref={boxRef} className={styles.root}>
       <button
         ref={triggerRef}
         type="button"
@@ -56,7 +57,7 @@ export function AlarmMenu() {
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label="알림"
-        className={cn(ICON_BUTTON, 'text-fg-muted')}
+        className={cn(ICON_BUTTON, styles.trigger)}
       >
         <Bell aria-hidden size={16} strokeWidth={1.9} />
         {/*
@@ -78,7 +79,7 @@ export function AlarmMenu() {
       {open && (
         <div
           role="menu"
-          className="absolute right-0 z-20 mt-1.5 w-[min(320px,calc(100vw-2rem))] overflow-hidden rounded-nested border border-border-strong bg-surface shadow-lg"
+          className={styles.menu}
         >
           <AlarmPanel
             alarms={alarms}
@@ -120,10 +121,7 @@ function CountBadge({
 
   return (
     <span
-      className={cn(
-        'num absolute -right-1 -top-1 min-w-[15px] rounded-full px-1 text-center text-[12px] leading-[15px] text-bg',
-        className,
-      )}
+      className={cn('num', styles.countBadge, className)}
       style={{ backgroundColor: STATUS_VISUAL.critical.hex }}
     >
       {count}
@@ -147,17 +145,17 @@ function AlarmPanel({
 
   return (
     <div className={className}>
-      <p className="border-b border-border px-3 py-2 text-[12px] text-fg-subtle">
-        미확인 알람 <span className="num text-fg-muted">{list.length}</span>건
+      <p className={styles.panelHead}>
+        미확인 알람 <span className={cn('num', styles.panelHeadCount)}>{list.length}</span>건
       </p>
 
       {list.length === 0 ? (
-        <p className="px-3 py-6 text-center text-[12px] text-fg-subtle">미확인 알람이 없습니다</p>
+        <p className={styles.empty}>미확인 알람이 없습니다</p>
       ) : (
         <ul>
           {list.slice(0, HEADER_ALARM_LIMIT).map((alarm) => (
-            <li key={alarm.id} className="border-b border-border px-3 py-2.5 last:border-0">
-              <div className="flex items-center justify-between gap-2 text-[12px]">
+            <li key={alarm.id} className={styles.item}>
+              <div className={styles.itemMeta}>
                 <span
                   className={BADGE_BASE}
                   style={{
@@ -167,20 +165,20 @@ function AlarmPanel({
                 >
                   {ALARM_PRIORITY_LABELS[alarm.priority]}
                 </span>
-                <span className="min-w-0 flex-1 truncate text-fg-subtle">{alarm.siteName}</span>
-                <span className="shrink-0 text-fg-subtle">
+                <span className={styles.itemSite}>{alarm.siteName}</span>
+                <span className={styles.itemTime}>
                   {formatRelative(alarm.raisedAtIso, DEMO_NOW_ISO)}
                 </span>
               </div>
 
-              <div className="mt-1 flex items-start justify-between gap-2">
-                <p className="min-w-0 flex-1 text-[12px] leading-snug text-fg">{alarm.title}</p>
+              <div className={styles.itemBody}>
+                <p className={styles.itemTitle}>{alarm.title}</p>
                 {/* 여기서 처리하면 배지·사이드바·본문이 함께 준다 */}
                 <button
                   type="button"
                   onClick={() => onAcknowledge(alarm.id)}
                   aria-label={`${alarm.title} 확인 처리`}
-                  className="shrink-0 cursor-pointer rounded-[3px] border border-border px-1.5 py-0.5 text-[12px] text-fg-muted transition-colors duration-200 hover:border-border-strong hover:bg-surface-2 hover:text-fg"
+                  className={styles.acknowledge}
                 >
                   확인
                 </button>
@@ -192,7 +190,7 @@ function AlarmPanel({
 
       <Link
         href={withSite(ALARM_NAV_HREF)}
-        className="block border-t border-border px-3 py-2 text-right text-[12px] text-fg-muted transition-colors duration-200 hover:text-fg"
+        className={styles.historyLink}
       >
         전체 알람 이력 →
       </Link>

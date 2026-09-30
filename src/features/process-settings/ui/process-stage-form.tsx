@@ -23,6 +23,7 @@ import type { SiteProcess, SiteStage } from '../lib/storage';
 import { AddStagePanel, type NewStageDraft } from './add-stage-panel';
 import { ChannelTable } from './channel-table';
 import { StageList } from './stage-list';
+import styles from './process-stage-form.module.scss';
 
 /** 이 폼을 담는 패널의 제목 옆 툴팁에 쓴다 */
 export const PROCESS_STAGE_ITEMS_NOTE =
@@ -91,15 +92,15 @@ export function ProcessStageForm({ siteId }: { siteId: string }) {
   ];
 
   return (
-    <div className="space-y-4">
+    <div className={styles.root}>
       <SegmentedControl ariaLabel="공정 구성 보기" value={view} onChange={setView} options={views} />
 
       {view === 'stages' ? (
-        <div className="space-y-3">
+        <div className={styles.stages}>
           {lastRemoved && (
             <div
               role="status"
-              className="flex flex-wrap items-center justify-between gap-2 rounded-nested border border-border bg-surface-2 px-3.5 py-2 text-[12px] text-fg-muted"
+              className={styles.undo}
             >
               <span>
                 「{lastRemoved.stage.name}」을(를) 삭제했습니다
@@ -113,7 +114,7 @@ export function ProcessStageForm({ siteId }: { siteId: string }) {
                   setLastRemoved(null);
                 }}
               >
-                <Undo2 aria-hidden className="size-3.5" strokeWidth={2} />
+                <Undo2 aria-hidden className={styles.glyph} strokeWidth={2} />
                 되돌리기
               </button>
             </div>
@@ -133,7 +134,7 @@ export function ProcessStageForm({ siteId }: { siteId: string }) {
               onGoToChannels={() => setView('channels')}
             />
           ) : (
-            <p className="rounded-nested border border-dashed border-border-strong bg-surface-2 px-4 py-6 text-center text-[12px] text-fg-subtle">
+            <p className={styles.empty}>
               단계가 없습니다 — 「단계 추가」로 이 사업장의 공정을 만드세요
             </p>
           )}
@@ -145,9 +146,9 @@ export function ProcessStageForm({ siteId }: { siteId: string }) {
               onCancel={() => setAdding(false)}
             />
           ) : (
-            <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className={styles.actions}>
               <button type="button" className={ACTION_BUTTON} onClick={() => setAdding(true)}>
-                <Plus aria-hidden className="size-3.5" strokeWidth={2.2} />
+                <Plus aria-hidden className={styles.glyph} strokeWidth={2.2} />
                 단계 추가
               </button>
               {/* 되돌릴 것이 없으면 그리지 않는다 */}
@@ -160,7 +161,7 @@ export function ProcessStageForm({ siteId }: { siteId: string }) {
                   }}
                   className={ACTION_BUTTON_QUIET}
                 >
-                  <RotateCcw aria-hidden className="size-3.5" strokeWidth={2} />
+                  <RotateCcw aria-hidden className={styles.glyph} strokeWidth={2} />
                   표준 공정으로 되돌리기
                 </button>
               )}

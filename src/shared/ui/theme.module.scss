@@ -1,0 +1,27 @@
+@use 'shared/styles' as *;
+
+/* 단추는 `className`으로 호출부가 덮는다 — 그래서 `components` 레이어다 */
+@layer components {
+  .toggle {
+    display: inline-flex;
+    width: sp(7);
+    height: sp(7);
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-chip);
+    color: var(--fg-muted);
+    @include transition-colors(200ms);
+
+    @include hover {
+      &:hover {
+        background-color: var(--surface-2);
+        color: var(--fg);
+      }
+    }
+  }
+}
+
+.srOnly {
+  @include sr-only;
+}

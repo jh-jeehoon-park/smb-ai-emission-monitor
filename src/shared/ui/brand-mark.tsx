@@ -1,6 +1,7 @@
 import { useId } from 'react';
 import { BRAND_NAME } from '@/shared/config/constants';
 import { cn } from '@/shared/lib/cn';
+import styles from './brand-mark.module.scss';
 
 /**
  * 브랜드 마크 — **물방울 듀오톤** `[사용자 지시 2026-08-24]`.
@@ -24,7 +25,7 @@ export function BrandMark({ size, className }: { size: number; className?: strin
       width={size}
       height={size}
       viewBox="0 0 32 32"
-      className={cn('shrink-0', className)}
+      className={cn(styles.root, className)}
       role="img"
       aria-label={BRAND_NAME}
     >

@@ -15,7 +15,7 @@ import { SERIES_ORIGIN_LABELS } from './model/types';
  * 앞선 판본은 그 둘이 뒤바뀌어 있었다 — 색이 출처라 **TN과 TP가 같은 색**이었고 항목은
  * 질감으로만 갈렸다. 2px 선에서 `7 4`와 `2 3`은 거의 같아 보여 셋이 한 선처럼 읽혔다.
  */
-const css = readFileSync('src/app/globals.css', 'utf8');
+const css = readFileSync('src/app/globals.scss', 'utf8');
 
 /** 라이트에서 `--series-N`이 실제로 무슨 값인가. 첫 정의(`:root`)를 본다 */
 function lightSlot(n: number): string {

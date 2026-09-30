@@ -1,0 +1,72 @@
+@use 'shared/styles' as *;
+
+.root {
+  & > :not(:last-child) {
+    margin-block-end: sp(6);
+  }
+}
+
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  gap: sp(0.5);
+  font-size: 12px;
+  color: var(--fg-subtle);
+  @include transition-colors(200ms);
+
+  @include hover {
+    &:hover {
+      color: var(--accent);
+    }
+  }
+}
+
+.statusAction {
+  display: flex;
+  align-items: center;
+  gap: sp(2);
+  font-size: 12px;
+}
+
+.noSignal {
+  color: var(--fg-subtle);
+}
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: sp(6);
+
+  @include up(sm) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @include up(lg) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.split {
+  display: grid;
+  gap: sp(6);
+
+  @include up(xl) {
+    grid-template-columns: minmax(0, 1fr) 320px;
+  }
+}
+
+/*
+ * **`min-height: 0`이 함께 있어야 한다.** 본문은 `flex: 1`이라 flex 자식의 기본
+ * `min-height: auto`가 걸리는데, CSS에서 `min-height`는 `max-height`를 이긴다 —
+ * 그것만 빠뜨리면 상한이 **아무 일도 하지 않고** 카드가 그대로 늘어난다.
+ */
+.alarmBody {
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.shortcuts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: sp(2);
+}

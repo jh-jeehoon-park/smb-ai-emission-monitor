@@ -1,0 +1,35 @@
+@use 'shared/styles' as *;
+
+.root {
+  :where(& > :not(:last-child)) {
+    margin-block-start: 0;
+    margin-block-end: sp(4);
+  }
+}
+
+.cards {
+  container-type: inline-size;
+}
+
+.cardGrid {
+  display: grid;
+  gap: sp(2);
+
+  @container (min-width: 34rem) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @container (min-width: 56rem) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.foot {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.glyph {
+  width: sp(3.5);
+  height: sp(3.5);
+}

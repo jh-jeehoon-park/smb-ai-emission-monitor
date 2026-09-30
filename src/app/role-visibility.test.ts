@@ -12,8 +12,11 @@ import { ADMIN_ACCOUNTS } from '@/entities/user';
  * 아예 죽었다.
  *
  * **jsdom은 이 파일을 적용하지 않는다.** 렌더 검사로는 잡을 수 없어 CSS를 직접 읽는다.
+ *
+ * **주석을 먼저 걷는다.** 규칙 사이 주석 안의 `role-hide-*` 같은 글자가 다음 규칙의 선택자로
+ * 읽혀, 주석 문구를 바꾸는 것만으로 검사 결과가 뒤집혔다.
  */
-const css = readFileSync('src/app/globals.css', 'utf8');
+const css = readFileSync('src/app/globals.scss', 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
 
 /** `선택자 { 본문 }` 한 덩어리씩 */
 const RULES = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map(([, selector, body]) => ({

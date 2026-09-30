@@ -1,0 +1,48 @@
+@use 'shared/styles' as *;
+
+/* `TILE_*` 상수는 다른 화면이 그대로 가져다 쓰고 덮는다 — 그래서 `components` 레이어다 */
+@layer components {
+  .shell {
+    display: flex;
+    height: 100%;
+    flex-direction: column;
+    gap: sp(3);
+    border-radius: var(--radius-panel);
+    border: 1px solid var(--card-border);
+    background-color: var(--surface);
+    padding: sp(4);
+    box-shadow: var(--card-shadow);
+
+    @include up(lg) {
+      padding: sp(5);
+    }
+  }
+
+  .label {
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.25;
+    color: var(--fg);
+  }
+
+  .value {
+    flex-shrink: 0;
+  }
+
+  .footer {
+    margin-top: auto;
+    font-size: 12px;
+    color: var(--fg-subtle);
+  }
+}
+
+.head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: sp(2);
+}
+
+.headLabel {
+  min-width: 0;
+}

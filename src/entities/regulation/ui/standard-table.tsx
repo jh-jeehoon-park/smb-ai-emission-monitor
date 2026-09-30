@@ -3,6 +3,7 @@ import { BADGE_BASE } from '@/shared/ui/badge';
 import { cn } from '@/shared/lib/cn';
 import { STANDARD_STATUS_LABELS } from '../config/constants';
 import type { ResolvedStandard, StandardStatus } from '../model/types';
+import styles from './standard-table.module.scss';
 
 /**
  * **「왜 이 사업장 이 항목에 이 값이 적용됐는가」를 화면이 말한다**
@@ -30,11 +31,11 @@ import type { ResolvedStandard, StandardStatus } from '../model/types';
  * 주의 틴트 — 시연 임계 초과가 쓰는 색 축과 같다.
  */
 const STATUS_TONE: Record<StandardStatus, string> = {
-  RESOLVED: 'bg-surface-3 text-fg',
-  PROVISIONAL: 'bg-chip-caution text-caution-ink',
-  UNRESOLVED: 'bg-surface-3 text-fg-muted',
-  NOT_APPLICABLE: 'bg-surface-2 text-fg-subtle',
-  CONFLICT: 'bg-chip-critical text-critical-ink',
+  RESOLVED: styles.toneResolved,
+  PROVISIONAL: styles.toneProvisional,
+  UNRESOLVED: styles.toneUnresolved,
+  NOT_APPLICABLE: styles.toneNotApplicable,
+  CONFLICT: styles.toneConflict,
 };
 
 export interface StandardRow {
@@ -47,37 +48,34 @@ export interface StandardRow {
 
 export function StandardTable({ rows }: { rows: readonly StandardRow[] }) {
   return (
-    <div className="@container">
-      <ul aria-label="이 사업장에 적용되는 방류 기준" className="space-y-2">
+    <div className={styles.root}>
+      <ul aria-label="이 사업장에 적용되는 방류 기준" className={styles.list}>
         {rows.map((row) => (
           <li
             key={row.label}
             className={cn(
-              'grid gap-x-6 gap-y-2 rounded-nested border px-4 py-3.5',
-              '@[44rem]:grid-cols-[150px_150px_minmax(0,1fr)] @[44rem]:items-start',
-              row.standard === null
-                ? 'border-dashed border-border-strong bg-surface-2'
-                : 'border-border bg-surface',
+              styles.item,
+              row.standard === null ? styles.itemUnmeasured : styles.itemMeasured,
             )}
           >
-            <div className="flex items-center gap-2 @[44rem]:flex-col @[44rem]:items-start @[44rem]:gap-1.5">
-              <p className="num text-[15px] font-bold text-fg">{row.label}</p>
+            <div className={styles.head}>
+              <p className={cn(styles.label, 'num')}>{row.label}</p>
               {row.standard ? (
                 <span className={cn(BADGE_BASE, STATUS_TONE[row.standard.status])}>
                   {STANDARD_STATUS_LABELS[row.standard.status]}
                 </span>
               ) : (
-                <span className={cn(BADGE_BASE, 'bg-surface-3 text-fg-subtle')}>계측 없음</span>
+                <span className={cn(BADGE_BASE, styles.toneUnmeasured)}>계측 없음</span>
               )}
             </div>
 
             <div>
-              <p className="text-[12px] text-fg-subtle">적용 기준</p>
+              <p className={styles.caption}>적용 기준</p>
               <ValueCell row={row} />
-              <p className="mt-1 text-[12px] text-fg-subtle">
+              <p className={styles.effective}>
                 시행일{' '}
                 {/* 자리표시 날짜를 인쇄하지 않는다 — 실제 시행일로 읽힌다 */}
-                <span className="text-fg-muted">
+                <span className={styles.muted}>
                   {row.standard === null
                     ? '—'
                     : (row.standard.effectiveFrom?.slice(0, 10) ?? '미상')}
@@ -85,8 +83,8 @@ export function StandardTable({ rows }: { rows: readonly StandardRow[] }) {
               </p>
             </div>
 
-            <div className="min-w-0 border-t border-border pt-2 @[44rem]:border-t-0 @[44rem]:pt-0">
-              <p className="text-[12px] text-fg-subtle">왜 이 값인가</p>
+            <div className={styles.why}>
+              <p className={styles.caption}>왜 이 값인가</p>
               <WhyCell row={row} />
             </div>
           </li>
@@ -100,12 +98,12 @@ function ValueCell({ row }: { row: StandardRow }) {
   const { standard, code } = row;
   /* 계측하지 않는 항목은 기준을 넣어도 견줄 값이 없다 — 빈 칸이 아니라 그 사실을 적는다 */
   if (code === null || standard === null) {
-    return <p className="mt-0.5 text-[14px] text-fg-subtle">—</p>;
+    return <p className={styles.valueNone}>—</p>;
   }
 
   const { min, max } = standard;
   if (min === null && max === null) {
-    return <p className="mt-0.5 text-[14px] text-fg-subtle">—</p>;
+    return <p className={styles.valueNone}>—</p>;
   }
 
   const item = MEASUREMENT_ITEMS[code];
@@ -116,9 +114,9 @@ function ValueCell({ row }: { row: StandardRow }) {
   else text = `≥ ${min!.toFixed(decimals)}`;
 
   return (
-    <p className="mt-0.5 flex items-baseline gap-1">
-      <span className="num text-[18px] font-bold leading-tight text-fg">{text}</span>
-      {item.unit && <span className="text-[12px] text-fg-subtle">{item.unit}</span>}
+    <p className={styles.value}>
+      <span className={cn(styles.valueText, 'num')}>{text}</span>
+      {item.unit && <span className={styles.valueUnit}>{item.unit}</span>}
     </p>
   );
 }
@@ -133,7 +131,7 @@ function ValueCell({ row }: { row: StandardRow }) {
 function WhyCell({ row }: { row: StandardRow }) {
   const standard = row.standard;
   if (standard === null) {
-    return <p className="mt-0.5 text-[13px] text-fg-muted">이 시스템이 측정하지 않는 항목입니다</p>;
+    return <p className={styles.whyNone}>이 시스템이 측정하지 않는 항목입니다</p>;
   }
 
   const decisive =
@@ -145,24 +143,24 @@ function WhyCell({ row }: { row: StandardRow }) {
   const missing = [...new Set(standard.trace.flatMap((entry) => entry.missing ?? []))];
 
   return (
-    <div className="mt-0.5 space-y-1.5">
-      <p className="text-[13px] leading-relaxed text-fg-muted">
+    <div className={styles.whyBody}>
+      <p className={styles.reason}>
         {decisive?.reason ?? '걸리는 규정이 없습니다'}
       </p>
       {missing.length > 0 && (
-        <p className="text-[12px] text-fg-subtle">
-          확인 필요 · <span className="text-fg-muted">{missing.join(' · ')}</span>
+        <p className={styles.missing}>
+          확인 필요 · <span className={styles.muted}>{missing.join(' · ')}</span>
         </p>
       )}
       {standard.trace.length > 1 && (
         <details>
-          <summary className="inline-flex min-h-9 cursor-pointer list-none items-center text-[12px] text-fg-subtle underline decoration-transparent underline-offset-2 transition-colors duration-200 hover:text-fg hover:decoration-current lg:min-h-0">
+          <summary className={styles.toggle}>
             규정 {standard.trace.length}건 모두 보기
           </summary>
-          <ul className="mt-1.5 space-y-1 border-l-2 border-border pl-3">
+          <ul className={styles.trace}>
             {standard.trace.map((entry, index) => (
-              <li key={`${entry.ruleId ?? 'none'}-${index}`} className="text-[12px] text-fg-subtle">
-                <span className="text-fg-muted">{entry.ruleId ?? '—'}</span> · {entry.outcome} ·{' '}
+              <li key={`${entry.ruleId ?? 'none'}-${index}`} className={styles.traceEntry}>
+                <span className={styles.muted}>{entry.ruleId ?? '—'}</span> · {entry.outcome} ·{' '}
                 {entry.reason}
               </li>
             ))}

@@ -51,6 +51,7 @@ import {
   type DischargeSample,
 } from '../lib/discharge-runs';
 import { CHART_HEIGHT, TILE_LABELS } from '../config/constants';
+import styles from './discharge-view.module.scss';
 
 const LEVEL = MEASUREMENT_ITEMS.level;
 const FLOW = MEASUREMENT_ITEMS.flow;
@@ -159,8 +160,8 @@ export function DischargeView() {
     run.discharging === null ? '수신 없음' : run.discharging ? '방류 중' : '방류 중단';
 
   return (
-    <div className="space-y-6">
-      <div className="grid gap-6 sm:grid-cols-3">
+    <div className={styles.root}>
+      <div className={styles.tiles}>
         {/*
          * **세 값이 `[원문 p.1]`의 «배출 데이터» 3종 그대로다.** 순서는 읽는 차례다 —
          * 내보내고 있나(방류 여부) → 얼마나(유량) → 수조는(수위).
@@ -281,20 +282,19 @@ export function DischargeView() {
 function PendingTile({ label }: { label: string }) {
   return (
     <SkeletonRegion label={`${label} — ${TELEMETRY_PENDING_NOTE}`} className={TILE_SHELL}>
-      <div className="flex items-start justify-between gap-2">
-        <p className={cn('min-w-0', TILE_LABEL)}>{label}</p>
+      <div className={styles.tileHead}>
+        <p className={cn(styles.tileLabel, TILE_LABEL)}>{label}</p>
         {/*
          * **높이를 글자로 적지 않는다.** 막대를 실제 값과 **같은 요소 안**에 넣어 그 요소의
          * 단(`TILE_VALUE`)이 높이를 정하게 한다 — `1em`은 그 단의 글자 크기다. 픽셀을 박으면
          * 단이 바뀔 때 한쪽만 남아 값이 도착할 때 타일이 튄다(실제로 6px 어긋나 있었다).
          */}
-        <p className={`num ${TILE_VALUE}`}>
-          <Skeleton className="h-[1em] w-20" />
+        <p className={cn('num', TILE_VALUE)}>
+          <Skeleton className={styles.tileValueBar} />
         </p>
       </div>
       <div className={TILE_FOOTER}>
-        {/* 글자 흐름 안에 둔다 — 보조줄의 줄 높이를 그대로 물려받는다 */}
-        <Skeleton className="inline-block h-3 w-32 align-middle" />
+        <Skeleton className={styles.tileNoteBar} />
       </div>
     </SkeletonRegion>
   );
@@ -353,10 +353,7 @@ function runMinutesLabel(minutes: number): string {
  */
 function ChartEmpty({ height, reason }: { height: number; reason?: string }) {
   return (
-    <div
-      className="flex items-center justify-center border-y border-border text-[12px] text-fg-subtle"
-      style={{ height }}
-    >
+    <div className={styles.chartEmpty} style={{ height }}>
       {reason ?? '통신 두절 — 수신 없음'}
     </div>
   );

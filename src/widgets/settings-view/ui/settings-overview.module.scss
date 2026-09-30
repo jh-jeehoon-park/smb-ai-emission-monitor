@@ -1,0 +1,225 @@
+@use 'shared/styles' as *;
+
+.root {
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-panel);
+  background-color: var(--surface);
+  padding: sp(4);
+  box-shadow: var(--card-shadow);
+
+  @include up(lg) {
+    padding: sp(5);
+  }
+}
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  column-gap: sp(6);
+  row-gap: sp(3);
+}
+
+.site {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: sp(3);
+}
+
+.siteMark {
+  display: grid;
+  width: sp(11);
+  height: sp(11);
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: var(--radius-nested);
+  background-color: var(--accent-weak);
+  color: var(--accent);
+}
+
+.siteGlyph {
+  width: sp(5);
+  height: sp(5);
+}
+
+.siteText {
+  min-width: 0;
+}
+
+.siteName {
+  @include truncate;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--fg);
+}
+
+.siteRegion {
+  @include truncate;
+  margin-top: sp(0.5);
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+.basis {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: sp(4);
+  row-gap: sp(1.5);
+  font-size: 12px;
+}
+
+.basisLine {
+  color: var(--fg-subtle);
+}
+
+.basisLegal {
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.basisDivider {
+  display: none;
+  height: sp(3);
+  width: 1px;
+  background-color: var(--border);
+
+  @include up(sm) {
+    display: block;
+  }
+}
+
+.basisProvisional {
+  font-weight: 600;
+  color: var(--caution-ink);
+}
+
+.readiness {
+  margin-top: sp(4);
+  border-top: 1px solid var(--border);
+  padding-top: sp(4);
+}
+
+.readinessHead {
+  margin-bottom: sp(3);
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: sp(3);
+}
+
+.readinessTitle {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--fg-subtle);
+}
+
+.readinessCount {
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+.readinessDone {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--fg);
+}
+
+.steps {
+  display: grid;
+  gap: sp(2);
+
+  @include up(sm) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @include up(xl) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.step {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: sp(2.5);
+  border-radius: var(--radius-nested);
+  border-style: solid;
+  border-width: 1px;
+  padding: sp(2.5) sp(3);
+}
+
+.stepFilled {
+  border-color: var(--border);
+  background-color: var(--surface);
+}
+
+.stepEmpty {
+  border-style: dashed;
+  border-color: var(--border-strong);
+  background-color: var(--surface-2);
+}
+
+.stepMark {
+  display: grid;
+  width: sp(6);
+  height: sp(6);
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: calc(infinity * 1px);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.stepMarkDone {
+  background-color: var(--fg);
+  color: var(--surface);
+}
+
+.stepMarkTodo {
+  border: 1px dashed var(--border-strong);
+  color: var(--fg-subtle);
+}
+
+.stepCheck {
+  width: sp(3.5);
+  height: sp(3.5);
+}
+
+.stepText {
+  min-width: 0;
+}
+
+.stepLabel {
+  display: block;
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+.stepValue {
+  @include truncate;
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.stepUnset {
+  margin-top: sp(0.5);
+  background-color: var(--surface-3);
+  color: var(--fg-subtle);
+}
+
+.next {
+  margin-top: sp(3);
+  font-size: 12px;
+  line-height: 1.625;
+  color: var(--fg-subtle);
+}
+
+.nextLabel {
+  font-weight: 600;
+  color: var(--fg-muted);
+}

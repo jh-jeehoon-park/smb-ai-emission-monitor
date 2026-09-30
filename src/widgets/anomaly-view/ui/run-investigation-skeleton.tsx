@@ -1,5 +1,6 @@
 import { TELEMETRY_PENDING_NOTE } from '@/entities/measurement';
 import { Skeleton, SkeletonRegion } from '@/shared/ui/skeleton';
+import styles from './run-investigation-skeleton.module.scss';
 
 /** 구간 목록에 세워 두는 줄 수. 실제 건수는 사업장마다 다르므로 **적게** 잡는다 */
 const PLACEHOLDER_RUNS = 3;
@@ -20,39 +21,38 @@ export function RunInvestigationSkeleton() {
   return (
     <SkeletonRegion
       label={TELEMETRY_PENDING_NOTE}
-      className="grid gap-5 @[46rem]:grid-cols-[minmax(0,232px)_minmax(0,1fr)]"
+      className={styles.layout}
     >
-      <div className="space-y-1.5">
+      <div className={styles.runs}>
         {Array.from({ length: PLACEHOLDER_RUNS }, (_, i) => (
-          <Skeleton key={i} className="h-[68px] rounded-nested" />
+          <Skeleton key={i} className={styles.run} />
         ))}
       </div>
 
-      <div className="space-y-4">
-        <Skeleton className="h-3 w-3/4" />
+      <div className={styles.reading}>
+        <Skeleton className={styles.summary} />
 
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-3 border-t border-border pt-3">
-          {/* `VALUE_LG`(22px)와 같은 높이로 덮는다 — 어긋나면 값이 올 때 카드가 튄다 */}
-          <Skeleton className="h-[22px] w-16" />
-          <Skeleton className="h-2.5 min-w-[180px] flex-1" />
+        <div className={styles.scoreRow}>
+          <Skeleton className={styles.score} />
+          <Skeleton className={styles.gauge} />
         </div>
 
-        <div className="flex flex-wrap gap-1.5">
-          <Skeleton className="h-5 w-40 rounded-chip" />
-          <Skeleton className="h-5 w-44 rounded-chip" />
-          <Skeleton className="h-5 w-36 rounded-chip" />
+        <div className={styles.metaRow}>
+          <Skeleton className={styles.metaModel} />
+          <Skeleton className={styles.metaWindow} />
+          <Skeleton className={styles.metaComputed} />
         </div>
 
-        <div className="space-y-3 border-t border-border pt-3">
+        <div className={styles.contributions}>
           {Array.from({ length: CONTRIBUTION_ROWS }, (_, i) => (
-            <div key={i} className="grid gap-x-4 gap-y-1.5 @[30rem]:grid-cols-2">
-              <div className="space-y-1.5">
-                <Skeleton className="h-3 w-32" />
-                <Skeleton className="h-2 rounded-chip" />
+            <div key={i} className={styles.contribution}>
+              <div className={styles.contributionSide}>
+                <Skeleton className={styles.labelModel} />
+                <Skeleton className={styles.barModel} />
               </div>
-              <div className="space-y-1.5">
-                <Skeleton className="h-3 w-24" />
-                <Skeleton className="h-2.5 rounded-chip" />
+              <div className={styles.contributionSide}>
+                <Skeleton className={styles.labelMeasured} />
+                <Skeleton className={styles.barMeasured} />
               </div>
             </div>
           ))}

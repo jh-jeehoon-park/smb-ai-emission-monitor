@@ -1,0 +1,29 @@
+@use 'shared/styles' as *;
+
+.main {
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: sp(6);
+  background-color: var(--bg);
+  padding-inline: sp(4);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: sp(2);
+  border-radius: var(--radius-chip);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--fg-muted);
+  @include transition-colors(200ms);
+
+  @include hover {
+    &:hover {
+      color: var(--fg);
+    }
+  }
+}

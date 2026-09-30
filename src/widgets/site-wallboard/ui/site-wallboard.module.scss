@@ -1,0 +1,332 @@
+@use 'shared/styles' as *;
+
+/* 몇 장이 보이는지는 뷰포트가 아니라 이 상자가 받은 폭을 따른다 — 레일이 넓어지면 알아서 줄어든다 */
+.root {
+  container-type: inline-size;
+}
+
+.rail {
+  position: relative;
+}
+
+/*
+ * `scroll-snap`이 카드 경계에 세워 준다 — 넘긴 뒤 카드가 반쯤 잘려 서는 일이 없다.
+ * 위아래 여백 8px·바깥 여백 -4px은 hover 그림자의 자리다 — `overflow-x`는 세로도 함께 자르므로
+ * (CSS 규정) 여백이 없으면 떠오른 카드의 아래 그림자가 잘린 선으로 남는다.
+ * 8px을 안에서 벌고 4px을 밖에서 되돌려, 격자였을 때와 **자리가 거의 같다**.
+ */
+.track {
+  display: flex;
+  scroll-snap-type: x mandatory;
+  gap: sp(3);
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  padding-block: sp(2);
+  margin-block: sp(-1);
+
+  /* 막대를 감춘다 — 두 브라우저 계열이 방법이 달라 둘 다 적는다 */
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  @include motion-reduce {
+    scroll-behavior: auto;
+  }
+}
+
+/*
+ * **한 화면에 몇 장인가**를 카드 폭으로 정한다 — 기본 5장, 좁아지면 3장·2장.
+ * 값은 `(100% - 사이 간격 합) / 장수`이고 간격은 `.track`의 `gap`(0.75rem)이다.
+ * `GAP_PX`가 같은 값을 숫자로 갖는다 — 한쪽만 바꾸면 인디케이터 칸 수가 어긋난다.
+ */
+.slot {
+  flex-shrink: 0;
+  flex-basis: calc((100% - 0.75rem) / 2);
+  scroll-snap-align: start;
+
+  @container (min-width: 520px) {
+    flex-basis: calc((100% - 1.5rem) / 3);
+  }
+
+  @container (min-width: 860px) {
+    flex-basis: calc((100% - 3rem) / 5);
+  }
+}
+
+/* 카드 자신을 컨테이너로 둔다 — 줄바꿈 기준이 격자가 아니라 **이 카드의 폭**이다 */
+.card {
+  container-type: inline-size;
+  display: flex;
+  height: 100%;
+  width: 100%;
+  cursor: pointer;
+  align-items: center;
+  gap: sp(2);
+  border-radius: var(--radius-nested);
+  border-style: solid;
+  border-width: 1px;
+  background-color: var(--surface);
+  padding: sp(3) sp(4);
+  text-align: left;
+  transition-property: border-color, box-shadow, color;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 200ms;
+}
+
+.cardSelected {
+  border-color: var(--accent);
+  border-color: color-mix(in oklab, var(--accent) 40%, transparent);
+  background-color: var(--accent-weak);
+}
+
+.cardIdle {
+  border-color: var(--border);
+
+  @include hover {
+    &:hover {
+      border-color: var(--accent);
+      border-color: color-mix(in oklab, var(--accent) 50%, transparent);
+      background-color: var(--surface-2);
+      box-shadow: var(--card-shadow);
+    }
+  }
+}
+
+.body {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: sp(1.5);
+
+  @container (min-width: 190px) {
+    flex-direction: row;
+    align-items: center;
+    gap: sp(3);
+  }
+}
+
+.identity {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: sp(0.5);
+}
+
+.name {
+  @include truncate;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--fg);
+}
+
+.verdict {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  column-gap: sp(2);
+  row-gap: sp(1);
+}
+
+.offlineBadge {
+  background-color: var(--surface-3);
+  color: var(--fg-muted);
+}
+
+/* 화살표는 움직이지 않고 색만 바뀐다 — 위치가 변하면 그 자체가 조작으로 읽힌다 */
+.chevron {
+  flex-shrink: 0;
+  color: var(--fg-subtle);
+  @include transition-colors(200ms);
+
+  @include hover {
+    .card:hover & {
+      color: var(--accent);
+    }
+  }
+}
+
+.pager {
+  margin-top: sp(3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: sp(1.5);
+}
+
+/*
+ * **점은 6px인데 누르는 자리는 그보다 넓다** `[사용자 요청 2026-09-21]`. 점을 키우면
+ * 인디케이터가 조작 버튼처럼 무거워진다 — `::before`로 위아래·좌우만 넓혀 **보이는
+ * 크기는 그대로 두고** 손가락이 닿게 한다. 줄 간격(6px)보다 넓어도 겹치는
+ * 것은 투명한 히트 영역뿐이라 서로의 점을 가리지 않는다.
+ */
+.dot {
+  position: relative;
+  height: sp(1.5);
+  cursor: pointer;
+  border-radius: calc(infinity * 1px);
+  transition-property: width, background-color;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 200ms;
+
+  &::before {
+    position: absolute;
+    inset-inline: sp(-1);
+    inset-block: -17px;
+    content: '';
+  }
+
+  @include up(lg) {
+    &::before {
+      content: none;
+    }
+  }
+}
+
+.dotCurrent {
+  width: sp(5);
+  background-color: var(--accent);
+}
+
+.dotIdle {
+  width: sp(1.5);
+  background-color: var(--border-strong);
+
+  @include hover {
+    &:hover {
+      background-color: var(--fg-subtle);
+    }
+  }
+}
+
+/* 걸터앉을 자리는 `className`으로 부르는 쪽이 정한다 — 그래서 화살표 겉면은 `components` 레이어다 */
+@layer components {
+  /* 카드 줄의 세로 가운데. 인디케이터 줄은 이 상자 밖이라 카드 높이만 기준이 된다 */
+  .arrow {
+    position: absolute;
+    top: 50%;
+    z-index: 10;
+    translate: 0 -50%;
+    display: inline-flex;
+    width: sp(7);
+    height: sp(7);
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-chip);
+    background-color: var(--surface);
+    color: var(--fg-muted);
+    box-shadow: var(--card-shadow);
+    @include transition-colors(200ms);
+
+    /*
+     * 보이는 크기는 28px인데 누르는 자리는 44px 높이다 — 셸 헤더의 `ICON_BUTTON`과 같은 짜임.
+     *
+     * **위아래로만 넓힌다.** 이 버튼은 음수 바깥 여백으로 **판 밖에 걸터앉아 있어서**,
+     * 사방으로 넓히면 그 8px이 페이지 밖으로 나간다 — 실측으로 768px에서 문서가 8px
+     * 밀렸다(§8이 못박은 «가로 스크롤 없음»을 어긴다). 좌우는 쓰는 쪽이 **안쪽으로만**
+     * 넓힌다(아래 `.arrowPrev`·`.arrowNext`의 `::before`).
+     *
+     * **기준면(`relative`)을 덧붙이지 않는다**: 이미 `absolute`라 스스로 기준면이고, 둘 다
+     * 적었던 판본은 `twMerge`가 뒤엣것만 남겨 **버튼이 흐름 안으로 돌아왔다**(실측: 그 상태로
+     * 넓은 화면의 통합 관제가 2,630 → 2,658px로 자랐다).
+     */
+    &::before {
+      position: absolute;
+      inset-block: sp(-2);
+      inset-inline: 0;
+      content: '';
+    }
+
+    @include up(lg) {
+      &::before {
+        content: none;
+      }
+    }
+  }
+
+  .arrowDisabled {
+    cursor: not-allowed;
+  }
+
+  .arrowEnabled {
+    cursor: pointer;
+
+    @include hover {
+      &:hover {
+        border-color: var(--accent);
+        border-color: color-mix(in oklab, var(--accent) 50%, transparent);
+        background-color: var(--accent-weak);
+        color: var(--accent);
+      }
+    }
+  }
+}
+
+/*
+ * **화살표는 판(Panel)의 바깥 테두리에 걸터앉는다** `[사용자 지시 2026-08-25]`.
+ *
+ * 자리는 두 걸음이다 — 음수 바깥 여백이 트랙 가장자리에서 판 테두리까지(안쪽 여백 20px) 밀고,
+ * `translate` -50%가 그 선 위에 단추의 가운데를 얹는다. 판에는 `overflow: hidden`이
+ * 없어 밖으로 나온 절반(14px)이 잘리지 않고, 그 절반은 본문 좌우 여백(16~24px) 안에
+ * 떨어진다 — 390px에서도 화면을 넘지 않는다.
+ *
+ * 히트 영역은 **판 안쪽으로만** 넓힌다 — 바깥으로 넓히면 페이지가 가로로 밀린다.
+ *
+ * **걸터앉는 깊이도 좁은 화면에서 얕다**(20 → 12px). 패널 여백이 좁은 화면에서
+ * 16px로 줄자 판 경계가 4px 밖으로 나왔고, 그만큼 화살표가 **뷰포트를 넘었다**
+ * (실측: 768px에서 문서가 2px 밀렸다). `lg` 이상은 20px 그대로다.
+ *
+ * `translate`는 두 축을 함께 적는다 — 한 축만 적으면 겉면의 세로 가운데(-50%)가 지워진다.
+ */
+.arrowPrev {
+  left: 0;
+  margin-left: sp(-3);
+  translate: -50% -50%;
+
+  &::before {
+    right: sp(-2);
+  }
+
+  @include up(lg) {
+    margin-left: sp(-5);
+
+    &::before {
+      right: 0;
+    }
+  }
+}
+
+.arrowNext {
+  right: 0;
+  margin-right: sp(-3);
+  translate: 50% -50%;
+
+  &::before {
+    left: sp(-2);
+  }
+
+  @include up(lg) {
+    margin-right: sp(-5);
+
+    &::before {
+      left: 0;
+    }
+  }
+}
+
+.glyph {
+  transition-property: opacity;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 200ms;
+}
+
+.glyphDisabled {
+  opacity: 0.4;
+}

@@ -5,6 +5,7 @@ import { MEASUREMENT_ITEMS } from '@/shared/config/measurement';
 import { WATER_SERIES_CODES, FLOW_SERIES_CODES } from '@/entities/measurement';
 import { WaterQualityGrid } from './index';
 import type { MeasurementPoint } from '@/entities/measurement';
+import gridStyles from './ui/water-quality-grid.module.scss';
 
 /**
  * **격자의 칸마다 단위 한글이 붙어 있어야 한다** `[회의 피드백 2026-08-24]`.
@@ -20,7 +21,7 @@ import type { MeasurementPoint } from '@/entities/measurement';
  * 둘 다 "칸을 새로 만들면 규칙이 딸려오지 않는다"는 같은 종류다. 그래서 **칸의 종류를 세지
  * 않고 기호 span 전체를 훑는다** — 새 칸이 생겨도 이 검사가 함께 걸린다.
  */
-const SYMBOL_CLASS = 'tracking-[0.08em]';
+const SYMBOL_CLASS = gridStyles.symbol;
 
 function points(codes: readonly string[]): MeasurementPoint[] {
   const at = (iso: string): MeasurementPoint =>

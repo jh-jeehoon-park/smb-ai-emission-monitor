@@ -1,0 +1,29 @@
+@use 'shared/styles' as *;
+
+.root {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: sp(3);
+  border-top: 1px solid var(--border);
+  padding-top: sp(2.5);
+}
+
+.map {
+  height: 74px;
+  width: auto;
+  flex-shrink: 0;
+}
+
+.caption {
+  min-width: 0;
+  font-size: 12px;
+  line-height: 1.625;
+  color: var(--fg-subtle);
+}
+
+.captionTitle {
+  display: block;
+  font-weight: 500;
+  color: var(--fg-muted);
+}

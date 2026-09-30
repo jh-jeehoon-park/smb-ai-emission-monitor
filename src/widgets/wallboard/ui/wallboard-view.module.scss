@@ -1,0 +1,111 @@
+@use 'shared/styles' as *;
+
+/*
+ * **화면 하나에 딱 맞춘다.** `height: 100vh` + `overflow: hidden`이라 넘치는 것이 **잘려서 눈에
+ * 띈다** — 스크롤로 흘려 보내면 «스크롤 없이 한 눈에»라는 요구가 조용히 깨진 채로 남는다.
+ */
+.root {
+  display: flex;
+  height: 100vh;
+  flex-direction: column;
+  overflow: hidden;
+  background-color: var(--bg);
+}
+
+/*
+ * 열 폭이 **고정 px에서 비율로** 바뀌었다 `[사용자 결정 2026-09-11]`. 360·420px이던
+ * 판본은 화면이 좁아질수록 좌우가 비대해져(1366에서 좌우 합 57%) 가운데 주인공이
+ * 눌렸고, 넓어지면 반대로 20%까지 쪼그라들었다. 비율은 어디서나 같다.
+ */
+.columns {
+  display: grid;
+  min-height: 0;
+  flex: 1;
+  grid-template-columns: 18.75% minmax(0, 1fr) 21.875%;
+}
+
+.column {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+}
+
+.scoreBody {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.score {
+  margin-top: sp(-3);
+  display: flex;
+  align-items: baseline;
+  gap: sp(2.5);
+}
+
+.scoreMissing {
+  color: var(--fg-subtle);
+}
+
+.grow {
+  flex: 1;
+}
+
+.qualityBody {
+  display: grid;
+  min-height: 0;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+}
+
+.dischargeBand {
+  display: grid;
+  flex-shrink: 0;
+  grid-template-columns: minmax(0, 1fr) 13.5% 13.5% 13.5%;
+}
+
+.stateBody {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.stateUnknown {
+  color: var(--fg-subtle);
+}
+
+.stateKnown {
+  color: var(--fg);
+}
+
+.note {
+  margin-top: sp(2);
+  color: var(--fg-subtle);
+}
+
+.bigBody {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  @include transition-colors(500ms);
+}
+
+.bigBodyFlashing {
+  background-color: var(--accent-weak);
+}
+
+.bigMissing {
+  color: var(--fg-subtle);
+}
+
+.bigValue {
+  display: flex;
+  align-items: baseline;
+  gap: sp(1.5);
+}
+
+.bigCount {
+  color: var(--fg);
+}

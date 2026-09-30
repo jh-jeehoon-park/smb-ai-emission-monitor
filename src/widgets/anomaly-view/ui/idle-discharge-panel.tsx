@@ -1,9 +1,11 @@
 import { COLLECTION_INTERVAL_MINUTES } from '@/shared/config/measurement';
 import { PROVISIONAL_IDLE_DISCHARGE_MIN_MINUTES } from '@/shared/config/provisional';
 import { STATUS_VISUAL, statusInk } from '@/shared/config/status-visual';
+import { cn } from '@/shared/lib/cn';
 import { formatDateTime, formatValue } from '@/shared/lib/format';
 import { canJudgeIdleDischarge, findIdleDischargeRuns } from '@/entities/anomaly';
 import { TELEMETRY_PENDING_NOTE, type MeasurementPoint } from '@/entities/measurement';
+import styles from './idle-discharge-panel.module.scss';
 
 interface IdleDischargePanelProps {
   siteId: string;
@@ -36,7 +38,7 @@ export const IDLE_DISCHARGE_NOTE = (
   <>
     방류(유량) 발생 시각과 방지시설 가동(유입펌프 전류) 시각을 비교한다. 연속{' '}
     {minutesLabel(PROVISIONAL_IDLE_DISCHARGE_MIN_MINUTES)} 미만은 세지 않는다.{' '}
-    <strong className="text-fg-muted">체류시간 보정은 적용하지 않았다</strong> — 원문이 값을 주지
+    <strong className={styles.emphasis}>체류시간 보정은 적용하지 않았다</strong> — 원문이 값을 주지
     않았다. 무단 여부는 신고 정보 없이 판정하지 않는다.
   </>
 );
@@ -51,43 +53,40 @@ export function IdleDischargePanel({
 
   if (!canJudge) {
     return (
-      <p className="text-[12px] leading-relaxed text-fg-subtle">
-        통신 두절로 <strong className="text-fg-muted">판정할 수 없습니다</strong> — 방류 여부도 가동
+      <p className={styles.note}>
+        통신 두절로 <strong className={styles.emphasis}>판정할 수 없습니다</strong> — 방류 여부도 가동
         여부도 수신되지 않았습니다. 의심 0건이 아닙니다.
       </p>
     );
   }
 
   return (
-    <div className="space-y-3">
+    <div className={styles.root}>
       {runs.length === 0 ? (
-        <p className="text-[12px] leading-relaxed text-fg-subtle">
+        <p className={styles.note}>
           최근 24시간에{' '}
-          <strong className="text-fg-muted">
+          <strong className={styles.emphasis}>
             연속 {minutesLabel(PROVISIONAL_IDLE_DISCHARGE_MIN_MINUTES)} 이상
           </strong>{' '}
           이어진 구간이 없습니다. 그보다 짧거나 수신이 끊겨 확인되지 않은 시간은 여기에 세지
           않습니다.
         </p>
       ) : (
-        <ul className="space-y-2">
+        <ul className={styles.runs}>
           {runs.map((run) => (
-            <li
-              key={run.fromIso}
-              className="rounded-nested border border-border bg-surface-2 px-3 py-2.5"
-            >
-              <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                <p className="num text-[12px] text-fg">
+            <li key={run.fromIso} className={styles.run}>
+              <div className={styles.runHead}>
+                <p className={cn(styles.runRange, 'num')}>
                   {formatDateTime(run.fromIso)} – {formatDateTime(run.toIso)}
                 </p>
-                <p className="text-[12px]" style={{ color: statusInk(STATUS_VISUAL.warning) }}>
+                <p className={styles.runDuration} style={{ color: statusInk(STATUS_VISUAL.warning) }}>
                   {durationLabel(run.samples)} 연속
                 </p>
               </div>
               {pending ? (
-                <p className="mt-1.5 text-[12px] text-fg-subtle">{TELEMETRY_PENDING_NOTE}</p>
+                <p className={styles.pending}>{TELEMETRY_PENDING_NOTE}</p>
               ) : (
-                <dl className="mt-1.5 flex flex-wrap gap-x-5 gap-y-1 text-[12px] text-fg-subtle">
+                <dl className={styles.facts}>
                   <Fact
                     label="유량"
                     value={`${formatValue('flow', points[run.from]?.flow ?? null)} m³/day`}
@@ -117,9 +116,9 @@ export function IdleDischargePanel({
 
 function Fact({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-baseline gap-1.5">
+    <div className={styles.fact}>
       <dt>{label}</dt>
-      <dd className="num text-fg-muted">{value}</dd>
+      <dd className={cn(styles.factValue, 'num')}>{value}</dd>
     </div>
   );
 }

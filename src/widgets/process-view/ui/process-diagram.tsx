@@ -9,6 +9,7 @@ import {
 import { MEASUREMENT_ITEMS } from '@/shared/config/measurement';
 import type { MeasurementPoint } from '@/entities/measurement';
 import { ACTUAL_HEX, AI_HEX, MEASUREMENT_GRADE_HEX } from '@/shared/config/status-visual';
+import { cn } from '@/shared/lib/cn';
 import { formatValue } from '@/shared/lib/format';
 import { TREATMENT_TYPE_LABELS, type ProcessStage, type TreatmentType } from '@/entities/process';
 import type { ResolvedStage } from '@/features/process-settings';
@@ -24,6 +25,7 @@ import {
 } from '../config/layout';
 import { nodeNameLines } from '../lib/node-name';
 import { stageReadings, type StageReading } from '../lib/stage-readings';
+import styles from './process-diagram.module.scss';
 
 /** 단계가 하는 일을 한 눈에 — 거름·침전·폭기·분리·소독·계측 */
 const STAGE_ICONS: Record<string, LucideIcon> = {
@@ -89,7 +91,7 @@ export function ProcessDiagram({ stages, points, selectedId, onSelect, pending =
   return (
     <svg
       viewBox={`0 0 ${width} ${DIAGRAM_HEIGHT}`}
-      className="w-full min-w-[900px]"
+      className={styles.diagram}
       role="group"
       aria-label="폐수처리 공정 흐름"
     >
@@ -142,7 +144,7 @@ function Pipe({ index }: { index: number }) {
       <line x1={x1} y1={y} x2={x2} y2={y} stroke="var(--surface-3)" strokeWidth={13} strokeLinecap="butt" />
       <line x1={x1} y1={y - 6} x2={x2} y2={y - 6} stroke="var(--border-strong)" strokeWidth={1} />
       <line x1={x1} y1={y + 6} x2={x2} y2={y + 6} stroke="var(--border-strong)" strokeWidth={1} />
-      {/* 흐르는 물. 감속 설정에서는 globals.css 전역 규칙이 멈춘다 */}
+      {/* 흐르는 물. 감속 설정에서는 globals.scss 전역 규칙이 멈춘다 */}
       <line
         x1={x1}
         y1={y}
@@ -194,12 +196,7 @@ function BasinNode({
       aria-label={`${stage.order}. ${stage.name} — ${PROVISIONAL_MEASUREMENT_GRADE_LABELS[stage.grade]}${
         reuseBranch ? ' · 재이용 분기' : ''
       }`}
-      /*
-       * `group`은 아래 초점 테두리가 이 `<g>`의 `:focus-visible`을 보기 위한 것이다.
-       * `outline`을 쓰지 않는 이유는 SVG 요소의 outline 렌더가 브라우저마다 갈리기 때문이다 —
-       * 직접 그린 테두리는 어디서나 같은 자리에 같은 굵기로 나온다.
-       */
-      className="group cursor-pointer outline-none"
+      className={styles.node}
       onClick={() => onSelect(stage.id)}
       onKeyDown={(e) => {
         if (e.key !== 'Enter' && e.key !== ' ') return;
@@ -213,7 +210,7 @@ function BasinNode({
        * 마우스로 눌렀을 때는 나오지 않는다(`focus-visible`).
        */}
       <rect
-        className="hidden group-focus-visible:block"
+        className={styles.focusRing}
         x={x - 3}
         y={NODE_TOP - 3}
         width={NODE_WIDTH + 6}
@@ -256,7 +253,7 @@ function BasinNode({
         x={x + NODE_WIDTH - 12}
         y={NODE_TOP + 40}
         textAnchor="end"
-        className="fill-fg text-[34px] font-bold"
+        className={styles.order}
         opacity={0.07}
       >
         {stage.order}
@@ -264,10 +261,10 @@ function BasinNode({
 
       <Icon x={x + 12} y={NODE_TOP + 12} width={17} height={17} stroke={hex} strokeWidth={1.8} />
 
-      <text x={x + 12} y={NODE_TOP + 48} className="fill-fg-subtle text-[10px]">
+      <text x={x + 12} y={NODE_TOP + 48} className={styles.type}>
         {TREATMENT_TYPE_LABELS[stage.type]}
       </text>
-      <text className="fill-fg text-[13px] font-semibold">
+      <text className={styles.name}>
         <title>{stage.name}</title>
         {nameLines.map((line, row) => (
           <tspan key={row} x={x + 12} y={NODE_TOP + NAME_Y[layout][row]!}>
@@ -275,7 +272,7 @@ function BasinNode({
           </tspan>
         ))}
       </text>
-      <text x={x + 12} y={NODE_TOP + GRADE_Y[layout]} className="text-[10px]" style={{ fill: hex }}>
+      <text x={x + 12} y={NODE_TOP + GRADE_Y[layout]} className={styles.grade} style={{ fill: hex }}>
         {PROVISIONAL_MEASUREMENT_GRADE_LABELS[stage.grade]}
       </text>
       {/*
@@ -287,7 +284,7 @@ function BasinNode({
           x={x + NODE_WIDTH - 12}
           y={NODE_TOP + GRADE_Y[layout]}
           textAnchor="end"
-          className="fill-fg-muted text-[10px] font-semibold"
+          className={styles.reuse}
         >
           ↻ 재이용
         </text>
@@ -348,7 +345,7 @@ function Readings({
             width={READING_SKELETON_WIDTH}
             height={8}
             rx={2}
-            className="fill-surface-3 motion-safe:animate-pulse"
+            className={cn(styles.readingSkeleton, 'pulse-motion-safe')}
           />
         ))}
       </g>
@@ -362,7 +359,7 @@ function Readings({
           key={row}
           x={x + 12}
           y={NODE_TOP + 104 + row * 14}
-          className="fill-fg text-[10px]"
+          className={styles.reading}
         >
           {line
             .map(
@@ -373,7 +370,7 @@ function Readings({
             )
             .join('  ')}
           {row === lines.length - 1 && rest > 0 && (
-            <tspan className="fill-fg-subtle">{`  +${rest}`}</tspan>
+            <tspan className={styles.readingRest}>{`  +${rest}`}</tspan>
           )}
         </text>
       ))}
@@ -396,10 +393,10 @@ function EstimateBranch({ index }: { index: number }) {
     <g>
       <line x1={x} y1={y1} x2={x} y2={y2} stroke={AI_HEX} strokeWidth={1.4} strokeDasharray="5 3" />
       <circle cx={x} cy={y2} r={3} fill={AI_HEX} />
-      <text x={x} y={y2 + 20} textAnchor="middle" className="text-[12px] font-semibold" style={{ fill: AI_HEX }}>
+      <text x={x} y={y2 + 20} textAnchor="middle" className={styles.estimateLabel} style={{ fill: AI_HEX }}>
         AI 추정 · T-N · T-P
       </text>
-      <text x={x} y={y2 + 36} textAnchor="middle" className="fill-fg-subtle text-[10px]">
+      <text x={x} y={y2 + 36} textAnchor="middle" className={styles.estimateNote}>
         직접 재지 않는다
       </text>
     </g>

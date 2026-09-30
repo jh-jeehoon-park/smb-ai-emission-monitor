@@ -1,0 +1,121 @@
+@use 'shared/styles' as *;
+
+.card {
+  display: flex;
+  min-height: 64px;
+  cursor: pointer;
+  align-items: center;
+  gap: sp(3);
+  border-radius: var(--radius-nested);
+  border-style: solid;
+  border-width: 1px;
+  padding: sp(3);
+  transition-property: border-color, background-color, box-shadow;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 200ms;
+}
+
+/* 없는 것 — 점선·흐린 면으로 비어 있음을 보인다 */
+.cardAbsent {
+  border-style: dashed;
+  border-color: var(--border-strong);
+  background-color: var(--surface-2);
+
+  @include hover {
+    &:hover {
+      border-color: var(--fg-subtle);
+    }
+  }
+}
+
+.cardPicked {
+  border-color: var(--accent);
+  border-color: color-mix(in oklab, var(--accent) 50%, transparent);
+  background-color: var(--accent-weak);
+
+  @include hover {
+    &:hover {
+      border-color: var(--accent);
+    }
+  }
+}
+
+/* 켠 것과 고르지 않은 것은 같은 흰 면이다 — 네모(`mark`)의 색이 둘을 가른다 */
+.cardPlain {
+  border-color: var(--border);
+  background-color: var(--surface);
+
+  @include hover {
+    &:hover {
+      border-color: var(--border-strong);
+      box-shadow: var(--card-shadow);
+    }
+  }
+}
+
+.mark {
+  display: grid;
+  width: sp(10);
+  height: sp(10);
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: var(--radius-nested);
+  font-size: 13px;
+  font-weight: 700;
+  @include transition-colors(200ms);
+}
+
+.markAbsent {
+  background-color: var(--surface-3);
+  color: var(--fg-subtle);
+}
+
+.markPicked {
+  background-color: var(--surface);
+  color: var(--accent);
+}
+
+.markOn {
+  background-color: var(--accent-weak);
+  color: var(--accent);
+}
+
+.markIdle {
+  background-color: var(--surface-2);
+  color: var(--fg-subtle);
+}
+
+.text {
+  min-width: 0;
+  flex: 1;
+}
+
+.title {
+  display: block;
+  @include truncate;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.titleAbsent {
+  color: var(--fg-muted);
+}
+
+.titlePresent {
+  color: var(--fg);
+}
+
+.meta {
+  margin-top: sp(0.5);
+  display: block;
+  @include truncate;
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+.note {
+  margin-top: sp(1);
+  display: block;
+  font-size: 12px;
+  color: var(--fg-subtle);
+}

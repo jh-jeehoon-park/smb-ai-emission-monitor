@@ -9,6 +9,7 @@ import { BrandMark } from '@/shared/ui/brand-mark';
 import { Notice } from '@/shared/ui/notice';
 import { ROLES, ROLE_PROFILES, canRoleSee } from '@/entities/user';
 import { NAV_ITEMS, homeHrefFor, knownRoute, navLabelOf } from '@/widgets/app-shell';
+import styles from './page.module.scss';
 
 /**
  * 역할에 닫힌 화면 `[사용자 요청 2026-09-15: 403, 500 에러 페이지도 404처럼 별도의 페이지로]`.
@@ -29,11 +30,11 @@ export default function ForbiddenPage() {
   const allowed = item ? ROLES.filter((r) => canRoleSee(item.screenId, r)) : [];
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-bg px-4">
+    <main className={styles.main}>
       <Link
         href="/"
         aria-label={BRAND_NAME}
-        className="flex items-center gap-2 rounded-chip text-[14px] font-bold text-fg-muted transition-colors duration-200 hover:text-fg"
+        className={styles.brand}
       >
         <BrandMark size={28} />
         {BRAND_NAME}

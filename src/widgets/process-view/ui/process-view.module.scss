@@ -1,0 +1,310 @@
+@use 'shared/styles' as *;
+
+.empty {
+  margin-inline: auto;
+  max-width: 64ch;
+  padding-block: sp(8);
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.625;
+  color: var(--fg-subtle);
+}
+
+.root {
+  :where(& > :not(:last-child)) {
+    margin-block-start: 0;
+    margin-block-end: sp(6);
+  }
+}
+
+.detailRow {
+  display: grid;
+  gap: sp(6);
+
+  @include up(xl) {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 380px);
+  }
+}
+
+.operating {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: sp(5);
+  row-gap: sp(2);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-panel);
+  background-color: var(--surface);
+  padding: sp(5);
+  box-shadow: var(--card-shadow);
+  font-size: 12px;
+}
+
+.operatingSite {
+  color: var(--fg-muted);
+}
+
+.signal {
+  display: flex;
+  align-items: center;
+  gap: sp(1.5);
+}
+
+.signalDot {
+  width: sp(1.5);
+  height: sp(1.5);
+  border-radius: calc(infinity * 1px);
+}
+
+.signalRunning {
+  color: var(--normal-ink);
+}
+
+.signalOn {
+  color: var(--fg);
+}
+
+.signalUnknown {
+  color: var(--fg-subtle);
+}
+
+.operatingPattern {
+  color: var(--fg-subtle);
+}
+
+.operatingNote {
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: sp(3);
+  font-size: 12px;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: sp(1.5);
+  color: var(--fg-subtle);
+}
+
+.legendLine {
+  display: inline-block;
+  height: 0;
+  width: sp(4);
+  border-top-style: solid;
+  border-top-width: 2px;
+}
+
+.units {
+  font-size: 12px;
+  color: var(--fg-muted);
+}
+
+.reuse {
+  margin-top: sp(1.5);
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+.section {
+  margin-top: sp(3);
+  border-top: 1px solid var(--border);
+  padding-top: sp(2.5);
+}
+
+.reason {
+  font-size: 12px;
+  line-height: 1.625;
+  color: var(--fg-subtle);
+}
+
+.readings {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: sp(4);
+  row-gap: sp(1.5);
+  font-size: 12px;
+
+  @include up(sm) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.readingLabel {
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+.readingValue {
+  margin-top: sp(0.5);
+  color: var(--fg);
+}
+
+.readingSkeleton {
+  height: sp(3.5);
+  width: sp(12);
+}
+
+.readingUnit {
+  margin-left: sp(1);
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--fg-subtle);
+}
+
+.waiting {
+  font-size: 12px;
+
+  :where(& > :not(:last-child)) {
+    margin-block-start: 0;
+    margin-block-end: sp(1.5);
+  }
+}
+
+.waitingAfterReadings {
+  margin-top: sp(3);
+}
+
+.waitingGroup {
+  display: flex;
+  gap: sp(3);
+}
+
+.waitingState {
+  width: 88px;
+  flex-shrink: 0;
+  color: var(--fg-subtle);
+}
+
+.waitingCount {
+  margin-left: sp(1);
+  color: var(--fg-muted);
+}
+
+.waitingItems {
+  min-width: 0;
+  line-height: 1.625;
+  color: var(--fg-muted);
+}
+
+.note {
+  margin-top: sp(3);
+  border-top: 1px solid var(--border);
+  padding-top: sp(2.5);
+  font-size: 12px;
+  line-height: 1.625;
+}
+
+.equipment {
+  margin-top: sp(3);
+  border-top: 1px solid var(--border);
+  padding-top: sp(2.5);
+
+  :where(& > :not(:last-child)) {
+    margin-block-start: 0;
+    margin-block-end: sp(1.5);
+  }
+}
+
+.equipmentItem {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: sp(3);
+  font-size: 12px;
+}
+
+.equipmentName {
+  color: var(--fg);
+}
+
+.equipmentState {
+  color: var(--fg-subtle);
+}
+
+.unmeasured {
+  margin-top: sp(3);
+  border-radius: var(--radius-nested);
+  background-color: var(--surface-2);
+  padding: sp(2) sp(2.5);
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+.points {
+  font-size: 12px;
+
+  :where(& > :not(:last-child)) {
+    margin-block-start: 0;
+    margin-block-end: sp(3);
+  }
+}
+
+.pointLabel {
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+.pointItems {
+  margin-top: sp(1);
+  color: var(--fg);
+}
+
+.pointEstimate {
+  border-top: 1px solid var(--border);
+  padding-top: sp(2.5);
+}
+
+.pointEstimateLabel {
+  font-size: 12px;
+}
+
+.pointEstimateItems {
+  margin-top: sp(1);
+}
+
+.pointEstimateNote {
+  margin-top: sp(1);
+  font-size: 12px;
+  line-height: 1.625;
+  color: var(--fg-subtle);
+}
+
+.box {
+  border-radius: var(--radius-nested);
+  background-color: var(--surface-2);
+  padding: sp(2) sp(2.5);
+}
+
+.regulated {
+  margin-top: sp(0.5);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.notMeasured {
+  display: grid;
+  gap: sp(2);
+
+  @include up(sm) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.notMeasuredLabel {
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+.notMeasuredText {
+  margin-top: sp(0.5);
+  font-size: 12px;
+  line-height: 1.625;
+  color: var(--fg-muted);
+}

@@ -8,25 +8,72 @@ import { describe, expect, it } from 'vitest';
  * 여기 있는 값이 열다섯 화면의 여백·터치·스크롤 신호를 동시에 정한다 — 한 곳이 되돌아가면
  * 전 화면이 함께 되돌아가므로, 되돌림을 눈으로 잡을 수 없다.
  *
- * **소스를 읽는다.** 값이 Tailwind 클래스 문자열이라 jsdom은 실제 픽셀을 재 주지 않는다
- * (이 저장소의 `header-layout`·`equipment-grid`가 같은 방식이다).
+ * **소스를 읽는다.** jsdom은 스타일시트를 적용하지 않아 실제 픽셀을 재 주지 않는다. 값은
+ * 부품 옆 `.module.scss`에 있다 `[2026-09-29: Tailwind → SCSS 모듈]` — 한때 Tailwind 클래스
+ * 문자열(`p-4 lg:p-5` · `min-h-10 lg:min-h-0`)을 읽었고, 지키는 뜻은 그대로다.
  */
-const read = (path: string) =>
-  readFileSync(path, 'utf8')
+const strip = (source: string) =>
+  source
     .replace(/\/\*[\s\S]*?\*\//g, '')
-    .replace(/\{\/\*[\s\S]*?\*\/\}/g, '');
+    .replace(/\{\/\*[\s\S]*?\*\/\}/g, '')
+    .replace(/^\s*\/\/.*$/gm, '');
+const read = (path: string) => strip(readFileSync(path, 'utf8'));
 
-const panel = read('src/shared/ui/panel.tsx');
-const tile = read('src/shared/ui/stat-tile.tsx');
-const seg = read('src/shared/ui/segmented-control.tsx');
-const tooltip = read('src/shared/ui/tooltip.tsx');
+/**
+ * `.이름 { … }` 한 덩어리 — 괄호를 세어 안쪽 규칙(`@include up(lg) { … }`)까지 함께 꺼낸다.
+ * 못 찾으면 빈 문자열이다(아래 검사가 «찾았다»부터 확인한다).
+ */
+function block(scss: string, selector: string): string {
+  const at = scss.search(new RegExp(`(^|[\\s}])${selector.replace('.', '\\.')}\\s*\\{`));
+  if (at < 0) return '';
+  const open = scss.indexOf('{', at);
+  let depth = 0;
+  for (let i = open; i < scss.length; i++) {
+    if (scss[i] === '{') depth++;
+    else if (scss[i] === '}' && --depth === 0) return scss.slice(at, i + 1);
+  }
+  return '';
+}
+
+/** 넓은 화면 규칙(`@include up(lg) { … }`) 안쪽만 */
+function lgPart(rule: string): string {
+  const at = rule.indexOf('@include up(lg)');
+  if (at < 0) return '';
+  const open = rule.indexOf('{', at);
+  let depth = 0;
+  for (let i = open; i < rule.length; i++) {
+    if (rule[i] === '{') depth++;
+    else if (rule[i] === '}' && --depth === 0) return rule.slice(at, i + 1);
+  }
+  return '';
+}
+
+/** 넓은 화면 규칙을 뺀 나머지 — «조건 없이» 적힌 값 */
+const basePart = (rule: string) => rule.replace(lgPart(rule), '');
+
+const scss = (path: string) => read(path);
+
+const panelScss = scss('src/shared/ui/panel.module.scss');
+const tileScss = scss('src/shared/ui/stat-tile.module.scss');
+const segScss = scss('src/shared/ui/segmented-control.module.scss');
+const actionScss = scss('src/shared/ui/action-button.module.scss');
+const fieldScss = scss('src/shared/ui/number-field.module.scss');
+const tooltipScss = scss('src/shared/ui/tooltip.module.scss');
+const tableScss = scss('src/shared/ui/table.module.scss');
 const table = read('src/shared/ui/table.ts');
-const css = readFileSync('src/app/globals.css', 'utf8');
+const css = readFileSync(
+  'src/app/globals.scss',
+  'utf8',
+);
 
 describe('패널·타일 여백은 두 단이다', () => {
-  it('파일을 실제로 읽었다', () => {
-    expect(panel).toContain('rounded-panel');
-    expect(tile).toContain('TILE_SHELL');
+  const rules = [
+    ['panel .root', block(panelScss, '.root')],
+    ['stat-tile .shell', block(tileScss, '.shell')],
+  ] as const;
+
+  it('규칙을 실제로 찾았다 — 못 찾으면 아래 검사가 조용히 통과한다', () => {
+    for (const [name, rule] of rules) expect(rule, name).not.toBe('');
   });
 
   /**
@@ -34,40 +81,41 @@ describe('패널·타일 여백은 두 단이다', () => {
    * 화면당 패널이 2~9장이라 세로로도 같은 만큼 쌓인다.
    */
   it('좁은 화면은 16px, `lg` 이상은 20px', () => {
-    for (const source of [panel, tile]) {
-      expect(source).toMatch(/\bp-4\b/);
-      expect(source).toMatch(/\blg:p-5\b/);
-      /* 조건 없는 `p-5`가 남아 있으면 좁은 화면에서도 20px 그대로다 */
-      expect(source).not.toMatch(/(?<!lg:)\bp-5\b/);
+    for (const [name, rule] of rules) {
+      expect(basePart(rule), name).toContain('padding: sp(4)');
+      expect(lgPart(rule), name).toContain('padding: sp(5)');
+      /* 조건 없는 20px이 남아 있으면 좁은 화면에서도 20px 그대로다 */
+      expect(basePart(rule), name).not.toContain('sp(5)');
     }
   });
 });
 
 describe('세그먼트 알약은 손가락 최소를 채운다', () => {
-  it('파일을 실제로 읽었다', () => {
-    expect(seg).toContain('SEG_ITEM');
+  const item = block(segScss, '.item');
+
+  it('규칙을 실제로 찾았다', () => {
+    expect(item).not.toBe('');
   });
 
   /**
-   * 글자 12px + `py-1`이면 실높이가 **26px**이다(실측). 이 껍데기가 일곱 화면의 필터를
+   * 글자 12px + 위아래 4px이면 실높이가 **26px**이다(실측). 이 껍데기가 일곱 화면의 필터를
    * 만들므로 한 곳에서 고치면 일곱이 함께 풀린다.
    */
   it('좁은 화면에서 40px, `lg` 이상은 되돌린다', () => {
-    expect(seg).toMatch(/\bmin-h-10\b/);
-    expect(seg).toMatch(/\blg:min-h-0\b/);
+    expect(basePart(item)).toContain('min-height: sp(10)');
+    expect(lgPart(item)).toContain('min-height: 0');
   });
 
   /** 높이만 키운다 — 글자 크기를 건드리면 정보 밀도가 화면마다 달라진다 */
   it('글자 크기는 그대로다', () => {
-    expect(seg).toContain('text-[12px]');
+    expect(basePart(item)).toContain('font-size: 12px');
   });
 });
 
 describe('조작 버튼도 손가락 최소를 채운다', () => {
-  const action = read('src/shared/ui/action-button.ts');
-
-  it('파일을 실제로 읽었다', () => {
-    expect(action).toContain('ACTION_BUTTON');
+  it('규칙을 실제로 찾았다', () => {
+    expect(block(actionScss, '.base')).not.toBe('');
+    expect(block(actionScss, '.link')).not.toBe('');
   });
 
   /**
@@ -75,25 +123,26 @@ describe('조작 버튼도 손가락 최소를 채운다', () => {
    * **22px**이었다(실측). 알람 조치는 현장에서 손가락으로 누르는 조작이라 그대로 결함이 된다.
    */
   it('좁은 화면에서 40px, `lg` 이상은 되돌린다', () => {
-    for (const name of ['const BASE', 'ACTION_LINK']) {
-      const decl = action.slice(action.indexOf(name), action.indexOf(name) + 400);
-      expect(decl, name).toContain('min-h-10');
-      expect(decl, name).toContain('lg:min-h-0');
+    for (const name of ['.base', '.link']) {
+      const rule = block(actionScss, name);
+      expect(basePart(rule), name).toContain('min-height: sp(10)');
+      expect(lgPart(rule), name).toContain('min-height: 0');
     }
   });
 
   /**
    * **본문 안 글자 링크는 높이를 키울 수 없다** — 문단의 줄 간격과 카드 높이가 함께 움직인다.
-   * `TAP_AREA_Y`가 `before`로 누르는 자리만 위아래로 넓힌다(실측 14~18px이었다).
+   * `TAP_AREA_Y`가 `::before`로 누르는 자리만 위아래로 넓힌다(실측 14~18px이었다).
    *
    * **좌우는 넓히지 않는다**: 문장 안에 있어 옆으로 넓히면 앞뒤 글자를 덮는다.
    */
   it('본문 글자 링크는 한 상수로 히트 영역을 얻는다', () => {
-    const action = read('src/shared/ui/action-button.ts');
-    expect(action).toContain('TAP_AREA_Y');
-    expect(action).toMatch(/TAP_AREA_Y[\s\S]{0,220}before:-inset-y-/);
+    const tap = block(actionScss, '.tapAreaY');
+    expect(tap).toMatch(/&::before\s*\{[^}]*inset-block:\s*-11px/);
     /* 좌우를 함께 넓히면 문장 안의 이웃 글자를 덮는다 */
-    expect(action).not.toMatch(/TAP_AREA_Y[\s\S]{0,220}before:-inset-x-/);
+    expect(tap).toMatch(/inset-inline:\s*0\b/);
+    expect(tap).not.toMatch(/inset:\s*-/);
+    expect(read('src/shared/ui/action-button.ts')).toMatch(/TAP_AREA_Y\s*=\s*styles\.tapAreaY/);
 
     for (const path of [
       'src/widgets/anomaly-view/ui/anomaly-view.tsx',
@@ -112,28 +161,22 @@ describe('조작 버튼도 손가락 최소를 채운다', () => {
   });
 
   /**
-   * 기준치를 손으로 넣는 화면이라 잘못 짚으면 **옆 항목의 값을 고치게 된다.** `py-1.5` +
+   * 기준치를 손으로 넣는 화면이라 잘못 짚으면 **옆 항목의 값을 고치게 된다.** 위아래 6px +
    * 13px 글자면 실높이가 34px이었다(실측).
    */
   it('숫자 입력도 좁은 화면에서 40px을 채운다', () => {
-    const field = read('src/shared/ui/number-field.tsx');
-    expect(field).toContain('min-h-10');
-    expect(field).toContain('lg:min-h-0');
+    const input = block(fieldScss, '.input');
+    expect(input).not.toBe('');
+    expect(basePart(input)).toContain('min-height: sp(10)');
+    expect(lgPart(input)).toContain('min-height: 0');
   });
 
   /**
-   * **설정 폼의 «되돌리기»는 공용 껍데기를 쓰지 않는다** — 포인트색 hover를 갖지 않는
-   * 조용한 조작이라 `ACTION_BUTTON_QUIET`과 모양이 다르다. 그래서 세 폼이 같은 문자열을
-   * 각자 적고 있고, 셋 다 실높이 **28px**이었다(390px 실측).
-   *
-   * 되돌리기는 사용자가 넣은 설정을 지우는 조작이라 **잘못 눌리는 것도 결함**이다.
+   * 설정 폼의 «되돌리기» 셋은 공용 조작 버튼(`ACTION_BUTTON_QUIET`)을 쓴다 `[2026-09-29]` —
+   * 40px 규약은 그 껍데기의 `.base`가 갖고, 위 검사가 그것을 잠근다. 여기서는 **셋이 그
+   * 껍데기를 실제로 쓰는지**를 본다(되돌리기는 설정을 지우는 조작이라 잘못 눌리는 것도 결함이다).
    */
   it('설정 폼의 되돌리기 셋이 40px을 채운다', () => {
-    /*
-     * 한때 세 폼이 같은 클래스 문자열(`min-h-10 … lg:min-h-0`)을 각자 적었다. 개편에서 공용
-     * 조작 버튼(`ACTION_BUTTON_QUIET`)으로 옮겼다 `[2026-09-29]` — 40px 규약은 그 껍데기의
-     * `BASE`가 갖고, 위 검사가 그것을 잠근다. 여기서는 **셋이 그 껍데기를 실제로 쓰는지**를 본다.
-     */
     for (const path of [
       'src/features/process-settings/ui/process-stage-form.tsx',
       'src/features/site-provisioning/ui/instrument-form.tsx',
@@ -143,7 +186,7 @@ describe('조작 버튼도 손가락 최소를 채운다', () => {
         .split('\n')
         .filter((line) => !line.trimStart().startsWith('import'))
         .join('\n');
-      expect(body, path).toMatch(/className=\{ACTION_BUTTON_QUIET\}[\s\S]{0,160}되돌리기/);
+      expect(body, path).toMatch(/className=\{ACTION_BUTTON_QUIET\}[\s\S]{0,200}되돌리기/);
     }
   });
 
@@ -157,28 +200,36 @@ describe('조작 버튼도 손가락 최소를 채운다', () => {
       'src/widgets/anomaly-view/ui/site-score-table.tsx',
       'src/widgets/dashboard/ui/dashboard-view.tsx',
     ]) {
-      const source = read(path);
-      expect(source, path).toContain('ACTION_LINK');
-      /* 상수를 들여오고도 옛 문자열이 남으면 두 부품이 나란히 산다 */
-      expect(source, path).not.toContain('rounded-chip py-0.5 pl-1.5 pr-0.5');
+      expect(read(path), path).toContain('ACTION_LINK');
+    }
+    /* 상수를 들여오고도 같은 껍데기를 모듈에 다시 적으면 두 부품이 나란히 산다 */
+    for (const path of [
+      'src/widgets/alarms-view/ui/alarm-row.module.scss',
+      'src/widgets/anomaly-view/ui/site-score-table.module.scss',
+      'src/widgets/dashboard/ui/dashboard-view.module.scss',
+    ]) {
+      expect(read(path), path).not.toMatch(/padding:\s*sp\(0\.5\)\s+sp\(0\.5\)\s+sp\(0\.5\)\s+sp\(1\.5\)/);
     }
   });
 });
 
 describe('InfoTip은 보이는 크기보다 넓게 눌린다', () => {
-  it('파일을 실제로 읽었다', () => {
-    expect(tooltip).toContain('aria-label={label}');
+  const trigger = block(tooltipScss, '.trigger');
+
+  it('규칙을 실제로 찾았다', () => {
+    expect(trigger).not.toBe('');
+    expect(read('src/shared/ui/tooltip.tsx')).toContain('aria-label={label}');
   });
 
   /**
    * 아이콘이 16px이라 그대로 두면 누르는 자리도 16px이다(실측으로 거의 전 화면).
-   * `before`로 넓히면 **줄 높이가 바뀌지 않아** 제목 옆 자리가 그대로다 —
+   * `::before`로 넓히면 **줄 높이가 바뀌지 않아** 제목 옆 자리가 그대로다 —
    * 셸 헤더의 `ICON_BUTTON`이 쓰는 것과 같은 짜임이다.
    */
-  it('`before`로 넓히고 기준면을 갖는다', () => {
-    expect(tooltip).toMatch(/before:-inset-\d/);
-    /* `relative`가 없으면 `before`가 조상 기준으로 퍼져 옆 조작을 덮는다 */
-    expect(tooltip).toMatch(/\brelative\b[^'"`]*before:absolute/);
+  it('`::before`로 넓히고 기준면을 갖는다', () => {
+    expect(trigger).toMatch(/&::before\s*\{[^}]*position:\s*absolute[^}]*inset:\s*sp\(-\d/);
+    /* `relative`가 없으면 `::before`가 조상 기준으로 퍼져 옆 조작을 덮는다 */
+    expect(basePart(trigger).split('&::before')[0]).toMatch(/position:\s*relative/);
   });
 });
 
@@ -188,11 +239,11 @@ describe('가로 스크롤 상자는 더 있다고 말한다', () => {
    * **숨은 내용이 있다는 사실 자체가 화면에 없었다**(390px 실측: 상자 10개가 104~584px).
    */
   it('`TABLE_SCROLL`이 신호를 함께 든다', () => {
-    expect(table).toContain('scroll-hint');
-    expect(table).toContain('overflow-x-auto');
+    expect(table).toMatch(/TABLE_SCROLL\s*=\s*cn\(styles\.scroll,\s*'scroll-hint'\)/);
+    expect(block(tableScss, '.scroll')).toMatch(/overflow-x:\s*auto/);
   });
 
-  it('규칙은 `globals.css` 한 곳이 갖는다', () => {
+  it('규칙은 전역 스타일 한 곳이 갖는다', () => {
     expect(css).toContain('.scroll-hint');
     /* 가리개가 내용과 함께 움직여야 끝에서 저절로 사라진다 — `scroll`만이면 늘 떠 있다 */
     expect(css).toMatch(/background-attachment:\s*local,\s*local,\s*scroll,\s*scroll/);
@@ -212,38 +263,41 @@ describe('가로 스크롤 상자는 더 있다고 말한다', () => {
 
   /**
    * **이미 `absolute`인 요소에 `relative`를 덧붙이지 않는다.** 히트 영역을 넓히려고 둘 다
-   * 적으면 `twMerge`가 뒤엣것만 남겨 **버튼이 흐름 안으로 돌아온다** — 실제로 그렇게 해서
-   * 넓은 화면의 통합 관제가 2,630 → 2,658px로 자랐다(실측으로 잡았다). 절대배치 요소는
-   * 스스로 기준면이라 `relative`가 애초에 필요 없다.
+   * 적으면 뒤엣것이 이겨 **버튼이 흐름 안으로 돌아온다** — 실제로 그렇게 해서 넓은 화면의
+   * 통합 관제가 2,630 → 2,658px로 자랐다(실측으로 잡았다). 절대배치 요소는 스스로 기준면이라
+   * `relative`가 애초에 필요 없다.
    */
   it('절대배치 조작은 `relative`를 겹쳐 쓰지 않는다', () => {
-    const wallboard = read('src/widgets/site-wallboard/ui/site-wallboard.tsx');
-    const arrow = wallboard.slice(wallboard.indexOf("'absolute top-1/2"));
-    const decl = arrow.slice(0, arrow.indexOf('}'));
+    const wallboard = read('src/widgets/site-wallboard/ui/site-wallboard.module.scss');
+    const arrow = block(wallboard, '.arrow');
 
-    expect(decl).toContain('before:-inset-y-2');
-    expect(decl).not.toMatch(/'relative\b/);
+    expect(arrow).toMatch(/position:\s*absolute/);
+    expect(arrow).toMatch(/&::before\s*\{[^}]*inset-block:\s*sp\(-2\)/);
+    expect(arrow).not.toMatch(/position:\s*relative/);
   });
 
   /**
    * **판 밖에 걸터앉은 버튼의 히트 영역은 바깥으로 넓히지 않는다.** 캐러셀 화살표는
-   * `-ml-5`/`-mr-5`로 판 경계에 걸쳐 있어 사방으로 넓히면 그 8px이 페이지 밖으로 나간다 —
-   * 실측으로 768px에서 문서가 8px 밀렸다(§8이 못박은 «가로 스크롤 없음»을 어긴다).
+   * 판 경계에 걸쳐 있어 사방으로 넓히면 그 8px이 페이지 밖으로 나간다 — 실측으로 768px에서
+   * 문서가 8px 밀렸다(§8이 못박은 «가로 스크롤 없음»을 어긴다).
    */
   it('걸터앉은 화살표는 안쪽으로만 넓힌다', () => {
-    const wallboard = read('src/widgets/site-wallboard/ui/site-wallboard.tsx');
+    const wallboard = read('src/widgets/site-wallboard/ui/site-wallboard.module.scss');
 
     /* 사방 확장은 그 자체가 결함이다 */
-    expect(wallboard).not.toContain('before:-inset-2');
+    expect(wallboard).not.toMatch(/\binset:\s*sp\(-2\)/);
     /* 왼쪽 화살표는 오른쪽으로, 오른쪽 화살표는 왼쪽으로 */
-    expect(wallboard).toMatch(/left-0 -ml-3[^"]*before:-right-2[^"]*lg:-ml-5/);
-    expect(wallboard).toMatch(/right-0 -mr-3[^"]*before:-left-2[^"]*lg:-mr-5/);
+    expect(block(wallboard, '.arrowPrev')).toMatch(/margin-left:\s*sp\(-3\)[\s\S]*&::before\s*\{\s*right:\s*sp\(-2\)/);
+    expect(block(wallboard, '.arrowNext')).toMatch(/margin-right:\s*sp\(-3\)[\s\S]*&::before\s*\{\s*left:\s*sp\(-2\)/);
   });
 
   /** 상자 뒤 면이 흰색이 아니면 가리개 색도 함께 바꿔야 한다 — 어긋나면 색 띠가 남는다 */
   it('흰 면이 아닌 상자는 가리개 색을 덮어쓴다', () => {
     const heatmap = read('src/widgets/equipment-view/ui/status-heatmap.tsx');
-    expect(heatmap).toContain('bg-surface-2');
-    expect(heatmap).toContain('[--scroll-hint-bg:var(--surface-2)]');
+    const heatmapScss = read('src/widgets/equipment-view/ui/status-heatmap.module.scss');
+    expect(heatmap).toMatch(/cn\(TABLE_SCROLL,\s*styles\.well\)/);
+    const well = block(heatmapScss, '.well');
+    expect(well).toMatch(/background-color:\s*var\(--surface-2\)/);
+    expect(well).toMatch(/--scroll-hint-bg:\s*var\(--surface-2\)/);
   });
 });

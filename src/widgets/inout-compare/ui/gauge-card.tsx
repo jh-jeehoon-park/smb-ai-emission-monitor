@@ -6,6 +6,7 @@ import { VALUE_LG, VALUE_MD } from '@/shared/ui/type-scale';
 import { GAUGE_GEOMETRY, INLET_MARK_COLOR } from '../config/constants';
 import { verdictText, type PointReading, type TreatmentRow } from '../lib/point-readings';
 import { GaugeArc } from './gauge-arc';
+import styles from './gauge-card.module.scss';
 
 /**
  * 항목 한 장 — **카드 안에서 유입수와 유출수를 견준다** `[사용자 요청 2026-09-10]`.
@@ -62,25 +63,19 @@ export function GaugeCard({
 
   return (
     <div
-      className={cn(
-        'flex h-full flex-col overflow-hidden rounded-nested border',
-        row.similar ? 'border-border-strong bg-surface-2' : 'border-border bg-surface',
-      )}
+      className={cn(styles.card, row.similar ? styles.cardSimilar : styles.cardPlain)}
     >
       {/* 1. 머리 띠 — 항목명과 단위. 단위는 여기 한 번뿐이라 아래 두 값이 같은 모양이 된다 */}
-      <div className="flex items-baseline justify-between gap-2 border-b border-border px-3 py-2">
-        <p className="truncate text-[12px] font-semibold text-fg" title={row.label}>
+      <div className={styles.head}>
+        <p className={styles.label} title={row.label}>
           {row.label}
         </p>
-        {row.unit && <span className="shrink-0 text-[12px] text-fg-subtle">{row.unit}</span>}
+        {row.unit && <span className={styles.unit}>{row.unit}</span>}
       </div>
 
-      <div className="flex flex-1 flex-col justify-center px-3 py-3">
-        {/*
-         * 2·3. **두 값이 마주 본다.** 세 열(`1fr auto 1fr`)이라 여덟 장이 전부 같은 기하를
-         * 갖는다 — 유입수는 왼쪽 끝, 유출수는 오른쪽 끝, `→`는 늘 가운데다.
-         */}
-        <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-baseline gap-x-1">
+      <div className={styles.body}>
+        {/* 2·3. **두 값이 마주 본다.** */}
+        <div className={styles.pair}>
           <PointLabel label="유입수" color={INLET_MARK_COLOR} />
           <span />
           <PointLabel
@@ -97,11 +92,7 @@ export function GaugeCard({
            */}
           <span
             aria-hidden
-            className={cn(
-              /* 22px 값 둘 사이에서 14px은 묻혔다 — 방향이 «즉시» 보여야 하는 자리다 */
-              'shrink-0 px-0.5 text-[17px] leading-none',
-              known ? 'text-fg-muted' : 'text-transparent',
-            )}
+            className={cn(styles.arrow, known ? styles.arrowKnown : styles.arrowUnknown)}
           >
             →
           </span>
@@ -114,35 +105,26 @@ export function GaugeCard({
         </div>
 
         {/* 4. 변화 — 두 값 바로 아래 가운데. «이 값이 저 값이 됐고 그 폭이 이만큼»의 마무리다 */}
-        <div className="mt-2.5 flex min-h-5 flex-wrap items-baseline justify-center gap-x-1.5">
+        <div className={styles.change}>
           {pending ? (
-            <span className="block h-4 w-16 animate-pulse rounded-chip bg-surface-3" />
+            <span className={cn(styles.changeSkeleton, 'pulse')} />
           ) : (
             <ChangeText row={row} known={known} />
           )}
         </div>
       </div>
 
-      {/*
-       * 5·6. 상태와 게이지 — hairline 아래. 게이지는 카드에서 마지막에 읽히는 자리다.
-       *
-       * **격자로 나눈다 — 게이지 폭이 카드마다 달라지지 않게.** `justify-between`이던 판본은
-       * 남는 폭을 상태 문구가 먼저 먹어 `판정 대상 아님 기준 이내`가 붙은 카드의 게이지가
-       * 다른 카드보다 좁게 그려졌다(1440px 캡처에서 드러났다) — 여덟 장을 훑을 때 같은
-       * 그림이 카드마다 다른 크기면 크기가 값을 뜻하는 것으로 오독된다.
-       *
-       * 지금은 게이지 열이 **고정 폭**이고 접히는 쪽은 상태 문구다.
-       */}
+      {/* 5·6. 상태와 게이지 — hairline 아래. 게이지는 카드에서 마지막에 읽히는 자리다. */}
       {!pending && (
-        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 border-t border-border px-3 py-1.5">
-          <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
+        <div className={styles.status}>
+          <div className={styles.statusText}>
             <Mark row={row} />
             {/* 기준이 걸리지 않는 항목에는 아무것도 적지 않는다 — 없는 기준을 예고하지 않는다 */}
-            {limitVerdict && <span className="text-[12px] text-fg-subtle">{limitVerdict}</span>}
+            {limitVerdict && <span className={styles.note}>{limitVerdict}</span>}
           </div>
 
           <div
-            className="shrink-0"
+            className={styles.gauge}
             style={{ width: GAUGE_GEOMETRY.width, height: GAUGE_GEOMETRY.height }}
           >
             {known && (
@@ -174,21 +156,18 @@ function PointLabel({
 }) {
   return (
     <span
-      className={cn(
-        'flex min-w-0 items-center gap-1.5',
-        align === 'right' && 'flex-row-reverse',
-      )}
+      className={cn(styles.pointLabel, align === 'right' && styles.pointLabelReverse)}
     >
       <span
         aria-hidden
-        className="inline-block size-2 shrink-0 rounded-full"
+        className={styles.pointMark}
         style={
           filled
             ? { backgroundColor: color }
             : { border: `2px solid ${color}`, background: 'var(--surface)' }
         }
       />
-      <span className="truncate text-[12px] text-fg-subtle">{label}</span>
+      <span className={styles.pointName}>{label}</span>
     </span>
   );
 }
@@ -215,11 +194,7 @@ function PointValue({
   if (pending) {
     return (
       <span
-        className={cn(
-          VALUE_LG,
-          'block w-14 animate-pulse rounded-chip bg-surface-3 text-transparent',
-          right && 'ml-auto',
-        )}
+        className={cn(VALUE_LG, styles.valueSkeleton, 'pulse', right && styles.pushRight)}
       >
         0
       </span>
@@ -229,20 +204,15 @@ function PointValue({
   /* 결측은 «0»이 아니라 «수신 없음»이다 — 0으로 적으면 재 본 값이 된다(E4) */
   if (reading.value === null) {
     return (
-      <span className={cn('block text-[12px] text-fg-subtle', right && 'text-right')}>
+      <span className={cn(styles.noValue, right && styles.alignRight)}>
         수신 없음
       </span>
     );
   }
 
-  /*
-   * **숫자를 자르지 않는다.** `truncate`가 붙어 있던 판본은 좁은 카드에서 `10.38`을
-   * `10…`으로 적었다 — 줄임표가 붙은 숫자는 읽는 사람에게 **다른 값**이다. 폭이 모자라는
-   * 문제는 열 수로 막고(`TreatmentScale`의 컨테이너 문턱), 여기서는 잘리지 않게만 한다.
-   */
   return (
     <span
-      className={cn('num block whitespace-nowrap', VALUE_LG, right && 'text-right')}
+      className={cn('num', styles.value, VALUE_LG, right && styles.alignRight)}
       style={{ color }}
     >
       {reading.valueText}
@@ -267,7 +237,7 @@ function PointValue({
  */
 function ChangeText({ row, known }: { row: TreatmentRow; known: boolean }) {
   if (!known || row.changePercent === null) {
-    return <span className="text-[12px] text-fg-subtle">판정 불가</span>;
+    return <span className={styles.note}>판정 불가</span>;
   }
 
   const [magnitude, direction] = row.changeText.split(' ');
@@ -277,18 +247,19 @@ function ChangeText({ row, known }: { row: TreatmentRow; known: boolean }) {
     <>
       <span
         className={cn(
-          'num inline-flex items-baseline gap-1 whitespace-nowrap',
+          'num',
+          styles.changeValue,
           VALUE_MD,
-          row.similar ? 'text-fg' : 'text-fg-muted',
+          row.similar ? styles.changeValueSimilar : styles.changeValuePlain,
         )}
       >
-        <span aria-hidden className="text-[11px] leading-none">
+        <span aria-hidden className={styles.changeArrow}>
           {arrow}
         </span>
         {magnitude}
       </span>
       {direction && (
-        <span className="whitespace-nowrap text-[12px] text-fg-subtle">{direction}</span>
+        <span className={styles.direction}>{direction}</span>
       )}
     </>
   );
@@ -308,13 +279,13 @@ function ChangeText({ row, known }: { row: TreatmentRow; known: boolean }) {
  */
 function Mark({ row }: { row: TreatmentRow }) {
   if (!row.judged) {
-    return <span className="text-[12px] text-fg-subtle">판정 대상 아님</span>;
+    return <span className={styles.note}>판정 대상 아님</span>;
   }
   if (row.changePercent === null) return null;
 
   return row.similar ? (
-    <span className="text-[12px] font-semibold text-fg-muted">유입과 거의 같음</span>
+    <span className={styles.markSimilar}>유입과 거의 같음</span>
   ) : (
-    <span className="text-[12px] text-fg-subtle">처리됨</span>
+    <span className={styles.note}>처리됨</span>
   );
 }

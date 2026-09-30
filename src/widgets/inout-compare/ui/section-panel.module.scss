@@ -1,0 +1,36 @@
+@use 'shared/styles' as *;
+
+/* 몸통은 `bodyClassName`이 통째로 바꾼다 — 그래서 `components` 레이어다 */
+@layer components {
+  .body {
+    padding: sp(5);
+  }
+}
+
+.root {
+  overflow: hidden;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-panel);
+  background-color: var(--surface);
+  box-shadow: var(--card-shadow);
+}
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  column-gap: sp(3);
+  row-gap: sp(1);
+  border-bottom: 1px solid var(--border);
+  background-color: var(--surface-2);
+  padding: sp(2.5) sp(5);
+}
+
+.title {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  color: var(--fg-subtle);
+}

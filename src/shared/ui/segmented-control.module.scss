@@ -1,0 +1,62 @@
+@use 'shared/styles' as *;
+
+/* `SEG_*` 상수는 여러 화면이 가져다 덮어 쓴다(폭·여백·커서) — 그래서 `components` 레이어다 */
+@layer components {
+  /* `flex-wrap`은 좁은 화면의 안전장치다 — 칸이 줄어들지 않아(`flex-shrink: 0`) 없으면 트랙 밖으로 넘친다 */
+  .track {
+    display: inline-flex;
+    max-width: 100%;
+    flex-wrap: wrap;
+    align-items: center;
+    border-radius: var(--radius-nested);
+    background-color: var(--surface-2);
+    padding: sp(0.5);
+    box-shadow: var(--track-inset);
+  }
+
+  .item {
+    position: relative;
+    display: inline-flex;
+    min-height: sp(10);
+    flex-shrink: 0;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    padding: sp(1) sp(2.5);
+    font-size: 12px;
+    @include transition-colors(200ms);
+
+    @include up(lg) {
+      min-height: 0;
+    }
+  }
+
+  .itemOn {
+    font-weight: 600;
+    color: var(--accent);
+  }
+
+  .itemOff {
+    color: var(--fg-subtle);
+
+    @include hover {
+      &:hover {
+        color: var(--fg-muted);
+      }
+    }
+  }
+}
+
+/* 테두리는 그림자 고리로 준다 — 절대 배치된 면에 `border`를 주면 알약이 1px 커진다 */
+.pill {
+  position: absolute;
+  inset: 0;
+  border-radius: 6px;
+  background-color: var(--surface);
+  box-shadow: 0 0 0 1px var(--card-border), var(--card-shadow);
+}
+
+.label {
+  position: relative;
+}

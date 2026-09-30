@@ -1,0 +1,368 @@
+@use 'shared/styles' as *;
+
+/*
+ * **넓은 화면은 768px(`md`)부터다** — `login-media.ts`의 `LOGIN_WIDE_QUERY`와 `globals.scss`의
+ * `.login-glass` 미디어 쿼리가 같은 폭을 본다. 판본을 가르는 규칙(감추기·열 세우기·카드 풀기)은
+ * 전부 `up(md)`에 있고, `lg`·`xl`에는 같은 판본 안의 다듬기(기둥 폭·타이포)만 남는다.
+ */
+
+.backdropFraming {
+  object-fit: cover;
+  object-position: center 35%;
+}
+
+.backdropFill {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/*
+ * 바탕색이 **토큰이 아닌 리터럴**이다(§8 `토큰 밖 색`). 영상이 뜨기 전과 비율이 안 맞는
+ * 폭에서 이 색이 보이는데, `--bg`를 쓰면 라이트 테마에서 흰 면이 되어 영상 위아래로
+ * **흰 띠**가 생긴다. 이 화면의 바탕은 테마를 따라가면 안 된다.
+ */
+.page {
+  position: relative;
+  min-height: 100dvh;
+  overflow: hidden;
+  background-color: #0b1017;
+}
+
+.scrim {
+  position: absolute;
+  inset: 0;
+}
+
+.layout {
+  position: relative;
+  display: grid;
+  min-height: 100dvh;
+  align-content: center;
+  padding-block: sp(6);
+
+  @include up(md) {
+    align-content: normal;
+    grid-template-columns: 1fr 420px;
+    padding-block: 0;
+  }
+
+  @include up(lg) {
+    grid-template-columns: 1fr minmax(420px, 600px);
+  }
+}
+
+.mobileBrand {
+  display: flex;
+  flex-direction: column;
+  padding-inline: sp(10);
+  padding-bottom: sp(7);
+
+  @include up(md) {
+    display: none;
+  }
+}
+
+.mobileBrandName {
+  margin-top: sp(3);
+  max-width: 16ch;
+  word-break: keep-all;
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 30px;
+  letter-spacing: -0.5px;
+  color: #fdfdfd;
+}
+
+.intro {
+  display: none;
+  flex-direction: column;
+  justify-content: flex-start;
+  padding-inline: sp(8);
+  padding-top: sp(16);
+
+  @include up(md) {
+    display: flex;
+  }
+
+  @include up(lg) {
+    padding-inline: sp(16);
+    padding-top: sp(28);
+  }
+
+  @include up(xl) {
+    padding-inline: sp(24);
+    padding-top: sp(32);
+  }
+}
+
+.introTitle {
+  max-width: 13ch;
+  word-break: keep-all;
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 32px;
+  letter-spacing: -0.6px;
+  color: #fdfdfd;
+
+  @include up(lg) {
+    font-size: 40px;
+    line-height: 44px;
+    letter-spacing: -1px;
+  }
+
+  @include up(xl) {
+    font-size: 48px;
+    line-height: 52px;
+    letter-spacing: -1.2px;
+  }
+}
+
+.introText {
+  margin-top: sp(5);
+  max-width: 34ch;
+  word-break: keep-all;
+  font-size: 14px;
+  line-height: 1.625;
+  color: rgb(255 255 255 / 70%);
+  color: color-mix(in oklab, white 70%, transparent);
+
+  @include up(xl) {
+    max-width: 540px;
+  }
+}
+
+/* 뜻이 끊기는 자리의 줄내림 — xl에서만 쓴다 */
+.introBreak {
+  display: none;
+
+  @include up(xl) {
+    display: inline;
+  }
+}
+
+.glass {
+  margin-inline: sp(4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-panel);
+  padding-inline: sp(6);
+  padding-block: sp(10);
+
+  @include up(sm) {
+    margin-inline: sp(8);
+    padding-inline: sp(10);
+  }
+
+  @include up(md) {
+    margin-inline: 0;
+    border-radius: 0;
+    padding-block: sp(16);
+  }
+}
+
+.formColumn {
+  width: 100%;
+  max-width: 368px;
+}
+
+.title {
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  color: var(--fg);
+}
+
+.form {
+  margin-top: sp(6);
+
+  & > :not(:last-child) {
+    margin-block-end: sp(3.5);
+  }
+}
+
+.remember {
+  display: flex;
+  cursor: pointer;
+  align-items: center;
+  gap: sp(2);
+  font-size: 13px;
+  color: var(--fg);
+}
+
+.submit {
+  margin-top: sp(1);
+  width: 100%;
+  cursor: pointer;
+  border-radius: var(--radius-nested);
+  background-color: var(--accent);
+  padding-inline: sp(3);
+  padding-block: sp(3.5);
+  font-size: 14px;
+  font-weight: 600;
+  color: white;
+  transition-property: opacity;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 200ms;
+
+  @include hover {
+    &:hover {
+      opacity: 0.9;
+    }
+  }
+}
+
+/*
+ * **768px 이상에서만** `[사용자 결정 2026-09-17]`. 좁은 화면에는 **고를 영상 자체가
+ * 없고**(그 폭에서는 정지 이미지를 쓴다), 폼 위에 겹쳐 뜨던 것과 버튼 높이가 약 26px이라
+ * 손가락 최소(44px)에 못 미치던 것도 함께 사라진다.
+ *
+ * 한때 «격자 밖이라 좁은 폭에서도 남는다»가 이 자리의 근거였는데, 그때는 좁은 폭에서도
+ * 고를 것이 있었다.
+ */
+.videoPicker {
+  position: absolute;
+  bottom: sp(4);
+  left: sp(4);
+  z-index: 10;
+  display: none;
+  align-items: center;
+  gap: sp(1.5);
+  border: 1px solid rgb(255 255 255 / 25%);
+  border-color: color-mix(in oklab, white 25%, transparent);
+  border-radius: 9999px;
+  background-color: rgb(0 0 0 / 35%);
+  background-color: color-mix(in oklab, black 35%, transparent);
+  padding-inline: sp(2);
+  padding-block: sp(1.5);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+
+  @include up(md) {
+    display: flex;
+  }
+}
+
+.videoPickerLabel {
+  padding-inline: sp(1);
+  font-size: 12px;
+  font-weight: 500;
+  color: rgb(255 255 255 / 70%);
+  color: color-mix(in oklab, white 70%, transparent);
+}
+
+.videoOption {
+  cursor: pointer;
+  border-radius: 9999px;
+  padding-inline: sp(2.5);
+  padding-block: sp(1);
+  font-size: 12px;
+  font-weight: 500;
+  @include transition-colors(200ms);
+
+  &:focus-visible {
+    outline-style: solid;
+    outline-width: 2px;
+    outline-offset: 1px;
+    outline-color: rgb(255 255 255 / 70%);
+    outline-color: color-mix(in oklab, white 70%, transparent);
+  }
+}
+
+.videoOptionOn {
+  background-color: white;
+  color: #0b1017;
+}
+
+.videoOptionOff {
+  color: rgb(255 255 255 / 80%);
+  color: color-mix(in oklab, white 80%, transparent);
+
+  @include hover {
+    &:hover {
+      background-color: rgb(255 255 255 / 15%);
+      background-color: color-mix(in oklab, white 15%, transparent);
+    }
+  }
+}
+
+/*
+ * 입력 칸 — **유리 위에서는 불투명한 흰 면**이다 `[사용자 지시 2026-08-25: 첨부 이미지]`.
+ * 반투명이면 뒤 영상이 글자 뒤에서 움직여 읽기가 흔들린다.
+ * 높이는 46px(위아래 12px씩 + 14px 글자) `[사용자 지시 2026-08-25: 좀 줄여]` — 44px(손가락 최소)을
+ * 넘기는 선에서 가장 낮은 값이다. 더 줄이면 터치 대상 권고를 밑돈다.
+ */
+.field {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-nested);
+  background-color: var(--surface);
+  padding-inline: sp(3.5);
+  padding-block: sp(3);
+  font-size: 14px;
+  color: var(--fg);
+  outline-style: none;
+  @include transition-colors(200ms);
+
+  &::placeholder {
+    color: var(--fg-subtle);
+  }
+
+  @include hover {
+    &:hover {
+      border-color: var(--border-strong);
+    }
+  }
+
+  &:focus {
+    border-color: var(--accent);
+  }
+
+  &:focus-visible {
+    box-shadow: 0 0 0 2px var(--accent);
+    box-shadow: 0 0 0 2px color-mix(in oklab, var(--accent) 35%, transparent);
+  }
+}
+
+.fieldInput {
+  margin-top: sp(2);
+}
+
+.passwordInput {
+  padding-right: sp(12);
+}
+
+.label {
+  display: block;
+  font-size: 13px;
+  color: var(--fg-muted);
+}
+
+.passwordBox {
+  position: relative;
+  margin-top: sp(2);
+}
+
+.reveal {
+  position: absolute;
+  inset-block: 0;
+  right: 0;
+  display: flex;
+  width: sp(12);
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  border-top-right-radius: var(--radius-nested);
+  border-bottom-right-radius: var(--radius-nested);
+  color: var(--fg-subtle);
+  @include transition-colors(200ms);
+
+  @include hover {
+    &:hover {
+      color: var(--accent);
+    }
+  }
+}

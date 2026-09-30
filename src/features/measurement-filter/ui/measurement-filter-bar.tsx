@@ -3,10 +3,11 @@
 import { SegmentedControl } from '@/shared/ui/segmented-control';
 import { CATEGORY_OPTIONS, PERIOD_OPTIONS } from '../config/constants';
 import type { MeasurementFilter } from '../model/use-measurement-filter';
+import styles from './measurement-filter-bar.module.scss';
 
 export function MeasurementFilterBar({ filter }: { filter: MeasurementFilter }) {
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className={styles.bar}>
       <SegmentedControl
         ariaLabel="계측 항목 범위"
         options={CATEGORY_OPTIONS}

@@ -1,0 +1,68 @@
+@use 'shared/styles' as *;
+
+.footerState {
+  margin-right: auto;
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+.detail {
+  max-width: 60ch;
+  font-size: 12px;
+  line-height: 1.625;
+  color: var(--fg-muted);
+}
+
+.section {
+  margin-top: sp(4);
+  border-top: 1px solid var(--border);
+  padding-top: sp(3);
+}
+
+.sectionLabel {
+  margin-bottom: sp(2);
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+.unknown {
+  color: var(--fg-subtle);
+}
+
+.note {
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+.values {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: sp(4);
+  row-gap: sp(1.5);
+
+  @include up(sm) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.valueRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: sp(2);
+  font-size: 12px;
+}
+
+.valueSymbol {
+  color: var(--fg-subtle);
+}
+
+.value {
+  color: var(--fg);
+}
+
+.valueUnit {
+  margin-left: sp(1);
+  font-size: 12px;
+  color: var(--fg-subtle);
+}

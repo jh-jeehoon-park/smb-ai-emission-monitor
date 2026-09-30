@@ -102,16 +102,16 @@ describe('403 사유 문장', () => {
 });
 
 /**
- * **`global-error.tsx`만 토큰을 못 쓴다** — 문서를 통째로 대신해 `globals.css`가 오지 않는다.
+ * **`global-error.tsx`만 토큰을 못 쓴다** — 문서를 통째로 대신해 `globals.scss`가 오지 않는다.
  * 그래서 팔레트를 손으로 베껴 두었는데, 베낀 값은 원본이 바뀌어도 따라오지 않는다.
  * 여기서 대조해 **두 곳이 갈리는 순간 빨개지게** 한다.
  */
-describe('global-error의 팔레트가 globals.css와 같다', () => {
+describe('global-error의 팔레트가 globals.scss와 같다', () => {
   const root = join(import.meta.dirname, '../../..');
-  const css = readFileSync(join(root, 'src/app/globals.css'), 'utf8');
+  const css = readFileSync(join(root, 'src/app/globals.scss'), 'utf8');
   const ge = readFileSync(join(root, 'src/app/global-error.tsx'), 'utf8');
 
-  /** `globals.css`에서 그 토큰의 n번째 선언을 읽는다(1번째 = 라이트, 2번째 = 다크) */
+  /** `globals.scss`에서 그 토큰의 n번째 선언을 읽는다(1번째 = 라이트, 2번째 = 다크) */
   const declared = (token: string, nth: number) =>
     [...css.matchAll(new RegExp(`--${token}:\\s*(#[0-9a-f]{3,8})`, 'g'))][nth]?.[1];
 
@@ -119,13 +119,13 @@ describe('global-error의 팔레트가 globals.css와 같다', () => {
 
   it.each(TOKENS)('라이트 --%s', (token) => {
     const value = declared(token, 0);
-    expect(value, `${token}이 globals.css에 없다`).toBeTruthy();
-    expect(ge, `--${token}의 라이트 값이 globals.css와 다르다`).toContain(`--${token}:${value}`);
+    expect(value, `${token}이 globals.scss에 없다`).toBeTruthy();
+    expect(ge, `--${token}의 라이트 값이 globals.scss와 다르다`).toContain(`--${token}:${value}`);
   });
 
   it.each(TOKENS)('다크 --%s', (token) => {
     const value = declared(token, 1);
-    expect(value, `${token}의 다크 값이 globals.css에 없다`).toBeTruthy();
+    expect(value, `${token}의 다크 값이 globals.scss에 없다`).toBeTruthy();
     /* 다크는 media 질의와 `[data-theme]` 두 곳에 같은 값이 적혀 있어야 한다 */
     const hits = ge.split(`--${token}:${value}`).length - 1;
     expect(hits, `--${token}의 다크 값이 두 곳에 있어야 한다`).toBe(2);

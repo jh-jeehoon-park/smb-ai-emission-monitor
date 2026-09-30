@@ -7,6 +7,7 @@ import { HERO_VALUE, INLET_MARK_COLOR } from '../config/constants';
 import type { InOutCompare } from '../lib/point-readings';
 import { GaugeCard } from './gauge-card';
 import { SummaryDonut } from './summary-donut';
+import styles from './treatment-scale.module.scss';
 
 /**
  * **유입 ↔ 유출 수질 대조** — 이 화면의 주인공.
@@ -54,7 +55,7 @@ export function TreatmentScale({
   siteId: string;
 }) {
   return (
-    <div className="rounded-panel border border-card-border bg-surface p-5 shadow-panel lg:p-6">
+    <div className={styles.root}>
       {/*
        * **판정은 여기 없다 — 위 상태 상자로 올라갔다** `[사용자 지적 2026-09-10: «91 위험»과
        * «처리 미흡 의심»의 연결이 약하다]`. 두 상태가 각자 패널을 갖고 떨어져 있어 서로
@@ -63,24 +64,8 @@ export function TreatmentScale({
        */}
       <Legend />
 
-      {/*
-       * **열 수를 뷰포트가 아니라 «이 격자가 받은 폭»이 정한다**(`@container`).
-       * `water-quality-grid`가 같은 값을 쓰고 그 이유를 적어 두었다 — 뷰포트로 나누면 같은
-       * 격자가 넓은 자리와 좁은 자리에 함께 놓일 때 한쪽이 반드시 어긋난다.
-       */}
-      {/*
-       * **두 값이 가로로 마주 서면서 카드에 최소 폭이 생겼다.** 한 장 안에 22px 숫자 둘과
-       * `→`가 한 줄에 들어가야 하고, 그 위에 두 지점 이름이 또 한 줄로 선다 — 실측으로 카드
-       * 155px에서 **값이 `10…`으로 잘렸다**(390px 캡처). **숫자가 잘리는 것은 틀린 값을 적는
-       * 것**이라 열 수로 막는다.
-       *
-       * 그래서 문턱이 둘에서 셋으로 늘었다 — 좁으면 **한 열**로 서고 카드가 온전한 폭을 갖는다.
-       * `430`·`870`은 카드 한 장에 최소 ~210px를 주는 값이다(간격 8px 포함). 카드 안의 짜임은
-       * **어느 폭에서도 같다** `[사용자 요청 2026-09-10: 8개 카드의 내부 구조와 간격을 완전히
-       * 통일한다]` — 달라지는 것은 몇 장이 한 줄에 서는가뿐이다.
-       */}
-      <div className="@container mt-3">
-        <div className="grid grid-cols-1 gap-2 @[430px]:grid-cols-2 @[870px]:grid-cols-4">
+      <div className={styles.gridWrap}>
+        <div className={styles.grid}>
           {compare.treatment.map((row, index) => (
             <GaugeCard key={`${siteId}-${row.code}`} row={row} pending={pending} index={index} />
           ))}
@@ -92,8 +77,8 @@ export function TreatmentScale({
        * 방어선이고 이 한 줄이 그것이 무엇을 뜻하는지 말한다 — 밝히지 않고 섞는 것이 E4가
        * 막는 것이고, 밝히면 시연 기준치(`PROVISIONAL_DEMO_LIMITS`)와 같은 지위가 된다.
        */}
-      <p className="mt-3 text-[12px] leading-relaxed text-fg-subtle">
-        유입 수질은 계측 서버에 채널이 없어 유출 실측에서 역산한 <b className="font-semibold">시연값</b>
+      <p className={styles.notice}>
+        유입 수질은 계측 서버에 채널이 없어 유출 실측에서 역산한 <b className={styles.noticeEmphasis}>시연값</b>
         입니다. 잔존율과 유사 판정 기준({PROVISIONAL_TREATMENT_SIMILAR_PERCENT}%)은 원문에 없어
         우리가 정했습니다.
       </p>
@@ -135,26 +120,26 @@ export function TreatmentVerdictBand({
   const { verdict } = compare;
 
   return (
-    <section className="flex flex-wrap items-center gap-x-5 gap-y-3 px-5 py-4">
+    <section className={styles.band}>
       {pending ? (
-        <span className="block h-9 w-48 animate-pulse rounded-chip bg-surface-3" />
+        <span className={cn(styles.bandSkeleton, 'pulse')} />
       ) : (
         <>
           <SummaryDonut verdict={verdict} />
-          <div className="min-w-0">
-            <p className="text-[12px] font-semibold uppercase tracking-wide text-fg-subtle">
+          <div className={styles.verdict}>
+            <p className={styles.eyebrow}>
               처리 판정
             </p>
             <h2
               className={cn(
                 HERO_VALUE,
-                'mt-0.5',
-                verdict.kind === 'ok' ? 'text-fg-muted' : 'text-fg',
+                styles.headline,
+                verdict.kind === 'ok' ? styles.headlineQuiet : styles.headlineStrong,
               )}
             >
               {verdict.headline}
             </h2>
-            <p className="mt-1.5 text-[12px] leading-relaxed text-fg-muted">{verdict.detail}</p>
+            <p className={styles.detail}>{verdict.detail}</p>
           </div>
         </>
       )}
@@ -168,11 +153,11 @@ export function TreatmentVerdictBand({
  */
 function Legend() {
   return (
-    <ul className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[12px] text-fg-subtle">
+    <ul className={styles.legend}>
       <Item swatch={<Ring color={INLET_MARK_COLOR} />}>유입수 · 시연값</Item>
       <Item swatch={<Dot color={ACTUAL_HEX} />}>유출수 · 실측</Item>
       {/* 견본은 실제 호와 같은 잉크여야 한다 — 호가 `--fg-muted`로 내려갔다 */}
-      <Item swatch={<span aria-hidden className="block h-0.5 w-3.5 rounded-full bg-fg-muted" />}>
+      <Item swatch={<span aria-hidden className={styles.gapSwatch} />}>
         걷어낸 만큼
       </Item>
     </ul>
@@ -181,7 +166,7 @@ function Legend() {
 
 function Item({ swatch, children }: { swatch: React.ReactNode; children: React.ReactNode }) {
   return (
-    <li className="flex items-center gap-1.5">
+    <li className={styles.legendItem}>
       {swatch}
       {children}
     </li>
@@ -192,7 +177,7 @@ function Dot({ color }: { color: string }) {
   return (
     <span
       aria-hidden
-      className="block size-2.5 shrink-0 rounded-full"
+      className={styles.dot}
       style={{ backgroundColor: color }}
     />
   );
@@ -202,7 +187,7 @@ function Ring({ color }: { color: string }) {
   return (
     <span
       aria-hidden
-      className="block size-2.5 shrink-0 rounded-full bg-surface"
+      className={styles.ring}
       style={{ border: `2px solid ${color}` }}
     />
   );

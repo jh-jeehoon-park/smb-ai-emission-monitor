@@ -2,6 +2,7 @@
 
 import { Download } from 'lucide-react';
 import { MEASUREMENT_ITEMS , type MeasurementItemCode } from '@/shared/config/measurement';
+import { cn } from '@/shared/lib/cn';
 import { downloadCsv } from '@/shared/lib/csv';
 import { formatClock, formatValue } from '@/shared/lib/format';
 import { ABSENT_ITEM_LABEL } from '@/features/site-provisioning';
@@ -25,6 +26,7 @@ import {
   type SeriesCode,
 } from '@/entities/measurement';
 import { ACTION_BUTTON_QUIET } from '@/shared/ui/action-button';
+import styles from './bucket-report-panel.module.scss';
 
 /**
  * 구간이 행인 센서 리포트.
@@ -93,7 +95,7 @@ export function BucketReportPanel({
         />
       }
       action={
-        <div className="flex flex-wrap items-center gap-2">
+        <div className={styles.actions}>
           <SegmentedControl
             ariaLabel="집계 단위"
             options={BUCKET_OPTIONS}
@@ -142,7 +144,7 @@ function BucketTable({
 }) {
   if (rows.length === 0) {
     return (
-      <p className=" py-8 text-center text-[12px] text-fg-subtle">
+      <p className={styles.empty}>
         {/* **아직 안 물어본 것을 «표본이 없다»고 적지 않는다**(E4) — 확인된 부재의 어휘다 */}
         {pending ? TELEMETRY_PENDING_NOTE : '이 구간에 표본이 없습니다.'}
       </p>
@@ -150,21 +152,21 @@ function BucketTable({
   }
 
   return (
-    <div className="max-h-[560px] overflow-auto">
-      <table className={`${TABLE_ROOT} text-[12px] text-center`}>
-        <caption className="sr-only">
+    <div className={styles.scroll}>
+      <table className={cn(TABLE_ROOT, styles.table)}>
+        <caption className={styles.caption}>
           구간별 {STAT_LABELS[stat]}. 행은 구간 시작 시각, 열은 계측 항목이다.
         </caption>
-        <thead className="sticky top-0 z-10">
+        <thead className={styles.head}>
           <tr className={TABLE_HEAD_ROW}>
-            <th scope="col" className={`sticky left-0 bg-surface-2 ${TABLE_HEAD_CELL}`}>
+            <th scope="col" className={cn(styles.headBucket, TABLE_HEAD_CELL)}>
               구간
             </th>
             {codes.map((code) => (
               <th key={code} scope="col" className={TABLE_HEAD_CELL}>
                 {MEASUREMENT_ITEMS[code].symbol}
                 {MEASUREMENT_ITEMS[code].unit && (
-                  <span className="ml-1 text-fg-subtle">{MEASUREMENT_ITEMS[code].unit}</span>
+                  <span className={styles.headUnit}>{MEASUREMENT_ITEMS[code].unit}</span>
                 )}
               </th>
             ))}
@@ -178,18 +180,14 @@ function BucketTable({
             <tr key={row.startIso} className={TABLE_ROW}>
               <th
                 scope="row"
-                className="num sticky left-0 bg-surface py-3.5 text-center font-normal text-fg-muted"
+                className={cn('num', styles.rowHead)}
               >
                 {formatClock(row.startIso)}
               </th>
               {codes.map((code) => (
                 <td
                   key={code}
-                  className={
-                    absentCodes.includes(code)
-                      ? 'num px-3 py-3.5 text-center text-fg-subtle'
-                      : 'num px-3 py-3.5 text-center text-fg'
-                  }
+                  className={cn('num', absentCodes.includes(code) ? styles.cellMuted : styles.cell)}
                 >
                   {/*
                    * **셋을 가려 말한다.** 장비가 없으면 「미설치」, 구간 전체가 결측이면 값이
@@ -201,7 +199,7 @@ function BucketTable({
                     : formatValue(code, row.values[code] ?? null)}
                 </td>
               ))}
-              <td className="num px-3 py-3.5 text-center text-fg-subtle">
+              <td className={cn('num', styles.cellMuted)}>
                 {row.missingCount}/{row.totalCount}
               </td>
             </tr>

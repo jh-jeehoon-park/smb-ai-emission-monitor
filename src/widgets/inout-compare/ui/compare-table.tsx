@@ -11,6 +11,7 @@ import {
   type TreatmentRow,
 } from '../lib/point-readings';
 import { SectionPanel } from './section-panel';
+import styles from './compare-table.module.scss';
 
 /**
  * 한 행 — **유입·유출 짝이 있는 것과 없는 것을 같은 표에 담는다.**
@@ -46,10 +47,10 @@ interface Group {
  *
  * `[사용자 요청 2026-09-10: 행 간 간격을 조금 확보하여 가독성을 높인다]` — 48 → 52px.
  */
-const ROW_H = 'h-13';
+const ROW_H = styles.rowHeight;
 
 /** 숫자 칸 — 우측 정렬 + 굵게. 자릿수가 한 자리에서 만나 위아래로 견줄 수 있다 */
-const NUM_CELL = 'num px-3 text-right text-[12px] font-semibold text-fg';
+const NUM_CELL = cn('num', styles.numCell);
 
 /**
  * **비교 세 열을 한 묶음으로 묶는 면.**
@@ -58,14 +59,14 @@ const NUM_CELL = 'num px-3 text-right text-[12px] font-semibold text-fg';
  * 면을 깔아 **위 카드가 보여 준 그 비교가 표에서도 한 덩어리로** 보이게 한다 — 색이 아니라
  * 면이고, 값은 하나도 바뀌지 않는다.
  */
-const COMPARE_COL = 'bg-surface-2/60';
+const COMPARE_COL = styles.compareCol;
 
 /** 카드 범례와 같은 점 — 위아래가 같은 어휘를 쓴다 */
 function Dot() {
   return (
     <span
       aria-hidden
-      className="inline-block size-2 shrink-0 rounded-full"
+      className={styles.mark}
       style={{ backgroundColor: ACTUAL_HEX }}
     />
   );
@@ -75,7 +76,7 @@ function Ring() {
   return (
     <span
       aria-hidden
-      className="inline-block size-2 shrink-0 rounded-full bg-surface"
+      className={cn(styles.mark, styles.ring)}
       style={{ border: `2px solid ${INLET_MARK_COLOR}` }}
     />
   );
@@ -142,7 +143,7 @@ export function CompareTable({ compare }: { compare: InOutCompare }) {
     <SectionPanel title="값 전체">
       <div className={TABLE_SCROLL}>
         <table className={TABLE_ROOT}>
-          <caption className="sr-only">
+          <caption className={styles.srOnly}>
             {`항목별 유입값과 유출값, 변화율, 유출수의 최근 ${WINDOW_HOURS}시간 평균과 단위·계측 등급·기준·판정`}
           </caption>
           <thead>
@@ -154,13 +155,13 @@ export function CompareTable({ compare }: { compare: InOutCompare }) {
                 항목
               </th>
               <th scope="col" className={cn(TABLE_HEAD_CELL, COMPARE_COL)}>
-                <span className="inline-flex items-center gap-1.5">
+                <span className={styles.headLabel}>
                   <Ring />
                   유입수
                 </span>
               </th>
               <th scope="col" className={cn(TABLE_HEAD_CELL, COMPARE_COL)}>
-                <span className="inline-flex items-center gap-1.5">
+                <span className={styles.headLabel}>
                   <Dot />
                   유출수
                 </span>
@@ -191,16 +192,13 @@ export function CompareTable({ compare }: { compare: InOutCompare }) {
                 <tr key={`${group.title}-${row.key}`} className={TABLE_ROW}>
                   <th
                     scope="row"
-                    className={cn(
-                      'px-3 text-left align-middle text-[12px] font-semibold text-fg',
-                      ROW_H,
-                    )}
+                    className={cn(styles.groupCell, ROW_H)}
                   >
                     {i === 0 ? group.title : ''}
                   </th>
-                  <td className={cn('px-3 text-[12px] text-fg', ROW_H)}>
+                  <td className={cn(styles.labelCell, ROW_H)}>
                     {row.label}
-                    <span className="ml-1 text-fg-subtle">{row.symbol}</span>
+                    <span className={styles.symbol}>{row.symbol}</span>
                   </td>
                   {/* 짝이 없는 행의 유입 칸은 `—`다 — 비우면 «못 받았다»로 읽힌다 */}
                   <td className={cn(NUM_CELL, COMPARE_COL, ROW_H)}>
@@ -209,7 +207,7 @@ export function CompareTable({ compare }: { compare: InOutCompare }) {
                       : cellValue(row.inlet.unreceived, row.inlet.value, row.inlet.valueText)}
                     {/* 서버가 준 값과 우리가 만든 값을 한 표에 두되, 칸마다 어느 쪽인지 적는다 */}
                     {row.inlet?.demo && row.inlet.value !== null && (
-                      <span className="ml-1.5 rounded-chip bg-surface-3 px-1.5 py-0.5 text-[12px] font-normal text-fg-subtle">
+                      <span className={styles.demoChip}>
                         시연값
                       </span>
                     )}
@@ -217,17 +215,17 @@ export function CompareTable({ compare }: { compare: InOutCompare }) {
                   <td className={cn(NUM_CELL, COMPARE_COL, ROW_H)}>
                     {cellValue(row.outlet.unreceived, row.outlet.value, row.outlet.valueText)}
                   </td>
-                  <td className={cn(NUM_CELL, COMPARE_COL, ROW_H, 'font-normal text-fg-muted')}>
+                  <td className={cn(NUM_CELL, COMPARE_COL, ROW_H, styles.numCellQuiet)}>
                     {row.changeText ?? '—'}
                   </td>
-                  <td className={cn(NUM_CELL, ROW_H, 'font-normal text-fg-muted')}>
+                  <td className={cn(NUM_CELL, ROW_H, styles.numCellQuiet)}>
                     {cellValue(row.outlet.unreceived, row.outlet.average, row.outlet.averageText)}
                   </td>
-                  <td className={cn('px-3 text-[12px] text-fg-subtle', ROW_H)}>
+                  <td className={cn(styles.unitCell, ROW_H)}>
                     {row.outlet.unitKo}
                   </td>
                   <td
-                    className={cn('px-3 text-center text-[12px]', ROW_H)}
+                    className={cn(styles.centerCell, ROW_H)}
                     style={{ color: MEASUREMENT_GRADE_HEX[row.outlet.grade] }}
                   >
                     {PROVISIONAL_MEASUREMENT_GRADE_LABELS[row.outlet.grade]}
@@ -236,10 +234,10 @@ export function CompareTable({ compare }: { compare: InOutCompare }) {
                    * **기준이 걸리지 않는 항목은 두 칸이 `—`다.** 유량·전류에 «기준값 미확정»을
                    * 적으면 없는 기준이 정해질 예정인 것처럼 읽힌다.
                    */}
-                  <td className={cn('px-3 text-center text-[12px] text-fg-subtle', ROW_H)}>
+                  <td className={cn(styles.centerCell, styles.subtle, ROW_H)}>
                     {!row.outlet.regulated ? '—' : (row.outlet.limitText ?? UNRESOLVED_LIMIT_TEXT)}
                   </td>
-                  <td className={cn('px-3 text-center text-[12px] text-fg-subtle', ROW_H)}>
+                  <td className={cn(styles.centerCell, styles.subtle, ROW_H)}>
                     {verdictText(row.outlet) ?? '—'}
                   </td>
                 </tr>

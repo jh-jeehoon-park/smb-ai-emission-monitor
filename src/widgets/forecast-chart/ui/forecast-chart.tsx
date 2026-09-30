@@ -31,6 +31,7 @@ import {
 } from '@/entities/prediction';
 import { COMPACT_HEIGHT, FULL_HEIGHT } from '../config/constants';
 import { useChartHover } from '@/shared/lib/use-chart-hover';
+import styles from './forecast-chart.module.scss';
 
 interface ForecastChartProps {
   summary: ForecastSummary;
@@ -103,7 +104,7 @@ export function ForecastChart({
   }
 
   const chart = (
-    <div className="w-full" style={{ height }} {...hoverProps}>
+    <div className={styles.chart} style={{ height }} {...hoverProps}>
       <ResponsiveContainer width="100%" height="100%">
       {/* 포커스로 툴팁이 고정되는 것을 막는다 — 근거는 `water-quality-grid.tsx` */}
       <ComposedChart data={data} margin={{ top: 6, right: 10, bottom: 0, left: 0 }} accessibilityLayer={false}>
@@ -264,7 +265,7 @@ export function ForecastLimitNote({
   if (limit.unavailableReason === null && limit.basis === 'legal') return null;
 
   return (
-    <p className="mt-1.5 px-1 text-[12px] text-fg-subtle">
+    <p className={styles.limitNote}>
       {limit.unavailableReason === null
         ? '시연 임계값 — 법정 배출허용기준 초과 가능성은 판정하지 않는다'
         : `${UNRESOLVED_LIMIT_TEXT} — 초과 가능성은 판정하지 않는다`}
@@ -279,7 +280,7 @@ export function ForecastLimitNote({
 export function ForecastEmpty({ height }: { height: number }) {
   return (
     <div
-      className="flex items-center justify-center border-y border-border text-[12px] text-fg-subtle"
+      className={styles.empty}
       style={{ height }}
     >
       통신 두절 — 수신·산출 없음
@@ -295,7 +296,7 @@ export function ForecastEmpty({ height }: { height: number }) {
  */
 export function ForecastLegend({ code, origin }: { code: ForecastSeriesCode; origin: SeriesOrigin }) {
   return (
-    <ul className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 px-1">
+    <ul className={styles.legend}>
       <LegendItem
         color={SERIES_INK[code]}
         dashed={ORIGIN_DASH[origin] !== undefined}
@@ -318,15 +319,15 @@ export function LegendItem({
   swatch?: boolean;
 }) {
   return (
-    <li className="flex items-center gap-1.5 text-[12px] text-fg-muted">
+    <li className={styles.legendItem}>
       {swatch ? (
         <span
-          className="inline-block h-2.5 w-3.5 rounded-[2px]"
+          className={styles.swatchArea}
           style={{ backgroundColor: color, opacity: 0.24 }}
         />
       ) : (
         <span
-          className="inline-block h-0.5 w-3.5"
+          className={styles.swatchLine}
           style={{
             backgroundColor: dashed ? 'transparent' : color,
             backgroundImage: dashed

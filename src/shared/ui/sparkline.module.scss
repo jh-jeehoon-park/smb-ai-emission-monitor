@@ -1,0 +1,24 @@
+@use 'shared/styles' as *;
+
+/* 두 뿌리 모두 `className`으로 호출부가 덮는다 — 그래서 `components` 레이어다 */
+@layer components {
+  .placeholder {
+    height: sp(6);
+  }
+
+  .placeholderFluid {
+    width: 100%;
+  }
+
+  .placeholderFixed {
+    width: sp(24);
+  }
+
+  .svg {
+    overflow: visible;
+  }
+
+  .svgFluid {
+    width: 100%;
+  }
+}

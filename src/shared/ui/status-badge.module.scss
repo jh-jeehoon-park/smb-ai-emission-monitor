@@ -1,0 +1,8 @@
+@use 'shared/styles' as *;
+
+/* 뱃지는 `className`으로 호출부가 덮는다 — 그래서 `components` 레이어다 */
+@layer components {
+  .root {
+    font-weight: 500;
+  }
+}

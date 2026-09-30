@@ -1,0 +1,90 @@
+@use 'shared/styles' as *;
+
+.emphasis {
+  color: var(--fg);
+}
+
+.emptyGlyph {
+  width: sp(5);
+  height: sp(5);
+}
+
+.glyph {
+  width: sp(3.5);
+  height: sp(3.5);
+}
+
+.root {
+  :where(& > :not(:last-child)) {
+    margin-block-start: 0;
+    margin-block-end: sp(3);
+  }
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  column-gap: sp(3);
+  row-gap: sp(1);
+}
+
+.scales {
+  flex-wrap: wrap;
+}
+
+.appliedSheet {
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+.table {
+  min-width: 720px;
+  font-size: 12px;
+  text-align: center;
+}
+
+.caption {
+  @include sr-only;
+}
+
+.region {
+  white-space: nowrap;
+  padding: sp(3.5) sp(3);
+  text-align: center;
+  font-weight: 400;
+  color: var(--fg);
+}
+
+.ownRegion {
+  margin-left: sp(1.5);
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+.cell {
+  padding: sp(3.5) sp(3);
+  vertical-align: top;
+}
+
+.notMeasured {
+  padding-top: sp(1);
+  font-size: 12px;
+  line-height: 1.375;
+  color: var(--fg-subtle);
+}
+
+.range {
+  display: flex;
+  align-items: flex-start;
+  gap: sp(1.5);
+}
+
+.rangeField {
+  width: 84px;
+}
+
+.maxField {
+  width: 110px;
+}

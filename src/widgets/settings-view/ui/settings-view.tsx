@@ -41,6 +41,7 @@ import {
 import { SettingsNav } from './settings-nav';
 import { SettingsOverview } from './settings-overview';
 import { InfoTip } from '@/shared/ui/tooltip';
+import styles from './settings-view.module.scss';
 
 /**
  * 사업장 설정 (SCR-OP-010).
@@ -64,13 +65,13 @@ const tabsOf = (forRole: Role): SettingsTab[] =>
 const NAV_ROLES: readonly Role[] = ROLES.filter((forRole) => tabsOf(forRole).length > 1);
 
 /**
- * 두 칸 격자는 **목차가 서는 역할에서만** 켠다. 클래스 문자열을 조립하면 Tailwind가 찾지 못해
- * 역할마다 글자 그대로 적는다.
+ * 두 칸 격자는 **목차가 서는 역할에서만** 켠다. 지금 역할을 아는 것은 CSS(`data-role`)뿐이라
+ * 역할마다 클래스를 하나씩 두고, 목차가 서는 역할의 것만 붙인다.
  */
 const GRID_WITH_NAV: Record<Role, string> = {
-  system: 'lg:[:root[data-role=system]_&]:grid-cols-[236px_minmax(0,1fr)]',
-  site: 'lg:[:root[data-role=site]_&]:grid-cols-[236px_minmax(0,1fr)]',
-  gov: 'lg:[:root[data-role=gov]_&]:grid-cols-[236px_minmax(0,1fr)]',
+  system: styles.layoutNavSystem,
+  site: styles.layoutNavSite,
+  gov: styles.layoutNavGov,
 };
 
 export function SettingsView() {
@@ -168,7 +169,7 @@ export function SettingsView() {
         title="공정 구성"
         titleAside={<InfoTip label="공정 구성과 ECP 채널" content={PROCESS_STAGE_ITEMS_NOTE} />}
         action={
-          <span className="text-[12px] text-fg-subtle">
+          <span className={styles.panelCount}>
             {process.stages.length}단계{process.isUserSet ? '' : ' · 표준 공정'}
           </span>
         }
@@ -181,7 +182,7 @@ export function SettingsView() {
         title="계측 구성"
         titleAside={<InfoTip label="끈 항목은 어떻게 되나" content={INSTRUMENT_FORM_NOTE} />}
         action={
-          <span className="text-[12px] text-fg-subtle">
+          <span className={styles.panelCount}>
             보유 {instruments.held.length} · 미설치 {instruments.absent.length}
           </span>
         }
@@ -194,7 +195,7 @@ export function SettingsView() {
         title="설비 전력 계측"
         titleAside={<InfoTip label="무엇을 정하는 설정인가" content={METERING_FORM_NOTE} />}
         action={
-          <span className="text-[12px] text-fg-subtle">
+          <span className={styles.panelCount}>
             계측 {metering.ids.length} / 설비 {meterableUnits.length}
           </span>
         }
@@ -229,7 +230,7 @@ export function SettingsView() {
   const site = getSite(siteId);
 
   return (
-    <div className="space-y-6">
+    <div className={styles.root}>
       <SettingsOverview
         siteName={site.name}
         siteRegion={`${site.industry} · ${site.address}`}
@@ -261,11 +262,11 @@ export function SettingsView() {
        * **역할마다 한 벌씩 그리고 CSS가 고른다** — 두 칸 격자도 `data-role`로 켠다. `useRole()`로
        * 가르면 서버(역할을 모름)와 트리가 어긋나 하이드레이션이 깨진다(§7.2).
        */}
-      <div className={cn('grid gap-6', NAV_ROLES.map((forRole) => GRID_WITH_NAV[forRole]))}>
+      <div className={cn(styles.layout, NAV_ROLES.map((forRole) => GRID_WITH_NAV[forRole]))}>
         {NAV_ROLES.map((forRole) => (
           <SettingsNav
             key={forRole}
-            className={`role-only-${forRole} lg:sticky lg:top-[calc(var(--header-h)_+_1.5rem)] lg:self-start`}
+            className={cn(`role-only-${forRole}`, styles.nav)}
             tabs={tabsOf(forRole)}
             active={effectiveTab(forRole)}
             onSelect={setTab}
@@ -273,12 +274,12 @@ export function SettingsView() {
           />
         ))}
 
-        <div className="min-w-0 space-y-6">
+        <div className={styles.body}>
           {SETTINGS_TABS.map((value) => {
             /*
              * 그 탭을 보게 되는 역할들. 하나도 없으면 아예 그리지 않는다 — 대개 한둘이다.
-             * `contents`는 레이아웃에 투명하고, 가려야 할 때 `role-hide-*`가 특이도로 이겨 `none`이
-             * 된다(`RoleGate`가 쓰는 짜임 그대로다).
+             * `contents`는 레이아웃에 투명하고, 가려야 할 때 `role-hide-*`가 이겨 `none`이
+             * 된다(`RoleGate`가 쓰는 짜임 그대로다 — 이기는 까닭은 모듈의 레이어 주석).
              */
             const seenBy = ROLES.filter((forRole) => effectiveTab(forRole) === value);
             if (seenBy.length === 0) return null;
@@ -287,7 +288,7 @@ export function SettingsView() {
               <div
                 key={value}
                 className={cn(
-                  'contents',
+                  styles.panelSlot,
                   ROLES.filter((forRole) => !seenBy.includes(forRole)).map(
                     (forRole) => `role-hide-${forRole}`,
                   ),

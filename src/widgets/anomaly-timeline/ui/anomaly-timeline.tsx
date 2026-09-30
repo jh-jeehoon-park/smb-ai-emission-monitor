@@ -31,6 +31,7 @@ import { ChartFigure } from '@/shared/ui/chart-figure';
 import { ChartTooltipRow, ChartTooltipShell } from '@/shared/ui/chart-tooltip';
 import type { AnomalyPoint } from '@/entities/anomaly';
 import { useChartHover } from '@/shared/lib/use-chart-hover';
+import styles from './anomaly-timeline.module.scss';
 
 /**
  * 표 한 행이 담는 구간(분).
@@ -79,7 +80,7 @@ export function AnomalyTimeline({ data, outage, focus = null }: AnomalyTimelineP
         { header: '이상 점수', cell: (r) => (r.score === null ? '수신 없음' : String(r.score)) },
       ]}
     >
-    <div className="h-[190px] w-full" {...hoverProps}>
+    <div className={styles.plot} {...hoverProps}>
       <ResponsiveContainer width="100%" height="100%">
       {/* 포커스로 툴팁이 고정되는 것을 막는다 — 근거는 `water-quality-grid.tsx` */}
       <AreaChart data={data} margin={{ top: 4, right: 8, bottom: 0, left: 0 }} accessibilityLayer={false}>

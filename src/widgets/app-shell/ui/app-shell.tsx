@@ -34,6 +34,7 @@ import { ReceiveIndicator } from './receive-indicator';
 import { RoleGate } from './role-gate';
 import { TelemetryNotice } from './telemetry-notice';
 import { WallboardExit } from './wallboard-exit';
+import styles from './app-shell.module.scss';
 
 export function AppShell({ children }: { children: ReactNode }) {
   const headerRef = useRef<HTMLElement>(null);
@@ -90,20 +91,20 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-screen bg-bg">
+    <div className={styles.frame}>
       {/* 사이드바가 모든 화면에 고정이라 키보드 사용자는 매번 링크 7개를 지나야 본문에 닿는다 */}
       <a
         href="#main"
-        className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50 focus:rounded-[4px] focus:border focus:border-border-strong focus:bg-surface focus:px-3 focus:py-2 focus:text-[12px] focus:text-fg"
+        className={styles.skipLink}
       >
         본문으로 건너뛰기
       </a>
 
-      <aside className="sticky top-0 hidden h-screen w-[280px] shrink-0 flex-col border-r border-border bg-surface lg:flex">
+      <aside className={styles.sidebar}>
         <NavColumn pathname={pathname} />
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className={styles.column}>
         {/*
          * **헤더 높이를 재서 `--header-h`에 넣는다** `[사용자 지시 2026-08-24: 반응형 점검]`.
          *
@@ -134,7 +135,7 @@ export function AppShell({ children }: { children: ReactNode }) {
          * 헤더가 `z-10`이던 판본은 같은 값의 탭 줄이 뒤에 그려져 이겼고, 역할 전환을 열고
          * 스크롤하면 목록이 탭 줄 뒤로 들어가 잘렸다.
          */}
-        <header ref={headerRef} className="sticky top-0 z-30 border-b border-border bg-surface">
+        <header ref={headerRef} className={styles.header}>
           {/*
            * **어느 폭에서도 한 줄이다** `[사용자 요청 2026-09-18: 모바일 헤더 반응형]`.
            *
@@ -155,23 +156,23 @@ export function AppShell({ children }: { children: ReactNode }) {
            * `flex-wrap`이 없으므로 **넘치면 접히는 대신 가로로 밀린다.** 그래서 「자리가 있다」를
            * 산술이 아니라 라이브 DOM 실험으로 먼저 쟀다.
            *
-           * 높이는 `py-4`(32) + 가장 키 큰 자식 + 테두리 1이다 — 서랍 버튼과 선택기가 둘 다
+           * 높이는 위아래 여백(32) + 가장 키 큰 자식 + 테두리 1이다 — 서랍 버튼과 선택기가 둘 다
            * 32px이라 **어느 폭에서도 65px**이고, 선택기가 없는 사업장 역할의 `lg` 이상만 61px이다.
            */}
-          <div className="flex items-center gap-x-4 px-4 py-4 lg:px-6">
+          <div className={styles.headerRow}>
             <NavDrawer pathname={pathname} />
             <Greeting />
 
-            <div className="ml-auto flex shrink-0 items-center gap-x-3 text-[12px] font-medium text-fg-subtle">
+            <div className={styles.headerAside}>
               {/*
                * **헤더는 «지금 무엇을 보는가», 기둥은 «어디로 가는가»** `[사용자 요청 2026-09-18]`.
                * 수신 점·알림·계정이 이미 전역 맥락이라 사업장도 같은 축이다. 좁은 화면에서는
                * 그 자리가 없어 `NavColumn`이 받는다 — **한 자리에만 보이도록 CSS가 고른다.**
                *
                * 사업장 역할은 자사 1개소라 고를 것이 없어 `role-hide-site`가 여전히 감춘다 —
-               * 그 규칙이 `display:none`을 (0,3,0)으로 걸어 `lg:inline-flex`(0,1,0)를 이긴다.
+               * 그 규칙이 `display:none`을 (0,3,0)으로 걸어 `lg` 이상의 `inline-flex`(0,1,0)를 이긴다.
                */}
-              <SiteSelector className="hidden w-[210px] shrink-0 lg:inline-flex" />
+              <SiteSelector className={styles.headerSiteSelector} />
               <ReceiveIndicator />
               <AlarmMenu />
               <ProfileMenu />
@@ -179,7 +180,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </header>
 
-        <main id="main" tabIndex={-1} className="flex-1 px-4 py-4 lg:px-6 lg:py-6">
+        <main id="main" tabIndex={-1} className={styles.main}>
           {/* 본문 맨 위에 두는 표식 + 되감기 버튼. 셸에 한 번만 두면 모든 화면이 함께 얻는다 */}
           <TopButton />
           {/*
@@ -187,7 +188,7 @@ export function AppShell({ children }: { children: ReactNode }) {
            * 시계·알림과 한 줄에서 자리를 다투고, 스크롤해도 붙어 있어 본문의 시작을 가린다.
            * 여기 두면 본문 콘텐츠와 왼쪽 끝이 맞고 스크롤과 함께 올라간다.
            */}
-          <h1 className="mb-4 text-[20px] font-bold leading-tight tracking-tight text-fg lg:mb-5">
+          <h1 className={styles.pageTitle}>
             {navLabelOf(pathname)}
           </h1>
           {/*
@@ -220,15 +221,15 @@ export function AppShell({ children }: { children: ReactNode }) {
  */
 function Greeting() {
   return (
-    <div className="min-w-0">
+    <div className={styles.greeting}>
       {ROLES.map((role) => {
         const profile = ROLE_PROFILES[role];
         return (
           <p
             key={role}
-            className={`role-only-${role} truncate text-[14px] font-medium text-fg-muted`}
+            className={cn(`role-only-${role}`, styles.greetingLine)}
           >
-            <span className="font-bold text-fg">
+            <span className={styles.greetingName}>
               {profile.label} {profile.demoName}
             </span>
             님, 안녕하세요
@@ -294,7 +295,7 @@ function NavDrawer({ pathname }: { pathname: string }) {
       {/* 사이드바가 보이는 폭에서는 필요 없다 */}
       <Dialog.Trigger
         aria-label="메뉴 열기"
-        className={cn(ICON_BUTTON, '-ml-1 size-8 text-fg-muted lg:hidden')}
+        className={cn(ICON_BUTTON, styles.drawerTrigger)}
       >
         <Menu aria-hidden size={20} strokeWidth={1.9} />
       </Dialog.Trigger>
@@ -318,20 +319,20 @@ function NavDrawer({ pathname }: { pathname: string }) {
                 initial="hidden"
                 animate="show"
                 exit="hidden"
-                className="fixed inset-0 z-40 bg-black/40 lg:hidden"
+                className={styles.drawerScrim}
               />
             </Dialog.Overlay>
             <Dialog.Content
               asChild
               forceMount
               aria-describedby={undefined}
-              className="fixed left-0 top-0 z-50 flex h-full w-[min(280px,calc(100vw-3rem))] flex-col border-r border-border bg-surface lg:hidden"
+              className={styles.drawerPanel}
             >
               <motion.div variants={drawerPanel} initial="hidden" animate="show" exit="hidden">
-                <Dialog.Title className="sr-only">메뉴</Dialog.Title>
+                <Dialog.Title className={styles.srOnly}>메뉴</Dialog.Title>
                 <Dialog.Close
                   aria-label="메뉴 닫기"
-                  className="absolute right-3 top-3 cursor-pointer rounded-chip p-1.5 text-fg-subtle transition-colors duration-200 hover:bg-surface-2 hover:text-fg"
+                  className={styles.drawerClose}
                 >
                   <X aria-hidden size={16} strokeWidth={1.9} />
                 </Dialog.Close>
@@ -366,7 +367,7 @@ function hiddenForGroupClass(group: NavGroup): string {
  *
  * (한때 여기 *"`role-only-*`는 `display: block`을 강제해 인라인 배지가 줄에서 떨어져
  * 나간다"* 고 적어 두었다. 그 함정은 계정 축에도 그대로 있어 **이 배지가 실제로 깨졌다** —
- * 원 안의 숫자가 왼쪽 위로 밀렸다 `[사용자 지적 2026-09-07]`. `globals.css`의 두 규칙을
+ * 원 안의 숫자가 왼쪽 위로 밀렸다 `[사용자 지적 2026-09-07]`. `globals.scss`의 두 규칙을
  * 감추기 전용으로 바꿔 함정 자체를 없앴고, 그래서 이제 어느 쪽을 써도 된다.)
  */
 function AlarmBadge() {
@@ -400,7 +401,8 @@ function Badge({ count, className }: { count: number; className: string }) {
     <span
       className={cn(
         BADGE_BASE,
-        'num min-w-5 justify-center rounded-full bg-critical/16 text-critical-ink',
+        'num',
+        styles.alarmBadge,
         className,
       )}
     >
@@ -444,19 +446,17 @@ function NavColumn({ pathname, onNavigate }: { pathname: string; onNavigate?: ()
        * **래퍼에도 `role-hide-site`를 건다.** 부품만 감추면 이 블록의 여백이 빈 틈으로 남아
        * 사업장 역할에서 브랜드와 메뉴 사이가 벌어진다.
        *
-       * **`lg:hidden`이 이 부품을 서랍 전용으로 만든다.** 이 기둥은 사이드바(`lg` 이상)와
-       * 서랍(`lg` 미만) **둘이 함께 쓰는 한 벌**이라, 클래스 하나로 「사이드바에서는 숨고
-       * 서랍에서는 남는다」가 된다 — 헤더 쪽과 합쳐 **한 자리에만 보인다.** 두 곳에 따로
+       * **`lg` 이상에서 숨는 규칙(`.siteSelectorSlot`)이 이 부품을 서랍 전용으로 만든다.** 이 기둥은
+       * 사이드바(`lg` 이상)와 서랍(`lg` 미만) **둘이 함께 쓰는 한 벌**이라, 클래스 하나로 「사이드바에서는
+       * 숨고 서랍에서는 남는다」가 된다 — 헤더 쪽과 합쳐 **한 자리에만 보인다.** 두 곳에 따로
        * 적지 않으므로 정의는 여전히 한 곳이다.
-       *
-       * `px-3.5`는 `SiteNav`와 같은 값이라 셀렉트의 왼쪽 끝이 메뉴 항목 hover 면과 맞는다.
        */}
-      <div className="role-hide-site px-3.5 pb-3 lg:hidden">
+      <div className={cn('role-hide-site', styles.siteSelectorSlot)}>
         {/*
          * **범위는 부품이 스스로 정한다** — 목록이 `useScopedSites()`라 URL의 `scope`를
          * 따르고, 역할로 분기하지 않는다(서버는 역할을 모른다).
          */}
-        <SiteSelector className="w-full" />
+        <SiteSelector className={styles.siteSelectorFull} />
       </div>
       <SiteNav pathname={pathname} onNavigate={onNavigate} />
     </>
@@ -486,10 +486,7 @@ function BrandHome() {
           key={href}
           href={withSite(href)}
           className={cn(
-            /* overflow-hidden은 안전망이다 — nowrap 텍스트가 예상보다 넓어도 본문 위로
-               삐져나오지 않는다. 폭에 20px 여유를 두었으므로 실제로 잘릴 일은 없다 */
-            'flex cursor-pointer items-center gap-2 overflow-hidden px-6 py-5',
-            'focus-visible:outline focus-visible:-outline-offset-2 focus-visible:outline-border-strong',
+            styles.brandHome,
             /* 이 목적지를 쓰지 않는 역할에서는 감춘다 */
             ROLES.filter((role) => homeHrefFor(role) !== href)
               .map((role) => `role-hide-${role}`)
@@ -500,12 +497,12 @@ function BrandHome() {
           {/*
            * 사업계획서 p.37·p.118의 국문 정식명. 폭이 좁아 줄여 쓰고 싶어지지만 줄이지 않는다(A2).
            * **폭이 크기를 정한다.** 이름은 한글 12자 + 라틴 2자 + 공백 4개라 약 14.3em이고,
-           * `tracking-tight`가 6px쯤 줄여 준다. 사이드바 300px에서 여백 48 · 마크 24 · 간격 8을
+           * 자간(-0.025em)이 6px쯤 줄여 준다. 사이드바 300px에서 여백 48 · 마크 24 · 간격 8을
            * 빼면 220px이 남으므로 15px(약 208px)까지가 들어간다 — 16px은 222px이라 2px 넘친다.
-           * `overflow-hidden`이 안전망이지만 넘치면 이름이 잘리고, 그것은 이름을 줄이지
+           * `overflow: hidden`이 안전망이지만 넘치면 이름이 잘리고, 그것은 이름을 줄이지
            * 않는다는 A2를 어긴다.
            */}
-          <p className="whitespace-nowrap text-[14px] font-bold leading-tight tracking-tight text-fg">
+          <p className={styles.brandName}>
             {BRAND_NAME}
           </p>
         </Link>
@@ -517,22 +514,11 @@ function BrandHome() {
 /** 사이드바가 나타나는 폭. Tailwind의 `lg`와 같은 값이라 한쪽만 바뀌면 어긋난다 */
 const SIDEBAR_QUERY = '(min-width: 64rem)';
 
-/**
- * 묶음 머리글. **깊이가 아니라 이름표다** — 접히지 않고 항목은 늘 펼쳐져 있다.
- * 항목(14px)보다 작고 가라앉혀, 훑을 때 걸리지 않고 찾을 때만 눈에 들어오게 한다.
- * 한글이라 자간을 벌리지 않는다(`Eyebrow`와 같은 이유 — 낱글자로 흩어져 읽힌다).
- *
- * **12px이다.** 한때 11px이었는데 §8 `글자 최소`가 *"예외는 그래프 안의 글자뿐"* 이라
- * 못박고 있어 예외 대상이 아니었다 — 규칙과 코드가 갈린 채였다. 항목(14px)과는
- * `font-semibold` + `--fg-faint`로 갈리므로 한 단 올려도 이름표로 남는다.
- */
-const NAV_GROUP_LABEL = 'px-2.5 pb-1 text-[12px] font-semibold text-fg-faint';
-
 function SiteNav({ pathname, onNavigate }: { pathname: string; onNavigate?: () => void }) {
   const withSite = useSiteHref();
 
   return (
-    <nav className="flex-1 space-y-4 overflow-y-auto px-3.5 pb-4">
+    <nav className={styles.nav}>
       {NAV_GROUPS.map((group, index) => (
         <div
           key={group.label}
@@ -543,9 +529,9 @@ function SiteNav({ pathname, onNavigate }: { pathname: string; onNavigate?: () =
            * 홀로 남아 빈 이름표가 된다 — 지자체에게 관리 묶음이 그렇다(수처리 공정은
            * 사업장만, 사업장 설정은 관리자·사업장).
            */
-          className={cn('space-y-1', hiddenForGroupClass(group))}
+          className={cn(styles.navGroup, hiddenForGroupClass(group))}
         >
-          <p id={`nav-group-${index}`} className={NAV_GROUP_LABEL}>
+          <p id={`nav-group-${index}`} className={styles.navGroupLabel}>
             {group.label}
           </p>
           {group.items.map((item) => {
@@ -557,16 +543,13 @@ function SiteNav({ pathname, onNavigate }: { pathname: string; onNavigate?: () =
                 onClick={onNavigate}
                 aria-current={active ? 'page' : undefined}
                 className={cn(
-                  'flex w-full items-center gap-2.5 rounded-[10px] p-2.5 text-[14px] font-medium',
-                  'transition-colors duration-200',
-                  active
-                    ? 'bg-accent-weak font-semibold text-accent'
-                    : 'text-fg-muted hover:bg-surface-2/60 hover:text-fg',
+                  styles.navItem,
+                  active ? styles.navItemActive : styles.navItemIdle,
                   hiddenForClass(item),
                 )}
               >
-                <item.icon size={20} strokeWidth={1.9} className="shrink-0" />
-                <span className="min-w-0 flex-1 break-keep text-left">{item.label}</span>
+                <item.icon size={20} strokeWidth={1.9} className={styles.navItemIcon} />
+                <span className={styles.navItemLabel}>{item.label}</span>
                 {item.href === ALARM_NAV_HREF && <AlarmBadge />}
               </Link>
             );

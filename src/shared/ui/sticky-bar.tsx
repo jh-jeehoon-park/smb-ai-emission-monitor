@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { cn } from '@/shared/lib/cn';
 import { useMediaQuery } from '@/shared/lib/use-media-query';
+import styles from './sticky-bar.module.scss';
 
 interface StickyBarProps {
   children: ReactNode;
@@ -12,7 +13,7 @@ interface StickyBarProps {
 /**
  * **띠가 붙는 폭** — `lg` 이상에서만 붙는다 `[사용자 결정 2026-09-18]`.
  *
- * **세 곳이 같은 값을 봐야 한다**: 이 상수(관측기·변수를 켤지) · 아래 `lg:` 클래스(붙일지) ·
+ * **세 곳이 같은 값을 봐야 한다**: 이 상수(관측기·변수를 켤지) · 모듈의 `up(lg)` 규칙(붙일지) ·
  * 그리고 `--sticky-bar-h`를 읽는 쪽의 `,0px` 기본값. 어긋나면 «붙는데 관측기는 꺼진»
  * 반쪽 상태가 되고, 그 폭을 열어 보지 않으면 눈에 띄지 않는다.
  *
@@ -110,18 +111,14 @@ export function StickyBar({ children, className }: StickyBarProps) {
 
   return (
     <>
-      <div ref={sentinelRef} aria-hidden className="h-px" />
+      <div ref={sentinelRef} aria-hidden className={styles.sentinel} />
       {/*
-       * 붙었을 때 좌우로 넘기는 음수 여백은 **구역 패딩 + 본문 패딩**이다 — 20+24=**44px**
-       * (`-mx-11`). 구역 패딩만 되돌리면 본문 여백만큼 좁은 띠가 되어 헤더와 폭이 어긋난다.
-       * 그 위에 다시 주는 좌우 패딩은 **헤더와 같은 값**(24px)이라 붙은 순간 제목의 왼쪽 끝이
-       * 헤더의 인사말과 한 줄로 선다 `[사용자 지시 2026-08-24]`.
+       * 붙었을 때의 여백·겉면 근거는 `.barStuck` 곁에 있다.
        *
-       * **좁은 화면용 32px 분기(`-mx-8`·`px-4`)는 걷었다** — 붙는 일이 `lg` 이상에만 있어
+       * **좁은 화면용 32px 분기(음수 여백 32px·좌우 16px)는 걷었다** — 붙는 일이 `lg` 이상에만 있어
        * 닿지 않는 값이 됐다 `[사용자 결정 2026-09-18]`.
        *
-       * 위쪽 패딩은 **붙었을 때만** 준다 `[사용자 지시 2026-08-24]` — 헤더 바로 밑에 글자가
-       * 닿아 두 줄이 붙어 보였다. 그만큼 높이가 늘어 아래 내용이 한 번 밀리는데, 붙는 순간에만
+       * 위쪽 패딩이 붙은 순간에만 늘어 아래 내용이 한 번 밀리는데, 붙는 순간에만
        * 일어나고 `--sticky-bar-h`를 보는 지도 레일도 같은 값을 따라간다.
        */}
       <div
@@ -133,15 +130,7 @@ export function StickyBar({ children, className }: StickyBarProps) {
          * 걸리고, 파생으로 읽으면 그럴 필요가 없기 때문이다.
          */
         data-stuck={(stuck && canStick) || undefined}
-        className={cn(
-          'lg:sticky lg:top-[var(--header-h)] lg:z-10',
-          '-mt-2.5 space-y-3 py-2.5',
-          'transition-[margin,padding,background-color,box-shadow] duration-200',
-          stuck &&
-            canStick &&
-            '-mx-11 border-b border-border bg-surface px-6 pb-3 pt-4 shadow-panel',
-          className,
-        )}
+        className={cn(styles.bar, stuck && canStick && styles.barStuck, className)}
       >
         {children}
       </div>

@@ -1,15 +1,17 @@
 // @vitest-environment jsdom
+import { readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, within } from '@testing-library/react';
 import { PROVISIONAL_STATUS_LABELS } from '@/shared/config/provisional';
 import { SITES } from '@/entities/site';
 import { SiteScoreTable } from './site-score-table';
+import styles from './site-score-table.module.scss';
 
 /**
  * 사업장별 이상 점수 — **좁은 화면에서 점수와 등급을 숨기지 않는다**
  * `[사용자 요청 2026-09-21: 나머지 전체 화면 반응형]`.
  *
- * 표는 `min-w-[880px]`이라 390px에서 가로로 밀린다. 그 자체는 규약대로지만, 실측으로
+ * 표는 최소 폭이 880px이라 390px에서 가로로 밀린다. 그 자체는 규약대로지만, 실측으로
  * **보이는 것이 `순위 · 사업장 · 업종·지역` 세 열뿐이었고 이 표의 주어인 점수와 등급이
  * 564px 오른쪽에 숨어 있었다.** 밀면 나오지만 휴대폰의 겹침 스크롤바는 만지기 전까지
  * 뜨지 않아 그것이 있다는 사실 자체가 화면에 없다.
@@ -40,10 +42,28 @@ describe('사업장별 이상 점수', () => {
     );
 
     /* 폭을 렌더 중에 물으면 서버가 모르는 값이 마크업에 섞여 하이드레이션이 깨진다 */
-    expect(container.querySelector('.hidden.lg\\:block')).not.toBeNull();
-    expect(container.querySelector('.lg\\:hidden')).not.toBeNull();
-    expect(screen.getByRole('table')).toBeInTheDocument();
-    expect(narrow()).toBeInTheDocument();
+    const wide = container.querySelector(`.${styles.wide}`);
+    const narrowBox = container.querySelector(`.${styles.narrow}`);
+    expect(wide).not.toBeNull();
+    expect(narrowBox).not.toBeNull();
+    expect(wide!.contains(screen.getByRole('table'))).toBe(true);
+    expect(narrowBox!.contains(narrow())).toBe(true);
+  });
+
+  /**
+   * **고르는 것은 CSS다** — 넓은 쪽은 `lg` 미만에서 감추고 `lg` 이상에서 보이며, 좁은 쪽은 그
+   * 반대다. jsdom은 스타일시트를 적용하지 않으므로 모듈 SCSS 원문에서 본다.
+   */
+  it('`lg`를 문턱으로 두 벌이 서로를 대신한다', () => {
+    const scss = readFileSync('src/widgets/anomaly-view/ui/site-score-table.module.scss', 'utf8');
+    const rule = (name: string) =>
+      scss.match(new RegExp(String.raw`\.${name}\s*\{((?:[^{}]|\{[^{}]*\})*)\}`))?.[1] ?? '';
+
+    expect(rule('wide')).toMatch(/^\s*display:\s*none;/);
+    expect(rule('wide')).toMatch(/@include up\(lg\)\s*\{\s*display:\s*block;\s*\}/);
+    expect(rule('narrow')).toMatch(/@include up\(lg\)\s*\{\s*display:\s*none;\s*\}/);
+    /* 좁은 쪽이 `lg` 미만에서 스스로를 감추면 두 벌이 모두 사라진다 */
+    expect(rule('narrow')).not.toMatch(/^\s*display:\s*none;/);
   });
 
   /** 열 곳이 전부 줄로 나와야 한다 — 표와 같은 순서, 같은 순위 */

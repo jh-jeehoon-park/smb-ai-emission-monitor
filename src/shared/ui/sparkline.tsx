@@ -3,6 +3,7 @@
 import { useId } from 'react';
 import { cn } from '@/shared/lib/cn';
 import { smoothPath } from '@/shared/lib/smooth-path';
+import styles from './sparkline.module.scss';
 
 interface SparklineProps {
   values: (number | null)[];
@@ -49,7 +50,7 @@ export function Sparkline({
   const gradientId = `spark-${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
   const filled = values.filter((v): v is number => v !== null);
   if (filled.length < 2) {
-    return <div className={cn('h-6', fluid ? 'w-full' : 'w-24', className)} aria-hidden />;
+    return <div className={cn(styles.placeholder, fluid ? styles.placeholderFluid : styles.placeholderFixed, className)} aria-hidden />;
   }
 
   const min = Math.min(...filled);
@@ -76,7 +77,7 @@ export function Sparkline({
 
   return (
     <svg
-      className={cn('overflow-visible', fluid && 'w-full', className)}
+      className={cn(styles.svg, fluid && styles.svgFluid, className)}
       width={fluid ? undefined : width}
       height={height}
       viewBox={`0 0 ${width} ${height}`}

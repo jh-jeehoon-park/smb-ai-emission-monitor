@@ -1,0 +1,16 @@
+@use 'shared/styles' as *;
+
+/* 배지 뼈대 — 색은 쓰는 쪽이 얹는다(상태·우선순위마다 다르다). 덮을 수 있게 `components` 레이어 */
+@layer components {
+  .base {
+    display: inline-flex;
+    height: sp(5);
+    flex-shrink: 0;
+    align-items: center;
+    gap: sp(1);
+    border-radius: 4px;
+    padding-inline: sp(1);
+    font-size: 12px;
+    line-height: 1;
+  }
+}

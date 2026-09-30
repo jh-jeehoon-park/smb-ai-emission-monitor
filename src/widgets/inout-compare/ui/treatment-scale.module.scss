@@ -1,0 +1,149 @@
+@use 'shared/styles' as *;
+
+.root {
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-panel);
+  background-color: var(--surface);
+  padding: sp(5);
+  box-shadow: var(--card-shadow);
+
+  @include up(lg) {
+    padding: sp(6);
+  }
+}
+
+/*
+ * **열 수를 뷰포트가 아니라 «이 격자가 받은 폭»이 정한다**(`@container`).
+ * `water-quality-grid`가 같은 값을 쓰고 그 이유를 적어 두었다 — 뷰포트로 나누면 같은
+ * 격자가 넓은 자리와 좁은 자리에 함께 놓일 때 한쪽이 반드시 어긋난다.
+ */
+.gridWrap {
+  container-type: inline-size;
+  margin-top: sp(3);
+}
+
+/*
+ * **두 값이 가로로 마주 서면서 카드에 최소 폭이 생겼다.** 한 장 안에 22px 숫자 둘과
+ * `→`가 한 줄에 들어가야 하고, 그 위에 두 지점 이름이 또 한 줄로 선다 — 실측으로 카드
+ * 155px에서 **값이 `10…`으로 잘렸다**(390px 캡처). **숫자가 잘리는 것은 틀린 값을 적는
+ * 것**이라 열 수로 막는다.
+ *
+ * 그래서 문턱이 둘에서 셋으로 늘었다 — 좁으면 **한 열**로 서고 카드가 온전한 폭을 갖는다.
+ * `430`·`870`은 카드 한 장에 최소 ~210px를 주는 값이다(간격 8px 포함). 카드 안의 짜임은
+ * **어느 폭에서도 같다** `[사용자 요청 2026-09-10: 8개 카드의 내부 구조와 간격을 완전히
+ * 통일한다]` — 달라지는 것은 몇 장이 한 줄에 서는가뿐이다.
+ */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: sp(2);
+
+  @container (min-width: 430px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @container (min-width: 870px) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.notice {
+  margin-top: sp(3);
+  font-size: 12px;
+  line-height: 1.625;
+  color: var(--fg-subtle);
+}
+
+.noticeEmphasis {
+  font-weight: 600;
+}
+
+.band {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: sp(5);
+  row-gap: sp(3);
+  padding: sp(4) sp(5);
+}
+
+.bandSkeleton {
+  display: block;
+  height: sp(9);
+  width: sp(48);
+  border-radius: var(--radius-chip);
+  background-color: var(--surface-3);
+}
+
+.verdict {
+  min-width: 0;
+}
+
+.eyebrow {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  color: var(--fg-subtle);
+}
+
+.headline {
+  margin-top: sp(0.5);
+}
+
+.headlineQuiet {
+  color: var(--fg-muted);
+}
+
+.headlineStrong {
+  color: var(--fg);
+}
+
+.detail {
+  margin-top: sp(1.5);
+  font-size: 12px;
+  line-height: 1.625;
+  color: var(--fg-muted);
+}
+
+.legend {
+  margin-top: sp(4);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: sp(4);
+  row-gap: sp(1.5);
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+.gapSwatch {
+  display: block;
+  height: sp(0.5);
+  width: sp(3.5);
+  border-radius: calc(infinity * 1px);
+  background-color: var(--fg-muted);
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: sp(1.5);
+}
+
+.dot {
+  display: block;
+  width: sp(2.5);
+  height: sp(2.5);
+  flex-shrink: 0;
+  border-radius: calc(infinity * 1px);
+}
+
+.ring {
+  display: block;
+  width: sp(2.5);
+  height: sp(2.5);
+  flex-shrink: 0;
+  border-radius: calc(infinity * 1px);
+  background-color: var(--surface);
+}

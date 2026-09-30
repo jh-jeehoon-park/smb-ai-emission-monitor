@@ -1,0 +1,19 @@
+@use 'shared/styles' as *;
+
+/* 트랙의 높이·바깥 여백은 부르는 쪽이 `className`으로 정한다 — 그래서 `components` 레이어다 */
+@layer components {
+  .track {
+    width: 100%;
+    overflow: hidden;
+    border-radius: calc(infinity * 1px);
+    background-color: var(--surface-3);
+  }
+}
+
+.fill {
+  height: 100%;
+  border-radius: calc(infinity * 1px);
+  transition-property: width;
+  transition-duration: 500ms;
+  transition-timing-function: cubic-bezier(0, 0, 0.2, 1);
+}

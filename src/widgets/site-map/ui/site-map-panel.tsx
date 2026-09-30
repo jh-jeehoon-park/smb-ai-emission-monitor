@@ -3,7 +3,9 @@
 import { PROVISIONAL_STATUS_LABELS, PROVISIONAL_STATUS_LEVELS } from '@/shared/config/provisional';
 import { STATUS_VISUAL } from '@/shared/config/status-visual';
 import type { Site } from '@/entities/site';
+import { cn } from '@/shared/lib/cn';
 import { SiteMap } from './site-map';
+import styles from './site-map-panel.module.scss';
 
 interface SiteMapPanelProps {
   sites: Site[];
@@ -28,22 +30,22 @@ interface SiteMapPanelProps {
  */
 export function SiteMapLegend({ density = true }: { density?: boolean } = {}) {
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-      <ul className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+    <div className={styles.legend}>
+      <ul className={styles.levels}>
         {PROVISIONAL_STATUS_LEVELS.map((level) => (
-          <li key={level} className="flex items-center gap-1 text-[12px] text-fg-subtle">
+          <li key={level} className={styles.item}>
             <span
               aria-hidden
-              className="inline-block size-2 rounded-full"
+              className={styles.dot}
               style={{ backgroundColor: STATUS_VISUAL[level].hex }}
             />
             {PROVISIONAL_STATUS_LABELS[level]}
           </li>
         ))}
-        <li className="flex items-center gap-1 text-[12px] text-fg-subtle">
+        <li className={styles.item}>
           <span
             aria-hidden
-            className="inline-block size-2 rounded-full border-2"
+            className={cn(styles.dot, styles.ring)}
             style={{ borderColor: 'var(--missing)' }}
           />
           통신 두절
@@ -52,12 +54,12 @@ export function SiteMapLegend({ density = true }: { density?: boolean } = {}) {
 
       {/* 면 농도의 뜻. 계단 세 칸이 곧 1 · 2 · 3개소 이상이다 */}
       {density && (
-        <span className="flex items-center gap-1 text-[12px] text-fg-subtle">
-          <span aria-hidden className="flex overflow-hidden rounded-[3px]">
+        <span className={styles.item}>
+          <span aria-hidden className={styles.steps}>
             {[18, 30, 42].map((mix) => (
               <span
                 key={mix}
-                className="inline-block size-2"
+                className={styles.step}
                 style={{
                   backgroundColor: `color-mix(in srgb, var(--accent) ${mix}%, var(--surface))`,
                 }}

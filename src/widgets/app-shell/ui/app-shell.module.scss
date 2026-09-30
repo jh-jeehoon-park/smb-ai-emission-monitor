@@ -1,0 +1,341 @@
+@use 'shared/styles' as *;
+
+.frame {
+  display: flex;
+  min-height: 100vh;
+  background-color: var(--bg);
+}
+
+.skipLink {
+  @include sr-only;
+
+  &:focus {
+    clip-path: none;
+    white-space: normal;
+    width: auto;
+    height: auto;
+    margin: 0;
+    padding: 0;
+    overflow: visible;
+    position: absolute;
+    left: sp(3);
+    top: sp(3);
+    z-index: 50;
+    border: 1px solid var(--border-strong);
+    border-radius: 4px;
+    background-color: var(--surface);
+    padding-inline: sp(3);
+    padding-block: sp(2);
+    font-size: 12px;
+    color: var(--fg);
+  }
+}
+
+.sidebar {
+  position: sticky;
+  top: 0;
+  display: none;
+  height: 100vh;
+  width: 280px;
+  flex-shrink: 0;
+  flex-direction: column;
+  border-right: 1px solid var(--border);
+  background-color: var(--surface);
+
+  @include up(lg) {
+    display: flex;
+  }
+}
+
+.column {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  border-bottom: 1px solid var(--border);
+  background-color: var(--surface);
+}
+
+.headerRow {
+  display: flex;
+  align-items: center;
+  column-gap: sp(4);
+  padding-inline: sp(4);
+  padding-block: sp(4);
+
+  @include up(lg) {
+    padding-inline: sp(6);
+  }
+}
+
+.headerAside {
+  margin-left: auto;
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  column-gap: sp(3);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--fg-subtle);
+}
+
+/*
+ * **`lg` 이상에서만 보인다** — 좁은 화면에서는 기둥(`.siteSelectorSlot`)이 받는다. 사업장 역할은
+ * 자사 1개소라 고를 것이 없어 `role-hide-site`가 `display: none`을 (0,3,0)으로 걸어 이긴다.
+ */
+.headerSiteSelector {
+  display: none;
+  width: 210px;
+  flex-shrink: 0;
+
+  @include up(lg) {
+    display: inline-flex;
+  }
+}
+
+.main {
+  flex: 1;
+  padding-inline: sp(4);
+  padding-block: sp(4);
+
+  @include up(lg) {
+    padding-inline: sp(6);
+    padding-block: sp(6);
+  }
+}
+
+.pageTitle {
+  margin-bottom: sp(4);
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.025em;
+  color: var(--fg);
+
+  @include up(lg) {
+    margin-bottom: sp(5);
+  }
+}
+
+.greeting {
+  min-width: 0;
+}
+
+.greetingLine {
+  @include truncate;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--fg-muted);
+}
+
+.greetingName {
+  font-weight: 700;
+  color: var(--fg);
+}
+
+.drawerTrigger {
+  margin-left: sp(-1);
+  width: sp(8);
+  height: sp(8);
+  color: var(--fg-muted);
+
+  @include up(lg) {
+    display: none;
+  }
+
+  /* 레이어 밖의 색이 `ICON_BUTTON`의 hover 색까지 이기므로 hover를 다시 적는다 */
+  @include hover {
+    &:hover {
+      color: var(--fg);
+      background-color: var(--surface-2);
+    }
+  }
+}
+
+.drawerScrim {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background-color: rgb(0 0 0 / 40%);
+  background-color: color-mix(in oklab, black 40%, transparent);
+
+  @include up(lg) {
+    display: none;
+  }
+}
+
+.drawerPanel {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  height: 100%;
+  width: min(280px, calc(100vw - 3rem));
+  flex-direction: column;
+  border-right: 1px solid var(--border);
+  background-color: var(--surface);
+
+  @include up(lg) {
+    display: none;
+  }
+}
+
+.srOnly {
+  @include sr-only;
+}
+
+.drawerClose {
+  position: absolute;
+  right: sp(3);
+  top: sp(3);
+  cursor: pointer;
+  border-radius: var(--radius-chip);
+  padding: sp(1.5);
+  color: var(--fg-subtle);
+  @include transition-colors(200ms);
+
+  @include hover {
+    &:hover {
+      background-color: var(--surface-2);
+      color: var(--fg);
+    }
+  }
+}
+
+.alarmBadge {
+  min-width: sp(5);
+  justify-content: center;
+  border-radius: 9999px;
+  background-color: var(--critical);
+  background-color: color-mix(in oklab, var(--critical) 16%, transparent);
+  color: var(--critical-ink);
+}
+
+/*
+ * `lg` 이상에서 숨어 서랍 전용이 된다 — 헤더 쪽 `.headerSiteSelector`와 짝이다.
+ * 좌우 14px은 `.nav`와 같은 값이라 셀렉트의 왼쪽 끝이 메뉴 항목 hover 면과 맞는다.
+ */
+.siteSelectorSlot {
+  padding-inline: sp(3.5);
+  padding-bottom: sp(3);
+
+  @include up(lg) {
+    display: none;
+  }
+}
+
+.siteSelectorFull {
+  width: 100%;
+}
+
+/*
+ * `overflow: hidden`은 안전망이다 — nowrap 텍스트가 예상보다 넓어도 본문 위로 삐져나오지 않는다.
+ * 폭에 20px 여유를 두었으므로 실제로 잘릴 일은 없다.
+ */
+.brandHome {
+  display: flex;
+  cursor: pointer;
+  align-items: center;
+  gap: sp(2);
+  overflow: hidden;
+  padding-inline: sp(6);
+  padding-block: sp(5);
+
+  &:focus-visible {
+    outline-style: solid;
+    outline-width: 1px;
+    outline-offset: -2px;
+    outline-color: var(--border-strong);
+  }
+}
+
+.brandName {
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.025em;
+  color: var(--fg);
+}
+
+.nav {
+  flex: 1;
+  overflow-y: auto;
+  padding-inline: sp(3.5);
+  padding-bottom: sp(4);
+
+  & > :not(:last-child) {
+    margin-block-end: sp(4);
+  }
+}
+
+.navGroup {
+  & > :not(:last-child) {
+    margin-block-end: sp(1);
+  }
+}
+
+/*
+ * 묶음 머리글. **깊이가 아니라 이름표다** — 접히지 않고 항목은 늘 펼쳐져 있다.
+ * 항목(14px)보다 작고 가라앉혀, 훑을 때 걸리지 않고 찾을 때만 눈에 들어오게 한다.
+ * 한글이라 자간을 벌리지 않는다(`Eyebrow`와 같은 이유 — 낱글자로 흩어져 읽힌다).
+ *
+ * **12px이다.** 한때 11px이었는데 §8 `글자 최소`가 *"예외는 그래프 안의 글자뿐"* 이라
+ * 못박고 있어 예외 대상이 아니었다 — 규칙과 코드가 갈린 채였다. 항목(14px)과는
+ * 굵기 600 + `--fg-faint`로 갈리므로 한 단 올려도 이름표로 남는다.
+ */
+.navGroupLabel {
+  padding-inline: sp(2.5);
+  padding-bottom: sp(1);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--fg-faint);
+}
+
+.navItem {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: sp(2.5);
+  border-radius: 10px;
+  padding: sp(2.5);
+  font-size: 14px;
+  font-weight: 500;
+  @include transition-colors(200ms);
+}
+
+.navItemActive {
+  background-color: var(--accent-weak);
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.navItemIdle {
+  color: var(--fg-muted);
+
+  @include hover {
+    &:hover {
+      background-color: var(--surface-2);
+      background-color: color-mix(in oklab, var(--surface-2) 60%, transparent);
+      color: var(--fg);
+    }
+  }
+}
+
+.navItemIcon {
+  flex-shrink: 0;
+}
+
+.navItemLabel {
+  min-width: 0;
+  flex: 1;
+  word-break: keep-all;
+  text-align: left;
+}

@@ -6,6 +6,7 @@ import { cn } from '@/shared/lib/cn';
 import { getSite } from '@/entities/site';
 import { useScopedSites } from '../model/use-scoped-sites';
 import { useSelectedSiteId } from '../model/use-selected-site';
+import styles from './site-selector.module.scss';
 
 /**
  * 대시보드 밖 화면에는 지도가 없다. 여기서도 사업장을 바꿀 수 있어야
@@ -37,10 +38,10 @@ export function SiteSelector({ className }: { className?: string }) {
      * **기초지자체는 감추지 않는다.** 관할 내 다개소라 고를 것이 있고, 목록만 관내로 좁으면
      * 된다(`useScopedSites`).
      */
-    <div className={cn('role-hide-site relative inline-flex items-center', className)}>
+    <div className={cn('role-hide-site', styles.root, className)}>
       <span
         aria-hidden
-        className="pointer-events-none absolute left-2.5 size-1.5 rounded-full"
+        className={styles.dot}
         style={{ backgroundColor: dotColor }}
       />
 
@@ -48,11 +49,7 @@ export function SiteSelector({ className }: { className?: string }) {
         value={siteId}
         onChange={(e) => setSiteId(e.target.value)}
         aria-label="사업장 선택"
-        className={cn(
-          'w-full cursor-pointer appearance-none rounded-[4px] border border-border bg-surface',
-          'py-1.5 pl-6 pr-7 text-[12px] text-fg',
-          'transition-colors duration-200 hover:border-border-strong',
-        )}
+        className={styles.select}
       >
         {sites.map((s) => (
           <option key={s.id} value={s.id}>
@@ -65,7 +62,7 @@ export function SiteSelector({ className }: { className?: string }) {
         aria-hidden
         size={13}
         strokeWidth={2}
-        className="pointer-events-none absolute right-2 text-fg-subtle"
+        className={styles.chevron}
       />
     </div>
   );

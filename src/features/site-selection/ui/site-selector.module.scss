@@ -1,0 +1,50 @@
+@use 'shared/styles' as *;
+
+/*
+ * 뼈대는 `className`으로 호출부가 덮는다(헤더의 폭·`lg` 감추기, 기둥의 전폭) — 그래서 `components`
+ * 레이어다. 사업장 역할의 `role-hide-site`는 레이어 밖이라 이 `inline-flex`를 늘 이긴다.
+ */
+@layer components {
+  .root {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+  }
+}
+
+.dot {
+  pointer-events: none;
+  position: absolute;
+  left: sp(2.5);
+  width: sp(1.5);
+  height: sp(1.5);
+  border-radius: 9999px;
+}
+
+.select {
+  width: 100%;
+  cursor: pointer;
+  appearance: none;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background-color: var(--surface);
+  padding-block: sp(1.5);
+  padding-left: sp(6);
+  padding-right: sp(7);
+  font-size: 12px;
+  color: var(--fg);
+  @include transition-colors(200ms);
+
+  @include hover {
+    &:hover {
+      border-color: var(--border-strong);
+    }
+  }
+}
+
+.chevron {
+  pointer-events: none;
+  position: absolute;
+  right: sp(2);
+  color: var(--fg-subtle);
+}

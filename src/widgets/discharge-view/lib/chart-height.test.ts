@@ -12,6 +12,8 @@ import { MEASUREMENT_ITEMS } from '@/shared/config/measurement';
  * 해서, 계약이 지켜지는지를 소스로 본다.
  */
 const view = readFileSync('src/widgets/discharge-view/ui/discharge-view.tsx', 'utf8');
+/** 스타일은 모듈에 있다 — 높이를 박을 수 있는 자리가 한 곳 더 생겼다 */
+const styles = readFileSync('src/widgets/discharge-view/ui/discharge-view.module.scss', 'utf8');
 /** 주석에는 옛 값이 인용될 수 있다 — 코드만 본다 */
 const code = view.replace(/^\s*[/*].*$/gm, '');
 
@@ -19,6 +21,8 @@ describe('금일 배출 차트 높이', () => {
   it('픽셀을 글자로 적지 않는다', () => {
     expect(code).not.toMatch(/h-\[\d+px\]/);
     expect(code).not.toMatch(/height=\{\d+\}/);
+    /* 모듈에 차트 높이를 박으면 `CHART_HEIGHT`와 두 값이 된다 — 높이는 인라인 `style`로만 받는다 */
+    expect(styles).not.toMatch(/(?<![\w-])(?:min-|max-)?height:\s*\d+px/);
   });
 
   /**

@@ -1,0 +1,249 @@
+@use 'shared/styles' as *;
+
+.root {
+  & > :not(:last-child) {
+    margin-block-end: sp(6);
+  }
+}
+
+.summaryAction {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  column-gap: sp(3);
+  row-gap: sp(1);
+  font-size: 12px;
+}
+
+.muted {
+  color: var(--fg-subtle);
+}
+
+.count {
+  font-weight: 700;
+}
+
+.cardFooter {
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+.cardCount {
+  font-weight: 700;
+  color: var(--fg);
+}
+
+.section {
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-panel);
+  background-color: var(--section-bg);
+  padding: sp(4);
+
+  & > :not(:last-child) {
+    margin-block-end: sp(3);
+  }
+
+  @include up(lg) {
+    padding: sp(5);
+  }
+}
+
+.sectionHeading {
+  display: flex;
+  align-items: center;
+  gap: sp(1.5);
+}
+
+.sectionTitle {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.025em;
+  color: var(--fg);
+}
+
+/* 고르는 방법이 폭으로 갈린다 — `lg` 이상은 탭 줄, 그 아래는 목록(두 벌을 그리고 CSS가 고른다) */
+.wideOnly {
+  display: none;
+
+  @include up(lg) {
+    display: flex;
+  }
+}
+
+.narrowOnly {
+  @include up(lg) {
+    display: none;
+  }
+}
+
+/*
+ * 레일 폭은 오른쪽 열의 하한이 정한다 — xl에서 470px을 쓰면 오른쪽이 354px이 되어
+ * 타일 2열 하한(384px) 밑으로 떨어진다. 1280 미만은 나누지 않는다(오른쪽 210px).
+ */
+.split {
+  display: grid;
+  gap: sp(6);
+
+  @include up(xl) {
+    grid-template-columns: 420px minmax(0, 1fr);
+  }
+
+  @include up('2xl') {
+    grid-template-columns: 470px minmax(0, 1fr);
+  }
+}
+
+/*
+ * 붙은 탭 줄 높이(`--sticky-bar-h`)를 자리와 높이에서 함께 뺀다 — 빼지 않으면
+ * 지도 머리가 탭 뒤로 들어간다. 세로 768px에서 88svh가 한계다(90svh면 잘린다).
+ * `, 0px` 기본값이 없으면 속성을 걷은 폭에서 `calc()` 전체가 무효가 된다.
+ */
+.mapPanel {
+  @include up(xl) {
+    position: sticky;
+    top: calc(var(--header-h) + var(--sticky-bar-h, 0px) + 1.5rem);
+    height: calc(88svh - var(--sticky-bar-h, 0px) - 1.5rem);
+    max-height: 753px;
+    align-self: flex-start;
+  }
+}
+
+/* flex 자식의 자동 최소 높이는 내용 높이다 — 잠그지 않으면 카드 밖으로 밀린다 */
+.mapBody {
+  min-height: 0;
+}
+
+.column {
+  container-type: inline-size;
+  min-width: 0;
+
+  & > :not(:last-child) {
+    margin-block-end: sp(6);
+  }
+}
+
+.anomalyStack {
+  & > :not(:last-child) {
+    margin-block-end: sp(5);
+  }
+}
+
+/* 판정 3칸은 자기 컨테이너를 연다 — 오른쪽 열의 컨테이너를 쓰면 `Panel`의 패딩만큼 임계가 어긋난다 */
+.trendWrap {
+  container-type: inline-size;
+  margin-top: sp(4);
+}
+
+/*
+ * 세 칸을 나누면 한 칸이 좁아져 근거 줄(`R² 0.87 · 계측`)이 접힌다 — 쌓는다.
+ * 파탄 지점은 실측으로 **106px**이었다(390px 뷰포트).
+ *
+ * **묻는 축을 뷰포트에서 컨테이너로 옮겼다** `[사용자 결정 2026-09-18]`.
+ * 한때 `sm:`(뷰포트 640px)이었는데, 이 칸들은 지도 레일 옆의 **오른쪽 열** 안에
+ * 있어 뷰포트와 실제 폭이 어긋난다 — 1280px에서 그 열의 카드 본문이 428px뿐인데
+ * `sm`이 켜져 **칸이 143px**이 됐다(위의 106px과 같은 부류다).
+ *
+ * 32rem(512px)은 **같은 열이 이미 쓰는 값**이다 — `AnomalyPanel`이 그
+ * 폭에서 2칸을 쌓고 `SCR-OP-001` §3.1이 「카드 본문 512px 미만」으로 적어 두었다.
+ * 지금 `sm`이 만드는 실질 임계(카드 본문 536px)의 24px 아래라 **되던 폭은
+ * 그대로 된다.** 그 임계에서 칸 170.7px · 안쪽 146.7px이다.
+ *
+ * 쌓였을 때는 가로 구분선, 세 칸으로 서면 세로 구분선 — 둘이 같은 임계를 본다.
+ */
+.trendGrid {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  border-top: 1px solid var(--border);
+  padding-top: sp(3);
+
+  & > :not(:last-child) {
+    border-bottom: 1px solid var(--border);
+  }
+
+  @container (min-width: 32rem) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+
+    & > :not(:last-child) {
+      border-bottom-width: 0;
+      border-inline-end: 1px solid var(--border);
+    }
+  }
+}
+
+.trend {
+  padding-block: sp(2);
+
+  &:first-child {
+    padding-top: 0;
+  }
+
+  &:last-child {
+    padding-bottom: 0;
+  }
+
+  @container (min-width: 32rem) {
+    padding-inline: sp(3);
+    padding-block: 0;
+
+    &:first-child {
+      padding-left: 0;
+    }
+
+    &:last-child {
+      padding-right: 0;
+    }
+  }
+}
+
+.trendHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: sp(1);
+}
+
+.trendCode {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--fg-subtle);
+}
+
+.trendVerdict {
+  margin-top: sp(1.5);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.375;
+  color: var(--fg);
+}
+
+.trendBasis {
+  margin-top: sp(1);
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+/*
+ * `ACTION_LINK` 위에 얹는 색. hover 색을 다시 적는 이유: 이 규칙은 레이어 밖이라 `ACTION_LINK`의
+ * hover(`components` 레이어)를 특이도와 무관하게 이긴다 — 적지 않으면 hover에서 포인트색이 사라진다.
+ */
+.detailLink {
+  flex-shrink: 0;
+  color: var(--fg-subtle);
+
+  @include hover {
+    &:hover {
+      color: var(--accent);
+    }
+  }
+}
+
+.detailText {
+  display: none;
+
+  @include up(sm) {
+    display: inline;
+  }
+}

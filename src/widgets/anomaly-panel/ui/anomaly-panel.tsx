@@ -2,6 +2,7 @@
 
 import { PROVISIONAL_DISPLAY_DECIMALS } from '@/shared/config/provisional';
 import { STATUS_VISUAL, statusInk } from '@/shared/config/status-visual';
+import { cn } from '@/shared/lib/cn';
 import { formatDateTime } from '@/shared/lib/format';
 import { TrendingDown, TrendingUp } from 'lucide-react';
 import { AnomalyGauge } from '@/shared/ui/anomaly-gauge';
@@ -13,6 +14,7 @@ import { CountUp } from '@/shared/ui/motion';
 import { MeterBar } from '@/shared/ui/meter-bar';
 import type { ReactNode } from 'react';
 import type { AnomalySummary } from '@/entities/anomaly';
+import styles from './anomaly-panel.module.scss';
 
 /**
  * **데이터 처리율·시스템 가동률 뱃지를 걷었다** `[사용자 요청 2026-08-28]`.
@@ -36,10 +38,10 @@ export function AnomalyPanel({
   // 값이 없으면 임의 보간이나 0으로 채우지 않고 빈 상태로 둔다(E3·R19)
   if (summary.score === null || summary.level === null) {
     return (
-      <div className="flex h-full flex-col justify-center gap-2 py-6 text-center">
-        <p className={`num ${VALUE_LG} text-fg-subtle`}>—</p>
-        <p className="text-[12px] text-fg-muted">산출값 없음</p>
-        <p className="max-w-[34ch] self-center text-[12px] leading-relaxed text-fg-subtle">
+      <div className={styles.empty}>
+        <p className={cn('num', VALUE_LG, styles.emptyValue)}>—</p>
+        <p className={styles.emptyLabel}>산출값 없음</p>
+        <p className={styles.emptyNote}>
           ECP 통신이 두절되어 이상 점수가 산출되지 않았습니다. 마지막 수신{' '}
           <span className="num">{formatDateTime(summary.computedAtIso)}</span> KST.
         </p>
@@ -60,8 +62,8 @@ export function AnomalyPanel({
    * 두 칸을 나누면 XAI 막대의 라벨과 퍼센트가 한 줄에 들어가지 않는다.
    */
   return (
-    <div className="@container" key={`${summary.computedAtIso}-${score}`}>
-      <div className="grid gap-5 @[32rem]:grid-cols-[minmax(0,260px)_minmax(0,1fr)] @[32rem]:items-stretch">
+    <div className={styles.container} key={`${summary.computedAtIso}-${score}`}>
+      <div className={styles.layout}>
         {/*
          * 점수 덩어리를 **등급색 은은한 그라데이션 면** 위에 올린다 `[사용자 지시 2026-08-24]`.
          *
@@ -75,12 +77,12 @@ export function AnomalyPanel({
          * 색이 옅어 보이던 것을 되돌리는 것이지 등급을 면으로 말하려는 것이 아니다.
          */}
         <div
-          className="rounded-nested p-4"
+          className={styles.scoreBlock}
           style={{
             backgroundImage: `linear-gradient(to bottom, color-mix(in srgb, ${visual.hex} 17%, transparent), transparent)`,
           }}
         >
-          <div className="flex items-end justify-between gap-3">
+          <div className={styles.scoreRow}>
             {/*
              * 점수를 **그라데이션 글자**로 칠한다 `[사용자 지시 2026-08-24·25]`.
              *
@@ -94,27 +96,27 @@ export function AnomalyPanel({
              * 밑돈다(30%에서 3.24:1). 100%까지 밀면 흰 면에서도 1.97:1로 떨어진다.
              */}
             <p
-              className="num text-gradient text-[56px] font-bold leading-none tracking-tight"
+              className={cn('num', 'text-gradient', styles.score)}
               style={{
                 backgroundImage: `linear-gradient(165deg, ${visual.ink} 0%, ${visual.ink} 42%, color-mix(in srgb, ${visual.hex} 30%, ${visual.ink}) 100%)`,
               }}
             >
               <CountUp value={score} />
             </p>
-            <div className="pb-1.5 text-right">
+            <div className={styles.scoreAside}>
               <StatusBadge level={level} />
               {/* 17% 면에서 `--fg-subtle`은 위험 등급일 때 4.46:1로 본문 기준을 아주 조금 밑돈다 */}
-              <p className="mt-1.5 text-[12px] text-fg-muted">이상 점수 / 100</p>
+              <p className={styles.scoreScale}>이상 점수 / 100</p>
             </div>
           </div>
 
-          <AnomalyGauge score={score} className="mt-4" />
+          <AnomalyGauge score={score} className={styles.gauge} />
 
           {/*
            * AI 산출값은 언제·무엇을 근거로 나왔는지 함께 보여야 한다(E3).
            * **라벨을 뱃지 안에 남긴다** — 값만 두면 `최근 24시간`이 무엇의 기간인지 알 수 없다.
            */}
-          <div className="mt-4 flex flex-wrap gap-1.5">
+          <div className={styles.metaRow}>
             <Meta label="모델" value={summary.modelLabel} />
             <Meta label="기간" value={summary.windowLabel} />
             <Meta label="산출" value={`${formatDateTime(summary.computedAtIso)} KST`} mono />
@@ -123,21 +125,21 @@ export function AnomalyPanel({
 
         {/*
          * **왼쪽 점수 덩어리와 같은 높이에서 끝난다** `[사용자 지시 2026-08-24]` —
-         * 칸을 `items-stretch`로 늘리고 이 열을 `h-full`로 채운다. 예전에는 두 칸이 각자
+         * 칸을 `align-items: stretch`로 늘리고 이 열을 `height: 100%`로 채운다. 예전에는 두 칸이 각자
          * 내용만큼만 높아 XAI 목록이 점수 면보다 짧게 끊기거나 반대로 삐져나왔다.
-         * 막대 5개는 `justify-between`으로 남는 높이를 나눠 갖고, 범례는 `mt-auto`로 바닥이다.
+         * 막대 5개는 `justify-content: space-between`으로 남는 높이를 나눠 갖고, 범례는 `margin-top: auto`로 바닥이다.
          */}
-        <div className="flex h-full min-w-0 flex-col">
-          <Eyebrow className="mb-2">주요 기여 변수 · XAI</Eyebrow>
+        <div className={styles.contributions}>
+          <Eyebrow className={styles.eyebrow}>주요 기여 변수 · XAI</Eyebrow>
           {/* 막대를 3→8px로 키운다 — 3px는 선이라 길이 차이가 읽히지 않았다 */}
-          <ul className="flex flex-1 flex-col justify-between gap-2.5">
+          <ul className={styles.contributionList}>
             {summary.contributions.map((c, i) => {
               const up = c.direction === 'up';
               const Arrow = up ? TrendingUp : TrendingDown;
               return (
                 <li key={c.label}>
-                  <div className="mb-1.5 flex items-center justify-between gap-2">
-                    <span className="flex min-w-0 items-center gap-1.5 text-[12px] text-fg-muted">
+                  <div className={styles.contributionHead}>
+                    <span className={styles.contributionLabel}>
                       {/* 도형 문자(▲▼)를 아이콘으로 바꾼다 — 폰트마다 크기·기준선이 달라 글자와 어긋났다 */}
                       {/*
                        * **방향은 화살표 모양이 나르고 색은 등급 하나뿐이다**
@@ -155,13 +157,13 @@ export function AnomalyPanel({
                         aria-hidden
                         size={13}
                         strokeWidth={2.2}
-                        className="shrink-0"
+                        className={styles.arrow}
                         style={{ color: statusInk(visual) }}
                       />
-                      <span className="truncate">{c.label}</span>
-                      <span className="sr-only">{up ? '상승 기여' : '하강 기여'}</span>
+                      <span className={styles.truncate}>{c.label}</span>
+                      <span className={styles.srOnly}>{up ? '상승 기여' : '하강 기여'}</span>
                     </span>
-                    <span className="num shrink-0 text-[12px] font-medium text-fg-muted">
+                    <span className={cn('num', styles.contributionPercent)}>
                       {(c.weight * 100).toFixed(PROVISIONAL_DISPLAY_DECIMALS.contributionPercent)}%
                     </span>
                   </div>
@@ -180,8 +182,8 @@ export function AnomalyPanel({
             })}
           </ul>
 
-          {/* 4구간 경계. `mt-auto`가 판정 줄의 바닥에 붙여 두 칸이 같은 선에서 끝난다 */}
-          {legend && <div className="mt-3 flex justify-end">{legend}</div>}
+          {/* 4구간 경계. `margin-top: auto`가 판정 줄의 바닥에 붙여 두 칸이 같은 선에서 끝난다 */}
+          {legend && <div className={styles.legend}>{legend}</div>}
         </div>
       </div>
     </div>
@@ -191,9 +193,9 @@ export function AnomalyPanel({
 /** 근거 한 항목. 라벨과 값이 한 뱃지 안에 있어야 값이 무엇인지 알 수 있다 */
 function Meta({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
   return (
-    <span className={`${BADGE_BASE} max-w-full bg-surface text-fg-muted`}>
-      <span className="shrink-0 text-fg-subtle">{label}</span>
-      <span className={mono ? 'num truncate' : 'truncate'}>{value}</span>
+    <span className={cn(BADGE_BASE, styles.meta)}>
+      <span className={styles.metaLabel}>{label}</span>
+      <span className={mono ? cn('num', styles.truncate) : styles.truncate}>{value}</span>
     </span>
   );
 }

@@ -1,0 +1,204 @@
+@use 'shared/styles' as *;
+
+.root {
+  container-type: inline-size;
+}
+
+.list {
+  :where(& > :not(:last-child)) {
+    margin-block-start: 0;
+    margin-block-end: sp(2);
+  }
+}
+
+.item {
+  display: grid;
+  column-gap: sp(6);
+  row-gap: sp(2);
+  border-radius: var(--radius-nested);
+  border-style: solid;
+  border-width: 1px;
+  padding: sp(3.5) sp(4);
+
+  @container (min-width: 44rem) {
+    grid-template-columns: 150px 150px minmax(0, 1fr);
+    align-items: flex-start;
+  }
+}
+
+.itemUnmeasured {
+  border-style: dashed;
+  border-color: var(--border-strong);
+  background-color: var(--surface-2);
+}
+
+.itemMeasured {
+  border-color: var(--border);
+  background-color: var(--surface);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: sp(2);
+
+  @container (min-width: 44rem) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: sp(1.5);
+  }
+}
+
+.label {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--fg);
+}
+
+.toneResolved {
+  background-color: var(--surface-3);
+  color: var(--fg);
+}
+
+.toneProvisional {
+  background-color: var(--chip-caution);
+  color: var(--caution-ink);
+}
+
+.toneUnresolved {
+  background-color: var(--surface-3);
+  color: var(--fg-muted);
+}
+
+.toneNotApplicable {
+  background-color: var(--surface-2);
+  color: var(--fg-subtle);
+}
+
+.toneConflict {
+  background-color: var(--chip-critical);
+  color: var(--critical-ink);
+}
+
+.toneUnmeasured {
+  background-color: var(--surface-3);
+  color: var(--fg-subtle);
+}
+
+.caption {
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+.effective {
+  margin-top: sp(1);
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+.muted {
+  color: var(--fg-muted);
+}
+
+.why {
+  min-width: 0;
+  border-top: 1px solid var(--border);
+  padding-top: sp(2);
+
+  @container (min-width: 44rem) {
+    border-top-width: 0;
+    padding-top: 0;
+  }
+}
+
+.valueNone {
+  margin-top: sp(0.5);
+  font-size: 14px;
+  color: var(--fg-subtle);
+}
+
+.value {
+  margin-top: sp(0.5);
+  display: flex;
+  align-items: baseline;
+  gap: sp(1);
+}
+
+.valueText {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--fg);
+}
+
+.valueUnit {
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+.whyNone {
+  margin-top: sp(0.5);
+  font-size: 13px;
+  color: var(--fg-muted);
+}
+
+.whyBody {
+  margin-top: sp(0.5);
+
+  :where(& > :not(:last-child)) {
+    margin-block-start: 0;
+    margin-block-end: sp(1.5);
+  }
+}
+
+.reason {
+  font-size: 13px;
+  line-height: 1.625;
+  color: var(--fg-muted);
+}
+
+.missing {
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+.toggle {
+  display: inline-flex;
+  min-height: sp(9);
+  cursor: pointer;
+  list-style-type: none;
+  align-items: center;
+  font-size: 12px;
+  color: var(--fg-subtle);
+  text-decoration-line: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 2px;
+  @include transition-colors(200ms);
+
+  @include hover {
+    &:hover {
+      color: var(--fg);
+      text-decoration-color: currentColor;
+    }
+  }
+
+  @include up(lg) {
+    min-height: 0;
+  }
+}
+
+.trace {
+  margin-top: sp(1.5);
+  border-left: 2px solid var(--border);
+  padding-left: sp(3);
+
+  :where(& > :not(:last-child)) {
+    margin-block-start: 0;
+    margin-block-end: sp(1);
+  }
+}
+
+.traceEntry {
+  font-size: 12px;
+  color: var(--fg-subtle);
+}

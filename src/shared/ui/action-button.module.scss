@@ -1,0 +1,131 @@
+@use 'shared/styles' as *;
+
+/*
+ * 공용 조작 버튼. 호출부가 덮을 수 있게 `components` 레이어에 둔다 — 레이어 없는 호출부 규칙이
+ * 선언 순서와 무관하게 이긴다(한때 `tailwind-merge`가 «뒤에 쓴 것이 이긴다»로 하던 일).
+ */
+@layer components {
+  /*
+   * **좁은 화면 40px · 넓은 화면은 내용 높이** `[사용자 요청 2026-09-21·28]`. 좁은 화면의 손가락
+   * 규약이 이 한 곳에 있다 — 버튼마다 적으면 한쪽만 바뀐다.
+   */
+  .base {
+    display: inline-flex;
+    min-height: sp(10);
+    flex-shrink: 0;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    gap: sp(1.5);
+    white-space: nowrap;
+    border-radius: var(--radius-chip);
+    border-style: solid;
+    border-width: 1px;
+    padding: sp(1) sp(2.5);
+    font-size: 12px;
+    @include transition-colors(200ms);
+
+    @include up(lg) {
+      min-height: 0;
+    }
+  }
+
+  .primary {
+    border-color: var(--border-strong);
+    background-color: var(--surface);
+    font-weight: 500;
+    color: var(--fg);
+    box-shadow: var(--card-shadow);
+
+    @include hover {
+      &:hover {
+        border-color: var(--accent);
+        background-color: var(--accent-weak);
+        color: var(--accent);
+      }
+    }
+  }
+
+  .quiet {
+    border-color: var(--border);
+    background-color: var(--surface);
+    color: var(--fg-muted);
+
+    @include hover {
+      &:hover {
+        border-color: var(--accent);
+        border-color: color-mix(in oklab, var(--accent) 40%, transparent);
+        background-color: var(--accent-weak);
+        color: var(--accent);
+      }
+    }
+  }
+
+  .link {
+    display: inline-flex;
+    min-height: sp(10);
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    gap: sp(0.5);
+    border-radius: var(--radius-chip);
+    padding: sp(0.5) sp(0.5) sp(0.5) sp(1.5);
+    font-size: 12px;
+    @include transition-colors(200ms);
+
+    @include hover {
+      &:hover {
+        background-color: var(--accent-weak);
+        color: var(--accent);
+      }
+    }
+
+    @include up(lg) {
+      min-height: 0;
+    }
+  }
+
+  /* 글자만 한 줄인 링크에 위아래로 11px씩 누르는 자리를 더한다 — 좁은 화면에서만(넓으면 걷는다) */
+  .tapAreaY {
+    position: relative;
+
+    &::before {
+      position: absolute;
+      inset-block: -11px;
+      inset-inline: 0;
+      content: '';
+    }
+
+    @include up(lg) {
+      &::before {
+        content: none;
+      }
+    }
+  }
+
+  /* 아이콘만 있는 단추 — 눈에 보이는 28px 둘레로 8px씩 누르는 자리를 더해 44px이 된다 */
+  .icon {
+    position: relative;
+    display: inline-flex;
+    width: sp(7);
+    height: sp(7);
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-chip);
+    @include transition-colors(200ms);
+
+    @include hover {
+      &:hover {
+        background-color: var(--surface-2);
+        color: var(--fg);
+      }
+    }
+
+    &::before {
+      position: absolute;
+      inset: sp(-2);
+      content: '';
+    }
+  }
+}

@@ -1,7 +1,9 @@
 'use client';
 
 import { useSyncExternalStore } from 'react';
+import { cn } from '@/shared/lib/cn';
 import { formatKstWallClock } from '@/shared/lib/format';
+import styles from './live-clock.module.scss';
 
 const TICK_MS = 1000;
 
@@ -44,13 +46,9 @@ export function LiveClock() {
   const second = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
   return (
-    <span className="flex items-center gap-1.5">
-      {/*
-       * 폭을 미리 잡아 값이 들어올 때 옆 요소가 밀리지 않게 한다.
-       * 가장 긴 표기(`12월 30일 (수) 오후 12:00:00`)를 실측한 140px에 맞춘 값이다 — 넉넉히 잡으면 값
-       * 오른쪽에 빈 자리가 남아 알림 아이콘과의 간격이 어긋난다.
-       */}
-      <span className="num inline-block min-w-[8.75rem] text-fg-muted">
+    <span className={styles.root}>
+      {/* 폭을 미리 잡아 값이 들어올 때 옆 요소가 밀리지 않게 한다 — 그 폭의 근거는 `.time` 곁에 있다 */}
+      <span className={cn(styles.time, 'num')}>
         {second === 0 ? ' ' : formatKstWallClock(new Date())}
       </span>
     </span>

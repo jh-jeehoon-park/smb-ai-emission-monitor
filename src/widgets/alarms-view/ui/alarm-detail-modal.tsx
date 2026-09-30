@@ -9,6 +9,7 @@ import {
 } from '@/shared/config/measurement';
 import { PROVISIONAL_STATUS_LABELS } from '@/shared/config/provisional';
 import { STATUS_VISUAL, statusInk } from '@/shared/config/status-visual';
+import { cn } from '@/shared/lib/cn';
 import { DISPLAY_TIMEZONE, formatDateTime, formatRelative, formatValue } from '@/shared/lib/format';
 import { isDischargingAt, isTreatmentIdleAt, timelineIndexAt } from '@/shared/lib/timeline';
 import { Modal, ModalFact, ModalFacts } from '@/shared/ui/modal';
@@ -28,6 +29,7 @@ import {
 } from '@/entities/measurement';
 import { AlarmStateActions } from '@/features/alarm-ack';
 import { SNAPSHOT_CODES } from '../config/constants';
+import styles from './alarm-detail-modal.module.scss';
 
 interface AlarmDetailModalProps {
   alarm: Alarm | null;
@@ -79,16 +81,16 @@ export function AlarmDetailModal({ alarm, onClose, onChange }: AlarmDetailModalP
       title={alarm.title}
       footer={
         <>
-          <span className="mr-auto text-[12px] text-fg-subtle">
+          <span className={styles.footerState}>
             상태 {ALARM_STATE_LABELS[alarm.state]}
           </span>
           <AlarmStateActions alarm={alarm} onChange={onChange} />
         </>
       }
     >
-      <p className="max-w-[60ch] text-[12px] leading-relaxed text-fg-muted">{alarm.detail}</p>
+      <p className={styles.detail}>{alarm.detail}</p>
 
-      <div className="mt-4 border-t border-border pt-3">
+      <div className={styles.section}>
         <ModalFacts>
           <ModalFact label="사업장" value={alarm.siteName} />
           {/* 등급은 우선순위와 다른 축이다 — 추정 매핑으로 이어져 있다 `[INC-02]` */}
@@ -116,8 +118,8 @@ export function AlarmDetailModal({ alarm, onClose, onChange }: AlarmDetailModalP
        * 발생 시각의 계측값이다. 현재값을 보여 주면 몇 시간 전 알람에 지금 숫자가 붙어
        * "이 값 때문에 알람이 났다"로 읽힌다(E3).
        */}
-      <div className="mt-4 border-t border-border pt-3">
-        <p className="mb-2 text-[12px] text-fg-subtle">
+      <div className={styles.section}>
+        <p className={styles.sectionLabel}>
           발생 시각 계측값 · {COLLECTION_INTERVAL_MINUTES}분 주기 표본
         </p>
         <SnapshotValues snapshot={snapshot} pending={seriesPending} />
@@ -132,7 +134,7 @@ export function AlarmDetailModal({ alarm, onClose, onChange }: AlarmDetailModalP
  * 설비 알람에는 그 오독이 성립하지 않는다. 목록의 `비방류 중 발생` 배지와 같은 규칙이다.
  */
 function DischargeFact({ alarm, state }: { alarm: Alarm; state: boolean | null }) {
-  if (state === null) return <span className="text-fg-subtle">수신 없음</span>;
+  if (state === null) return <span className={styles.unknown}>수신 없음</span>;
   if (state) return <span>방류 중</span>;
 
   const misreadable = raisedWhileNotDischarging(alarm);
@@ -154,7 +156,7 @@ function SnapshotValues({ snapshot, pending }: { snapshot: Snapshot; pending: bo
    */
   if (snapshot.outOfWindow) {
     return (
-      <p className="text-[12px] text-fg-subtle">
+      <p className={styles.note}>
         조회 구간(최근 {HISTORY_WINDOW_HOURS}시간) 밖에서 올라온 알람이라 그 시각 표본이
         없습니다.
       </p>
@@ -162,25 +164,25 @@ function SnapshotValues({ snapshot, pending }: { snapshot: Snapshot; pending: bo
   }
 
   if (pending) {
-    return <p className="text-[12px] text-fg-subtle">{TELEMETRY_PENDING_NOTE}</p>;
+    return <p className={styles.note}>{TELEMETRY_PENDING_NOTE}</p>;
   }
 
   if (snapshot.missing) {
     return (
-      <p className="text-[12px] text-fg-subtle">
+      <p className={styles.note}>
         그 시각 수신값이 없습니다 — 값을 앞뒤에서 끌어오지 않습니다.
       </p>
     );
   }
 
   return (
-    <ul className="grid grid-cols-2 gap-x-4 gap-y-1.5 sm:grid-cols-3">
+    <ul className={styles.values}>
       {snapshot.values.map(({ code, value }) => (
-        <li key={code} className="flex items-baseline justify-between gap-2 text-[12px]">
-          <span className="text-fg-subtle">{MEASUREMENT_ITEMS[code].symbol}</span>
-          <span className="num text-fg">
+        <li key={code} className={styles.valueRow}>
+          <span className={styles.valueSymbol}>{MEASUREMENT_ITEMS[code].symbol}</span>
+          <span className={cn(styles.value, 'num')}>
             {formatValue(code, value)}
-            <span className="ml-1 text-[12px] text-fg-subtle">{MEASUREMENT_ITEMS[code].unit}</span>
+            <span className={styles.valueUnit}>{MEASUREMENT_ITEMS[code].unit}</span>
           </span>
         </li>
       ))}

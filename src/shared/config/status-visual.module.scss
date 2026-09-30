@@ -1,0 +1,36 @@
+@use 'shared/styles' as *;
+
+/* 등급의 글자색·면 — 뱃지 뼈대 위에 얹히고 호출부가 덮을 수 있어야 해 `components` 레이어 */
+@layer components {
+  .normalText {
+    color: var(--normal-ink);
+  }
+
+  .normalBg {
+    background-color: var(--chip-normal);
+  }
+
+  .cautionText {
+    color: var(--caution-ink);
+  }
+
+  .cautionBg {
+    background-color: var(--chip-caution);
+  }
+
+  .warningText {
+    color: var(--warning-ink);
+  }
+
+  .warningBg {
+    background-color: var(--chip-warning);
+  }
+
+  .criticalText {
+    color: var(--critical-ink);
+  }
+
+  .criticalBg {
+    background-color: var(--chip-critical);
+  }
+}

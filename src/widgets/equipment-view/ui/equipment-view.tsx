@@ -25,6 +25,7 @@ import { CROSS_SITE_RANK_LIMIT } from '../config/constants';
 import { rankAcrossSites } from '../lib/rank-across-sites';
 import { TABLE_HEAD_CELL, TABLE_HEAD_ROW, TABLE_ROOT, TABLE_ROW, TABLE_SCROLL } from '@/shared/ui/table';
 import { InfoTip } from '@/shared/ui/tooltip';
+import styles from './equipment-view.module.scss';
 
 const OFFLINE_SITE_COUNT = SITES.filter((site) => !site.online).length;
 
@@ -50,7 +51,7 @@ export function EquipmentView() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className={styles.root}>
       <Panel
         title="설비 상태 요약"
         /* 순서를 고를 수 없게 됐으니 무슨 순서인지는 적어 둔다 — 통합 관제·사업장 상세와 같은 문구다 */
@@ -82,7 +83,7 @@ export function EquipmentView() {
         <StatusHeatmap siteId={siteId} items={view.items} />
       </Panel>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
+      <div className={styles.lower}>
         <Panel
           title="설비 상세"
           titleAside={
@@ -92,7 +93,7 @@ export function EquipmentView() {
           {site.online ? (
             <EquipmentTable items={view.items} />
           ) : (
-            <p className=" py-10 text-center text-[12px] text-fg-subtle">
+            <p className={styles.offline}>
               통신이 두절된 사업장입니다. 마지막 수신 이후의 설비 지표가 없어 표를 비워 둡니다.
             </p>
           )}
@@ -132,48 +133,36 @@ function CrossSiteRanking({ selectedSiteId }: { selectedSiteId: string }) {
   const rows = useMemo(() => rankAcrossSites(scopedSites, CROSS_SITE_RANK_LIMIT), [scopedSites]);
 
   return (
-    <ol className="divide-y divide-border">
+    <ol className={styles.ranking}>
       {rows.map((row, index) => {
         return (
           <li
             key={`${row.siteId}-${row.equipment.id}`}
-            /*
-             * **목록 한 줄의 글자 단을 화면 전반과 맞춘다** `[사용자 지시 2026-08-25]` —
-             * 설비명 14 bold(무엇인가) · 이상 신호 13 muted(그것의 내용) · 사업장·지속 12 subtle
-             * (곁의 사실). 전부 12px이던 판본은 다섯 조각이 같은 무게로 늘어서 순위 목록인지
-             * 표인지 알 수 없었다.
-             *
-             * 지금 보고 있는 사업장 줄은 옅은 면으로 남긴다 — 순위에서 내 자리를 찾는 것이
-             * 이 목록의 첫 쓰임이다.
-             */
-            className={cn(
-              'flex flex-wrap items-center gap-x-3 gap-y-1.5 py-2.5',
-              row.siteId === selectedSiteId && 'bg-surface-2',
-            )}
+            className={cn(styles.rankRow, row.siteId === selectedSiteId && styles.rankRowCurrent)}
           >
             {/* 순위 숫자는 값이라 굵게 — 1·2·3이 먼저 읽혀야 순위 목록으로 읽힌다 */}
-            <span className="num w-5 shrink-0 text-[13px] font-bold text-fg-subtle">
+            <span className={cn(styles.rankNumber, 'num')}>
               {index + 1}
             </span>
 
-            <span className="min-w-0 flex-1 basis-[200px]">
-              <span className="block truncate text-[14px] font-bold leading-snug text-fg">
+            <span className={styles.rankBody}>
+              <span className={styles.rankName}>
                 {row.equipment.name}
               </span>
-              <span className="mt-0.5 block truncate text-[12px] text-fg-subtle">
+              <span className={styles.rankSite}>
                 {row.siteName} · {row.region}
               </span>
             </span>
 
             {/* 수치는 한 덩어리로 묶어 좁은 화면에서 통째로 다음 줄로 내려가게 한다 */}
-            <span className="flex shrink-0 items-center gap-3">
+            <span className={styles.rankFigures}>
               <StatusBadge level={row.equipment.status} />
-              <span className="w-[128px] text-right text-[13px] text-fg-muted">
+              <span className={styles.rankSignals}>
                 {row.equipment.signals.length === 0
                   ? '이상 없음'
                   : row.equipment.signals.map((sig) => EQUIPMENT_SIGNAL_LABELS[sig]).join(' · ')}
               </span>
-              <span className="num w-[56px] text-right text-[12px] text-fg-subtle">
+              <span className={cn(styles.rankHours, 'num')}>
                 {row.equipment.anomalyHours === null ? '—' : `${row.equipment.anomalyHours}시간`}
               </span>
             </span>
@@ -187,7 +176,7 @@ function CrossSiteRanking({ selectedSiteId }: { selectedSiteId: string }) {
 function EquipmentTable({ items }: { items: Equipment[] }) {
   return (
     <div className={TABLE_SCROLL}>
-      <table className={`${TABLE_ROOT} min-w-[620px] text-[12px] text-center`}>
+      <table className={cn(TABLE_ROOT, styles.table)}>
         <thead>
           <tr className={TABLE_HEAD_ROW}>
             <th className={TABLE_HEAD_CELL}>설비</th>
@@ -203,30 +192,30 @@ function EquipmentTable({ items }: { items: Equipment[] }) {
             const state = eq.running === null ? 'unknown' : eq.running ? 'on' : 'off';
             return (
               <tr key={eq.id} className={TABLE_ROW}>
-                <td className="px-3 py-3.5 text-fg">{eq.name}</td>
-                <td className="px-3 py-3.5">
+                <td className={styles.cellName}>{eq.name}</td>
+                <td className={styles.cell}>
                   <StatusBadge level={eq.status} />
                 </td>
-                <td className="px-3 py-3.5">
-                  <span className="flex items-center gap-1.5 text-fg-muted">
+                <td className={styles.cell}>
+                  <span className={styles.running}>
                     {/* 색이 뜻을 갖는 축이라 점을 곁들인다. 등급 색이 아니라 가동 색이다 */}
                     <span
                       aria-hidden
-                      className="size-1.5 shrink-0 rounded-full"
+                      className={styles.runningDot}
                       style={{ backgroundColor: OPERATING_FILL[state] }}
                     />
                     {RUN_LABEL[state]}
                   </span>
                 </td>
-                <td className="px-3 py-3.5 text-fg-muted">
+                <td className={styles.cellMuted}>
                   {eq.signals.length === 0
                     ? '없음'
                     : eq.signals.map((sig) => EQUIPMENT_SIGNAL_LABELS[sig]).join(' · ')}
                 </td>
-                <td className="num px-3 py-3.5 text-center text-fg-muted">
+                <td className={cn(styles.cellFigure, 'num')}>
                   {eq.anomalyHours === null ? '—' : `${eq.anomalyHours}시간`}
                 </td>
-                <td className="num px-3 py-3.5 text-center text-fg-subtle">
+                <td className={cn(styles.cellFigureSubtle, 'num')}>
                   {eq.runtimeHours.toLocaleString('ko-KR')}h
                 </td>
               </tr>

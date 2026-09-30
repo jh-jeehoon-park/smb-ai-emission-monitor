@@ -182,7 +182,7 @@ export const INFLOW_FORECAST: ForecastTargetProfile = {
  * **순서를 돌려 쓰지 않는다.** 색은 항목에 붙고 목록의 자리에 붙지 않는다 — 필터로 항목이
  * 빠져도 남은 것의 색이 바뀌면 같은 항목이 화면마다 다른 색이 된다.
  *
- * 값과 검증 결과는 `globals.css`의 `--series-*`가 갖는다. 상태색·포인트색은 예약이라
+ * 값과 검증 결과는 `globals.scss`의 `--series-*`가 갖는다. 상태색·포인트색은 예약이라
  * 쓸 수 없고, 남은 색 공간에서 `dataviz` 검증기를 통과한 셋이다.
  */
 export const SERIES_INK: Record<ForecastSeriesCode, string> = {
