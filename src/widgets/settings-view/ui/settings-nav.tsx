@@ -61,11 +61,15 @@ export function SettingsNav({
        * 좁은 화면에서는 가로로 밀리는 한 줄이라 **옆에 더 있다**는 신호(`scroll-hint`)를 단다 —
        * 가리개 색은 이 줄이 놓인 본문 배경이다. 넓은 화면은 밀리지 않으므로 신호를 걷는다
        * (걷지 않으면 가리개가 목차 양 끝에 흰 띠로 남는다 — 캡처로 잡았다).
+       *
+       * **`lg:bg-none`으로 걷던 것은 실제로 걷히지 않았다** `[2026-09-30 검토]` — 신호 규칙이
+       * 유틸리티보다 뒤에 실려 같은 특이도로 이겼다. 규칙을 `components` 층으로 내리고 셋(배경 ·
+       * 마스크 · 타임라인)을 한 번에 끄는 `scroll-hint-off`를 쓴다.
        */}
       <div
         className={cn(
           TABLE_SCROLL,
-          '-mx-1 flex gap-1 px-1 pb-1 [--scroll-hint-bg:var(--bg)] lg:mx-0 lg:flex-col lg:gap-4 lg:overflow-visible lg:bg-none lg:px-0 lg:pb-0',
+          '-mx-1 flex gap-1 px-1 pb-1 [--scroll-hint-bg:var(--bg)] lg:mx-0 lg:flex-col lg:gap-4 lg:overflow-visible lg:scroll-hint-off lg:px-0 lg:pb-0',
         )}
       >
         {SETTINGS_TAB_GROUPS.map((group) => {

@@ -2,13 +2,14 @@
 
 import { Download } from 'lucide-react';
 import { MEASUREMENT_ITEMS , type MeasurementItemCode } from '@/shared/config/measurement';
+import { cn } from '@/shared/lib/cn';
 import { downloadCsv } from '@/shared/lib/csv';
 import { formatClock, formatValue } from '@/shared/lib/format';
 import { ABSENT_ITEM_LABEL } from '@/features/site-provisioning';
 import { Panel } from '@/shared/ui/panel';
 import { InfoTip } from '@/shared/ui/tooltip';
 import { SegmentedControl } from '@/shared/ui/segmented-control';
-import { TABLE_HEAD_CELL, TABLE_HEAD_ROW, TABLE_ROOT, TABLE_ROW } from '@/shared/ui/table';
+import { TABLE_HEAD_CELL, TABLE_HEAD_ROW, TABLE_ROOT, TABLE_ROW, TABLE_SCROLL } from '@/shared/ui/table';
 import {
   BUCKET_OPTIONS,
   STAT_LABELS,
@@ -150,7 +151,18 @@ function BucketTable({
   }
 
   return (
-    <div className="max-h-[560px] overflow-auto">
+    /*
+     * **가로로 밀리는 상자는 `TABLE_SCROLL`을 쓴다** `[2026-09-30 검토]` — 이 상자만
+     * `overflow-auto`로 손으로 적혀 신호도 규약 검사도 비껴갔다(390px에서 340px이 말없이 숨었다).
+     * 첫 열이 고정이라 왼쪽은 흐리지 않고, 세로로도 밀리므로 마우스 환경의 스크롤바 폭을 남긴다.
+     */
+    <div
+      className={cn(
+        TABLE_SCROLL,
+        'max-h-[560px] overflow-y-auto [--scroll-hint-fade-start:0px]',
+        'pointer-fine:[--scroll-hint-bar:var(--scrollbar-size)]',
+      )}
+    >
       <table className={`${TABLE_ROOT} text-[12px] text-center`}>
         <caption className="sr-only">
           구간별 {STAT_LABELS[stat]}. 행은 구간 시작 시각, 열은 계측 항목이다.

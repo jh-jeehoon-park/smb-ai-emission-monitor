@@ -7,7 +7,7 @@ import { DEMO_NOW_ISO } from '@/shared/config/demo';
 import { STATUS_VISUAL } from '@/shared/config/status-visual';
 import { cn } from '@/shared/lib/cn';
 import { useDismiss } from '@/shared/lib/use-dismiss';
-import { ICON_BUTTON } from '@/shared/ui/action-button';
+import { ICON_BUTTON, TAP_AREA_Y } from '@/shared/ui/action-button';
 import { BADGE_BASE } from '@/shared/ui/badge';
 import { formatRelative } from '@/shared/lib/format';
 import {
@@ -21,7 +21,7 @@ import { siteIdsInScope, withinScope } from '@/entities/site';
 import { ALL_ALARMS, useAlarmStates } from '@/features/alarm-ack';
 import { useSiteHref } from '@/features/site-selection';
 import { ALARM_NAV_HREF } from '../config/navigation';
-import { HEADER_ALARM_LIMIT } from '../config/constants';
+import { HEADER_ALARM_LIMIT, HEADER_POPOVER_PLACEMENT } from '../config/constants';
 
 /**
  * 헤더 알림.
@@ -78,7 +78,10 @@ export function AlarmMenu() {
       {open && (
         <div
           role="menu"
-          className="absolute right-0 z-20 mt-1.5 w-[min(320px,calc(100vw-2rem))] overflow-hidden rounded-nested border border-border-strong bg-surface shadow-lg"
+          className={cn(
+            HEADER_POPOVER_PLACEMENT,
+            'z-20 w-[min(320px,calc(100vw-2rem))] overflow-hidden rounded-nested border border-border-strong bg-surface shadow-lg',
+          )}
         >
           <AlarmPanel
             alarms={alarms}
@@ -175,12 +178,21 @@ function AlarmPanel({
 
               <div className="mt-1 flex items-start justify-between gap-2">
                 <p className="min-w-0 flex-1 text-[12px] leading-snug text-fg">{alarm.title}</p>
-                {/* 여기서 처리하면 배지·사이드바·본문이 함께 준다 */}
+                {/*
+                 * 여기서 처리하면 배지·사이드바·본문이 함께 준다.
+                 *
+                 * **누르는 자리만 위아래로 넓힌다** `[2026-09-30 검토: 실높이 24px]` — 버튼을 키우면
+                 * 다섯 줄이 함께 자라 팝오버가 화면을 덮는다. 넓힌 자리는 같은 줄의 글자 위라
+                 * 다른 조작을 덮지 않는다.
+                 */}
                 <button
                   type="button"
                   onClick={() => onAcknowledge(alarm.id)}
                   aria-label={`${alarm.title} 확인 처리`}
-                  className="shrink-0 cursor-pointer rounded-[3px] border border-border px-1.5 py-0.5 text-[12px] text-fg-muted transition-colors duration-200 hover:border-border-strong hover:bg-surface-2 hover:text-fg"
+                  className={cn(
+                    TAP_AREA_Y,
+                    'shrink-0 cursor-pointer rounded-[3px] border border-border px-1.5 py-0.5 text-[12px] text-fg-muted transition-colors duration-200 hover:border-border-strong hover:bg-surface-2 hover:text-fg',
+                  )}
                 >
                   확인
                 </button>
@@ -192,7 +204,7 @@ function AlarmPanel({
 
       <Link
         href={withSite(ALARM_NAV_HREF)}
-        className="block border-t border-border px-3 py-2 text-right text-[12px] text-fg-muted transition-colors duration-200 hover:text-fg"
+        className="flex min-h-10 items-center justify-end border-t border-border px-3 py-2 text-[12px] text-fg-muted transition-colors duration-200 hover:text-fg lg:min-h-0"
       >
         전체 알람 이력 →
       </Link>

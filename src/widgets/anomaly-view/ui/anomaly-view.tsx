@@ -317,7 +317,7 @@ export function AnomalyView() {
                 content="이상 판정으로 올라온 알람만 모읍니다. 알람을 누르면 그 시각이 든 이상 구간이 위에서 열립니다 — 조회 구간(24시간) 밖에서 올라온 알람은 짚을 자리가 없어 움직이지 않습니다."
               />
             }
-            bodyClassName="max-h-[420px] overflow-auto"
+            bodyClassName="max-h-[420px] overflow-y-auto"
           >
             <AlarmList
               alarms={detail.alarms}

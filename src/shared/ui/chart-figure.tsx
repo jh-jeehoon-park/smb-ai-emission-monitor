@@ -10,7 +10,7 @@ import {
   SEG_TRACK,
   SegPill,
 } from '@/shared/ui/segmented-control';
-import { TABLE_HEAD_ROW } from './table';
+import { TABLE_HEAD_ROW, TABLE_SCROLL } from './table';
 
 interface Column<T> {
   header: string;
@@ -159,7 +159,18 @@ export function ChartFigure<T>({
             view === 'table' ? 'opacity-100' : 'pointer-events-none invisible opacity-0',
           )}
         >
-          <div className="h-full overflow-auto rounded-nested bg-surface-2 p-3">
+          {/*
+           * 항목이 많으면 옆으로도 밀린다 — 그래서 `TABLE_SCROLL`이다 `[2026-09-30 검토]`. 한때
+           * `overflow-auto`로 손으로 적혀 좁은 화면에서 신호 없이 열이 숨었다. 세로로도 밀리므로
+           * 마우스 환경의 스크롤바 폭은 흐리지 않고, 가리개는 이 홈의 면 색이다.
+           */}
+          <div
+            className={cn(
+              TABLE_SCROLL,
+              'h-full overflow-y-auto rounded-nested bg-surface-2 p-3 [--scroll-hint-bg:var(--surface-2)]',
+              'pointer-fine:[--scroll-hint-bar:var(--scrollbar-size)]',
+            )}
+          >
             <table className={`${TABLE_ROOT} text-[12px] text-center`}>
               <caption className="sr-only">{label}</caption>
               <thead className="sticky top-0">

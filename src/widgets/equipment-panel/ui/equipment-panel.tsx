@@ -103,18 +103,23 @@ export function EquipmentPanel({
                      * 실높이가 **18px**이었다(실측) — 상세 모달을 여는 이 화면의 주 조작인데
                      * 손가락 최소를 크게 밑돈다. `TAP_AREA_Y`는 **카드 높이를 바꾸지 않는다**
                      * (여백을 키우면 한 행의 카드들이 함께 자라 격자가 움직인다).
+                     *
+                     * **말줄임은 안쪽 글자가 맡는다** `[2026-09-30 검토]`. 한때 버튼 자신이
+                     * `truncate`였는데, 그것이 `overflow: hidden`이라 넓힌 `before`까지 잘라 **누르는
+                     * 자리가 18px 그대로**였다(위아래 6px을 눌러도 버튼이 받지 않았다 — 실측).
+                     * 클래스는 있으니 소스 검사는 통과했다.
                      */
                     <button
                       type="button"
                       onClick={() => onSelect(eq)}
                       className={cn(
                         TAP_AREA_Y,
-                        'min-w-0 cursor-pointer truncate text-left text-[14px] font-bold leading-tight text-fg',
+                        'min-w-0 max-w-full cursor-pointer text-left text-[14px] font-bold leading-tight text-fg',
                         'underline decoration-transparent underline-offset-2 transition-colors duration-200',
                         'hover:text-accent hover:decoration-accent',
                       )}
                     >
-                      {eq.name}
+                      <span className="block truncate">{eq.name}</span>
                     </button>
                   ) : (
                     <p className="min-w-0 truncate text-[14px] font-bold leading-tight text-fg">

@@ -48,8 +48,13 @@ export function SiteSelector({ className }: { className?: string }) {
         value={siteId}
         onChange={(e) => setSiteId(e.target.value)}
         aria-label="사업장 선택"
+        /*
+         * **좁은 화면에서는 40px** `[2026-09-30 검토]` — 이 부품은 `lg` 이상에서 헤더에, 그 아래에서
+         * 메뉴 서랍에 선다. 서랍 쪽이 32px로 남아 있었다(390px 실측). `lg` 이상은 되돌리므로
+         * 헤더의 선택기는 그대로다.
+         */
         className={cn(
-          'w-full cursor-pointer appearance-none rounded-[4px] border border-border bg-surface',
+          'min-h-10 w-full cursor-pointer appearance-none rounded-[4px] border border-border bg-surface lg:min-h-0',
           'py-1.5 pl-6 pr-7 text-[12px] text-fg',
           'transition-colors duration-200 hover:border-border-strong',
         )}

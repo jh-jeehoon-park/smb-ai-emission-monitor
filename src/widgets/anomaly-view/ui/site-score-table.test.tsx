@@ -94,7 +94,43 @@ describe('사업장별 이상 점수', () => {
     /* 넓은 쪽 표도 같은 이름의 버튼을 낸다 — 좁은 쪽만 보고 센다 */
     const list = within(narrow());
     for (const site of SITES) {
-      expect(list.getByRole('button', { name: `${site.name} 상세 보기` })).toBeInTheDocument();
+      expect(list.getByRole('button', { name: new RegExp(`${site.name}.*상세 보기`) })).toBeInTheDocument();
     }
+  });
+
+  /**
+   * **이름이 줄의 값을 덮지 않는다** `[2026-09-30 검토]`. `aria-label`이 이름뿐이던 판본은
+   * 이 목록이 좁은 화면에 드러내려고 만든 **점수와 등급**을 보조기술에서 지웠다 — 위의
+   * «줄마다 점수와 등급이 함께 있다»가 화면에서 보장한 것을 귀로도 보장한다.
+   */
+  it('보조기술이 읽는 이름에 화면의 값이 모두 있다', () => {
+    draw();
+    const buttons = within(narrow()).getAllByRole('button');
+
+    SITES.forEach((site, index) => {
+      const name = buttons[index]!.getAttribute('aria-label') ?? '';
+      expect(name).toContain(`${index + 1}위`);
+      /* 이름은 줄의 글자를 대신한다 — 화면의 둘째 줄(업종·지역)도 빠지면 안 된다 */
+      expect(name).toContain(site.industry);
+      expect(name).toContain(site.region);
+      /* 값이 없으면 0이라 읽지 않는다(E4) */
+      expect(name).toContain(
+        site.anomalyScore === null ? '이상 점수 없음' : `이상 점수 ${site.anomalyScore}`,
+      );
+      expect(name).toContain(
+        site.status === null ? '통신 두절' : PROVISIONAL_STATUS_LABELS[site.status],
+      );
+    });
+  });
+
+  /** 고른 줄은 색(포인트색 면)만으로 말하지 않는다 */
+  it('고른 줄 하나만 `aria-current`를 갖는다', () => {
+    draw();
+    const current = within(narrow())
+      .getAllByRole('button')
+      .filter((button) => button.getAttribute('aria-current') === 'true');
+
+    expect(current).toHaveLength(1);
+    expect(current[0]!.getAttribute('aria-label')).toContain(SITES[0]!.name);
   });
 });

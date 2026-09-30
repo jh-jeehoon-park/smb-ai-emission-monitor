@@ -12,6 +12,12 @@
  */
 :root {
   /**
+   * 스크롤바 굵기. `::-webkit-scrollbar`와 **가로 스크롤 신호의 흐림 예외**
+   * (`--scroll-hint-bar`)가 같은 값을 봐야 한다 — 어긋나면 세로 스크롤바가 반쯤 흐려진다.
+   */
+  --scrollbar-size: 10px;
+
+  /**
    * 중립색에 **미세한 블루**를 넣는다 `[사용자 지시 2026-08-24]`.
    *
    * 공공기관 화면의 무드다. 색상은 210~215도 한 계열로 묶고 채도는 4~8%만 준다 —
@@ -340,12 +346,14 @@
   --radius-chip: 4px;
 
   /**
-   * 상단 고정 헤더의 높이. 본문 안에서 `sticky`로 붙는 요소(통합 관제의 지도 레일)가
-   * 이 값 + 본문 위 여백만큼 내려가야 헤더 아래에 정확히 걸린다.
+   * 상단 고정 헤더의 높이. 본문 안에서 `sticky`로 붙는 요소(통합 관제의 지도 레일)와 좁은
+   * 화면의 헤더 팝오버가 이 값을 기준으로 헤더 바로 아래에 걸린다.
    *
    * **여기 적힌 61px은 초기값일 뿐이다.** 실제 값은 셸이 헤더를 재서 넣는다
-   * (`app-shell.tsx`의 ResizeObserver) — 좁은 화면에서는 오른쪽 상태 묶음이 접혀 헤더가
-   * 두 줄이 되므로 박아 둔 숫자로는 맞출 수 없다. 이 값은 **서버가 보내는 첫 화면**에서만 쓰인다
+   * (`app-shell.tsx`의 ResizeObserver). 헤더는 어느 폭에서나 한 줄이지만(2026-09-18) 높이가
+   * **줄에서 가장 큰 조작**을 따라 역할·폭마다 65px 또는 61px로 갈린다 — 좁은 화면의 메뉴 버튼과
+   * 넓은 화면의 사업장 선택기가 32px이고, 둘 다 없는 사업장 역할의 넓은 화면만 28px 아이콘이 가장
+   * 크다. 그래서 박아 둔 숫자로 맞추지 않는다. 이 값은 **서버가 보내는 첫 화면**에서만 쓰인다
    * (`py-4` 32 + 한 줄 높이 28 + 테두리 1).
    */
   --header-h: 61px;
@@ -394,8 +402,8 @@
   }
 
   ::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
+    width: var(--scrollbar-size);
+    height: var(--scrollbar-size);
   }
   ::-webkit-scrollbar-track {
     background: var(--bg);
@@ -647,6 +655,49 @@
     }
   }
 
+  .live-pulse::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 999px;
+    background: currentColor;
+    animation: live-ping 2.4s cubic-bezier(0, 0, 0.2, 1) infinite;
+  }
+
+  @keyframes live-ping {
+    0% {
+      transform: scale(1);
+      opacity: 0.55;
+    }
+    70%,
+    100% {
+      transform: scale(2.6);
+      opacity: 0;
+    }
+  }
+}
+
+/*
+ * ─── 가로로 더 있다는 신호(`TABLE_SCROLL`) ─────────────────────────────────────
+ *
+ * **`components` 레이어에 둔다** `[2026-09-30 검토]`. 한때 `utilities` 안에 손으로 적혀 Tailwind가
+ * 만든 유틸리티보다 **뒤에** 실렸고, 특이도가 같아 `lg:bg-none` 같은 끄기가 조용히 졌다(설정 목차가
+ * 넓은 화면에서도 가리개를 달고 있었다). 이 층이면 호출부의 유틸리티가 이긴다 — 끌 때는
+ * 아래 `scroll-hint-off`를 쓴다.
+ */
+@property --scroll-hint-start {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --scroll-hint-end {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@layer components {
   /**
    * **가로로 더 있다는 신호** `[사용자 요청 2026-09-21: 나머지 전체 화면 반응형]`.
    *
@@ -703,26 +754,94 @@
     --scroll-hint-ink: rgb(226 236 248 / 0.16);
   }
 
-  .live-pulse::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: 999px;
-    background: currentColor;
-    animation: live-ping 2.4s cubic-bezier(0, 0, 0.2, 1) infinite;
-  }
+  /*
+   * **좁은 화면에서는 스크롤에 맞춰 내용의 가장자리를 흐린다** `[2026-09-30 검토: 신호가 표 머리 행 뒤로 숨었다]`.
+   *
+   * 위의 배경 두 겹은 **상자의 배경**이라 그 위에 불투명한 줄이 오면 가려진다 — 표 머리 행
+   * (`--table-head`)·고른 줄·고정 첫 열 뒤로 그림자가 숨어, 관내 감독 표에서는 신호가 머리글
+   * 아래부터만 보였다(390px 캡처를 확대해 잡았다). 마스크는 **내용까지 포함한 상자 전체**에
+   * 걸리므로 어떤 줄 위에서도 같게 보인다.
+   *
+   * **스크롤 위치는 JS가 아니라 스크롤 타임라인이 준다** — 여전히 관측기도 상태도 없어 서버와
+   * 클라이언트가 같은 마크업을 낸다. 밀 것이 없는 상자는 타임라인이 비활성이라 두 변수가 0에
+   * 머물고 흐려지지 않는다. 이것을 모르는 브라우저(Firefox 등)는 위의 배경 두 겹을 그대로 쓴다.
+   *
+   * **`lg` 미만에서만 건다.** 마스크는 밀 것이 없어도(투명도 100%) 상자를 따로 합성하게 해
+   * **글자의 안티앨리어싱을 바꾼다** — 넓은 화면의 표 글자가 픽셀 대조에서 줄마다 달라졌다.
+   * 밀 것이 있을 때만 걸려고 키프레임에 옮겨 봤으나 **키프레임 안의 `var()`가 처음 값으로
+   * 굳어**(끝까지 밀어도 오른쪽 흐림이 남았다, 실측) 쓸 수 없었다. 이 신호가 풀려던 것은
+   * «휴대폰의 겹침 스크롤바는 만지기 전까지 안 보인다»이고, 넓은 화면은 스크롤바가 늘 보이므로
+   * 거기서는 옛 배경 두 겹이 그대로 신호를 맡는다.
+   *
+   * 조절하는 변수 셋 — 모두 호출부가 덮어쓴다.
+   *   · `--scroll-hint-fade` 흐리는 폭(기본 28px — 가리개 폭과 같다)
+   *   · `--scroll-hint-fade-start` 왼쪽만 따로. **고정 첫 열이 있는 표는 0으로 둔다** — 그 열이
+   *     이미 «옆으로 밀렸다»를 말하고, 흐리면 행 머리(시각)가 읽히지 않는다
+   *   · `--scroll-hint-bar` 오른쪽 끝에서 흐리지 않고 남길 폭. **세로로도 밀리는 상자**가
+   *     마우스 환경에서 스크롤바 폭(`--scrollbar-size`)을 준다 — 안 주면 세로 스크롤바가 함께 흐려진다
+   */
+  @supports (animation-timeline: scroll()) {
+    @media (width < 64rem) {
+      .scroll-hint {
+        background-image: none;
+        mask-image: linear-gradient(
+          to right,
+          transparent,
+          black var(--scroll-hint-start),
+          black calc(100% - var(--scroll-hint-bar, 0px) - var(--scroll-hint-end)),
+          transparent calc(100% - var(--scroll-hint-bar, 0px)),
+          black calc(100% - var(--scroll-hint-bar, 0px))
+        );
+        animation-name: scroll-hint-edges;
+        animation-duration: auto;
+        animation-timing-function: linear;
+        animation-fill-mode: both;
+        animation-timeline: scroll(self inline);
+      }
 
-  @keyframes live-ping {
-    0% {
-      transform: scale(1);
-      opacity: 0.55;
-    }
-    70%,
-    100% {
-      transform: scale(2.6);
-      opacity: 0;
+      /*
+       * **키보드 초점 테두리는 안쪽에 그린다** `[2026-09-30 리뷰]`. Chrome은 안에 조작이 없는
+       * 스크롤 상자에도 Tab으로 초점을 준다(구간 집계표·가동 격자). 전역 규칙은 바깥 2px인데
+       * 마스크는 상자 테두리 안쪽만 칠하므로 **초점 테두리가 통째로 잘린다.**
+       */
+      .scroll-hint:focus-visible {
+        outline-offset: -2px;
+      }
     }
   }
+}
+
+/*
+ * 처음 10%를 밀면 왼쪽이 흐려지고, 마지막 10%에서 오른쪽이 걷힌다. 그 사이는 양쪽 다 흐리다 —
+ * 어느 쪽으로든 더 있다는 뜻이다.
+ */
+@keyframes scroll-hint-edges {
+  from {
+    --scroll-hint-start: 0px;
+    --scroll-hint-end: var(--scroll-hint-fade, 28px);
+  }
+  10% {
+    --scroll-hint-start: var(--scroll-hint-fade-start, var(--scroll-hint-fade, 28px));
+  }
+  90% {
+    --scroll-hint-end: var(--scroll-hint-fade, 28px);
+  }
+  to {
+    --scroll-hint-start: var(--scroll-hint-fade-start, var(--scroll-hint-fade, 28px));
+    --scroll-hint-end: 0px;
+  }
+}
+
+/*
+ * 신호를 끈다 — **밀리지 않게 푸는 상자**가 그 단에서 쓴다(설정 목차의 `lg:scroll-hint-off`).
+ * 신호는 폭에 따라 다른 것으로 서 있다 — 넓은 화면은 배경 두 겹, 좁은 화면은 마스크와 타임라인.
+ * 끄는 이름을 하나로 두어 **어느 단에서 끄든 셋이 함께 걷히게** 한다. 배경만 걷는 `bg-none`을
+ * 좁은 단에 쓰면 마스크가 남아 상자 밖으로 나온 초점 테두리를 자른다.
+ */
+@utility scroll-hint-off {
+  background-image: none;
+  mask-image: none;
+  animation-name: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

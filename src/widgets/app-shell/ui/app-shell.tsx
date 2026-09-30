@@ -329,9 +329,13 @@ function NavDrawer({ pathname }: { pathname: string }) {
             >
               <motion.div variants={drawerPanel} initial="hidden" animate="show" exit="hidden">
                 <Dialog.Title className="sr-only">메뉴</Dialog.Title>
+                {/*
+                 * 헤더의 아이콘 버튼과 같은 껍데기다 — **보이는 28px, 누르는 44px**
+                 * `[2026-09-30 검토: 서랍에서 이 버튼만 28px로 남아 있었다]`. 서랍은 좁은 화면에만 뜬다.
+                 */}
                 <Dialog.Close
                   aria-label="메뉴 닫기"
-                  className="absolute right-3 top-3 cursor-pointer rounded-chip p-1.5 text-fg-subtle transition-colors duration-200 hover:bg-surface-2 hover:text-fg"
+                  className={cn(ICON_BUTTON, 'absolute right-3 top-3 text-fg-subtle')}
                 >
                   <X aria-hidden size={16} strokeWidth={1.9} />
                 </Dialog.Close>

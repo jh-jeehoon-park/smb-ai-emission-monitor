@@ -1,6 +1,7 @@
 'use client';
 
 import { ChevronRight } from 'lucide-react';
+import { useLayoutEffect, useRef } from 'react';
 import { cn } from '@/shared/lib/cn';
 import { BADGE_BASE } from '@/shared/ui/badge';
 import { Eyebrow } from '@/shared/ui/eyebrow';
@@ -42,6 +43,31 @@ export function SiteList({
 }) {
   const selected = sites.find((site) => site.id === selectedId);
   const others = sites.filter((site) => site.id !== selectedId);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const focusCardOnChange = useRef(false);
+
+  /*
+   * **고른 뒤 초점을 카드로 옮긴다** `[2026-09-30 검토]`. 누른 줄은 고르는 순간 목록에서 빠져
+   * 카드로 올라가므로 **그 버튼이 사라진다** — 초점이 문서 맨 앞(`body`)으로 떨어져 키보드
+   * 사용자는 처음부터 다시 Tab을 눌러야 했다(실측). 카드로 옮기면 보조기술이 새로 고른
+   * 사업장을 읽고, 다음 Tab이 다시 목록으로 간다.
+   *
+   * **누르는 순간이 아니라 카드가 바뀐 뒤에 옮긴다.** 고르기는 `?site=`를 바꾸는 일이고 라우터가
+   * 그것을 transition으로 그려, 누르는 순간의 카드는 **아직 떠나온 사업장**이다 — 거기서 초점을
+   * 주면 보조기술이 옛 이름을 읽고 새 이름은 초점 안에서 말없이 바뀐다(리뷰에서 짚였다).
+   * 그래서 표시만 남기고, `selectedId`가 바뀐 뒤 그리기 전에 옮긴다. 화면은 움직이지 않는다 —
+   * 카드는 목록 바로 위에 있다.
+   */
+  useLayoutEffect(() => {
+    if (!focusCardOnChange.current) return;
+    focusCardOnChange.current = false;
+    cardRef.current?.focus({ preventScroll: true });
+  }, [selectedId]);
+
+  const choose = (id: string) => {
+    focusCardOnChange.current = true;
+    onSelect(id);
+  };
 
   return (
     /*
@@ -70,7 +96,11 @@ export function SiteList({
        * 여기서 그 색이 뜻하는 것은 등급이 아니라 **지금 고른 것**이다.
        */}
       {selected && (
-        <div className="flex items-center justify-between gap-3 rounded-nested border border-accent/40 bg-accent-weak px-3.5 py-3">
+        <div
+          ref={cardRef}
+          tabIndex={-1}
+          className="flex items-center justify-between gap-3 rounded-nested border border-accent/40 bg-accent-weak px-3.5 py-3"
+        >
           <div className="min-w-0">
             <Eyebrow className="text-accent">현재 선택 사업장</Eyebrow>
             <p className="mt-0.5 truncate text-[16px] font-bold leading-tight text-fg">
@@ -94,7 +124,7 @@ export function SiteList({
            * 탭 알약의 26px이 손가락 최소를 밑돌던 것을 이 배치가 함께 고친다.
            *
            * **세 줄만 보이고 나머지는 상자 안에서 밀린다** `[사용자 요청 2026-09-18: 사업장이
-           * 3개 이상일 때는 스크롤]`. 아홉 줄을 모두 펴면 그것만 420px이라 구역 머리가 다시
+           * 3개 이상일 때는 스크롤]`. 아홉 줄을 모두 펴면 그것만 413px(실측)이라 구역 머리가 다시
            * 부풀어, 탭 줄을 걷어 낸 이유가 되돌아간다.
            *
            * 상한만 주고 «셋 이상일 때만»을 따로 가르지 않는다 — 남는 곳이 셋 이하면 내용이
@@ -117,8 +147,13 @@ export function SiteList({
               <button
                 key={site.id}
                 type="button"
-                onClick={() => onSelect(site.id)}
-                className="flex w-full cursor-pointer items-center justify-between gap-3 px-1 py-3 text-left transition-colors duration-200 hover:bg-surface-2"
+                onClick={() => choose(site.id)}
+                /*
+                 * **초점 테두리를 안쪽에 그린다** `[2026-09-30 검토]`. 전역 규칙은 바깥 2px이라
+                 * 이 스크롤 상자가 위·좌·우를 잘라 **줄 아래 선 하나**만 남았다 — 구분선과 같아
+                 * 보여 초점이 어디 있는지 알 수 없었다(캡처로 잡았다).
+                 */
+                className="flex w-full cursor-pointer items-center justify-between gap-3 px-1 py-3 text-left transition-colors duration-200 hover:bg-surface-2 focus-visible:-outline-offset-2"
               >
                 <span className="min-w-0 truncate text-[14px] text-fg">{site.name}</span>
                 <span className="flex shrink-0 items-center gap-2">

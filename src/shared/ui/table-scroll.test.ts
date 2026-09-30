@@ -57,9 +57,15 @@ describe('가로 스크롤 상자', () => {
     expect(TABLE_SCROLL).toContain('overflow-x-auto');
   });
 
-  it('`overflow-x-auto`를 손으로 적은 자리가 없다', () => {
+  /**
+   * **가로로 밀 수 있는 모든 표기를 본다** `[2026-09-30 검토]`. 이 검사는 한때 `overflow-x-auto`
+   * 글자만 찾아, 두 축을 함께 여는 `overflow-auto`로 적힌 구간 집계표를 놓쳤다 — 390px에서
+   * 340px이 신호 없이 숨어 있었다. 세로로만 밀리는 목록은 `overflow-y-auto`로 뜻을 적는다.
+   */
+  it('가로 스크롤을 손으로 적은 자리가 없다', () => {
+    const HORIZONTAL = /(?<![\w-])overflow-(auto|scroll|x-auto|x-scroll)(?![\w-])/;
     const handwritten = FILES.filter(
-      (file) => !ALLOWED.has(file) && withoutComments(readFileSync(file, 'utf8')).includes('overflow-x-auto'),
+      (file) => !ALLOWED.has(file) && HORIZONTAL.test(withoutComments(readFileSync(file, 'utf8'))),
     );
 
     expect(handwritten, `${TABLE_SCROLL} 를 쓴다`).toEqual([]);

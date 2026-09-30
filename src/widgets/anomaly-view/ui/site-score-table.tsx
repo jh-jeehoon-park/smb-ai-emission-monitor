@@ -1,6 +1,7 @@
 'use client';
 
 import { ChevronRight } from 'lucide-react';
+import { PROVISIONAL_STATUS_LABELS } from '@/shared/config/provisional';
 import { STATUS_VISUAL, statusInk } from '@/shared/config/status-visual';
 import { cn } from '@/shared/lib/cn';
 import { ACTION_LINK } from '@/shared/ui/action-button';
@@ -245,7 +246,13 @@ function SiteScoreList({ sites, selectedId, onSelect }: SiteScoreTableProps) {
             <button
               type="button"
               onClick={() => onSelect(site.id)}
-              aria-label={`${site.name} 상세 보기`}
+              /*
+               * **이름이 줄의 값을 덮지 않게 한다** `[2026-09-30 검토]`. 한때 `aria-label`이 사업장
+               * 이름뿐이라, 이 목록이 좁은 화면에 **드러내려고 만든 점수와 등급**을 보조기술이 읽지
+               * 못했다. 고른 줄은 `aria-current`로 말한다 — 색(포인트색 면)만으로는 나르지 않는다.
+               */
+              aria-label={scoreRowLabel(site, index + 1)}
+              aria-current={selected ? 'true' : undefined}
               className={cn(
                 'flex w-full cursor-pointer items-center gap-3 px-1 py-2.5 text-left',
                 'transition-colors duration-200',
@@ -299,4 +306,15 @@ function SiteScoreList({ sites, selectedId, onSelect }: SiteScoreTableProps) {
       })}
     </ul>
   );
+}
+
+/**
+ * 좁은 화면 한 줄을 보조기술이 읽는 문장 — 화면의 순서(순위 · 이름 · 업종·지역 · 점수 · 등급)대로.
+ * `aria-label`은 줄의 글자를 **대신하므로** 화면에 있는 것을 하나도 빼지 않는다.
+ */
+function scoreRowLabel(site: Site, rank: number): string {
+  /* 값이 없으면 0이라 읽지 않는다(E4) */
+  const score = site.anomalyScore === null ? '이상 점수 없음' : `이상 점수 ${site.anomalyScore}`;
+  const grade = site.status ? PROVISIONAL_STATUS_LABELS[site.status] : '통신 두절';
+  return `${rank}위 ${site.name}(${site.industry} · ${site.region}), ${score}, ${grade} — 상세 보기`;
 }

@@ -9,9 +9,11 @@ import {
   intervalLabel,
   telemetrySourceLabel,
   useSiteSeries,
+  type SiteSeries,
 } from '@/entities/measurement';
 import { getSite } from '@/entities/site';
 import { useSelectedSiteId } from '@/features/site-selection';
+import { HEADER_POPOVER_PLACEMENT } from '../config/constants';
 
 /**
  * 계측을 지금 받고 있는가 — **점 하나로 말하고, 누르면 글로 말한다**
@@ -43,16 +45,8 @@ export function ReceiveIndicator() {
   const site = getSite(siteId);
   const { status, failure, intervalSeconds } = useSiteSeries(siteId);
 
-  /*
-   * **문구를 다시 적지 않는다.** 세 갈래 모두 기존 라벨 함수를 그대로 부른다 —
-   * `telemetry-labels.test.ts`가 «헤더가 문구를 스스로 적지 않는다»를 못박고 있다.
-   */
   const live = site.online && status === 'live';
-  const label = !site.online
-    ? '수신 두절'
-    : status === 'live'
-      ? `${TELEMETRY_STATUS_LABELS.live} · ${intervalLabel(intervalSeconds)} 주기`
-      : telemetrySourceLabel(status, failure);
+  const label = receiveLabel(site.online, { status, failure, intervalSeconds });
 
   return (
     <div ref={boxRef} className="relative">
@@ -62,14 +56,7 @@ export function ReceiveIndicator() {
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-label={`수신 상태 — ${label}`}
-        className={cn(
-          ICON_BUTTON,
-          /*
-           * **정상일 때 `text-normal-ink`가 반드시 남는다.** `.live-pulse::before`가
-           * `background: currentColor`라, 색 클래스를 걷으면 파동이 검게 뜬다.
-           */
-          live ? 'text-normal-ink' : !site.online ? 'text-critical-ink' : 'text-fg-subtle',
-        )}
+        className={cn(ICON_BUTTON, receiveTone(site.online, live))}
       >
         {/*
          * **`relative`가 없으면 파동이 버튼만큼 커진다.** `.live-pulse::before`는
@@ -90,7 +77,10 @@ export function ReceiveIndicator() {
       {open && (
         <div
           role="status"
-          className="absolute right-0 z-20 mt-1.5 w-[min(260px,calc(100vw-2rem))] rounded-nested border border-border-strong bg-surface p-3 text-[12px] shadow-lg"
+          className={cn(
+            HEADER_POPOVER_PLACEMENT,
+            'z-20 w-[min(260px,calc(100vw-2rem))] rounded-nested border border-border-strong bg-surface p-3 text-[12px] shadow-lg',
+          )}
         >
           <p className="font-medium text-fg">{label}</p>
           {/*
@@ -105,4 +95,29 @@ export function ReceiveIndicator() {
       )}
     </div>
   );
+}
+
+/**
+ * 수신 상태 문구. **문구를 다시 적지 않는다** — 세 갈래 모두 기존 라벨 함수를 그대로 부른다
+ * (`telemetry-labels.test.ts`가 «헤더가 문구를 스스로 적지 않는다»를 못박고 있다).
+ */
+function receiveLabel(
+  online: boolean,
+  { status, failure, intervalSeconds }: Pick<SiteSeries, 'status' | 'failure' | 'intervalSeconds'>,
+): string {
+  if (!online) return '수신 두절';
+  if (status === 'live') {
+    return `${TELEMETRY_STATUS_LABELS.live} · ${intervalLabel(intervalSeconds)} 주기`;
+  }
+  return telemetrySourceLabel(status, failure);
+}
+
+/**
+ * 점의 색. **정상일 때 `text-normal-ink`가 반드시 남는다** — `.live-pulse::before`가
+ * `background: currentColor`라, 색 클래스를 걷으면 파동이 검게 뜬다.
+ */
+function receiveTone(online: boolean, live: boolean): string {
+  if (live) return 'text-normal-ink';
+  if (!online) return 'text-critical-ink';
+  return 'text-fg-subtle';
 }

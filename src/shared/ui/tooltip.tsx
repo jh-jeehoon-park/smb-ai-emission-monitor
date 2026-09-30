@@ -61,14 +61,19 @@ export function InfoTip({
   return (
     <Tooltip content={content} side={side}>
       {/*
-       * **보이는 크기는 16px인데 누르는 자리는 40px이다** `[사용자 요청 2026-09-21]`.
+       * **보이는 크기는 16px인데 누르는 자리는 세로 40px이다** `[사용자 요청 2026-09-21]`.
        * `ICON_BUTTON`이 헤더에서 쓰는 것과 같은 짜임이다 — `before`가 여백을 넓히므로
        * **줄 높이를 바꾸지 않아** 제목 옆에 붙은 자리가 그대로다(실측으로 전 화면 16px였다).
+       *
+       * **좌우는 4px만 넓힌다(24px)** `[2026-09-30 검토]`. 사방 12px이던 판본은 제목 줄에서
+       * 바로 옆 바로가기(`상세 보기 ›`, 간격 6px)의 **왼쪽 6px을 가로챘다** — 그 자리를 누르면
+       * 링크가 아니라 툴팁이 열렸다(실측, 전 폭). 이 아이콘 옆은 대개 조작이고 간격은 6px이라
+       * 그 절반 안에서만 넓힌다. 24px은 WCAG 2.5.8의 최소 크기다.
        */}
       <button
         type="button"
         aria-label={label}
-        className='relative shrink-0 cursor-help text-fg-subtle transition-colors duration-200 before:absolute before:-inset-3 before:content-[""] hover:text-accent'
+        className='relative shrink-0 cursor-help text-fg-subtle transition-colors duration-200 before:absolute before:-inset-x-1 before:-inset-y-3 before:content-[""] hover:text-accent'
       >
         <Info aria-hidden size={16} strokeWidth={1.9} />
       </button>

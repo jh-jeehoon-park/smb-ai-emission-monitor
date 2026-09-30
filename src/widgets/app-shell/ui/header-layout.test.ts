@@ -112,3 +112,52 @@ describe('사업장 선택 — 한 자리에만', () => {
     expect(part).toContain('role-hide-site');
   });
 });
+
+/**
+ * **헤더 팝오버가 좁은 화면 밖으로 나가지 않는다** `[2026-09-30 검토]`.
+ *
+ * 헤더를 한 줄로 줄이며 종과 수신 점이 오른쪽 끝에서 안쪽으로 들어갔는데, 팝오버는 자기 버튼의
+ * 오른쪽 끝에 맞춰 폭을 왼쪽으로 펼쳐 **360px에서 알림 팝오버의 왼쪽 16px이 잘렸다**(실측).
+ * jsdom은 자리를 재 주지 않으므로 소스로 막는다 — 두 팝오버가 같은 자리 규약을 쓰는지,
+ * 그 규약이 좁은 화면에서 버튼이 아니라 화면 여백에 붙는지.
+ */
+describe('헤더 팝오버 — 좁은 화면 안에 선다', () => {
+  const constants = readFileSync('src/widgets/app-shell/config/constants.ts', 'utf8');
+  const placement = constants.match(/HEADER_POPOVER_PLACEMENT\s*=\s*'([^']+)'/)?.[1];
+
+  it('자리 규약이 좁은 화면에서 화면 여백에, 넓은 화면에서 버튼 아래에 붙는다', () => {
+    expect(placement, 'HEADER_POPOVER_PLACEMENT를 찾지 못했다').toBeDefined();
+    const classes = placement!.split(/\s+/);
+    expect(classes).toEqual(expect.arrayContaining(['fixed', 'right-4', 'top-[var(--header-h)]']));
+    /* 넓은 화면은 예전 그대로다 */
+    expect(classes).toEqual(expect.arrayContaining(['sm:absolute', 'sm:right-0', 'sm:top-auto']));
+  });
+
+  it.each([
+    'src/widgets/app-shell/ui/alarm-menu.tsx',
+    'src/widgets/app-shell/ui/receive-indicator.tsx',
+  ])('%s가 그 규약을 쓴다', (path) => {
+    const code = withoutComments(readFileSync(path, 'utf8'));
+    expect(code).toMatch(/cn\(\s*HEADER_POPOVER_PLACEMENT,/);
+    /* 버튼에 맞춘 옛 자리가 남으면 좁은 화면에서 다시 잘린다 */
+    expect(code).not.toMatch(/className="absolute right-0 z-20/);
+  });
+});
+
+/**
+ * **메뉴 서랍의 조작도 손가락 최소를 채운다** `[2026-09-30 검토]`. 서랍은 좁은 화면에만
+ * 뜨는데, 그 안의 사업장 선택(32px)과 닫기(28px)가 40px 규약에서 빠져 있었다(390px 실측).
+ */
+describe('메뉴 서랍 — 40px', () => {
+  it('사업장 선택이 좁은 화면에서 40px이고 넓은 화면(헤더)은 그대로다', () => {
+    const part = withoutComments(
+      readFileSync('src/features/site-selection/ui/site-selector.tsx', 'utf8'),
+    );
+    expect(part).toMatch(/<select[\s\S]*?min-h-10[\s\S]*?lg:min-h-0/);
+  });
+
+  it('닫기 버튼이 헤더 아이콘 버튼과 같은 껍데기(보이는 28px · 누르는 44px)를 쓴다', () => {
+    const close = withoutComments(source.slice(source.indexOf('<Dialog.Close')));
+    expect(close.slice(0, close.indexOf('>'))).toContain('ICON_BUTTON');
+  });
+});

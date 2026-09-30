@@ -94,7 +94,7 @@ function RunList({
   onSelect: (fromIso: string) => void;
 }) {
   return (
-    <ul className="max-h-[320px] space-y-1.5 overflow-auto @[46rem]:max-h-[420px]">
+    <ul className="max-h-[320px] space-y-1.5 overflow-y-auto @[46rem]:max-h-[420px]">
       {runs.map((run) => {
         const active = run.fromIso === selectedIso;
         const visual = STATUS_VISUAL[run.level];

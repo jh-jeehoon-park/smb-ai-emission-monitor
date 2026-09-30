@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { readFileSync } from 'node:fs';
+import { startTransition, useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { SITES } from '@/entities/site';
@@ -81,6 +82,75 @@ describe('사업장 목록', () => {
 });
 
 /**
+ * **키보드로도 끝까지 쓸 수 있다** `[2026-09-30 검토]`.
+ *
+ * 누른 줄은 고르는 순간 목록에서 빠져 카드로 올라간다 — 그 버튼이 사라지므로 초점이 문서 맨 앞
+ * (`body`)으로 떨어졌다(실측). 부모가 실제로 `?site=`를 바꾸는 것처럼 상태를 올려 그린다.
+ */
+describe('사업장 목록 — 키보드', () => {
+  function Harness() {
+    const [selectedId, setSelectedId] = useState(SITES[1]!.id);
+    return <SiteList sites={SITES} selectedId={selectedId} onSelect={setSelectedId} />;
+  }
+
+  it('고른 뒤 초점이 새로 고른 사업장의 카드에 선다', () => {
+    render(<Harness />);
+    const target = screen.getByRole('button', { name: new RegExp(SITES[0]!.name) });
+    target.focus();
+
+    fireEvent.click(target);
+
+    const focused = document.activeElement as HTMLElement;
+    expect(focused).not.toBe(document.body);
+    expect(focused.textContent).toContain('현재 선택 사업장');
+    expect(focused.textContent).toContain(SITES[0]!.name);
+    /* 카드는 Tab 순서에 끼지 않는다 — 초점을 받을 수만 있다 */
+    expect(focused.tabIndex).toBe(-1);
+  });
+
+  /**
+   * **초점이 도착한 순간 카드가 이미 새 사업장이어야 한다** `[2026-09-30 리뷰]`. 실제 부모는
+   * `?site=`를 바꾸고 라우터가 그것을 transition으로 그린다 — 누르는 순간 초점을 주던 판본은
+   * **떠나온 사업장**을 보이는 카드에 초점을 줘, 보조기술이 옛 이름을 읽었다. 도착한 순간의
+   * 글자를 기록해 본다(나중에 바뀐 글자를 보면 그 차이를 잡지 못한다).
+   */
+  it('transition으로 그려도 초점은 새 카드에 도착한다', () => {
+    function TransitionHarness() {
+      const [selectedId, setSelectedId] = useState(SITES[1]!.id);
+      return (
+        <SiteList
+          sites={SITES}
+          selectedId={selectedId}
+          onSelect={(id) => startTransition(() => setSelectedId(id))}
+        />
+      );
+    }
+    render(<TransitionHarness />);
+    const arrivals: string[] = [];
+    const record = (event: FocusEvent) =>
+      arrivals.push((event.target as HTMLElement).textContent ?? '');
+    document.addEventListener('focusin', record);
+
+    fireEvent.click(screen.getByRole('button', { name: new RegExp(SITES[0]!.name) }));
+    document.removeEventListener('focusin', record);
+
+    const onCard = arrivals.filter((text) => text.includes('현재 선택 사업장'));
+    expect(onCard.length, '초점이 카드에 도착하지 않았다').toBeGreaterThan(0);
+    expect(onCard[0]).toContain(SITES[0]!.name);
+  });
+
+  /**
+   * 전역 초점 테두리는 바깥 2px이라 이 스크롤 상자가 위·좌·우를 잘라 **줄 아래 선 하나**만
+   * 남았다 — 구분선과 같아 보여 초점이 어디 있는지 알 수 없었다(캡처로 잡았다).
+   */
+  it('줄의 초점 테두리를 안쪽에 그린다', () => {
+    draw();
+    const row = screen.getByRole('group', { name: '사업장 선택' }).firstElementChild!;
+    expect(row.className).toContain('focus-visible:-outline-offset-2');
+  });
+});
+
+/**
  * **흰 면 위에 산다** `[사용자 지적 2026-09-18: 이미지랑 영역 색상이 차이가 남]`.
  *
  * 구역이 회색면(`--section-bg`)이라 면을 걷으면 줄이 회색 위에 뜨고, **고른 곳의
@@ -101,7 +171,7 @@ describe('사업장 목록 — 흰 면', () => {
  * **세 줄만 보이고 나머지는 상자 안에서 밀린다** `[사용자 요청 2026-09-18: 사업장이 3개
  * 이상일 때는 스크롤]`.
  *
- * 아홉 줄을 모두 펴면 그것만 420px이라 구역 머리가 다시 부풀어, 탭 줄을 걷어 낸 이유가
+ * 아홉 줄을 모두 펴면 그것만 413px(실측)이라 구역 머리가 다시 부풀어, 탭 줄을 걷어 낸 이유가
  * 되돌아간다. jsdom은 높이를 재 주지 않으므로 **상한과 산술**을 잠근다.
  */
 describe('사업장 목록 — 세 줄 창', () => {

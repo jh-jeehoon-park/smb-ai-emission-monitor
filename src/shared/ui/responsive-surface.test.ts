@@ -176,9 +176,49 @@ describe('InfoTip은 보이는 크기보다 넓게 눌린다', () => {
    * 셸 헤더의 `ICON_BUTTON`이 쓰는 것과 같은 짜임이다.
    */
   it('`before`로 넓히고 기준면을 갖는다', () => {
-    expect(tooltip).toMatch(/before:-inset-\d/);
+    /* 세로 12px씩 — 16px 아이콘이 40px로 눌린다 */
+    expect(tooltip).toContain('before:-inset-y-3');
     /* `relative`가 없으면 `before`가 조상 기준으로 퍼져 옆 조작을 덮는다 */
     expect(tooltip).toMatch(/\brelative\b[^'"`]*before:absolute/);
+  });
+
+  /**
+   * **옆 조작을 가로채지 않는다** `[2026-09-30 검토]`. 사방 12px이던 판본은 제목 줄의 바로가기
+   * (간격 6px)에서 왼쪽 6px을 가져갔다 — 그 자리를 누르면 링크가 아니라 툴팁이 열렸다.
+   * 좌우 확장은 그 간격의 절반(4px) 안이어야 한다.
+   */
+  it('좌우는 옆 간격의 절반 안에서만 넓힌다', () => {
+    expect(tooltip).toContain('before:-inset-x-1');
+    expect(tooltip).not.toMatch(/before:-inset-\d/);
+  });
+});
+
+describe('넓힌 누름 자리가 잘리지 않는다', () => {
+  /**
+   * **`TAP_AREA_Y`는 `overflow: hidden`과 한 요소에 쓰지 않는다** `[2026-09-30 검토]`. 설비
+   * 이름이 `truncate`(= `overflow: hidden`)와 함께 써서, 넓힌 `before`가 버튼 자신에게 잘려
+   * **누르는 자리가 18px 그대로**였다. 클래스는 있었으므로 위의 «한 상수로 히트 영역을 얻는다»는
+   * 통과했다 — 있는지가 아니라 **먹히는지**를 따로 본다. 말줄임은 안쪽 글자가 맡는다.
+   */
+  it.each([
+    'src/widgets/anomaly-view/ui/anomaly-view.tsx',
+    'src/widgets/admin-overview/ui/admin-overview-view.tsx',
+    'src/widgets/inout-compare/ui/duty-lanes.tsx',
+    'src/widgets/inout-compare/ui/verdict-bar.tsx',
+    'src/widgets/equipment-panel/ui/equipment-panel.tsx',
+    'src/widgets/app-shell/ui/alarm-menu.tsx',
+  ])('%s', (path) => {
+    const source = read(path);
+    /* 두 가지로 붙는다 — 템플릿 문자열(`${TAP_AREA_Y} …`)과 `cn(TAP_AREA_Y, …)` */
+    const uses = [
+      ...[...source.matchAll(/\$\{TAP_AREA_Y\}([^`]*)`/g)].map((match) => match[1]),
+      ...[...source.matchAll(/cn\(\s*TAP_AREA_Y,([\s\S]*?)\)\}/g)].map((match) => match[1]),
+    ];
+    expect(uses.length, `${path}에서 TAP_AREA_Y를 붙인 자리를 찾지 못했다`).toBeGreaterThan(0);
+
+    for (const rest of uses) {
+      expect(rest).not.toMatch(/\btruncate\b|\boverflow-(hidden|clip)\b|\bline-clamp-/);
+    }
   });
 });
 
@@ -207,7 +247,123 @@ describe('가로 스크롤 상자는 더 있다고 말한다', () => {
     expect(css).toContain('--scroll-hint-ink');
     /* 라디얼 둘 다 변수를 써야 한쪽만 남지 않는다 */
     expect(css.match(/radial-gradient\([^)]*var\(--scroll-hint-ink\)/g)).toHaveLength(2);
-    expect(css).toMatch(/:root\[data-theme='dark'\]\s*\.scroll-hint\s*\{[^}]*--scroll-hint-ink/);
+
+    /*
+     * **다시 적었는지가 아니라 값이 다른지를 본다** `[2026-09-30 검토]`. 이 검사는 한때 다크
+     * 규칙이 변수를 **선언했는지**만 봐서, 다크 값을 라이트와 같은 남색으로 되돌려도 통과했다
+     * (일부러 넣은 되돌림을 놓쳤다).
+     */
+    const light = css.match(/\.scroll-hint\s*\{[^}]*--scroll-hint-ink:\s*([^;]+);/)?.[1];
+    const dark = css.match(
+      /:root\[data-theme='dark'\]\s*\.scroll-hint\s*\{[^}]*--scroll-hint-ink:\s*([^;]+);/,
+    )?.[1];
+    expect(light, '라이트 잉크를 찾지 못했다').toBeDefined();
+    expect(dark, '다크 잉크를 찾지 못했다').toBeDefined();
+    expect(dark).not.toBe(light);
+  });
+
+  /**
+   * **불투명한 줄 위에서도 보인다** `[2026-09-30 검토]`. 배경 두 겹은 상자의 배경이라 표 머리
+   * 행·고른 줄·고정 첫 열 뒤로 숨었다(관내 감독 표에서 신호가 머리글 아래부터만 보였다). 이를
+   * 아는 브라우저는 **내용까지 포함한 상자 전체**를 스크롤에 맞춰 흐린다.
+   */
+  it('스크롤 타임라인을 아는 브라우저는 마스크로 흐린다', () => {
+    /* `slice(-1)`은 마지막 한 글자를 돌려줘 길이 검사로는 «없음»을 잡지 못한다 — 위치를 본다 */
+    const at = css.indexOf('@supports (animation-timeline: scroll())');
+    expect(at, '@supports 블록이 없다').toBeGreaterThan(-1);
+    const supports = css.slice(at);
+    const rule = supports.slice(0, supports.indexOf('@keyframes'));
+
+    expect(rule).toMatch(/mask-image:\s*linear-gradient\(/);
+    expect(rule).toContain('var(--scroll-hint-start)');
+    expect(rule).toContain('var(--scroll-hint-end)');
+    /* 배경 그림자를 함께 두면 마스크가 그것까지 흐려 두 신호가 겹친다 */
+    expect(rule).toMatch(/background-image:\s*none/);
+    /* 가로 스크롤을 따라야 한다 — 세로로 밀리는 상자(구간 집계표)가 있다 */
+    expect(rule).toMatch(/animation-timeline:\s*scroll\(self inline\)/);
+
+    /* 등록하지 않은 변수는 보간되지 않아 중간에 한 번에 뒤집힌다 */
+    for (const name of ['--scroll-hint-start', '--scroll-hint-end']) {
+      expect(css).toMatch(new RegExp(`@property ${name}\\s*\\{[^}]*syntax:\\s*"<length>"`));
+    }
+    expect(css).toMatch(/@keyframes scroll-hint-edges\s*\{/);
+  });
+
+  /**
+   * **넓은 화면에는 마스크를 걸지 않는다** `[2026-09-30 검토]`. 마스크는 밀 것이 없어도 상자를
+   * 따로 합성하게 해 **표 글자의 안티앨리어싱을 바꿨다**(1440px 픽셀 대조에서 표마다 줄 단위로
+   * 달라졌다). 키프레임에 옮겨 «밀 때만» 걸려 했으나 키프레임 안의 `var()`는 처음 값으로 굳는다 —
+   * 끝까지 밀어도 오른쪽 흐림이 남았다(실측). 그래서 마스크는 `lg` 미만 규칙에만 있다.
+   */
+  it('마스크는 `lg` 미만에만 있고 키프레임에는 없다', () => {
+    const supports = css.slice(css.indexOf('@supports (animation-timeline: scroll())'));
+    const rule = supports.slice(0, supports.indexOf('@keyframes'));
+    expect(rule).toMatch(/@media \(width < 64rem\)\s*\{\s*\.scroll-hint\s*\{[^}]*mask-image:/);
+
+    const keyframes = css.slice(css.indexOf('@keyframes scroll-hint-edges'));
+    const body = keyframes.slice(0, keyframes.indexOf('\n}\n'));
+    expect(body).not.toContain('mask-image');
+  });
+
+  /**
+   * **마스크를 쓰는 상자의 키보드 초점 테두리는 안쪽이다** `[2026-09-30 리뷰]`. Chrome은 안에
+   * 조작이 없는 스크롤 상자에도 Tab으로 초점을 주는데(구간 집계표·가동 격자), 마스크는 상자
+   * 테두리 안쪽만 칠해 바깥 2px 초점 테두리가 **통째로 잘린다.**
+   */
+  it('마스크를 쓰는 단에서 상자의 초점 테두리를 안쪽에 그린다', () => {
+    const narrow = css.slice(css.indexOf('@media (width < 64rem)'));
+    const block = narrow.slice(0, narrow.indexOf('@keyframes'));
+    expect(block).toMatch(/\.scroll-hint:focus-visible\s*\{[^}]*outline-offset:\s*-2px/);
+  });
+
+  /**
+   * **호출부가 끌 수 있어야 한다** `[2026-09-30 검토]`. 이 규칙이 `utilities` 안에 손으로 적혀
+   * Tailwind 유틸리티보다 뒤에 실렸고, 설정 목차의 `lg:bg-none`이 조용히 졌다. `components`
+   * 층에 두고, 끄는 것은 셋(배경·마스크·타임라인)을 함께 걷는 유틸리티 하나로 한다.
+   */
+  it('규칙은 `components` 층에 있고 끄는 유틸리티가 있다', () => {
+    const at = css.indexOf('@layer components {');
+    expect(at, '@layer components가 없다').toBeGreaterThan(-1);
+    const components = css.slice(at);
+    expect(components).toMatch(/^@layer components \{[\s\S]*?\.scroll-hint\s*\{/);
+
+    const utilities = css.slice(css.indexOf('@layer utilities {'), css.indexOf('@layer components {'));
+    expect(utilities).not.toMatch(/\.scroll-hint\s*\{/);
+
+    const off = css.match(/@utility scroll-hint-off\s*\{([^}]*)\}/)?.[1] ?? '';
+    for (const property of ['background-image: none', 'mask-image: none', 'animation-name: none']) {
+      expect(off, property).toContain(property);
+    }
+  });
+
+  /**
+   * **넓은 화면에서 밀리지 않게 푸는 상자는 그 단에서 신호도 끈다.** 끄는 이름은 하나다 —
+   * 신호가 폭에 따라 배경 또는 마스크·타임라인으로 서므로, 어느 단에서 끄든 셋이 함께 걷혀야
+   * 한다(좁은 단에서 배경만 걷으면 마스크가 남아 초점 테두리를 자른다).
+   */
+  it('`overflow-visible`로 푸는 상자는 같은 단에서 신호를 끈다', () => {
+    const nav = read('src/widgets/settings-view/ui/settings-nav.tsx');
+    expect(nav).toContain('TABLE_SCROLL');
+    expect(nav).toContain('lg:overflow-visible');
+    expect(nav).toContain('lg:scroll-hint-off');
+    /* 옛 끄기는 지는 쪽이었다 — 남아 있으면 끈 줄 알고 넘어간다 */
+    expect(nav).not.toContain('lg:bg-none');
+  });
+
+  /**
+   * **세로로도 밀리는 상자는 스크롤바 폭을 흐리지 않는다.** 오른쪽 가장자리를 흐리면 거기 앉은
+   * 세로 스크롤바까지 함께 흐려진다. 폭은 `::-webkit-scrollbar`와 같은 변수에서 온다.
+   */
+  it('세로로도 밀리는 상자는 스크롤바 폭을 남긴다', () => {
+    expect(css).toMatch(/::-webkit-scrollbar\s*\{[^}]*width:\s*var\(--scrollbar-size\)/);
+    for (const path of [
+      'src/widgets/bucket-report/ui/bucket-report-panel.tsx',
+      'src/shared/ui/chart-figure.tsx',
+    ]) {
+      const source = read(path);
+      expect(source, path).toContain('overflow-y-auto');
+      expect(source, path).toContain('pointer-fine:[--scroll-hint-bar:var(--scrollbar-size)]');
+    }
   });
 
   /**
