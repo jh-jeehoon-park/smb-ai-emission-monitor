@@ -1,8 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { NAV_ITEMS } from '@/widgets/app-shell/config/navigation';
+import { NAV_ITEMS, homeHrefFor } from '@/widgets/app-shell/config/navigation';
 import {
+  DEMO_PERSON_NAME,
   ROLES,
   ROLE_PROFILES,
   ROLE_SWITCH_BLOCKED_REASON,
@@ -20,10 +21,7 @@ import { DEFAULT_ROLE, SESSION_INIT_SCRIPT, normalizeRole } from './config/sessi
 import type { Role } from './model/types';
 import { SITES } from '@/entities/site';
 
-const MATRIX = readFileSync(
-  join(process.cwd(), 'docs/specs/screens.md'),
-  'utf8',
-);
+const MATRIX = readFileSync(join(process.cwd(), 'docs/specs/screens.md'), 'utf8');
 
 /**
  * §5 권한 매트릭스에서 그 화면의 역할별 접근 가능 여부를 뽑는다.
@@ -76,19 +74,29 @@ describe('역할 — 문서와 코드가 갈리지 않는다', () => {
   });
 
   /**
-   * 사업장의 첫 화면은 **현황**이지 손익이 아니다.
+   * 사업장의 첫 화면은 **손익이 아니다.**
    *
-   * 가드가 `NAV_ITEMS`의 첫 접근 가능 항목을 폴백으로 쓰므로 순서가 곧 첫 화면이다.
-   * SCR-AD-003을 앞에서 치우면 다시 손익 화면으로 떨어진다 — 그때 여기서 걸린다.
+   * 가드가 `NAV_ITEMS`에서 **메뉴에 보이는** 첫 항목을 폴백으로 쓰므로 순서가 곧 첫 화면이다.
+   * 맨 앞을 치우면 다시 손익 화면(`SCR-AD-001`)으로 떨어진다 — 그때 여기서 걸린다.
+   *
+   * **하루 동안 `/inout`이었다** `[사용자 결정 2026-09-09]` → 되돌림 `[사용자 요청 2026-09-10]`.
+   * 그 화면이 4번째로 지정되며 순서가 되돌았고, 「손익이 아니어야 한다」는 원래 근거는 두
+   * 판본 모두에서 지켜졌다.
    */
-  it('사업장으로 바꾸면 자사 현황으로 옮겨 간다 — 라우트 가드의 대체 화면', () => {
-    expect(NAV_ITEMS.find((item) => canRoleSee(item.screenId, 'site'))?.href).toBe('/overview');
+  it('사업장으로 바꾸면 사업장 상세로 옮겨 간다 — 라우트 가드의 대체 화면', () => {
+    expect(homeHrefFor('site')).toBe('/overview');
   });
 
-  it('시스템 관리자·지자체의 대체 화면은 통합 관제다', () => {
-    for (const role of ['system', 'gov'] as const) {
-      expect(NAV_ITEMS.find((item) => canRoleSee(item.screenId, role))?.href).toBe('/');
-    }
+  it('시스템 관리자의 대체 화면은 통합 관제다', () => {
+    expect(homeHrefFor('system')).toBe('/');
+  });
+
+  /**
+   * 통합 관제를 닫은 자리를 `SCR-GU-001`이 받는다. 한때 그 화면에 라우트가 없어
+   * `/timeseries`로 떨어졌는데 **그 임시값은 사라졌다.**
+   */
+  it('기초지자체의 대체 화면은 관내 감독 현황이다', () => {
+    expect(homeHrefFor('gov')).toBe('/jurisdiction');
   });
 });
 
@@ -136,7 +144,10 @@ describe('사업장 계정 — 범위 축', () => {
     const ids = ADMIN_ACCOUNTS.map((a) => a.siteId);
     expect(new Set(ids).size).toBe(ADMIN_ACCOUNTS.length);
     for (const id of ids) {
-      expect(SITES.some((s) => s.id === id), `${id}가 사업장 목록에 없다`).toBe(true);
+      expect(
+        SITES.some((s) => s.id === id),
+        `${id}가 사업장 목록에 없다`,
+      ).toBe(true);
     }
   });
 
@@ -176,17 +187,26 @@ describe('사업장 계정 — 범위 축', () => {
 });
 
 /**
- * 지자체는 **전환만** 막는다. 역할 자체를 없애는 것이 아니다 —
- * 권한 매트릭스는 지자체가 볼 수 있는 화면을 그대로 규정하고 있고,
- * 관할 지역 범위를 구현하면 전환을 연다 `[사용자 지시 2026-08-20]`.
+ * 기초지자체 전환이 **열렸다** `[사용자 결정 2026-08-26]`.
+ *
+ * 한동안 전환만 막아 두었다 — 관할 범위 필터가 없어 전환해도 시스템 관리자와 화면이 같았고
+ * `[사용자 지시 2026-08-20]`, 구분되지 않는 것을 고를 수 있게 두면 없는 기능이 있는 것처럼
+ * 읽히기 때문이다. `scope=municipality`와 `SCR-GU-001`이 생겨 그 조건이 사라졌다.
  */
-describe('역할 전환 — 지자체는 아직 고를 수 없다', () => {
-  it('전환 목록에 지자체가 없다', () => {
-    expect(SWITCHABLE_ROLES).not.toContain('gov');
+describe('역할 전환', () => {
+  it('세 역할 모두 전환할 수 있다', () => {
+    expect(SWITCHABLE_ROLES).toEqual(expect.arrayContaining([...ROLES]));
   });
 
-  it('사업장·시스템 관리자는 전환할 수 있다', () => {
-    expect(SWITCHABLE_ROLES).toEqual(expect.arrayContaining(['site', 'system']));
+  /**
+   * 전환 탭은 `ROLES` 순서 그대로 그려진다(`profile-menu.tsx`). **범위가 넓은 쪽에서 좁은
+   * 쪽으로** 간다 `[사용자 요청 2026-08-27]` — 전국 → 관할 시·군·구 → 자사 1개소.
+   *
+   * 이 배열은 클래스 문자열·메뉴 필터에도 쓰여 순서를 무심코 바꾸기 쉬운데, 그러면 **화면의
+   * 탭 순서가 함께 움직인다.** 요구된 순서를 여기서 못박는다.
+   */
+  it('전환 탭이 범위 넓은 순이다 — 시스템 관리자 · 기초지자체 · 사업장', () => {
+    expect([...ROLES]).toEqual(['system', 'gov', 'site']);
   });
 
   /** 전환 목록은 전체 역할의 부분집합이어야 한다 — 없는 역할을 고를 수 있으면 안 된다 */
@@ -194,14 +214,28 @@ describe('역할 전환 — 지자체는 아직 고를 수 없다', () => {
     for (const role of SWITCHABLE_ROLES) expect(ROLES).toContain(role);
   });
 
-  it('지자체는 유효한 역할이다 — 권한 매트릭스가 이미 규정한다', () => {
+  it('기초지자체는 유효한 역할이다 — 권한 매트릭스가 이미 규정한다', () => {
     expect(normalizeRole('gov')).toBe('gov');
     expect(ROLES).toContain('gov');
   });
 
-  it('지자체의 화면 접근 권한은 정의돼 있다', () => {
-    expect(canRoleSee('SCR-OP-001', 'gov')).toBe(true);
-    expect(canRoleSee('SCR-AD-003', 'gov')).toBe(false);
+  /**
+   * **통합 관제는 기초지자체에도 닫혀 있다** `[설계 2026-08-24]`. 전국 10개소를 보여 주는
+   * 것이 `관할 시·군·구`라는 범위 정의와 모순이라, 사업장에 닫은 것과 같은 논리로 닫았다.
+   * 그 자리를 `SCR-GU-001 관내 감독 현황`이 받는다.
+   */
+  it('기초지자체의 화면 접근 권한은 정의돼 있다', () => {
+    expect(canRoleSee('SCR-OP-001', 'gov')).toBe(false);
+    expect(canRoleSee('SCR-GU-001', 'gov')).toBe(true);
+    /* 접근은 열려 있다 — 관내 감독에서 사업장을 고른 뒤 `상세 보기`로 들어온다.
+       메뉴에 없는 것은 별개 축이다(`navigation.ts`의 menuRoles) */
+    expect(canRoleSee('SCR-AD-003', 'gov')).toBe(true);
+  });
+
+  /** 관내 화면은 기초지자체만 본다 — 관할 밖 사업장이 들어가므로 전 사업장 역할에도 닫는다 */
+  it('관내 감독 현황은 기초지자체 전용이다', () => {
+    expect(canRoleSee('SCR-GU-001', 'system')).toBe(false);
+    expect(canRoleSee('SCR-GU-001', 'site')).toBe(false);
   });
 
   /** 범위 축이 역할마다 하나로 정해진다 — 회의가 사용자 유형과 범위를 함께 못박았다 */
@@ -209,8 +243,24 @@ describe('역할 전환 — 지자체는 아직 고를 수 없다', () => {
     expect(new Set(ROLES.map((role) => ROLE_PROFILES[role].scope)).size).toBe(ROLES.length);
   });
 
-  /** 못 누르는 이유가 화면에 적혀야 한다 — 흐릿하기만 하면 고장으로 읽힌다 */
-  it('막힌 이유 문구가 있다', () => {
-    expect(ROLE_SWITCH_BLOCKED_REASON).toContain('지자체');
+  /**
+   * 못 누르는 이유가 화면에 적혀야 한다 — 흐릿하기만 하면 고장으로 읽힌다.
+   * **지금은 막힌 역할이 없지만** 문구는 남긴다: 그때 새로 지어내면 근거가 사라진다.
+   */
+  it('막힌 이유 문구가 남아 있다', () => {
+    expect(ROLE_SWITCH_BLOCKED_REASON).toContain('범위');
+    expect(ROLES.every((role) => SWITCHABLE_ROLES.includes(role))).toBe(true);
+  });
+});
+
+/**
+ * **시연 이름은 하나다** `[사용자 지시 2026-08-25]`. 역할마다 다른 이름을 두면
+ * 권한을 갈아 끼우는 시연이 세 사람의 계정으로 읽힌다 — 계정은 원래 하나뿐이다.
+ */
+describe('시연 이름', () => {
+  it('세 역할이 같은 이름을 쓴다', () => {
+    for (const role of ROLES) {
+      expect(ROLE_PROFILES[role].demoName).toBe(DEMO_PERSON_NAME);
+    }
   });
 });

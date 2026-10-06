@@ -88,26 +88,25 @@ describe('가동 격자 판독 툴팁', () => {
     fireEvent.mouseMove(statusCellAt(1, 5));
 
     expect(statusCellAt(0, 5).style.outline).toBe('');
-    /* 방지시설 줄도 같은 열이라는 이유로 따라 켜지면 안 된다 */
-    const rows = container.querySelectorAll('tbody tr');
-    const treatment = rows[rows.length - 1]!;
-    expect((treatment.querySelectorAll('td')[5] as HTMLElement).style.outline).toBe('');
+    const outlined = [...container.querySelectorAll('td')].filter((td) => td.style.outline !== '');
+    expect(outlined).toHaveLength(1);
   });
 
   /**
-   * 방지시설 줄은 등급이 아니라 켜짐/꺼짐 축이다. 툴팁이 `등급`이라고 말하면 그 구분이
-   * 화면에서 사라진다(`TBD-46`).
+   * **행은 설비뿐이다** `[사용자 요청 2026-09-08]`. `방지시설 가동` 줄이 격자 아래에 붙어
+   * 있었는데, 그 사실은 방류 여부와 나란히 놓이는 이상 탐지에서만 결론에 닿는다. 되살리면
+   * 구분선·별도 범례·별도 툴팁 이름이 함께 돌아오므로 여기서 못박는다.
    */
-  it('방지시설 줄은 설비 가동과 다른 이름을 쓴다', () => {
-    const { tooltip } = renderGrid();
-    const rows = screen.getAllByRole('row');
-    const treatmentRow = rows[rows.length - 1]!;
-    fireEvent.mouseMove(treatmentRow.querySelectorAll('td')[0] as HTMLElement);
+  it('설비 수만큼만 행이 있다 — 사업장 단위 줄이 섞이지 않는다', () => {
+    const { container } = renderGrid();
+    expect(container.querySelectorAll('tbody tr')).toHaveLength(online.length);
+    expect(screen.queryByText('방지시설 가동')).toBeNull();
+  });
 
-    const tip = within(tooltip() as HTMLElement);
-    expect(tip.getByText('방지시설')).toBeTruthy();
-    /* 설비 행과 같은 이름을 쓰면 다섯 번째 설비처럼 읽힌다(`TBD-46`) */
-    expect(tip.queryByText('가동 상태')).toBeNull();
+  it('모든 행 머리글이 설비명이다', () => {
+    const { container } = renderGrid();
+    const heads = [...container.querySelectorAll('tbody th')].map((th) => th.textContent);
+    expect(heads).toEqual(online.map((eq) => eq.name));
   });
 
   /** 결측 칸에 가동 여부를 지어내지 않는다(E4) */

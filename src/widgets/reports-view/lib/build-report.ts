@@ -4,7 +4,7 @@ import type { StatusLevel } from '@/shared/config/provisional';
 import { buildAnomalyScores } from '@/shared/lib/anomaly-score';
 import { countDischargeHours } from '@/shared/lib/timeline';
 import { ALARMS, type AlarmPriority } from '@/entities/alarm';
-import { SITES } from '@/entities/site';
+import type { Site } from '@/entities/site';
 
 const POINTS_PER_HOUR = 60 / COLLECTION_INTERVAL_MINUTES;
 
@@ -59,10 +59,14 @@ function countAlarms(siteId: string): { byPriority: Record<AlarmPriority, number
   return { byPriority, total };
 }
 
-export function buildSiteReport(hours: number): SiteReportRow[] {
+/**
+ * **범위는 부르는 쪽이 정한다** — 한때 `SITES`를 직접 읽어 늘 전 10개소였다.
+ * 그러면 기초지자체가 관할 밖 사업장의 배출 집계를 내보내게 된다.
+ */
+export function buildSiteReport(sites: readonly Site[], hours: number): SiteReportRow[] {
   const window = Math.round(hours * POINTS_PER_HOUR);
 
-  return SITES.map((site) => {
+  return sites.map((site) => {
     const scores = buildAnomalyScores(site.id).slice(-window);
     const stats = summarizeScores(scores);
     const alarms = countAlarms(site.id);

@@ -1,6 +1,9 @@
 /** slice Public API — 바깥에서는 이 파일만 import 한다(FSD §6) */
 export {
   ADMIN_ACCOUNTS,
+  GOV_HOME_SITE_ID,
+  GOV_MUNICIPALITY,
+  GOV_SCOPE,
   DEFAULT_ADMIN_ACCOUNT,
   adminSiteId,
   normalizeAdminAccount,

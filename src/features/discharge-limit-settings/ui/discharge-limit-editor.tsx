@@ -1,6 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import { ArrowRight, MapPinned } from 'lucide-react';
+import { ACTION_BUTTON } from '@/shared/ui/action-button';
+import { EmptyState } from '@/shared/ui/empty-state';
 import {
   DISCHARGE_SCALES,
   LEGAL_CHECK_ITEMS,
@@ -13,8 +16,10 @@ import {
 import { MEASUREMENT_ITEMS, type MeasurementItemCode } from '@/shared/config/measurement';
 import { NumberField } from '@/shared/ui/number-field';
 import { SegmentedControl } from '@/shared/ui/segmented-control';
+import { UNRESOLVED_REASONS } from '../config/constants';
 import { classificationOf, useLimitSettingsStore } from '../model/limit-settings-context';
 import { validEntry, type LimitEntry, type LimitSheets } from '../lib/storage';
+import { TABLE_HEAD_CELL, TABLE_HEAD_ROW, TABLE_ROOT, TABLE_ROW, TABLE_SCROLL } from '@/shared/ui/table';
 
 const EMPTY: LimitEntry = { min: null, max: null };
 
@@ -28,10 +33,62 @@ const EMPTY: LimitEntry = { min: null, max: null };
  * 법정 점검 5항목과 갈린다. `SS`는 `code: null`이라 입력할 수 없다: 우리 계측에도 AI 추정에도
  * 없어서(`[공정자료 p.5·19]`) 기준을 넣어도 비교할 값이 없다.
  */
-export function DischargeLimitEditor({ siteId }: { siteId: string }) {
+/** 이 편집기를 담는 패널의 제목 옆 툴팁에 쓴다 — 값과 같은 파일에 있어야 함께 고쳐진다 */
+export const DISCHARGE_LIMIT_NOTE = (
+  <>
+    <strong className="text-fg">빈 칸은 미설정이며 0이 아닙니다.</strong> 지우면 그 항목은 초과를
+    판정하지 않고 화면에 `{UNRESOLVED_LIMIT_TEXT}`로 남습니다. 값의 옳고 그름은 검사하지 않습니다 —
+    <strong className="text-fg"> 법령이 원천</strong>이며 우리는 범위가 뒤집혔는지와 센서 측정 범위
+    안인지만 봅니다.
+  </>
+);
+
+export function DischargeLimitEditor({
+  siteId,
+  onGoToFacts,
+}: {
+  siteId: string;
+  /**
+   * 분류가 없을 때 **어디로 가서 풀면 되는지**를 버튼으로 준다. 탭 전환은 화면(위젯)이 쥐고
+   * 있어 여기서는 부르기만 한다.
+   */
+  onGoToFacts?: () => void;
+}) {
   const store = useLimitSettingsStore();
   const own = classificationOf(store, siteId);
   const [scale, setScale] = useState<DischargeScale>(own.dischargeScale ?? DISCHARGE_SCALES[0]);
+
+  /*
+   * **분류가 없으면 입력받지 않는다** `[사용자 요청 2026-09-28: 설정 재설계 검토]`.
+   *
+   * 두 가지가 한꺼번에 잘못됐다.
+   * ① `resolveLimitTable`이 지역구분·규모 둘 중 하나라도 없으면 **입력한 시트를 통째로
+   *    무시한다** — 넣어도 화면이 달라지지 않는다(실측).
+   * ② 그런데도 표가 열려 있었고, 규모 세그먼트가 `DISCHARGE_SCALES[0]`(2,000㎥ 이상)로
+   *    선택된 채 떴다. 실증 사업장은 전부 4·5종(200㎥ 미만)이라, 나중에 관리자가 분류를
+   *    제대로 넣어도 그때 입력한 값은 **다른 시트에 있어 영영 읽히지 않는다**(실측으로
+   *    저장소에 `{"가지역":{"2,000㎥ 이상":{…}}}`이 남았다).
+   *
+   * 안내는 **툴팁이 아니라 본문에** 둔다 — 한때 이 문구가 `InfoTip` 안에만 있어 열기 전까지
+   * DOM에 존재하지도 않았다.
+   */
+  if (!own.regionGrade || !own.dischargeScale) {
+    return (
+      <EmptyState
+        icon={<MapPinned className="size-5" strokeWidth={1.8} />}
+        title="사업장 규제정보가 먼저 필요합니다"
+        description={UNRESOLVED_REASONS.noClassification}
+        action={
+          onGoToFacts ? (
+            <button type="button" onClick={onGoToFacts} className={ACTION_BUTTON}>
+              사업장 규제정보 입력
+              <ArrowRight aria-hidden className="size-3.5" strokeWidth={2} />
+            </button>
+          ) : null
+        }
+      />
+    );
+  }
 
   const update = (region: RegionGrade, code: MeasurementItemCode, next: LimitEntry) => {
     const sheets: LimitSheets = structuredClone(store.sheets);
@@ -62,23 +119,23 @@ export function DischargeLimitEditor({ siteId }: { siteId: string }) {
           options={DISCHARGE_SCALES.map((option) => ({ value: option, label: option }))}
         />
         {own.dischargeScale === scale && own.regionGrade ? (
-          <span className="text-[11px] text-fg-subtle">
+          <span className="text-[12px] text-fg-subtle">
             이 사업장에 적용되는 시트 · {own.regionGrade}
           </span>
         ) : null}
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[720px] border-collapse text-[12px]">
+      <div className={TABLE_SCROLL}>
+        <table className={`${TABLE_ROOT} min-w-[720px] text-[12px] text-center`}>
           <caption className="sr-only">
             지역구분별 방류 기준치. 행은 지역구분, 열은 법정 점검 항목이다. 값을 지우면 미설정으로
             돌아간다.
           </caption>
           <thead>
-            <tr className="border-b border-border text-[11px] text-fg-subtle">
-              <th className="px-3 py-2 text-left font-normal">지역구분</th>
+            <tr className={TABLE_HEAD_ROW}>
+              <th className={TABLE_HEAD_CELL}>지역구분</th>
               {LEGAL_CHECK_ITEMS.map((item) => (
-                <th key={item.label} className="px-3 py-2 text-left font-normal">
+                <th key={item.label} className={TABLE_HEAD_CELL}>
                   {item.label}
                 </th>
               ))}
@@ -86,18 +143,18 @@ export function DischargeLimitEditor({ siteId }: { siteId: string }) {
           </thead>
           <tbody>
             {REGION_GRADES.map((region) => (
-              <tr key={region} className="border-b border-border last:border-0">
+              <tr key={region} className={TABLE_ROW}>
                 <th
                   scope="row"
-                  className="whitespace-nowrap px-3 py-2.5 text-left font-normal text-fg"
+                  className="whitespace-nowrap px-3 py-3.5 text-center font-normal text-fg"
                 >
                   {region}
                   {own.regionGrade === region ? (
-                    <span className="ml-1.5 text-[11px] text-fg-subtle">우리 사업장</span>
+                    <span className="ml-1.5 text-[12px] text-fg-subtle">우리 사업장</span>
                   ) : null}
                 </th>
                 {LEGAL_CHECK_ITEMS.map((item) => (
-                  <td key={item.label} className="px-3 py-2 align-top">
+                  <td key={item.label} className="px-3 py-3.5 align-top">
                     <ItemCell
                       code={item.code}
                       label={item.label}
@@ -111,13 +168,6 @@ export function DischargeLimitEditor({ siteId }: { siteId: string }) {
           </tbody>
         </table>
       </div>
-
-      <p className="max-w-[76ch] border-t border-border pt-2.5 text-[11px] leading-relaxed text-fg-subtle">
-        <strong className="text-fg-muted">빈 칸은 미설정이며 0이 아닙니다.</strong> 지우면 그
-        항목은 초과를 판정하지 않고 화면에 `{UNRESOLVED_LIMIT_TEXT}`로 남습니다. 값의 옳고 그름은
-        검사하지 않습니다 — <strong className="text-fg-muted">법령이 원천</strong>이며 우리는
-        범위가 뒤집혔는지와 센서 측정 범위 안인지만 봅니다.
-      </p>
     </div>
   );
 }
@@ -138,7 +188,7 @@ function ItemCell({
 }) {
   /* SS는 계측·추정 대상이 아니라 기준을 넣어도 비교할 값이 없다 */
   if (!code) {
-    return <p className="pt-1 text-[11px] leading-snug text-fg-subtle">계측 없음</p>;
+    return <p className="pt-1 text-[12px] leading-snug text-fg-subtle">계측 없음</p>;
   }
 
   const item = MEASUREMENT_ITEMS[code];

@@ -1,62 +1,102 @@
-import type { MeasurementItemCode } from '@/shared/config/measurement';
-import { ALL_PROCESS_STAGES, type ProcessStage } from '@/entities/process';
-import type { StageSetting, StageSettingsBySite } from './storage';
+import type { MeasurementGrade } from '@/shared/config/provisional';
+import { PROCESS_STAGES, type ProcessStage } from '@/entities/process';
+import { readableSeriesOf, type SeriesCode } from '@/entities/measurement';
+import type { CHANNEL_STATE_LABELS } from '../config/constants';
+import { standardProcess } from './seed';
+import type { SiteProcess, SiteProcessBySite, SiteStage, StageChannel } from './storage';
 
 /** 그 사업장에서 살아 있는 단계 하나 */
 export interface ResolvedStage {
+  /** 공정 화면이 그리는 모양 — 표준 단계의 설명·등급을 이어받고, 새 단계는 계측 지점에서 만든다 */
   stage: ProcessStage;
-  /** 이 단계에서 재는 항목. 비어 있으면 계측 지점이 아니다 */
-  codes: MeasurementItemCode[];
+  /** 이 단계에서 **지금 값을 읽을 수 있는** 계열. 비어 있으면 화면에 값이 없다 */
+  codes: SeriesCode[];
+  /** 계측 지점 전부 — 채널 미지정·수신 연결 전 지점까지 */
+  channels: StageChannel[];
+  /** 여기서 재이용으로 갈라지는가(표시만) */
+  reuseBranch: boolean;
 }
 
 export interface ResolvedProcess {
-  /** 켜진 단계만, 순서대로 */
+  /** 사업장의 공정 — 순서대로 */
   stages: ResolvedStage[];
-  /** 꺼 둔 단계. 화면이 "몇 개를 뺐다"를 적는 데 쓴다 — 조용히 빼면 누락으로 보인다 */
-  disabled: ProcessStage[];
+  /** 원본(편집 화면이 고친다) */
+  process: SiteProcess;
   /** 사용자가 한 번이라도 설정했는가. 화면이 출처를 다르게 적는 데 쓴다 */
   isUserSet: boolean;
 }
 
+export type ChannelState = keyof typeof CHANNEL_STATE_LABELS;
+
+/** 계측 지점 하나가 지금 값을 받는가 — 설정 카드와 공정 화면이 같은 말을 쓰게 한 곳에 둔다 */
+export function channelStateOf(channel: StageChannel): ChannelState {
+  if (channel.key === null) return 'noChannel';
+  return readableSeriesOf(channel.key) ? 'reading' : 'notWired';
+}
+
+const STANDARD_BY_ID = new Map(PROCESS_STAGES.map((s) => [s.id, s]));
+
 /**
- * 저장된 설정을 최대 공정 위에 얹는다.
+ * 계측 등급 — **계측 지점에서 나온다.**
  *
- * **설정이 없으면 표준 5단계가 전부 켜진 상태다.** 비어 있는 것을 "아무 단계도 없다"로 읽으면
- * 처음 들어온 사업장의 공정도가 빈 화면이 된다 — 표준이 기본이고 사용자가 덜어내는 방향이다
- * `[회의 2026-08-20: 최대치의 공정이 있다고 가정하며 필요한 공정만 활성화]`.
- *
- * **계측 항목은 단계의 기본값에서 시작한다.** 회의가 공정별 모니터링을 요구하며 예시를 함께
- * 줬다 — 유입에 유량, 1차 침전에 TOC `[회의 2026-08-20]`. 그것과 이미 근거가 있는 계측 지점
- * (유입펌프 전류·방류구 프로브)이 `stage.defaultCodes`에 있다. 근거가 없는 단계는 비어 있고
- * 화면이 그 사실을 적는다(`[TBD-53]`).
- *
- * **사용자가 비운 것과 설정하지 않은 것을 가른다.** 설정이 있으면 그 값을 그대로 쓴다 —
- * 항목을 다 지운 단계에 기본값을 되돌리면 사용자가 끈 것이 살아나 조작이 되지 않는다.
- *
- * **순수 함수다.** localStorage도 React도 모른다 — 그래야 테스트가 쉽고 서버에서도 돈다.
+ * 읽을 수 있는 채널이 하나라도 있으면 `실측`. 없으면 표준 단계는 원래 등급을 잇되 `실측`이던
+ * 단계는 `계측 없음`으로 내린다(채널을 다 빼면 더는 실측이 아니다). 새 단계는 `계측 없음`이다 —
+ * `AI 추정`은 우리가 모델을 붙인 자리에만 쓰는 말이라 사용자가 만든 단계에 줄 수 없다.
  */
-export function resolveProcess(
-  settings: StageSettingsBySite | null,
-  siteId: string,
-): ResolvedProcess {
-  const perStage = settings?.[siteId];
+function gradeOf(site: SiteStage, readable: SeriesCode[]): MeasurementGrade {
+  if (readable.length > 0) return 'actual';
+  const standard = site.origin === 'standard' ? STANDARD_BY_ID.get(site.id) : undefined;
+  if (!standard || standard.grade === 'actual') return 'none';
+  return standard.grade;
+}
 
-  const stages: ResolvedStage[] = [];
-  const disabled: ProcessStage[] = [];
+function noteOf(site: SiteStage, readable: SeriesCode[]): string {
+  const standard = site.origin === 'standard' ? STANDARD_BY_ID.get(site.id) : undefined;
+  if (standard) return standard.measurementNote;
 
-  for (const stage of ALL_PROCESS_STAGES) {
-    const setting: StageSetting | undefined = perStage?.[stage.id];
-    /* 설정에 없는 단계는 **표준이면 켜고 플러스 알파면 끈다** — 없는 공정을 그리지 않는다 */
-    const enabled = setting ? setting.enabled : !stage.optional;
+  const pending = site.channels.length - readable.length;
+  if (site.channels.length === 0) return '계측 지점이 없다 — 사업장 설정에서 ECP 채널을 걸면 값을 표시한다';
+  return pending > 0
+    ? `계측 지점 ${site.channels.length}곳 중 ${pending}곳은 채널 미지정이거나 아직 수신을 연결하지 않았다`
+    : `계측 지점 ${site.channels.length}곳 — ECP 채널로 받는다`;
+}
 
-    /* 설정이 있으면 그 값이 정본이다. 없을 때만 단계의 기본값을 쓴다 */
-    if (enabled) stages.push({ stage, codes: setting ? setting.codes : stage.defaultCodes });
-    else disabled.push(stage);
-  }
+function toResolved(site: SiteStage, index: number): ResolvedStage {
+  const readable = site.channels
+    .map((c) => (c.key ? readableSeriesOf(c.key) : null))
+    .filter((code): code is SeriesCode => code !== null);
 
   return {
-    stages,
-    disabled,
-    isUserSet: Boolean(perStage && Object.keys(perStage).length > 0),
+    stage: {
+      id: site.id,
+      order: index + 1,
+      name: site.name,
+      type: site.type,
+      units: site.units,
+      grade: gradeOf(site, readable),
+      measurementNote: noteOf(site, readable),
+      equipmentIds: site.equipmentIds,
+      optional: site.origin !== 'standard',
+      defaultCodes: [],
+    },
+    codes: readable,
+    channels: site.channels,
+    reuseBranch: site.reuseBranch,
+  };
+}
+
+/**
+ * 그 사업장의 공정.
+ *
+ * **설정이 없으면 표준 5단계 + 씨앗 매핑이다** — 비어 있음을 «공정이 없다»로 읽지 않는다.
+ * 순수 함수다. localStorage도 React도 모른다.
+ */
+export function resolveProcess(settings: SiteProcessBySite | null, siteId: string): ResolvedProcess {
+  const own = settings?.[siteId];
+  const process = own ?? standardProcess();
+  return {
+    stages: process.stages.map(toResolved),
+    process,
+    isUserSet: Boolean(own),
   };
 }

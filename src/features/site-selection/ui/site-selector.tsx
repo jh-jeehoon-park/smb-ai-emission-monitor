@@ -3,7 +3,8 @@
 import { ChevronDown } from 'lucide-react';
 import { STATUS_VISUAL } from '@/shared/config/status-visual';
 import { cn } from '@/shared/lib/cn';
-import { SITES, getSite } from '@/entities/site';
+import { getSite } from '@/entities/site';
+import { useScopedSites } from '../model/use-scoped-sites';
 import { useSelectedSiteId } from '../model/use-selected-site';
 
 /**
@@ -15,66 +16,62 @@ import { useSelectedSiteId } from '../model/use-selected-site';
  */
 export function SiteSelector({ className }: { className?: string }) {
   const { siteId, setSiteId } = useSelectedSiteId();
+  /* 관할 밖 사업장을 고를 수 있으면 범위 정의가 무너진다 */
+  const sites = useScopedSites();
   const site = getSite(siteId);
   const visual = site.status ? STATUS_VISUAL[site.status] : null;
   const dotColor = visual ? visual.hex : 'var(--missing)';
 
   return (
-    <>
-      {/* 사업장은 자사 1개소뿐이라 고를 것이 없다. 드롭다운을 두면 남의 사업장으로 갈 수 있다.
-          역할로 분기하지 않고 두 벌을 그린 뒤 CSS가 고른다 — 서버는 역할을 모른다.
-          지자체는 관할 내 다개소라 세 번째 상태가 필요하다 — 지자체 구현 때 만든다 */}
-      {/* 정렬은 안쪽에서 한다. `role-only-*`가 바깥에 display:block을 강제하므로
-          바깥에 flex를 걸면 죽고, 상태 점이 inline이 되어 크기를 잃는다(실제로 사라졌다) */}
-      <div className={cn('role-only-site', className)}>
-        <div className="flex items-center gap-2 rounded-[4px] border border-border bg-surface px-2.5 py-1.5 text-[12px] text-fg">
-          <span
-            aria-hidden
-            className="size-1.5 shrink-0 rounded-full"
-            style={{ backgroundColor: dotColor }}
-          />
-          <span className="truncate">
-            {site.name} · {site.region}
-          </span>
-        </div>
-      </div>
+    /*
+     * **사업장 역할에게는 이 자리가 아예 비어 있다** `[사용자 요청 2026-08-31]`.
+     *
+     * 한때 자사 이름을 적은 **읽기 전용 칩**을 대신 그렸다 — 드롭다운을 두면 남의 사업장으로
+     * 갈 수 있어 고를 수 없게 만들되 «어느 사업장을 보고 있는가»는 남기려던 것이다. 걷는다:
+     * 자사 1개소뿐이라 **바뀔 일이 없는 값**이고, 조작 줄에 앉은 조작 아닌 칩은 헤더가
+     * 붐비는 값만 치른다.
+     *
+     * **역할로 분기하지 않는다** — 서버는 역할을 모르므로 렌더에서 가르면 하이드레이션이
+     * 어긋난다. 한 벌만 그리고 `role-hide-site`가 사업장에서 통째로 감춘다.
+     *
+     * **기초지자체는 감추지 않는다.** 관할 내 다개소라 고를 것이 있고, 목록만 관내로 좁으면
+     * 된다(`useScopedSites`).
+     */
+    <div className={cn('role-hide-site relative inline-flex items-center', className)}>
+      <span
+        aria-hidden
+        className="pointer-events-none absolute left-2.5 size-1.5 rounded-full"
+        style={{ backgroundColor: dotColor }}
+      />
 
-      <div
+      <select
+        value={siteId}
+        onChange={(e) => setSiteId(e.target.value)}
+        aria-label="사업장 선택"
+        /*
+         * **좁은 화면에서는 40px** `[2026-09-30 검토]` — 이 부품은 `lg` 이상에서 헤더에, 그 아래에서
+         * 메뉴 서랍에 선다. 서랍 쪽이 32px로 남아 있었다(390px 실측). `lg` 이상은 되돌리므로
+         * 헤더의 선택기는 그대로다.
+         */
         className={cn(
-          'role-hide-site relative inline-flex items-center',
-          className,
+          'min-h-10 w-full cursor-pointer appearance-none rounded-[4px] border border-border bg-surface lg:min-h-0',
+          'py-1.5 pl-6 pr-7 text-[12px] text-fg',
+          'transition-colors duration-200 hover:border-border-strong',
         )}
       >
-        <span
-          aria-hidden
-          className="pointer-events-none absolute left-2.5 size-1.5 rounded-full"
-          style={{ backgroundColor: dotColor }}
-        />
+        {sites.map((s) => (
+          <option key={s.id} value={s.id}>
+            {s.name} · {s.region}
+          </option>
+        ))}
+      </select>
 
-        <select
-          value={siteId}
-          onChange={(e) => setSiteId(e.target.value)}
-          aria-label="사업장 선택"
-          className={cn(
-            'w-full cursor-pointer appearance-none rounded-[4px] border border-border bg-surface',
-            'py-1.5 pl-6 pr-7 text-[12px] text-fg',
-            'transition-colors duration-200 hover:border-border-strong',
-          )}
-        >
-          {SITES.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.name} · {s.region}
-            </option>
-          ))}
-        </select>
-
-        <ChevronDown
-          aria-hidden
-          size={13}
-          strokeWidth={2}
-          className="pointer-events-none absolute right-2 text-fg-subtle"
-        />
-      </div>
-    </>
+      <ChevronDown
+        aria-hidden
+        size={13}
+        strokeWidth={2}
+        className="pointer-events-none absolute right-2 text-fg-subtle"
+      />
+    </div>
   );
 }

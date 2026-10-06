@@ -21,7 +21,13 @@ export interface DosingAdvice {
 export interface OperatingSignals {
   /** 용존산소 최근/직전 구간 평균과 그 비율 */
   dissolvedOxygen: OperatingSignal;
-  /** 유입 유량 최근/직전 구간 평균과 그 비율 */
+  /**
+   * 유량 최근/직전 구간 평균과 그 비율.
+   *
+   * **`유입` 유량이라 단정하지 않는다** `[사용자 결정 2026-08-25]` — 계측 채널이 한 종이고
+   * 측정 지점이 미확정이다(`[TBD-43]`). 펌프 속도 권장은 유입 부하를 보는 것이 맞지만,
+   * 그 값이 유입에서 온 것인지는 아직 확인되지 않았다.
+   */
   flow: OperatingSignal;
 }
 

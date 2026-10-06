@@ -11,6 +11,10 @@ export {
   type EquipmentAlarmInput,
 } from './lib/build-equipment-alarms';
 export {
+  buildTreatmentAlarms,
+  type TreatmentRowInput,
+} from './lib/build-treatment-alarms';
+export {
   ALARM_PRIORITY_LABELS,
   ALARM_CONDITION_LABELS,
   ALARM_STATE_LABELS,

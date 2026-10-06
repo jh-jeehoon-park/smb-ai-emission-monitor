@@ -10,4 +10,10 @@ export {
   STAGE_IDS,
   STAGE_QUERY_KEY,
 } from './config/constants';
+export {
+  TREATMENT_TYPES,
+  TREATMENT_TYPE_LABELS,
+  UNIT_PROCESS_CATALOG,
+  type UnitProcess,
+} from './config/unit-process-catalog';
 export type { OperatingState, ProcessStage, TreatmentType } from './model/types';

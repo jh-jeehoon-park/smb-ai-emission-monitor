@@ -20,6 +20,16 @@ export interface SiteScenario {
   /** 소속 시도. 지도에서 어느 시도를 칠할지 정하는 값이며 `korea-provinces.ts`의 name과 맞춘다 */
   province: string;
   /**
+   * 소속 시·군·구. 기초지자체의 관할 판정이 이 값으로 떨어진다.
+   *
+   * **`region`·`address`를 잘라 쓰지 않고 필드를 둔다.** 둘 다 함정이 있고 지금 데이터에
+   * 실제로 있다 — `region: '경기 광주'`의 토큰 `광주`는 시도 `광주광역시`와 충돌하고,
+   * `address: '경상북도 포항시 남구 대송면'`은 3번째 토큰이 일반구라 고정 인덱스 분해가 깨진다.
+   *
+   * 접미사를 포함한다(`안동시`·`칠곡군`) — `GOV_MUNICIPALITY`와 같은 표기여야 관할이 잡힌다.
+   */
+  municipality: string;
+  /**
    * 위 주소를 지오코딩한 결과에 해당하는 좌표. 지금은 시·군 중심 근사값을 직접 적어 두었다.
    * 실제 주소가 확정되면 이 두 필드를 함께 갱신한다 — 주소와 좌표가 어긋나면 지도가 거짓말을 한다.
    */
@@ -30,8 +40,8 @@ export interface SiteScenario {
   eventRise: number;
   /** ECP 통신 상태. false면 계측·이상점수가 함께 결측이 된다 */
   online: boolean;
-  /** 통신이 잠시 끊겼던 구간(표본 인덱스 기준 시작점). null이면 두절 이력 없음 */
-  outageStartOffset: number | null;
+  /** 통신이 잠시 끊겼던 구간이 몇 분 전에 시작했는지. null이면 두절 이력 없음 */
+  outageStartMinutesAgo: number | null;
   /** 방류가 멈춘 구간. null이면 24시간 내내 방류 */
   dischargeGap: DischargeGap | null;
   /** 방지시설이 멈춘 채 방류가 이어진 구간. null이면 그런 구간이 없다 */
@@ -61,8 +71,8 @@ export interface SiteScenario {
  * 그래서 야간·주말 같은 주기 모델을 쓰지 않고 구간 하나를 직접 지정한다.
  */
 export interface DischargeGap {
-  /** 표본 인덱스 기준 시작점(끝에서부터). `outageStartOffset`과 같은 규약 */
-  startOffset: number;
+  /** 시간축 끝에서부터 몇 분 전에 시작하는지. `outageStartMinutesAgo`와 같은 규약 */
+  startMinutesAgo: number;
   hours: number;
 }
 
@@ -87,11 +97,12 @@ export const SITE_SCENARIOS: SiteScenario[] = [
     region: '경북 안동',
     address: '경상북도 안동시 풍산읍',
     province: '경상북도',
+    municipality: '안동시',
     coordinates: [36.5684, 128.7294],
     baseScore: 22,
     eventRise: 6,
     online: true,
-    outageStartOffset: null,
+    outageStartMinutesAgo: null,
     dischargeGap: null,
     idleDischargeWindow: null,
     regionGrade: null,
@@ -106,17 +117,18 @@ export const SITE_SCENARIOS: SiteScenario[] = [
     region: '경북 구미',
     address: '경상북도 구미시 공단동',
     province: '경상북도',
+    municipality: '구미시',
     coordinates: [36.1195, 128.3446],
     baseScore: 18,
     eventRise: 74,
     online: true,
-    outageStartOffset: 96,
+    outageStartMinutesAgo: 480,
     dischargeGap: null,
     /**
      * 방지시설이 멈춘 채 방류가 이어진 구간 `[원문 발표 p.13]`.
      * 길이의 근거는 위 주석(실측 2.8%)에 있다.
      */
-    idleDischargeWindow: { startOffset: 132, hours: 1 },
+    idleDischargeWindow: { startMinutesAgo: 660, hours: 1 },
     regionGrade: null,
     dischargeScale: null,
     dataThroughput: 98.6,
@@ -129,11 +141,12 @@ export const SITE_SCENARIOS: SiteScenario[] = [
     region: '경북 칠곡',
     address: '경상북도 칠곡군 왜관읍',
     province: '경상북도',
+    municipality: '칠곡군',
     coordinates: [35.9954, 128.4017],
     baseScore: 31,
     eventRise: 4,
     online: true,
-    outageStartOffset: null,
+    outageStartMinutesAgo: null,
     dischargeGap: null,
     idleDischargeWindow: null,
     /** 데이터셋의 진유원이 `규모 4종`(50~200㎥/일) — 지역구분은 없다 `[데이터셋 …/04_…]` */
@@ -149,11 +162,12 @@ export const SITE_SCENARIOS: SiteScenario[] = [
     region: '경북 안동',
     address: '경상북도 안동시 남후면',
     province: '경상북도',
+    municipality: '안동시',
     coordinates: [36.5312, 128.8005],
     baseScore: 12,
     eventRise: 2,
     online: false,
-    outageStartOffset: null,
+    outageStartMinutesAgo: null,
     /** 통신 두절이라 방류 여부를 알 수 없다. 구간이 아니라 판정 자체가 null이다 */
     dischargeGap: null,
     idleDischargeWindow: null,
@@ -169,11 +183,12 @@ export const SITE_SCENARIOS: SiteScenario[] = [
     region: '경북 포항',
     address: '경상북도 포항시 남구 대송면',
     province: '경상북도',
+    municipality: '포항시',
     coordinates: [36.019, 129.3435],
     baseScore: 44,
     eventRise: 22,
     online: true,
-    outageStartOffset: null,
+    outageStartMinutesAgo: null,
     dischargeGap: null,
     idleDischargeWindow: null,
     regionGrade: null,
@@ -188,14 +203,15 @@ export const SITE_SCENARIOS: SiteScenario[] = [
     region: '경북 경산',
     address: '경상북도 경산시 진량읍',
     province: '경상북도',
+    municipality: '경산시',
     coordinates: [35.8251, 128.7411],
     baseScore: 39,
     eventRise: 5,
     online: true,
-    outageStartOffset: 148,
+    outageStartMinutesAgo: 740,
     dischargeGap: null,
     /** **통신 두절 구간과 일부러 겹쳐 둔다** — 겹친 표본은 의심이 아니라 모름이어야 한다(E4) */
-    idleDischargeWindow: { startOffset: 152, hours: 1 },
+    idleDischargeWindow: { startMinutesAgo: 760, hours: 1 },
     regionGrade: null,
     dischargeScale: null,
     dataThroughput: 97.6,
@@ -208,11 +224,12 @@ export const SITE_SCENARIOS: SiteScenario[] = [
     region: '경기 평택',
     address: '경기도 평택시 청북읍',
     province: '경기도',
+    municipality: '평택시',
     coordinates: [36.9921, 127.1129],
     baseScore: 36,
     eventRise: 55,
     online: true,
-    outageStartOffset: null,
+    outageStartMinutesAgo: null,
     dischargeGap: null,
     idleDischargeWindow: null,
     regionGrade: null,
@@ -227,13 +244,14 @@ export const SITE_SCENARIOS: SiteScenario[] = [
     region: '경기 시흥',
     address: '경기도 시흥시 정왕동',
     province: '경기도',
+    municipality: '시흥시',
     coordinates: [37.3799, 126.8031],
     baseScore: 27,
     eventRise: 3,
     online: true,
-    outageStartOffset: null,
+    outageStartMinutesAgo: null,
     /** **배출 없음.** 설비는 돌지만 24시간 내내 방류가 없다 — 데이터셋 272일 중 15일 */
-    dischargeGap: { startOffset: 288, hours: 24 },
+    dischargeGap: { startMinutesAgo: 1440, hours: 24 },
     idleDischargeWindow: null,
     regionGrade: null,
     dischargeScale: null,
@@ -247,13 +265,14 @@ export const SITE_SCENARIOS: SiteScenario[] = [
     region: '경기 수원',
     address: '경기도 수원시 권선구',
     province: '경기도',
+    municipality: '수원시',
     coordinates: [37.2636, 127.0286],
     baseScore: 18,
     eventRise: 2,
     online: true,
-    outageStartOffset: null,
+    outageStartMinutesAgo: null,
     /** 지금 중단 2시간째. 사업장2 계정의 사업장이라 자사 현황에서도 이 상태가 보인다 */
-    dischargeGap: { startOffset: 24, hours: 2 },
+    dischargeGap: { startMinutesAgo: 120, hours: 2 },
     idleDischargeWindow: null,
     regionGrade: null,
     dischargeScale: null,
@@ -267,13 +286,14 @@ export const SITE_SCENARIOS: SiteScenario[] = [
     region: '경기 광주',
     address: '경기도 광주시 초월읍',
     province: '경기도',
+    municipality: '광주시',
     coordinates: [37.4292, 127.2551],
     baseScore: 51,
     eventRise: 11,
     online: true,
-    outageStartOffset: null,
+    outageStartMinutesAgo: null,
     /** 11:58 수질 알람이 이 구간에 든다 — 비방류 중 알람 사례 */
-    dischargeGap: { startOffset: 48, hours: 3 },
+    dischargeGap: { startMinutesAgo: 240, hours: 3 },
     idleDischargeWindow: null,
     regionGrade: null,
     dischargeScale: null,

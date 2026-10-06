@@ -2,27 +2,20 @@
 
 import { useMemo, useState } from 'react';
 import { DEMO_NOW_ISO } from '@/shared/config/demo';
-import { DISPLAY_TIMEZONE, formatDateTime, formatRelative } from '@/shared/lib/format';
-import { cn } from '@/shared/lib/cn';
 import { SCOPE_FILTERS, SCOPE_OPTIONS, SCOPE_QUERY_KEY } from '@/shared/config/scope';
 import { useQueryState } from '@/shared/lib/use-query-state';
+import { useMunicipality } from '@/shared/lib/use-scope';
 import { STATUS_VISUAL, statusInk } from '@/shared/config/status-visual';
 import { Panel } from '@/shared/ui/panel';
 import { SegmentedControl } from '@/shared/ui/segmented-control';
 import { StatTile } from '@/shared/ui/stat-tile';
-import { StatusBadge } from '@/shared/ui/status-badge';
-import {
-  ALARM_CONDITION_LABELS,
-  ALARM_PRIORITY_LABELS,
-  ALARM_STATE_LABELS,
-  raisedWhileNotDischarging,
-  type Alarm,
-  type AlarmPriority,
-  type AlarmState,
-} from '@/entities/alarm';
-import { getSite } from '@/entities/site';
-import { ALL_ALARMS, AlarmStateActions, useAlarmStates } from '@/features/alarm-ack';
+import { InfoTip } from '@/shared/ui/tooltip';
+import type { Alarm } from '@/entities/alarm';
+import { getSite, scopeLabelOf, siteIdsInScope, withinScope } from '@/entities/site';
+import { ALL_ALARMS, useAlarmStates } from '@/features/alarm-ack';
+import { groupAlarmsByDay } from '../lib/group-by-day';
 import { AlarmDetailModal } from './alarm-detail-modal';
+import { AlarmRow } from './alarm-row';
 import { useSelectedSiteId } from '@/features/site-selection';
 import {
   PRIORITY_FILTERS,
@@ -32,19 +25,6 @@ import {
   STATE_OPTIONS,
   STATE_QUERY_KEY,
 } from '../config/constants';
-
-/* 마크 색(--{level})은 3:1만 만족한다. 글자에는 4.5:1을 맞춘 --{level}-ink를 쓴다 */
-const PRIORITY_CHIP: Record<AlarmPriority, string> = {
-  urgent: 'border-critical/45 bg-chip-critical text-critical-ink',
-  caution: 'border-warning/35 bg-chip-warning text-warning-ink',
-  info: 'border-border-strong bg-surface-3 text-fg-muted',
-};
-
-const STATE_CHIP: Record<AlarmState, string> = {
-  open: 'border-border-strong bg-surface-3 text-fg',
-  acknowledged: 'border-border bg-surface-2 text-fg-muted',
-  resolved: 'border-border bg-surface-2 text-fg-subtle',
-};
 
 /** 최신 알람이 위로. 이력 화면의 기본 관심은 방금 무슨 일이 있었는가다 */
 function byRaisedAtDesc(a: Alarm, b: Alarm): number {
@@ -58,6 +38,8 @@ export function AlarmsView() {
   const [priority, setPriority] = useQueryState(PRIORITY_QUERY_KEY, PRIORITY_FILTERS, 'all');
   const [state, setState] = useQueryState(STATE_QUERY_KEY, STATE_FILTERS, 'all');
   const [scope, setScope] = useQueryState(SCOPE_QUERY_KEY, SCOPE_FILTERS, 'all');
+  /* 관할은 계정이 정하고 라우트 가드가 URL에 박는다 — 여기서는 읽기만 한다 */
+  const municipality = useMunicipality();
 
   const source = useMemo(() => [...ALL_ALARMS].sort(byRaisedAtDesc), []);
   const { alarms, changedCount, setState: setAlarmState, reset } = useAlarmStates(source);
@@ -71,8 +53,8 @@ export function AlarmsView() {
    * 사업장에 남의 사업장 합계가 보이면 자사 1개소라는 전제가 깨진다(회의 2026-08-20).
    */
   const inScope = useMemo(
-    () => (scope === 'site' ? alarms.filter((a) => a.siteId === siteId) : alarms),
-    [alarms, scope, siteId],
+    () => withinScope(alarms, siteIdsInScope(scope, { siteId, municipality })),
+    [alarms, scope, siteId, municipality],
   );
 
   const visible = useMemo(
@@ -86,7 +68,7 @@ export function AlarmsView() {
   );
 
   /* 타일의 'N건 중'이 범위와 어긋나면 안 된다. 라벨도 같은 판정에서 만든다 */
-  const scopeLabel = scope === 'site' ? site.name : '전 사업장';
+  const scopeLabel = scopeLabelOf(scope, { siteName: site.name, municipality });
 
   /**
    * 확인·조치를 누르면 이 숫자가 바로 움직인다 — 목록만 바뀌면 처리한 티가 나지 않는다.
@@ -102,9 +84,12 @@ export function AlarmsView() {
     [inScope],
   );
 
+  /* 목록 순서는 그대로 두고 날짜 경계에서만 끊는다 */
+  const groups = useMemo(() => groupAlarmsByDay(visible, DEMO_NOW_ISO), [visible]);
+
   return (
-    <div className="space-y-3">
-      <div className="grid gap-3 sm:grid-cols-3">
+    <div className="space-y-6">
+      <div className="grid gap-6 sm:grid-cols-3">
         <StatTile
           label="미확인"
           value={`${tally.open}건`}
@@ -120,9 +105,15 @@ export function AlarmsView() {
         <StatTile label="조치 완료" value={`${tally.resolved}건`} note="이번 세션 기준" />
       </div>
 
+      {/* 줄마다 되풀이되던 설비 이상 사유를 여기 한 곳으로 올렸다 — §8 `보조 설명`(제목 옆 툴팁) */}
       <Panel
-        eyebrow={scopeLabel}
         title={`알람 이력 ${visible.length}건`}
+        titleAside={
+          <InfoTip
+            label="설비 이상 줄을 읽는 법"
+            content="설비 이상은 값의 크기를 내지 않고 이상 여부만 냅니다 — 진동 센서의 측정 범위·정확도가 원문에 없어, 숫자를 적으면 재지 않은 값을 주장하게 됩니다. 줄에는 이상이 얼마나 이어졌는지만 적습니다."
+          />
+        }
         action={
           <div className="flex flex-wrap items-center gap-2">
             {/* 사업장은 자사 1개소뿐이라 고를 것이 없다. 가드가 scope=site로 고정한다 */}
@@ -148,20 +139,42 @@ export function AlarmsView() {
             />
           </div>
         }
-        bodyClassName="p-0"
       >
         {visible.length === 0 ? (
-          <p className="px-4 py-10 text-center text-[12px] text-fg-subtle">
+          <p className="py-10 text-center text-[12px] text-fg-subtle">
             조건에 맞는 알람이 없습니다.
           </p>
         ) : (
-          <ul className="divide-y divide-border">
-            {visible.map((alarm) => (
-              <li key={alarm.id}>
-                <AlarmRow alarm={alarm} onChange={setAlarmState} onOpen={() => setOpenId(alarm.id)} />
-              </li>
+          /*
+           * **하루가 한 묶음이다** `[사용자 지시 2026-08-25]`. 16건이 한 덩어리로 이어지면
+           * "언제 일어난 일인가"를 줄마다 다시 읽어야 한다 — 이력의 첫 질문은 시점이므로
+           * 날짜가 목록의 위계를 만든다.
+           *
+           * 그룹 머리는 스크롤 중에도 붙어 있다(`sticky`) — 긴 하루를 내려가는 동안 지금 보는
+           * 날이 화면 밖으로 나가면 묶은 의미가 없다. 카드 여백을 음수로 되돌려 띠가 카드 폭을
+           * 채우고, 그 위로 지나가는 줄이 비치지 않게 불투명 면을 깐다.
+           */
+          <div className="space-y-4">
+            {groups.map((group) => (
+              <section key={group.date}>
+                <div className="sticky top-[calc(var(--header-h)_+_0.5rem)] z-10 -mx-5 flex items-center justify-between gap-2 border-b border-border bg-surface px-5 pb-1.5 pt-1">
+                  <h3 className="text-[12px] font-bold text-fg">{group.label}</h3>
+                  <span className="num text-[12px] text-fg-subtle">{group.alarms.length}건</span>
+                </div>
+                <ul className="divide-y divide-border">
+                  {group.alarms.map((alarm) => (
+                    <li key={alarm.id}>
+                      <AlarmRow
+                        alarm={alarm}
+                        onChange={setAlarmState}
+                        onOpen={() => setOpenId(alarm.id)}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              </section>
             ))}
-          </ul>
+          </div>
         )}
       </Panel>
 
@@ -171,101 +184,25 @@ export function AlarmsView() {
         onChange={setAlarmState}
       />
 
-      <Panel eyebrow="시연 안내" title="상태 전이">
+      <Panel title="상태 전이">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="max-w-[68ch] text-[12px] leading-relaxed text-fg-muted">
             확인·조치 버튼은 <strong className="text-fg">이 브라우저 안에서만</strong> 상태를
             바꿉니다. 서버가 없어 처리 이력이 저장되지 않으며 새로고침하면 되돌아갑니다. 알람 발송
-            채널(SMS·이메일·푸시)과 우선순위–등급 대응 관계는 원문에 정의가 없어(TBD-21) 화면에
+            채널(SMS·이메일·푸시)과 우선순위–등급 대응 관계는 원문에 정의가 없어 화면에
             임의로 만들지 않았습니다.
           </p>
           {changedCount > 0 && (
             <button
               type="button"
               onClick={reset}
-              className="cursor-pointer whitespace-nowrap rounded-[3px] border border-border px-2.5 py-1.5 text-[11px] text-fg-muted transition-colors duration-200 hover:border-border-strong hover:text-fg"
+              className="cursor-pointer whitespace-nowrap rounded-[3px] border border-border px-2.5 py-1.5 text-[12px] text-fg-muted transition-colors duration-200 hover:border-border-strong hover:text-fg"
             >
               변경 {changedCount}건 되돌리기
             </button>
           )}
         </div>
       </Panel>
-    </div>
-  );
-}
-
-function AlarmRow({
-  alarm,
-  onChange,
-  onOpen,
-}: {
-  alarm: Alarm;
-  onChange: (id: string, next: AlarmState) => void;
-  onOpen: () => void;
-}) {
-  return (
-    <div className="flex flex-wrap items-start gap-x-3 gap-y-1.5 px-4 py-2.5">
-      {/*
-       * 제목을 버튼으로 둔다 — 행 전체를 누르게 하면 안쪽 확인·조치 버튼과 조작이 겹친다.
-       * 키보드로도 순서대로 닿는다.
-       */}
-      {/*
-       * **등급이 앞, 우선순위가 뒤다.** `[원문 발표 p.20 그림]`의 알람 표가 `등급 · 구분 ·
-       * 발생 시간 · 우선순위` 순서로 둘을 양 끝에 둔다 — 두 축이 다르다는 것이 배치로 드러난다.
-       *
-       * 나란히 붙여 봤더니 위험(빨강)과 긴급(빨강)이 같은 색 칩 두 개로 보여 중복으로 읽혔다.
-       * 대응 규칙은 원문에 없어 추정이다 `[INC-02]` — 근거는 `docs/specs/assumptions.md` §3.1.
-       */}
-      <StatusBadge level={alarm.level} size="sm" />
-
-      <div className="min-w-0 flex-1 basis-[220px]">
-        <button
-          type="button"
-          onClick={onOpen}
-          className="cursor-pointer text-left text-[12px] text-fg underline decoration-transparent underline-offset-2 transition-colors duration-200 hover:decoration-border-strong"
-        >
-          {alarm.title}
-        </button>
-        <p className="mt-0.5 text-[11px] leading-relaxed text-fg-subtle">{alarm.detail}</p>
-      </div>
-
-      <div className="w-[124px] shrink-0 text-[11px] text-fg-subtle">
-        <p className="truncate text-fg-muted">{alarm.siteName}</p>
-        <p className="truncate">{ALARM_CONDITION_LABELS[alarm.condition]}</p>
-        {/* 방류하지 않는 동안의 수질값은 배출 수질이 아니다. 배출기준 초과로 읽히면 안 된다 */}
-        {raisedWhileNotDischarging(alarm) && (
-          <p className="truncate" style={{ color: statusInk(STATUS_VISUAL.caution) }}>
-            비방류 중 발생
-          </p>
-        )}
-      </div>
-
-      <div className="w-[120px] shrink-0 text-right text-[11px] text-fg-subtle">
-        <p className="num">{formatDateTime(alarm.raisedAtIso)}</p>
-        <p>
-          {formatRelative(alarm.raisedAtIso, DEMO_NOW_ISO)} · {DISPLAY_TIMEZONE}
-        </p>
-      </div>
-
-      <div className="flex w-[248px] shrink-0 items-center justify-end gap-2">
-        <span
-          className={cn(
-            'whitespace-nowrap rounded-[3px] border px-1.5 py-0.5 text-[11px]',
-            PRIORITY_CHIP[alarm.priority],
-          )}
-        >
-          {ALARM_PRIORITY_LABELS[alarm.priority]}
-        </span>
-        <span
-          className={cn(
-            'whitespace-nowrap rounded-[3px] border px-1.5 py-0.5 text-[11px]',
-            STATE_CHIP[alarm.state],
-          )}
-        >
-          {ALARM_STATE_LABELS[alarm.state]}
-        </span>
-        <AlarmStateActions alarm={alarm} onChange={onChange} />
-      </div>
     </div>
   );
 }

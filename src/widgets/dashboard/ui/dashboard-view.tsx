@@ -2,285 +2,406 @@
 
 import { useMemo } from 'react';
 import { DEMO_NOW_ISO } from '@/shared/config/demo';
-import { PROVISIONAL_DISPLAY_DECIMALS } from '@/shared/config/provisional';
-import { isOverLimit } from '@/shared/config/discharge-limits';
+import { checkLimit } from '@/shared/config/discharge-limits';
 import { STATUS_VISUAL, statusInk } from '@/shared/config/status-visual';
-import { formatDateTime } from '@/shared/lib/format';
+import { DISPLAY_TIMEZONE, formatDateTime } from '@/shared/lib/format';
+import { COLLECTION_INTERVAL_MINUTES } from '@/shared/config/measurement';
 import { getOutageWindow } from '@/shared/lib/timeline';
 import { AnomalyBandLegend } from '@/shared/ui/anomaly-band-legend';
+import Link from 'next/link';
+import { ChevronRight } from 'lucide-react';
+import { ACTION_LINK } from '@/shared/ui/action-button';
 import { Panel } from '@/shared/ui/panel';
-import { CountUp, RiseItem, StaggerGroup } from '@/shared/ui/motion';
-import { StatusBadge } from '@/shared/ui/status-badge';
-import {
-  countByPriorityIn,
-  countOpen,
-  openCountBySite,
-} from '@/entities/alarm';
+import { StickyBar } from '@/shared/ui/sticky-bar';
+import { InfoTip } from '@/shared/ui/tooltip';
+import { countByPriorityIn, countOpen, openCountBySite } from '@/entities/alarm';
 import { ALARM_PRIORITY_LABELS, type AlarmPriority } from '@/entities/alarm';
 import { getAnomalySeries, getAnomalySummary } from '@/entities/anomaly';
 import { getEquipment } from '@/entities/equipment';
-import { WATER_SERIES_CODES, getMeasurementSeries } from '@/entities/measurement';
+import {
+  FLOW_SERIES_CODES,
+  WATER_SERIES_CODES,
+  sliceRecentHours,
+  useSiteSeries,
+  outageNotice,
+} from '@/entities/measurement';
 import {
   SERIES_ORIGIN_LABELS,
   SERIES_WINDOW_HOURS,
   TrendChip,
   formatR2,
   getForecast,
+  toMeasuredSeries,
   trendVerdict,
 } from '@/entities/prediction';
 import { SITES, getSite } from '@/entities/site';
-import { ALL_ALARMS, allAlarmsForSite, useAlarmStates } from '@/features/alarm-ack';
-import { useSelectedSiteId } from '@/features/site-selection';
-import { AlarmList } from '@/widgets/alarm-list';
+import { ALL_ALARMS, useAlarmStates } from '@/features/alarm-ack';
+import { SiteList, SiteTabs, useSelectedSiteId, useSiteHref } from '@/features/site-selection';
+import { useInstruments , useMetering} from '@/features/site-provisioning';
 import { AnomalyPanel } from '@/widgets/anomaly-panel';
 import { AnomalyTimeline } from '@/widgets/anomaly-timeline';
 import { EquipmentPanel } from '@/widgets/equipment-panel';
-import { ForecastChart } from '@/widgets/forecast-chart';
+import { FORECAST_HORIZON_NOTE, ForecastChart } from '@/widgets/forecast-chart';
 import { SiteMapLegend, SiteMapPanel } from '@/widgets/site-map';
 import { SiteWallboard } from '@/widgets/site-wallboard';
 import { useDischargeLimits } from '@/features/discharge-limit-settings';
 import { WaterQualityGrid } from '@/widgets/water-quality-grid';
 
 export function DashboardView() {
-  const { siteId: selectedSiteId, setSiteId: setSelectedSiteId } = useSelectedSiteId();
-
+  const {
+    siteId: selectedSiteId,
+    setSiteId: setSelectedSiteId,
+    chosen: siteChosen,
+  } = useSelectedSiteId();
+  const withSite = useSiteHref();
   const site = getSite(selectedSiteId);
-  /* 사용자가 설정한 기준치. 화면마다 따로 읽으면 같은 항목이 화면마다 다른 기준을 갖는다 */
   const limits = useDischargeLimits();
-  /* 확인 처리가 헤더 알림·사이드바와 함께 반영되도록 공유 상태를 읽는다 */
+  const instruments = useInstruments();
+  const metering = useMetering();
+  /* 헤더 알림·사이드바와 같은 상태를 읽는다 — 정적 fixture면 확인해도 줄지 않는다 */
   const { alarms: allAlarms } = useAlarmStates(ALL_ALARMS);
   const alarmCounts = openCountBySite(allAlarms);
-  /* 통합 관제는 사업장 역할에 닫혀 있어(회의 2026-08-20) 전 사업장 집계가 맞다 */
   const totalOpen = countOpen(allAlarms);
   const priorityCounts = countByPriorityIn(allAlarms);
+  const priorityBreakdown =
+    Object.entries(priorityCounts)
+      .map(([p, n]) => `${ALARM_PRIORITY_LABELS[p as AlarmPriority]} ${n}`)
+      .join(' · ') || null;
 
-  // 사업장을 바꿀 때마다 시계열을 새로 만든다. 선택이 바뀔 때만 계산한다.
+  /*
+   * **`status`도 받는다** `[사용자 지적 2026-09-07]`. 첫 응답이 오기 전에는 값이 없고
+   * (`pending`) 격자가 그 자리에 스켈레톤을 그린다 — 한때 그 자리에 내장 데이터가 그려져,
+   * 답이 아닐 수 있는 값이 답의 자리에 앉았다가 응답이 오면 카드가 다시 그려졌다.
+   */
+  const { points: series, status: seriesStatus } = useSiteSeries(selectedSiteId);
+  const seriesPending = seriesStatus === 'pending';
+  /* 오염도 계열도 계측에서 온다 `[사용자 요청 2026-09-08]` — 창은 예측 화면과 같은 6시간이다 */
+  const measured = useMemo(
+    () => toMeasuredSeries(sliceRecentHours(series, SERIES_WINDOW_HOURS)),
+    [series],
+  );
+
   const detail = useMemo(
     () => ({
-      series: getMeasurementSeries(selectedSiteId),
+      series,
       anomalySeries: getAnomalySeries(selectedSiteId),
       anomalySummary: getAnomalySummary(selectedSiteId),
-      forecast: getForecast(selectedSiteId),
+      /* 오염도 추정 화면과 **같은 계열**을 본다 — 갈리면 한 사업장이 화면마다 다른 값이 된다(E1) */
+      forecast: getForecast(selectedSiteId, 'TOC', measured),
       equipment: getEquipment(selectedSiteId),
-      alarmIds: new Set(allAlarmsForSite(selectedSiteId).map((a) => a.id)),
       outage: getOutageWindow(selectedSiteId),
     }),
-    [selectedSiteId],
+    [selectedSiteId, series, measured],
   );
 
   return (
-    /* 지도는 스크롤해도 남는 좌측 레일에 둔다. 상세를 보는 동안에도 전체 위치가 보여야 한다.
-       544 = 지도 영역 510 + 패널 좌우 패딩 16×2 + 보더 1×2.
-       1280 미만에서는 레일을 만들지 않는다 — 1024에서 나누면 오른쪽에 210px밖에 남지 않아
-       KPI 타일이 44px로 뭉개진다. 대신 지도가 본문 위에 전폭으로 놓인다. */
-    <div className="grid gap-3 xl:grid-cols-[544px_minmax(0,1fr)]">
-      {/* eyebrow에 역할이 아니라 범위를 적는다. 역할은 사이드바가 보여주고, 역할명을
-          박아 두면 역할이 바뀔 때 이 문구만 남아 어긋난다 — 2026-08-20 회의가 실제로 그렇게 만들었다 */}
+    <div className="space-y-6">
       <Panel
-        eyebrow="전 사업장"
-        title="사업장 위치"
-        action={<SiteMapLegend />}
-        className="xl:sticky xl:top-[104px] xl:self-start"
+        title="사업장 현황 요약"
+        titleAside={
+          <InfoTip
+            label="이 카드를 읽는 법"
+            content="카드를 누르면 그 사업장의 상세 화면으로 이동합니다. 아래 탭에서 고른 한 개소는 이 카드가 아니라 그 아래 구역이 다룹니다."
+          />
+        }
+        /* 전 사업장 합계는 여기에만 둔다 — 아래 카드는 전부 선택 사업장 축이다 */
+        action={
+          <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1 text-[12px]">
+            <span className="text-fg-subtle">
+              전체 미확인 알람{' '}
+              <span
+                className="num font-bold"
+                style={{
+                  color: totalOpen > 0 ? statusInk(STATUS_VISUAL.critical) : 'var(--color-fg)',
+                }}
+              >
+                {totalOpen}
+              </span>
+              건
+            </span>
+            {priorityBreakdown && <span className="text-fg-subtle">{priorityBreakdown}</span>}
+            <DetailLink href={withSite('/alarms')} label="알람 이력으로 이동" text="전체 보기" />
+          </div>
+        }
       >
-        <SiteMapPanel sites={SITES} selectedId={selectedSiteId} onSelect={setSelectedSiteId} />
+        {/*
+         * **카드를 누르면 그 사업장 상세로 간다** `[사용자 요청 2026-09-15]`.
+         *
+         * 한때는 미확인 알람 모달이 열렸다 — 카드가 «훑는 개요»이고 화면을 옮기는 것은
+         * 구역 머리의 링크뿐이라는 짜임이었다. 그 사이 «카드에서 한 번에 상세로»가
+         * 한 번 세워졌다 걷혔는데(`b884b1b` · 2026-09-15 되돌림), 그때는 카드 안에
+         * **상세 칸을 따로 내는** 방식이라 한 카드에 목적지가 둘이었다. 지금은 카드
+         * 전체가 하나의 목적지다 — 칸도 없고 고를 것도 없다.
+         *
+         * 알람은 카드 아래 줄의 건수가 말하고, 목록은 `전체 보기`가 여는 알람 이력이 맡는다.
+         */}
+        <SiteWallboard
+          sites={SITES}
+          action="link"
+          /* 누른 카드의 사업장이다 — 탭에서 고른 사업장과 다르므로 id를 넘긴다.
+             손으로 `?site=`를 이어 붙이면 `scope`·`municipality`가 함께 날아간다 */
+          cardHref={(s) => withSite('/overview', s.id)}
+          cardLabel={(s) => `${s.name} 사업장 상세로 이동`}
+          renderFooter={(s) => (
+            <span className="text-[12px] text-fg-subtle">
+              미확인 알람 <span className="num font-bold text-fg">{alarmCounts[s.id] ?? 0}</span>건
+            </span>
+          )}
+        />
       </Panel>
 
-      <div className="min-w-0 space-y-4">
-        <Panel
-          eyebrow={`실증 ${SITES.length}개소`}
-          title="사업장 현황"
-          action={<span className="text-[12px] text-fg-subtle">지도 핀 또는 카드로 선택</span>}
-        >
-          <SiteWallboard
-            sites={SITES}
-            selectedId={selectedSiteId}
-            onSelect={setSelectedSiteId}
-            alarmCounts={alarmCounts}
-          />
-        </Panel>
+      <section className="space-y-3 rounded-panel border border-card-border bg-section-bg p-4 lg:p-5">
+        <StickyBar>
+          <div className="flex items-center gap-1.5">
+            <h2 className="text-[16px] font-bold leading-tight tracking-tight text-fg">
+              선택 사업장 현황
+            </h2>
+            <InfoTip
+              label="이 구역의 범위"
+              content="탭으로 고른 한 개소의 이상 판정·계측·예측·설비 상태를 모아 봅니다."
+            />
+            {/*
+             * **사업장 축의 입구다** `[사용자 요청 2026-08-28]`. 이 화면의 다른 `상세 보기`
+             * 다섯은 주제별로 흩어 보내는데(계측→시계열, 예측→오염도…), 고른 사업장 하나를
+             * 통째로 볼 곳이 없었다. 선택은 탭·핀이 그대로 맡고 이 링크는 화면을 옮긴다.
+             *
+             * **한때 월보드 카드의 상세 칸이 이 일을 물려받았다** `[사용자 요청 2026-08-31]` —
+             * 2026-09-15에 그 판본을 되돌리며 이 입구가 돌아왔다.
+             *
+             * **«이 링크만»은 더 이상 아니다** `[사용자 요청 2026-09-15]` — 같은 날 월보드
+             * 카드도 옮기는 쪽이 됐다. 둘을 함께 두는 이유는 **대상이 다르기 때문**이다:
+             * 이 링크는 «탭에서 고른 사업장», 카드는 «그 카드의 사업장»이다. `b884b1b`가
+             * 이 링크를 걷었던 근거(같은 목적지가 화면에 둘)는 그때 **카드 하나 안에**
+             * 목적지가 둘이던 것과 겹쳐 있었고, 지금은 카드에 목적지가 하나뿐이다.
+             */}
+            <DetailLink href={withSite('/overview')} label={`${site.name} 사업장 상세로 이동`} />
+          </div>
+          {/*
+           * **고르는 방법이 폭으로 갈린다** `[사용자 요청 2026-09-18: 첨부 이미지]`.
+           * `lg` 이상은 탭 줄, 그 아래는 목록이다 — 같은 `onSelect`로 같은 `?site=`를 쓴다.
+           *
+           * 좁은 화면에서 탭 줄이 **4행 132px**로 접히고 알약 실높이가 **26px**(손가락 최소
+           * 44px 미만)이었다(실측). 목록은 한 줄이 한 사업장이라 그 둘이 함께 풀린다.
+           *
+           * **두 벌을 모두 그리고 CSS가 고른다** — 폭을 렌더 중에 물으면 서버가 모르는 값이라
+           * 하이드레이션이 깨진다(이 저장소가 역할 가림에 쓰는 것과 같은 짜임).
+           * `display:none`이라 접근성 트리에도 하나만 남는다.
+           *
+           * **둘을 한 겹으로 묶는다.** 띠(`StickyBar`)는 `space-y-3`이라 **마지막 자식에게는
+           * 아래 여백을 주지 않는다** — 목록을 형제로 두면 탭 줄이 «마지막»에서 밀려나며
+           * 없던 12px을 얻어 **PC 띠가 118 → 130px로 자랐다**(실측). 묶으면 띠의 자식이 둘
+           * 그대로여서 넓은 화면이 한 픽셀도 달라지지 않는다 — 띠 118px(붙으면 127px)과
+           * 구역 2,255px(붙으면 2,264px)을 변경 전후로 나란히 재서 확인했다.
+           */}
+          <div>
+            <SiteTabs
+              sites={SITES}
+              selectedId={selectedSiteId}
+              onSelect={setSelectedSiteId}
+              className="hidden lg:flex"
+            />
+            <SiteList
+              sites={SITES}
+              selectedId={selectedSiteId}
+              onSelect={setSelectedSiteId}
+              className="lg:hidden"
+            />
+          </div>
+        </StickyBar>
 
-        <StaggerGroup className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <RiseItem>
-            <KpiTile
-              label="선택 사업장 이상 점수"
-              value={site.anomalyScore}
-              suffix="/100"
-              accent={site.status ? statusInk(STATUS_VISUAL[site.status]) : undefined}
-              footer={site.status ? <StatusBadge level={site.status} size="sm" /> : '통신 두절'}
+        {/*
+         * 레일 폭은 오른쪽 열의 하한이 정한다 — xl에서 470px을 쓰면 오른쪽이 354px이 되어
+         * 타일 2열 하한(384px) 밑으로 떨어진다. 1280 미만은 나누지 않는다(오른쪽 210px).
+         */}
+        <div className="grid gap-6 xl:grid-cols-[420px_minmax(0,1fr)] 2xl:grid-cols-[470px_minmax(0,1fr)]">
+          <Panel
+            title="사업장 위치"
+            action={<SiteMapLegend />}
+            /*
+             * 붙은 탭 줄 높이(`--sticky-bar-h`)를 자리와 높이에서 함께 뺀다 — 빼지 않으면
+             * 지도 머리가 탭 뒤로 들어간다. 세로 768px에서 88svh가 한계다(90svh면 잘린다).
+             */
+            className="xl:sticky xl:top-[calc(var(--header-h)_+_var(--sticky-bar-h,0px)_+_1.5rem)] xl:h-[calc(88svh_-_var(--sticky-bar-h,0px)_-_1.5rem)] xl:max-h-[753px] xl:self-start"
+            /* flex 자식의 자동 최소 높이는 내용 높이다 — 잠그지 않으면 카드 밖으로 밀린다 */
+            bodyClassName="min-h-0"
+          >
+            {/* 새로고침해도 고른 사업장의 시도로 남아 있게 한다 — 상세는 `SiteMap`의 `siteChosen` */}
+            <SiteMapPanel
+              sites={SITES}
+              selectedId={selectedSiteId}
+              onSelect={setSelectedSiteId}
+              siteChosen={siteChosen}
             />
-          </RiseItem>
-          <RiseItem>
-            <KpiTile
-              label="데이터 처리율"
-              value={site.dataThroughput}
-              decimals={PROVISIONAL_DISPLAY_DECIMALS.dataThroughput}
-              suffix="%"
-              footer="목표 ≥ 98%"
-            />
-          </RiseItem>
-          <RiseItem>
-            <KpiTile
-              label="시스템 가동률"
-              value={site.uptime}
-              decimals={PROVISIONAL_DISPLAY_DECIMALS.uptime}
-              suffix="%"
-              footer="목표 ≥ 95%"
-            />
-          </RiseItem>
-          <RiseItem>
-            <KpiTile
-              label="미확인 알람 (전체)"
-              value={totalOpen}
-              suffix="건"
-              accent={totalOpen > 0 ? statusInk(STATUS_VISUAL.critical) : undefined}
-              footer={
-                Object.entries(priorityCounts)
-                  .map(([p, n]) => `${ALARM_PRIORITY_LABELS[p as AlarmPriority]} ${n}`)
-                  .join(' · ') || '없음'
-              }
-            />
-          </RiseItem>
-        </StaggerGroup>
+          </Panel>
 
-        <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_300px]">
-          <div className="space-y-3">
+          <div className="@container min-w-0 space-y-6">
             <Panel
-              eyebrow={`${site.name} · ${site.region}`}
-              title="수질·설비 실시간 계측"
-              action={
-                <span className="text-[12px] text-fg-subtle">최근 24시간 · 5분 주기 · KST</span>
-              }
-              bodyClassName="p-0"
+              title={`이상 탐지 결과 · ${site.name}`}
+              action={<DetailLink href={withSite('/anomaly')} label="이상 탐지 상세로 이동" />}
             >
-              {/* 사업장 계열은 방류구 계열이라 기준을 적용한다 */}
-              <WaterQualityGrid
-                data={detail.series}
-                codes={WATER_SERIES_CODES}
-                limits={limits.table}
-              />
-              <p className="max-w-[76ch] border-t border-border px-4 py-2.5 text-[12px] leading-relaxed text-fg-subtle">
-                {!site.online
-                  ? 'ECP 통신이 두절되어 수신값이 없습니다. 결측은 0으로 채우지 않고 비워 둡니다.'
-                  : detail.outage
-                    ? `${formatDateTime(detail.outage.fromIso)}–${formatDateTime(detail.outage.toIso)} 구간은 통신 두절로 수신값이 없습니다. 결측은 0으로 채우지 않고 끊어서 표시합니다.`
-                    : '최근 24시간 동안 결측 구간이 없습니다.'}
-              </p>
-            </Panel>
-
-            <Panel eyebrow="AutoEncoder" title="이상 점수 타임라인" action={<AnomalyBandLegend />}>
-              <AnomalyTimeline data={detail.anomalySeries} outage={detail.outage} />
-            </Panel>
-
-            <Panel
-              eyebrow="LSTM + Attention"
-              title={`${detail.forecast.targetLabel} · 최근 ${SERIES_WINDOW_HOURS}시간 추이`}
-              action={
-                <span className="max-w-[46ch] text-[12px] text-fg-subtle">
-                  {detail.forecast.online
-                    ? `산출 ${formatDateTime(detail.forecast.computedAtIso)} KST · 입력 ${detail.forecast.inputWindowLabel}`
-                    : '통신 두절로 산출 중단'}
-                </span>
-              }
-            >
-              <ForecastChart summary={detail.forecast} nowIso={DEMO_NOW_ISO} limits={limits.table} />
-
-              {/* 카드 안에 카드를 넣지 않는다 — 세로 구분선만으로 나눈다 */}
-              <div className="mt-4 grid grid-cols-3 divide-x divide-border border-t border-border pt-3">
-{/*
-                 * **농도를 적지 않는다** `[회의 2026-08-20]`. 이 화면만 숫자를 그대로 찍고
-                 * 있었다 — 같은 결정이 오염도 추정·리포트에서는 지켜지는데 여기서만 깨지면
-                 * 관제 화면을 보는 사람이 그 숫자를 계측된 농도로 읽는다(E3).
-                 *
-                 * 판정 문구·색·칩은 `entities/prediction`이 낸다. 위젯이 각자 분기를 들고
-                 * 있던 동안 이 화면은 TOC(직접 계측)에도 `AI 추정`을 박아 놨다.
-                 */}
-                {detail.forecast.trends.map((t) => {
-                  const verdict = trendVerdict(
-                    t,
-                    isOverLimit(t.code, t.value, limits.table),
-                    limits.unresolvedReason,
-                  );
-                  return (
-                    <div key={t.code} className="px-3 first:pl-0 last:pr-0">
-                      <div className="flex items-baseline justify-between gap-1">
-                        <span className="text-[11px] uppercase tracking-[0.1em] text-fg-subtle">
-                          {t.code}
-                        </span>
-                        <TrendChip trend={t.trend} bare />
-                      </div>
-                      <p
-                        className="mt-1.5 text-[14px] font-semibold leading-snug text-fg"
-                        style={{ color: verdict.ink }}
-                      >
-                        {verdict.text}
-                      </p>
-                      <p className="num mt-1 text-[11px] text-fg-subtle">
-                        R² {formatR2(t.r2)} · {SERIES_ORIGIN_LABELS[t.origin]}
-                      </p>
-                    </div>
-                  );
-                })}
+              <div className="space-y-5">
+                <AnomalyPanel
+                  summary={detail.anomalySummary}
+                  legend={<AnomalyBandLegend />}
+                />
+                <AnomalyTimeline data={detail.anomalySeries} outage={detail.outage} />
               </div>
             </Panel>
-          </div>
 
-          <div className="space-y-3">
-            <Panel eyebrow={site.name} title="이상 탐지 결과">
-              <AnomalyPanel summary={detail.anomalySummary} />
+            <Panel
+              title="수질·설비 실시간 계측"
+              titleAside={
+                <InfoTip
+                  label="조회 조건과 결측 표시"
+                  content={`최근 24시간 · ${COLLECTION_INTERVAL_MINUTES}분 주기 · ${DISPLAY_TIMEZONE}. ${outageNotice(site.online, detail.outage)}`}
+                />
+              }
+              action={<DetailLink href={withSite('/timeseries')} label="시계열 변화로 이동" />}
+            >
+              {/*
+                * 유량을 소절로 가른다 `[회의 피드백 2026-08-24]` — 농도와 부피/시간을 한 격자에
+                * 두면 옆 칸과 비교된다는 잘못된 신호를 준다. 유입·유출은 서로 비교되어야 한다.
+                */}
+              <WaterQualityGrid
+                absentCodes={instruments.absent}
+                pending={seriesPending}
+                data={detail.series}
+                /* 이 화면은 한 사업장만 그린다 — 카드가 그 사업장 주기로 «지금 값»을 받는다 */
+                siteId={selectedSiteId}
+                sections={[
+                  { title: '수질 8종', codes: WATER_SERIES_CODES },
+                  {
+                    title: '유량 — 들어온 양과 나간 양',
+                    codes: FLOW_SERIES_CODES,
+                    diff: { of: ['inflow', 'flow'], label: '유입 − 유출' },
+                  },
+                ]}
+                limits={limits.table}
+                windowHours={SERIES_WINDOW_HOURS}
+              />
             </Panel>
 
-            <Panel eyebrow={`전체 미확인 ${totalOpen}건`} title="알람" bodyClassName="px-4 py-3">
-              <AlarmList
-                alarms={allAlarms.filter((a) => detail.alarmIds.has(a.id))}
+            <Panel
+              title={`${detail.forecast.targetLabel} · 최근 ${SERIES_WINDOW_HOURS}시간 추이`}
+              /* 산출 시각·대상 기간은 E3가 값과 함께 요구하는 근거다 */
+              titleAside={
+                <InfoTip
+                  label="이 예측의 산출 근거"
+                  content={
+                    detail.forecast.online
+                      ? `산출 ${formatDateTime(detail.forecast.computedAtIso)} ${DISPLAY_TIMEZONE} · 입력 대상 기간 ${detail.forecast.inputWindowLabel}. ${FORECAST_HORIZON_NOTE}`
+                      : `통신이 두절되어 산출이 중단되었습니다. ${FORECAST_HORIZON_NOTE}`
+                  }
+                />
+              }
+              action={<DetailLink href={withSite('/prediction')} label="오염도 추정으로 이동" />}
+            >
+              <ForecastChart
+                summary={detail.forecast}
                 nowIso={DEMO_NOW_ISO}
-                selectedSiteId={selectedSiteId}
+                limits={limits.table}
               />
+
+              {/*
+               * 세 칸을 나누면 한 칸이 좁아져 근거 줄(`R² 0.87 · 계측`)이 접힌다 — 쌓는다.
+               * 파탄 지점은 실측으로 **106px**이었다(390px 뷰포트).
+               *
+               * **묻는 축을 뷰포트에서 컨테이너로 옮겼다** `[사용자 결정 2026-09-18]`.
+               * 한때 `sm:`(뷰포트 640px)이었는데, 이 칸들은 지도 레일 옆의 **오른쪽 열** 안에
+               * 있어 뷰포트와 실제 폭이 어긋난다 — 1280px에서 그 열의 카드 본문이 428px뿐인데
+               * `sm`이 켜져 **칸이 143px**이 됐다(위의 106px과 같은 부류다).
+               *
+               * `@[32rem]`(512px)은 **같은 열이 이미 쓰는 값**이다 — `AnomalyPanel`이 그
+               * 폭에서 2칸을 쌓고 `SCR-OP-001` §3.1이 「카드 본문 512px 미만」으로 적어 두었다.
+               * 지금 `sm`이 만드는 실질 임계(카드 본문 536px)의 24px 아래라 **되던 폭은
+               * 그대로 된다.** 그 임계에서 칸 170.7px · 안쪽 146.7px이다.
+               */}
+              <div className="@container mt-4">
+                <div className="grid grid-cols-1 divide-y divide-border border-t border-border pt-3 @[32rem]:grid-cols-3 @[32rem]:divide-x @[32rem]:divide-y-0">
+                  {/*
+                   * **농도를 적지 않는다** `[회의 2026-08-20]` — 소프트 센싱 값을 숫자로 띄우면
+                   * 계측된 농도로 읽힌다(E3). 판정 문구·색은 `entities/prediction`이 낸다.
+                   */}
+                  {detail.forecast.trends.map((t) => {
+                    const verdict = trendVerdict(
+                      t,
+                      checkLimit(t.code, t.value, limits.table),
+                      limits.unresolvedReason,
+                    );
+                    return (
+                      <div
+                        key={t.code}
+                        className="py-2 first:pt-0 last:pb-0 @[32rem]:px-3 @[32rem]:py-0 @[32rem]:first:pl-0 @[32rem]:last:pr-0"
+                      >
+                        <div className="flex items-center justify-between gap-1">
+                          <span className="text-[12px] uppercase tracking-[0.1em] text-fg-subtle">
+                            {t.code}
+                          </span>
+                          <TrendChip trend={t.trend} />
+                        </div>
+                        <p
+                          className="mt-1.5 text-[14px] font-semibold leading-snug text-fg"
+                          style={{ color: verdict.ink }}
+                        >
+                          {verdict.text}
+                        </p>
+                        <p className="num mt-1 text-[12px] text-fg-subtle">
+                          R² {formatR2(t.r2)} · {SERIES_ORIGIN_LABELS[t.origin]}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </Panel>
+
+            <Panel
+              title={`설비 상태 · ${site.name}`}
+              titleAside={<InfoTip label="정렬 기준" content="상태가 나쁜 설비부터 정렬합니다." />}
+              action={<DetailLink href={withSite('/equipment')} label="설비 이상 탐지로 이동" />}
+            >
+              <EquipmentPanel
+          items={detail.equipment}
+          online={site.online}
+          meteredIds={metering.ids}
+        />
             </Panel>
           </div>
         </div>
-
-        {/* 설비는 4대를 가로로 편다 — 세로로 쌓으면 오른쪽 열만 길어져 왼쪽 아래가 빈다 */}
-        <Panel
-          eyebrow="설비 이상 탐지"
-          title={`설비 상태 · ${site.name}`}
-          action={<span className="text-[12px] text-fg-subtle">상태 나쁜 순</span>}
-        >
-          <EquipmentPanel items={detail.equipment} online={site.online} />
-        </Panel>
-      </div>
+      </section>
     </div>
   );
 }
 
-interface KpiTileProps {
+/**
+ * 카드 머리의 이동 링크. 목적지는 `aria-label`이 적는다 — 짧은 글자·아이콘만으로는
+ * 링크 이름이 서지 않는다.
+ *
+ * **보이는 글자는 기본이 `상세 보기`이고 한 자리만 다르다** `[사용자 확인 2026-08-31]`.
+ * §8이 문구를 통일하라는 이유는 *"카드마다 문구가 다르면 같은 동작이 여러 개로 읽힌다"*
+ * 인데, 뒤집으면 **동작이 다르면 문구도 달라야 한다.** 넷은 «고른 사업장을 그 주제로 더
+ * 자세히»(계측→시계열·예측→오염도·설비→설비 이상 탐지·판정→이상 탐지)이고, `사업장 현황
+ * 요약` 머리의 하나만 **«전 사업장 알람을 전부»** 라 축이 다르다 — 패널 이름도 `요약`이라
+ * 그 반대는 `전체`다. 알람 모달의 `이력 전체 보기`가 같은 목적지로 가며 이미 그 말을 쓴다.
+ */
+function DetailLink({
+  href,
+  label,
+  text = '상세 보기',
+}: {
+  href: string;
   label: string;
-  value: number | null;
-  decimals?: number;
-  suffix?: string;
-  accent?: string;
-  footer?: React.ReactNode;
-}
-
-function KpiTile({ label, value, decimals = 0, suffix, accent, footer }: KpiTileProps) {
+  text?: string;
+}) {
   return (
-    <div className="rounded-[5px] border border-border bg-surface p-3 transition-colors duration-200 hover:border-border-strong">
-      <p className="truncate text-[11px] text-fg-subtle">{label}</p>
-      <p
-        className="mt-1.5 text-[26px] font-semibold leading-none tracking-tight"
-        style={{
-          color: value === null ? 'var(--fg-subtle)' : (accent ?? 'var(--color-fg)'),
-        }}
-      >
-        {value === null ? (
-          <span className="num">—</span>
-        ) : (
-          <CountUp value={value} decimals={decimals} />
-        )}
-        {suffix && value !== null && (
-          <span className="ml-1 text-[11px] font-normal text-fg-subtle">{suffix}</span>
-        )}
-      </p>
-      <div className="mt-2 text-[11px] text-fg-subtle">{footer}</div>
-    </div>
+    <Link
+      href={href}
+      aria-label={label}
+      /* 알람 줄·사업장 점수표의 `상세 ›`와 **같은 부품**이다 — 셋이 같은 문자열을 각자 적고 있었다 */
+      className={`${ACTION_LINK} shrink-0 text-fg-subtle`}
+    >
+      <span className="hidden sm:inline">{text}</span>
+      <ChevronRight aria-hidden size={16} strokeWidth={2} />
+    </Link>
   );
 }

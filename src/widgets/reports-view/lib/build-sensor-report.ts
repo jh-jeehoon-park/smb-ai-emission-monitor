@@ -1,18 +1,19 @@
 import type { DischargeLimitTable } from '@/shared/config/discharge-limits';
-import { isOverLimit } from '@/shared/config/discharge-limits';
+import { checkLimit, isOverLimit } from '@/shared/config/discharge-limits';
 import { MEASUREMENT_ITEMS } from '@/shared/config/measurement';
 import { csvCell, toCsvText } from '@/shared/lib/csv';
 import {
   EQUIPMENT_SERIES_CODES,
   WATER_SERIES_CODES,
-  getMeasurementSeries,
   sliceRecentHours,
   summarizeSeries,
+  type MeasurementPoint,
   type SeriesCode,
   type SeriesStats,
 } from '@/entities/measurement';
 import {
   getForecast,
+  type MeasuredSeries,
   trendVerdict,
   type TrendEstimate,
   type TrendVerdict,
@@ -50,11 +51,11 @@ export interface SensorReportRow {
  * 이 함수가 localStorage를 읽으면 순수하지 않아 서버에서 터진다.
  */
 export function buildSensorReport(
-  siteId: string,
+  series: MeasurementPoint[],
   hours: number,
   limits: DischargeLimitTable,
 ): SensorReportRow[] {
-  const points = sliceRecentHours(getMeasurementSeries(siteId), hours);
+  const points = sliceRecentHours(series, hours);
 
   return REPORT_CODES.map((code) => {
     const item = MEASUREMENT_ITEMS[code];
@@ -99,12 +100,19 @@ export function buildEstimateReport(
   limits: DischargeLimitTable,
   /** 기준치가 없는 이유. 사업장 분류 미설정과 항목값 미입력은 **할 일이 다르다** */
   unresolvedReason: string | null,
+  /**
+   * 계측에서 온 오염도 계열 `[사용자 요청 2026-09-08]`.
+   *
+   * **오염도 추정 화면과 같은 값을 내야 한다**(**E1**) — 넘기지 않으면 이 표만 내장
+   * 생성값으로 판정해 같은 사업장의 TOC를 두 화면이 다르게 말한다.
+   */
+  measured?: MeasuredSeries,
 ): EstimateReportRow[] {
-  return getForecast(siteId).trends.map((trend) => ({
+  return getForecast(siteId, 'TOC', measured).trends.map((trend) => ({
     code: trend.code,
     label: trend.label,
     origin: trend.origin,
-    verdict: trendVerdict(trend, isOverLimit(trend.code, trend.value, limits), unresolvedReason),
+    verdict: trendVerdict(trend, checkLimit(trend.code, trend.value, limits), unresolvedReason),
     trend: trend.trend,
   }));
 }

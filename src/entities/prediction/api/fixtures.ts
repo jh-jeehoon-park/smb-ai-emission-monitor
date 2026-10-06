@@ -2,18 +2,29 @@ import { DEMO_NOW_ISO } from '@/shared/config/demo';
 import { COLLECTION_INTERVAL_MINUTES } from '@/shared/config/measurement';
 import { getScenario, siteSeed } from '@/shared/config/demo-scenario';
 import { createRng, roundTo } from '@/shared/lib/prng';
-import { TIMELINE_POINT_COUNT, isMissingAt, timelineIsoAt } from '@/shared/lib/timeline';
+import {
+  EVENT_LENGTH_SAMPLES,
+  EVENT_START_INDEX,
+  TIMELINE_POINT_COUNT,
+  isDischargingAt,
+  isMissingAt,
+  minutesToSamples,
+  timelineIsoAt,
+} from '@/shared/lib/timeline';
 import {
   FLOW_FORECAST,
   FLOW_FORECAST_CODE,
   FORECAST_TARGETS,
   FORECAST_TARGET_CODES,
+  INFLOW_FORECAST,
+  INFLOW_FORECAST_CODE,
   SERIES_WINDOW_HOURS,
   type ForecastSeriesCode,
   type ForecastTargetCode,
   type ForecastTargetProfile,
 } from '../config/constants';
 import type {
+  MeasuredSeries,
   ForecastPoint,
   ForecastSummary,
   SeriesOrigin,
@@ -35,6 +46,9 @@ const TREND_SLOPE_RATIO = 0.5;
 /** 보여 주는 구간. 예측 구간이 사라졌으므로 이 창이 곧 차트 전체다 */
 const ACTUAL_TAIL_POINTS = (SERIES_WINDOW_HOURS * 60) / COLLECTION_INTERVAL_MINUTES;
 
+/** 계열 파형의 주기. **분**이다 — 표본 수로 적으면 수집 주기를 좁힐 때 파형이 그만큼 빨라진다 */
+const SERIES_WAVE_PERIOD_MINUTES = 85;
+
 /**
  * 계열의 값이 계측인가 추정인가.
  *
@@ -43,9 +57,15 @@ const ACTUAL_TAIL_POINTS = (SERIES_WINDOW_HOURS * 60) / COLLECTION_INTERVAL_MINU
  */
 const SERIES_ORIGIN: Record<ForecastSeriesCode, SeriesOrigin> = {
   TOC: 'measured',
-  TN: 'softSensed',
-  TP: 'softSensed',
+  /*
+   * **한때 `softSensed`였다** `[사용자 요청 2026-09-08]`. 그 라벨은 «AI가 추정한 값»이라는
+   * 뜻인데 그것을 낸 AI가 아직 없다 — 지금 화면에 뜨는 TN·TP는 **계측 서버가 임시로 보내 주는
+   * 값**이다. 과제가 성공해 소프트 센싱이 붙으면 이 둘을 `softSensed`로 되돌린다.
+   */
+  TN: 'preModel',
+  TP: 'preModel',
   flow: 'measured',
+  inflow: 'measured',
 };
 
 /** 항목마다 rng 계열을 벌려 세 항목이 똑같은 모양으로 겹치지 않게 한다 */
@@ -54,10 +74,18 @@ const SEED_OFFSET: Record<ForecastSeriesCode, number> = {
   TN: 90211,
   TP: 90212,
   flow: 90213,
+  inflow: 90217,
 };
 
 /**
- * 최근 6시간 계열.
+ * 최근 6시간 계열 — **계측을 못 받았을 때의 대체다** `[사용자 요청 2026-09-08]`.
+ *
+ * 화면 넷이 이제 계측 계열을 넘긴다(`MeasuredSeries`). 그래서 이 생성기는 **넘기지 않은
+ * 호출만** 탄다 — 지금은 검사가 그렇게 부른다. 남겨 두는 이유는 계약이 «안 넘기면 지어낸다»
+ * 이기 때문이고, 폴백 자체는 계측 fixture가 맡는다(그쪽이 방류 여부·결측을 이미 따른다).
+ *
+ * 여기 값을 고칠 일이 생기면 먼저 **계측 fixture 쪽인지** 확인한다 — 두 생성기가 갈리면
+ * 한 사업장을 두 화면이 다르게 말한다(2026-08-28에 실제로 그랬다).
  *
  * **예측 구간을 만들지 않는다** `[INC-109]` `[TBD-52]`. 6시간 예측의 대상 항목이 정해지지
  * 않았고 신뢰구간의 신뢰수준도 원문에 없다 — 없는 데이터로 곡선을 그리면 산출된 예측처럼
@@ -78,10 +106,26 @@ function buildPoints(
       points.push({ t: timelineIsoAt(i), value: null });
       continue;
     }
-    const progress = Math.max(0, (i - (TIMELINE_POINT_COUNT - 36)) / 36) * intensity;
+    /*
+     * **유출 유량은 방류 여부를 따라간다** `[사용자 결정 2026-08-28]`.
+     *
+     * 이 계열은 계측 fixture와 **다른 생성기**를 쓴다(창이 짧고 프로파일이 따로다). 그래서
+     * 계측 쪽만 방류에 맞추자 **두 화면이 다른 말을 했다** — `금일 배출 현황`은 유량 0인데
+     * 오염도 추정의 유량 계열은 계속 흘렀다(E3). 판정은 `isDischargingAt` 하나이므로 여기서도
+     * 같은 것을 읽는다.
+     *
+     * **유입은 0으로 만들지 않는다** — 방류를 멈춰도 폐수는 들어온다.
+     */
+    if (profile.code === FLOW_FORECAST_CODE && isDischargingAt(siteId, i) === false) {
+      points.push({ t: timelineIsoAt(i), value: 0 });
+      continue;
+    }
+    /* 사건 구간은 **분으로 적는다** — 표본 수로 박으면 수집 주기가 바뀔 때 조용히 줄어든다 */
+    const progress = Math.max(0, (i - EVENT_START_INDEX) / EVENT_LENGTH_SAMPLES) * intensity;
     const value =
       profile.base +
-      Math.sin(i / 17 + profile.phase) * profile.amplitude +
+      Math.sin(i / minutesToSamples(SERIES_WAVE_PERIOD_MINUTES) + profile.phase) *
+        profile.amplitude +
       (rng() - 0.5) * profile.noise +
       progress * profile.rise;
     points.push({ t: timelineIsoAt(i), value: roundTo(value, decimals) });
@@ -173,11 +217,36 @@ function buildTrends(
   });
 }
 
-export function getForecast(siteId: string, target: ForecastTargetCode = 'TOC'): ForecastSummary {
+/**
+ * 오염도 3항목을 **받은 것으로 채우고, 안 받은 것만 지어낸다.**
+ *
+ * 반씩 섞이지 않는다 — 위젯은 다섯 계열을 한 벌로 넘기거나 아예 안 넘긴다. 그래도 `??`를
+ * 두는 이유는 넘긴 벌에 빈 자리가 생겨도 화면이 죽지 않게 하려는 것이다.
+ */
+function seriesOf(
+  siteId: string,
+  intensity: number,
+  measured?: MeasuredSeries,
+): Record<ForecastTargetCode, ForecastPoint[]> {
+  const built = allSeries(siteId, intensity);
+  if (!measured) return built;
+
+  return {
+    TOC: measured.TOC ?? built.TOC,
+    TN: measured.TN ?? built.TN,
+    TP: measured.TP ?? built.TP,
+  };
+}
+
+export function getForecast(
+  siteId: string,
+  target: ForecastTargetCode = 'TOC',
+  measured?: MeasuredSeries,
+): ForecastSummary {
   const scenario = getScenario(siteId);
   const intensity = scenario.eventRise / 74;
   const profile = FORECAST_TARGETS[target];
-  const series = allSeries(siteId, intensity);
+  const series = seriesOf(siteId, intensity, measured);
 
   return {
     code: profile.code,
@@ -200,22 +269,28 @@ export function getForecast(siteId: string, target: ForecastTargetCode = 'TOC'):
  * 오염도와 **같은 규약**을 쓴다 — 같은 창, 같은 결측 처리. 다른 것은 항목 프로파일
  * 하나뿐이다. 경향 카드는 오염도 3항목의 것이므로 그대로 싣는다(FR-12).
  */
-export function getFlowForecast(siteId: string): ForecastSummary {
+export function getFlowForecast(
+  siteId: string,
+  code: ForecastSeriesCode = FLOW_FORECAST_CODE,
+  measured?: MeasuredSeries,
+): ForecastSummary {
   const scenario = getScenario(siteId);
   const intensity = scenario.eventRise / 74;
-  const points = buildPoints(siteId, FLOW_FORECAST, intensity);
+  /* 유입·유출은 같은 규약이고 기저값만 다르다 */
+  const profile = code === INFLOW_FORECAST_CODE ? INFLOW_FORECAST : FLOW_FORECAST;
+  const points = measured?.[code] ?? buildPoints(siteId, profile, intensity);
 
   return {
-    code: FLOW_FORECAST_CODE,
-    targetLabel: `${FLOW_FORECAST.label}(수량)`,
-    unit: FLOW_FORECAST.unit,
-    decimals: FLOW_FORECAST.decimals,
-    origin: SERIES_ORIGIN[FLOW_FORECAST_CODE],
+    code: profile.code,
+    targetLabel: `${profile.label}(수량)`,
+    unit: profile.unit,
+    decimals: profile.decimals,
+    origin: SERIES_ORIGIN[profile.code],
     online: scenario.online,
     computedAtIso: scenario.online ? DEMO_NOW_ISO : '2026-08-21T13:35:00Z',
     inputWindowLabel: '과거 24시간 다변량 시계열',
     modelLabel: 'LSTM + Attention',
     points,
-    trends: buildTrends(allSeries(siteId, intensity)),
+    trends: buildTrends(seriesOf(siteId, intensity, measured)),
   };
 }

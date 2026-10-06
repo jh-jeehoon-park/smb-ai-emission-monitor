@@ -31,13 +31,13 @@ import type { Trend } from '../model/types';
 export const TREND_VISUAL: Record<Trend, { text: string; chip: string; glyph: string }> = {
   rising: {
     text: 'text-caution-ink',
-    chip: 'bg-chip-caution border-caution/40',
+    chip: 'bg-chip-caution',
     glyph: '↑',
   },
   /* 변화가 없다는 것은 상태가 아니다 — 가장 흐린 중립면에 둔다 */
   steady: {
     text: 'text-fg-muted',
-    chip: 'bg-surface-3 border-border',
+    chip: 'bg-surface-3',
     glyph: '→',
   },
   /*
@@ -46,7 +46,7 @@ export const TREND_VISUAL: Record<Trend, { text: string; chip: string; glyph: st
    */
   falling: {
     text: 'text-actual',
-    chip: 'bg-surface-3 border-border-strong',
+    chip: 'bg-surface-3',
     glyph: '↓',
   },
 };

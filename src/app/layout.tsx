@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { QueryProvider } from '@/shared/api/query-provider';
 import { THEME_INIT_SCRIPT } from '@/shared/config/theme';
 import { MotionPreferences } from '@/shared/ui/motion';
 import { ThemeProvider } from '@/shared/ui/theme';
@@ -54,11 +55,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       {/* 폰트는 globals.css가 Pretendard 하나로 불러온다 — 한글 계측 라벨의 가독성이 우선이다 */}
       <body className="antialiased">
-        <ThemeProvider>
-          <RoleProvider>
-            <MotionPreferences>{children}</MotionPreferences>
-          </RoleProvider>
-        </ThemeProvider>
+        <QueryProvider>
+          <ThemeProvider>
+            <RoleProvider>
+              <MotionPreferences>{children}</MotionPreferences>
+            </RoleProvider>
+          </ThemeProvider>
+        </QueryProvider>
       </body>
     </html>
   );

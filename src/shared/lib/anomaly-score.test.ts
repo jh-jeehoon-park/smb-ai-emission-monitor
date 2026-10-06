@@ -4,7 +4,7 @@ import { TIMELINE_POINT_COUNT, getOutageWindow, isMissingAt } from '@/shared/lib
 import { buildAnomalyScores, downsample, latestScore } from './anomaly-score';
 
 const OFFLINE = SITE_SCENARIOS.find((s) => !s.online);
-const ONLINE = SITE_SCENARIOS.find((s) => s.online && s.outageStartOffset !== null);
+const ONLINE = SITE_SCENARIOS.find((s) => s.online && s.outageStartMinutesAgo !== null);
 
 describe('buildAnomalyScores', () => {
   it('시간축 길이만큼 값을 만든다', () => {
@@ -71,7 +71,7 @@ describe('downsample', () => {
 
 describe('getOutageWindow', () => {
   it('두절 이력이 없으면 null이다 (없는 구간을 만들어내지 않는다)', () => {
-    const noOutage = SITE_SCENARIOS.find((s) => s.online && s.outageStartOffset === null);
+    const noOutage = SITE_SCENARIOS.find((s) => s.online && s.outageStartMinutesAgo === null);
     expect(noOutage).toBeDefined();
     expect(getOutageWindow(noOutage!.id)).toBeNull();
   });

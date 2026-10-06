@@ -56,12 +56,24 @@ describe('설비 이상 알람은 설비 상태에서 나온다', () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
+  /**
+   * **합치는 곳이 한 곳이어야 한다.** 생성 알람이 손으로 쓴 목록에도 있으면 같은 사실이 두 번
+   * 실리고, 어느 쪽이 정본인지 알 수 없다.
+   *
+   * 원천이 셋이 됐다 — 손으로 쓴 것 · 설비 상태 · **계측 대조**(`TRA-`, 2026-09-10).
+   * 합이 맞지 않으면 어딘가에서 새 원천이 조용히 늘어난 것이다.
+   */
   it('손으로 쓴 목록에는 생성 알람이 없다 — 합치는 곳이 한 곳이어야 한다', () => {
     expect(ALARMS.some((a) => a.id.startsWith('EQA-'))).toBe(false);
-    expect(ALL_ALARMS.length).toBe(ALARMS.length + countGenerated());
+    expect(ALARMS.some((a) => a.id.startsWith('TRA-'))).toBe(false);
+    expect(ALL_ALARMS.length).toBe(ALARMS.length + countGenerated() + countTreatment());
   });
 });
 
 function countGenerated(): number {
   return SITE_SCENARIOS.reduce((sum, site) => sum + equipmentAlarms(site.id).length, 0);
+}
+
+function countTreatment(): number {
+  return ALL_ALARMS.filter((a) => a.condition === 'treatmentStall').length;
 }

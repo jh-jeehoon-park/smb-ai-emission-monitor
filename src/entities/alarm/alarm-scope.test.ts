@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ALARMS, countByPriorityIn, countOpen, getAlarmsForView, openAlarms } from './index';
 
 /**
- * 관리자는 자사 1개소만 본다(회의 2026-08-13). 그런데 알람 함수 셋이 사업장 인자를
+ * 사업장은 자사 1개소만 본다(회의 2026-08-13). 그런데 알람 함수 셋이 사업장 인자를
  * 받고도 전 사업장을 돌려주고 있었다 — 범위 필터가 없어서가 아니라 **함수가 이름대로
  * 동작하지 않아서** 새는 것이라, 화면을 고치기 전에 여기서 막는다.
  */

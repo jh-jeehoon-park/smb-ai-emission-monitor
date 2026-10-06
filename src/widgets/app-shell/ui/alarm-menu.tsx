@@ -2,10 +2,13 @@
 
 import { Bell } from 'lucide-react';
 import Link from 'next/link';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { DEMO_NOW_ISO } from '@/shared/config/demo';
 import { STATUS_VISUAL } from '@/shared/config/status-visual';
 import { cn } from '@/shared/lib/cn';
+import { useDismiss } from '@/shared/lib/use-dismiss';
+import { ICON_BUTTON, TAP_AREA_Y } from '@/shared/ui/action-button';
+import { BADGE_BASE } from '@/shared/ui/badge';
 import { formatRelative } from '@/shared/lib/format';
 import {
   ALARM_PRIORITY_LABELS,
@@ -13,11 +16,12 @@ import {
   type Alarm,
   type AlarmPriority,
 } from '@/entities/alarm';
-import { ADMIN_ACCOUNTS } from '@/entities/user';
+import { ADMIN_ACCOUNTS, GOV_SCOPE } from '@/entities/user';
+import { siteIdsInScope, withinScope } from '@/entities/site';
 import { ALL_ALARMS, useAlarmStates } from '@/features/alarm-ack';
 import { useSiteHref } from '@/features/site-selection';
 import { ALARM_NAV_HREF } from '../config/navigation';
-import { HEADER_ALARM_LIMIT } from '../config/constants';
+import { HEADER_ALARM_LIMIT, HEADER_POPOVER_PLACEMENT } from '../config/constants';
 
 /**
  * 헤더 알림.
@@ -32,41 +36,35 @@ import { HEADER_ALARM_LIMIT } from '../config/constants';
 export function AlarmMenu() {
   const [open, setOpen] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const { alarms, setState } = useAlarmStates(ALL_ALARMS);
+  const close = useCallback(() => setOpen(false), []);
 
-  useEffect(() => {
-    if (!open) return;
-
-    const onDown = (e: MouseEvent) => {
-      if (!boxRef.current?.contains(e.target as Node)) setOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false);
-    };
-
-    document.addEventListener('mousedown', onDown);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('mousedown', onDown);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [open]);
+  /* 바깥 누름·Esc·초점 복원은 세 팝오버가 같은 규약을 쓴다 — `shared/lib/use-dismiss.ts` */
+  useDismiss({ open, onDismiss: close, boxRef, triggerRef });
 
   const acknowledge = (id: string) => setState(id, 'acknowledged');
+  /* 관할은 셸이 손에 들고 있어야 한다 — 라우트 밖이라 URL을 읽지 못한다 */
+  const inMunicipality = withinScope(alarms, siteIdsInScope('municipality', GOV_SCOPE));
 
   return (
     <div ref={boxRef} className="relative">
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label="알림"
-        className="relative flex cursor-pointer items-center rounded-[4px] border border-border bg-surface px-2 py-1.5 text-fg-muted transition-colors duration-200 hover:border-border-strong hover:text-fg"
+        className={cn(ICON_BUTTON, 'text-fg-muted')}
       >
-        <Bell aria-hidden size={13} strokeWidth={1.9} />
-        {/* 역할마다 숫자가 다르다. 세 벌을 그리고 CSS가 고른다 */}
-        <CountBadge alarms={alarms} className="role-hide-site" />
+        <Bell aria-hidden size={16} strokeWidth={1.9} />
+        {/*
+          * 역할마다 숫자가 다르다 — 시스템 관리자는 전 사업장, 기초지자체는 관할, 사업장은
+          * 자사다. **셸은 `?scope=`를 읽지 못하므로** 값마다 한 벌씩 그리고 CSS가 고른다.
+          */}
+        <CountBadge alarms={alarms} className="role-hide-site role-hide-gov" />
+        <CountBadge alarms={inMunicipality} className="role-hide-site role-hide-system" />
         {ADMIN_ACCOUNTS.map((account, index) => (
           <CountBadge
             key={account.key}
@@ -80,9 +78,21 @@ export function AlarmMenu() {
       {open && (
         <div
           role="menu"
-          className="absolute right-0 z-20 mt-1.5 w-[320px] rounded-[6px] border border-border bg-surface shadow-lg"
+          className={cn(
+            HEADER_POPOVER_PLACEMENT,
+            'z-20 w-[min(320px,calc(100vw-2rem))] overflow-hidden rounded-nested border border-border-strong bg-surface shadow-lg',
+          )}
         >
-          <AlarmPanel alarms={alarms} onAcknowledge={acknowledge} className="role-hide-site" />
+          <AlarmPanel
+            alarms={alarms}
+            onAcknowledge={acknowledge}
+            className="role-hide-site role-hide-gov"
+          />
+          <AlarmPanel
+            alarms={inMunicipality}
+            onAcknowledge={acknowledge}
+            className="role-hide-site role-hide-system"
+          />
           {ADMIN_ACCOUNTS.map((account, index) => (
             <AlarmPanel
               key={account.key}
@@ -114,7 +124,7 @@ function CountBadge({
   return (
     <span
       className={cn(
-        'num absolute -right-1 -top-1 min-w-[15px] rounded-full px-1 text-center text-[10px] leading-[15px] text-bg',
+        'num absolute -right-1 -top-1 min-w-[15px] rounded-full px-1 text-center text-[12px] leading-[15px] text-bg',
         className,
       )}
       style={{ backgroundColor: STATUS_VISUAL.critical.hex }}
@@ -140,7 +150,7 @@ function AlarmPanel({
 
   return (
     <div className={className}>
-      <p className="border-b border-border px-3 py-2 text-[11px] text-fg-subtle">
+      <p className="border-b border-border px-3 py-2 text-[12px] text-fg-subtle">
         미확인 알람 <span className="num text-fg-muted">{list.length}</span>건
       </p>
 
@@ -150,9 +160,9 @@ function AlarmPanel({
         <ul>
           {list.slice(0, HEADER_ALARM_LIMIT).map((alarm) => (
             <li key={alarm.id} className="border-b border-border px-3 py-2.5 last:border-0">
-              <div className="flex items-center justify-between gap-2 text-[11px]">
+              <div className="flex items-center justify-between gap-2 text-[12px]">
                 <span
-                  className="shrink-0 rounded-[3px] px-1.5 py-0.5"
+                  className={BADGE_BASE}
                   style={{
                     backgroundColor: `color-mix(in srgb, ${priorityHex(alarm.priority)} 16%, transparent)`,
                     color: priorityHex(alarm.priority),
@@ -168,12 +178,21 @@ function AlarmPanel({
 
               <div className="mt-1 flex items-start justify-between gap-2">
                 <p className="min-w-0 flex-1 text-[12px] leading-snug text-fg">{alarm.title}</p>
-                {/* 여기서 처리하면 배지·사이드바·본문이 함께 준다 */}
+                {/*
+                 * 여기서 처리하면 배지·사이드바·본문이 함께 준다.
+                 *
+                 * **누르는 자리만 위아래로 넓힌다** `[2026-09-30 검토: 실높이 24px]` — 버튼을 키우면
+                 * 다섯 줄이 함께 자라 팝오버가 화면을 덮는다. 넓힌 자리는 같은 줄의 글자 위라
+                 * 다른 조작을 덮지 않는다.
+                 */}
                 <button
                   type="button"
                   onClick={() => onAcknowledge(alarm.id)}
                   aria-label={`${alarm.title} 확인 처리`}
-                  className="shrink-0 cursor-pointer rounded-[3px] border border-border px-1.5 py-0.5 text-[11px] text-fg-muted transition-colors duration-200 hover:border-border-strong hover:bg-surface-2 hover:text-fg"
+                  className={cn(
+                    TAP_AREA_Y,
+                    'shrink-0 cursor-pointer rounded-[3px] border border-border px-1.5 py-0.5 text-[12px] text-fg-muted transition-colors duration-200 hover:border-border-strong hover:bg-surface-2 hover:text-fg',
+                  )}
                 >
                   확인
                 </button>
@@ -185,7 +204,7 @@ function AlarmPanel({
 
       <Link
         href={withSite(ALARM_NAV_HREF)}
-        className="block border-t border-border px-3 py-2 text-right text-[11px] text-fg-muted transition-colors duration-200 hover:text-fg"
+        className="flex min-h-10 items-center justify-end border-t border-border px-3 py-2 text-[12px] text-fg-muted transition-colors duration-200 hover:text-fg lg:min-h-0"
       >
         전체 알람 이력 →
       </Link>

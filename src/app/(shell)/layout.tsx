@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { AlarmStateProvider } from '@/features/alarm-ack';
 import { LimitSettingsProvider } from '@/features/discharge-limit-settings';
 import { ProcessSettingsProvider } from '@/features/process-settings';
+import { ProvisioningProvider } from '@/features/site-provisioning';
 import { AppShell } from '@/widgets/app-shell';
 
 /**
@@ -17,12 +18,17 @@ export default function ShellLayout({ children }: { children: ReactNode }) {
    *
    * 공정 구성도 마찬가지다 — 사업장마다 켠 단계가 다르고(`[회의 2026-08-20]`) 공정도·단계
    * 상세·설정 화면이 **같은 구성**을 봐야 한다.
+   *
+   * 계측기 구성도 같다 — 사업장마다 달아 놓은 항목이 다르고(실증 현장조사에서 7·8·9종으로
+   * 갈렸다 `[TBD-61]`), 계측 격자·시계열·리포트가 **같은 «미설치»**를 봐야 한다.
    */
   return (
     <AlarmStateProvider>
       <LimitSettingsProvider>
         <ProcessSettingsProvider>
-          <AppShell>{children}</AppShell>
+          <ProvisioningProvider>
+            <AppShell>{children}</AppShell>
+          </ProvisioningProvider>
         </ProcessSettingsProvider>
       </LimitSettingsProvider>
     </AlarmStateProvider>

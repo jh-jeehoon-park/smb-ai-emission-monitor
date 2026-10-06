@@ -1,12 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { SITE_SCENARIOS } from '@/shared/config/demo-scenario';
-import { PROVISIONAL_IDLE_DISCHARGE_MIN_SAMPLES } from '@/shared/config/provisional';
+import { PROVISIONAL_IDLE_DISCHARGE_MIN_MINUTES } from '@/shared/config/provisional';
 import {
   TIMELINE_POINT_COUNT,
   isDischargingAt,
   isMissingAt,
-  isTreatmentIdleAt,
-} from '@/shared/lib/timeline';
+  isTreatmentIdleAt, minutesToSamples } from '@/shared/lib/timeline';
 import { getMeasurementSeries } from '@/entities/measurement';
 import { canJudgeIdleDischarge, findIdleDischargeRuns } from './lib/idle-discharge';
 
@@ -36,7 +35,7 @@ describe('방지시설 미가동 방류 의심 — 구간 탐지', () => {
 
   it('기본 임계값은 임시값에서 온다 — 화면이 숫자를 따로 갖지 않는다', () => {
     expect(findIdleDischargeRuns('S-02')).toEqual(
-      findIdleDischargeRuns('S-02', PROVISIONAL_IDLE_DISCHARGE_MIN_SAMPLES),
+      findIdleDischargeRuns('S-02', minutesToSamples(PROVISIONAL_IDLE_DISCHARGE_MIN_MINUTES)),
     );
   });
 });

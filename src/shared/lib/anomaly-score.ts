@@ -1,6 +1,11 @@
 import { getScenario, siteSeed } from '@/shared/config/demo-scenario';
 import { clamp, createRng } from '@/shared/lib/prng';
-import { EVENT_START_INDEX, TIMELINE_POINT_COUNT, isMissingAt } from '@/shared/lib/timeline';
+import {
+  EVENT_LENGTH_SAMPLES,
+  EVENT_START_INDEX,
+  TIMELINE_POINT_COUNT,
+  isMissingAt,
+} from '@/shared/lib/timeline';
 
 /**
  * 이상 점수 계열을 만드는 **유일한** 공식.
@@ -18,7 +23,9 @@ export function buildAnomalyScores(siteId: string): (number | null)[] {
 
     const base = scenario.baseScore + Math.sin(i / 29) * 6 + (rng() - 0.5) * 7;
     const event =
-      i >= EVENT_START_INDEX ? ((i - EVENT_START_INDEX) / 36) ** 1.6 * scenario.eventRise : 0;
+      i >= EVENT_START_INDEX
+        ? ((i - EVENT_START_INDEX) / EVENT_LENGTH_SAMPLES) ** 1.6 * scenario.eventRise
+        : 0;
     return Math.round(clamp(base + event, 0, 100));
   });
 }

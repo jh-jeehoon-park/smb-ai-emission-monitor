@@ -22,6 +22,7 @@ function buildSites(): Site[] {
       region: scenario.region,
       address: scenario.address,
       province: scenario.province,
+      municipality: scenario.municipality,
       coordinates: scenario.coordinates,
       regionGrade: scenario.regionGrade,
       dischargeScale: scenario.dischargeScale,

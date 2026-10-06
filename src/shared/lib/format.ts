@@ -64,6 +64,20 @@ export function formatKstDateTime(date: Date): string {
   return `${p.year}-${p.month}-${p.day} ${p.hour}:${p.minute}:${p.second}`;
 }
 
+/**
+ * 실 계측의 epoch 밀리초를 이 저장소의 시각 표기로 옮긴다.
+ *
+ * **`Z`가 붙지만 UTC가 아니다.** 위 포맷터들(`formatClock`·`formatDateTime`…)이 UTC 게터로
+ * 읽으므로, 그 자리에 들어갈 문자열은 **KST 벽시계 값**이어야 한다 — 시연 데이터가 처음부터
+ * 그 관례로 쓰여 있다(`shared/config/demo.ts`).
+ *
+ * 실 epoch을 그대로 `toISOString()`하면 화면이 **9시간 어긋난 값에 KST 라벨**을 붙인다.
+ * 관례를 지키는 자리를 여기 하나로 모아 두어, 서버에서 온 시각은 반드시 이 함수를 지난다.
+ */
+export function kstIsoFromEpoch(epochMs: number): string {
+  return `${formatKstDateTime(new Date(epochMs)).replace(' ', 'T')}Z`;
+}
+
 const KST_WALL_CLOCK = new Intl.DateTimeFormat('ko-KR', {
   timeZone: 'Asia/Seoul',
   month: 'numeric',
@@ -91,6 +105,23 @@ export function formatKstWallClock(date: Date): string {
     KST_WALL_CLOCK.formatToParts(date).map((part) => [part.type, part.value]),
   );
   return `${p.month}월 ${p.day}일 (${p.weekday}) ${p.dayPeriod} ${p.hour}:${p.minute}:${p.second}`;
+}
+
+/**
+ * 같은 표기에서 **초만 뺀다** — `9월 11일 (금) 오전 10:17`.
+ *
+ * 위 `formatKstWallClock`은 *"초는 남긴다 — 시계가 살아 있다는 것을 초가 보여 준다"* 가
+ * 근거인데, **벽에 걸어 두는 화면에서는 그 근거가 뒤집힌다**(`SCR-AD-006 현황판`): 아무도
+ * 보고 있지 않은 화면에서 종일 흐르는 초침은 «살아 있다»가 아니라 **눈에 남는 움직임**이다.
+ *
+ * 같은 `Intl` 설정을 쓰되 조각만 덜 이어 붙인다 — 포맷터를 따로 만들면 월·일·요일 표기가
+ * 두 화면에서 갈릴 수 있다.
+ */
+export function formatKstWallMinute(date: Date): string {
+  const p = Object.fromEntries(
+    KST_WALL_CLOCK.formatToParts(date).map((part) => [part.type, part.value]),
+  );
+  return `${p.month}월 ${p.day}일 (${p.weekday}) ${p.dayPeriod} ${p.hour}:${p.minute}`;
 }
 
 export function formatRelative(iso: string, nowIso: string): string {

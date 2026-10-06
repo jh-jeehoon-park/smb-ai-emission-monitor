@@ -1,10 +1,15 @@
 'use client';
 
 import Link from 'next/link';
+import { ChevronLeft } from 'lucide-react';
 import { useMemo } from 'react';
+import { TAP_AREA_Y } from '@/shared/ui/action-button';
 import { DEMO_NOW_ISO } from '@/shared/config/demo';
+import { COLLECTION_INTERVAL_MINUTES } from '@/shared/config/measurement';
 import { PROVISIONAL_DISPLAY_DECIMALS, PROVISIONAL_STATUS_LABELS } from '@/shared/config/provisional';
 import { STATUS_VISUAL, statusInk } from '@/shared/config/status-visual';
+import { DISPLAY_TIMEZONE } from '@/shared/lib/format';
+import { getOutageWindow } from '@/shared/lib/timeline';
 import { Panel } from '@/shared/ui/panel';
 import { RiseItem, StaggerGroup } from '@/shared/ui/motion';
 import { StatTile } from '@/shared/ui/stat-tile';
@@ -12,15 +17,31 @@ import { StatusBadge } from '@/shared/ui/status-badge';
 import { countOpen } from '@/entities/alarm';
 import { getAnomalySeries, getAnomalySummary } from '@/entities/anomaly';
 import { EQUIPMENT_SIGNAL_LABELS, getEquipment, sortEquipment } from '@/entities/equipment';
-import { energyIntensity, getMeasurementSeries } from '@/entities/measurement';
+import {
+  FLOW_SERIES_CODES,
+  WATER_SERIES_CODES,
+  WINDOW_HOURS,
+  energyIntensity,
+  outageNotice,
+  useSiteSeries,
+} from '@/entities/measurement';
 import { CHEMICAL_SAVING_RANGE, getOptimization } from '@/entities/optimization';
 import { getSite } from '@/entities/site';
+import { ROLES } from '@/entities/user';
 import { allAlarmsForSite, useAlarmStates } from '@/features/alarm-ack';
 import { useSelectedSiteId, useSiteHref } from '@/features/site-selection';
+import { useInstruments , useMetering} from '@/features/site-provisioning';
+import { useDischargeLimits } from '@/features/discharge-limit-settings';
 import { AlarmList } from '@/widgets/alarm-list';
 import { AnomalyPanel } from '@/widgets/anomaly-panel';
 import { DailyRibbon, buildRibbon } from '@/widgets/daily-ribbon';
 import { EquipmentPanel } from '@/widgets/equipment-panel';
+import { WaterQualityGrid } from '@/widgets/water-quality-grid';
+/* 셸의 라우트 표를 읽는다 — 첫 화면의 정의를 여기서 다시 적으면 두 곳이 갈린다 */
+import { homeHrefFor, navLabelOf } from '@/widgets/app-shell/config/navigation';
+import { InfoTip } from '@/shared/ui/tooltip';
+import { ACTION_BUTTON_QUIET } from '@/shared/ui/action-button';
+import { ALARM_PREVIEW_MAX_HEIGHT } from '../config/constants';
 
 /**
  * 사업장 사용자가 여기서 답을 얻어야 하는 세 질문 — 괜찮은가 / 얼마나 줄었나 / 뭘 해야 하나.
@@ -28,6 +49,9 @@ import { EquipmentPanel } from '@/widgets/equipment-panel';
  * 가운데가 **금액에서 절감률로** 바뀌었다 `[사용자 결정 2026-08-20: 금액은 전부 지우고 % 만
  * 남긴다]`. 사업장별 단가가 없어(`[TBD-41]`) 금액이 전부 원문 예시값이었다.
  */
+/** 이 화면의 경로. 사업장에게는 이것이 첫 화면이라 돌아갈 길을 그리지 않는다 */
+const OVERVIEW_HREF = '/overview';
+
 /** 절감 현황을 뺐다 — 그 화면을 메뉴에서 감췄으므로 여기 링크만 남으면 유일한 입구가 된다 */
 const SHORTCUTS = [
   { href: '/process', label: '수처리 공정' },
@@ -36,32 +60,58 @@ const SHORTCUTS = [
 ] as const;
 
 /**
- * 사업장의 자사 1개소 현황.
+ * 사업장 1개소의 상세. **세 역할이 함께 쓴다** `[사용자 요청 2026-08-28]` — 사업장의 첫
+ * 화면이자, 통합 관제·관내 감독에서 하나를 골라 `상세 보기`로 들어오는 곳이다.
  *
- * `REQ-AD-004`(실시간 모니터링 + AI 예측 + 알람을 **한 화면에**, 원문 p.45)를 관리자 범위로
+ * `REQ-AD-004`(실시간 모니터링 + AI 예측 + 알람을 **한 화면에**, 원문 p.45)를 1개소 범위로
  * 채운다. 같은 요건을 담은 통합 관제(SCR-OP-001)는 다사업장 요건(REQ-AD-026·027·028)까지
  * 함께 안고 있어 사업장에 닫혀 있다 — 범위 중립인 부분만 여기서 되살린다.
  *
- * **통합 관제를 복제하지 않는다.** 수질 계측 그리드·예측 차트는 SCR-OP-003·004가 전폭으로
- * 보여준다. 여기 다시 넣으면 어느 쪽이 정본인지 흐려진다.
+ * **통합 관제를 복제하지는 않되 수질 그리드는 예외다.** 앞선 판본은 그리드·예측 차트를 둘 다
+ * 빼면서 *"SCR-OP-003·004가 전폭으로 보여준다"* 를 근거로 삼았는데, 그 전제는 **사이드바로
+ * 바로 갈 수 있는 사업장 역할**이었다. 통합 관제에서 넘어온 사람은 그 자리에서 수질 8종을
+ * 보고 있었으므로 여기서 잃는다 — 판정의 **근거**를 감추고 판정만 보이는 꼴이라 E3와도
+ * 어긋난다. 예측 차트·이상 타임라인은 바로가기가 잇고 전용 화면이 정본이라는 근거가 산다.
  */
 export function AdminOverviewView() {
   const { siteId } = useSelectedSiteId();
   const withSite = useSiteHref();
   const site = getSite(siteId);
+  /* 사용자가 설정한 기준치 — `site`의 두 축을 직접 읽으면 설정 후에도 `미확인`이 남는다 */
+  const limits = useDischargeLimits();
+  const instruments = useInstruments();
+  const metering = useMetering();
+
+  /*
+   * **`status`도 받는다** `[사용자 지적 2026-09-07]`. 첫 응답이 오기 전에는 값이 없고
+   * (`pending`) 격자가 그 자리에 스켈레톤을 그린다 — 한때 그 자리에 내장 데이터가 그려져,
+   * 답이 아닐 수 있는 값이 답의 자리에 앉았다가 응답이 오면 카드가 다시 그려졌다.
+   */
+  const { points: series, status: seriesStatus } = useSiteSeries(siteId);
+  const seriesPending = seriesStatus === 'pending';
 
   const detail = useMemo(() => {
-    const series = getMeasurementSeries(siteId);
     const alarms = allAlarmsForSite(siteId);
 
     return {
-      ribbon: buildRibbon(siteId, series, getAnomalySeries(siteId), alarms),
+      series,
+      outage: getOutageWindow(siteId),
+      /*
+       * **더는 계측을 기다리지 않는다** `[사용자 요청 2026-09-08]`. `가동` 행이 걷히면서
+       * 리본이 계측 계열을 아예 읽지 않게 됐다 — 이상 점수·시연 시나리오·알람만 쓴다.
+       * `pending` 관문을 남겨 두면 **쓰지도 않는 값을 기다리며** 그림을 비워 둔다.
+       *
+       * 그 관문은 `[사용자 지적 2026-09-07]`이 넣은 것이다 — 첫 응답 전 빈 계열이
+       * `assertFullDay`의 *"리본 '가동' 표본 0개"* 에 걸려 **화면이 렌더 중에 터졌다.**
+       * 이제 그 단정이 읽는 축(`가동`)이 없어 같은 사고가 일어날 자리도 없다.
+       */
+      ribbon: buildRibbon(siteId, getAnomalySeries(siteId), alarms),
       anomalySummary: getAnomalySummary(siteId),
       alarms,
       equipment: sortEquipment(getEquipment(siteId), 'status'),
       optimization: getOptimization(siteId, energyIntensity(series)),
     };
-  }, [siteId]);
+  }, [siteId, series]);
 
   /* 확인 처리가 헤더·사이드바와 함께 반영되도록 공유 상태를 읽는다 */
   const { alarms } = useAlarmStates(detail.alarms);
@@ -74,14 +124,57 @@ export function AdminOverviewView() {
   const worstEquipment = detail.equipment[0];
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-6">
+      {/*
+        * **돌아갈 길** `[사용자 요청 2026-08-28]`. 이 화면은 시스템 관리자·기초지자체의
+        * 사이드바에 없어(메뉴 노출은 사업장뿐), 그 둘이 들어오면 **활성 항목이 하나도 없고
+        * 나갈 길도 보이지 않는다.**
+        *
+        * **역할마다 한 벌씩 그리고 CSS가 고른다.** 서버는 `data-role`을 모르므로 렌더 중에
+        * 역할로 분기하면 하이드레이션이 깨진다 — 인사말·사이드바 메뉴와 같은 방식이다.
+        * 한때 `homeHrefFor(useRole().role)`로 하나만 그렸는데, 서버가 기본 역할로 그린
+        * 링크를 사업장 사용자의 클라이언트가 지워 **서버 HTML과 어긋났다.**
+        *
+        * 목적지는 `homeHrefFor`가 안다 — 첫 화면의 정의를 여기서 다시 적지 않는다.
+        * **사업장에게는 이 화면이 그 첫 화면이라** 자기 자신을 가리키게 되므로 그리지 않는다.
+        *
+        * 2026-09-09 하루 동안 `SCR-AD-005`가 그 자리를 가져가 사업장에게도 돌아갈 길이 생겼다가,
+        * 그 화면이 4번째로 지정되며 되돌았다 `[사용자 요청 2026-09-10]`. **코드는 두 번 다 한 줄도
+        * 바뀌지 않았다** — `OVERVIEW_HREF` 비교는 «자기 자신을 가리키는가»만 묻고, 답을 정하는
+        * 것은 `NAV_GROUPS`의 순서다.
+        *
+        * 정렬은 **안쪽에서** 한다. 한때 `role-only-*`가 `display: block`을 강제해 바깥에
+        * flex를 걸면 죽었기 때문인데, 그 함정은 없앴다 `[사용자 지적 2026-09-07]` —
+        * 지금은 바깥에 걸어도 되지만 안쪽이 이미 맞아 굳이 옮기지 않는다.
+        */}
+      {ROLES.map((each) => {
+        const target = homeHrefFor(each);
+        if (target === OVERVIEW_HREF) return null;
+
+        return (
+          <div key={each} className={`role-only-${each}`}>
+            <Link
+              href={withSite(target)}
+              className={`${TAP_AREA_Y} inline-flex items-center gap-0.5 text-[12px] text-fg-subtle transition-colors duration-200 hover:text-accent`}
+            >
+              <ChevronLeft aria-hidden size={16} strokeWidth={2} />
+              {navLabelOf(target)}(으)로 돌아가기
+            </Link>
+          </div>
+        );
+      })}
+
       <Panel
-        eyebrow={`${site.name} · ${site.region}`}
-        title="일간 운전"
+        /*
+         * **어느 사업장인지 화면이 말한다** `[사용자 요청 2026-08-28]`. 자사 1개소일 때는
+         * 자명했지만 이제 시스템 관리자·기초지자체가 남의 사업장을 열 수 있다 —
+         * `<h1>`은 `사업장 상세`라는 화면명뿐이라 여기가 그것을 적는 첫 자리다.
+         */
+        title={`일간 운전 · ${site.name}`}
         action={
           <div className="flex items-center gap-2 text-[12px]">
             {site.status ? (
-              <StatusBadge level={site.status} size="sm" />
+              <StatusBadge level={site.status} />
             ) : (
               <span className="text-fg-subtle">수신 없음</span>
             )}
@@ -91,7 +184,7 @@ export function AdminOverviewView() {
         <DailyRibbon data={detail.ribbon} dateIso={DEMO_NOW_ISO} />
       </Panel>
 
-      <StaggerGroup className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <StaggerGroup className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <RiseItem>
           <StatTile
             label="이상 점수"
@@ -143,22 +236,82 @@ export function AdminOverviewView() {
         </RiseItem>
       </StaggerGroup>
 
-      <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_320px]">
-        <Panel eyebrow="AutoEncoder · XAI" title="이상 탐지 결과">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <Panel title="이상 탐지 결과">
           <AnomalyPanel summary={detail.anomalySummary} />
         </Panel>
 
-        <Panel eyebrow={`미확인 ${openAlarms}건`} title="알람" bodyClassName="px-4 py-3">
+        {/*
+         * **알람 목록이 행 높이를 끌고 다니지 않게 한다** `[사용자 지적 2026-09-07]`.
+         *
+         * 두 카드가 한 격자 행이라 키가 큰 쪽이 행 높이를 정하고 다른 쪽이 늘어난다. 알람은
+         * 건수만큼 길어지므로 **왼쪽 `이상 탐지 결과`가 그만큼 늘어나 아래가 비었다** —
+         * 비는 쪽은 알람이 아니라 옆 카드였다.
+         *
+         * 상한을 걸어 **두 건 남짓만 보이고 나머지는 그 안에서 스크롤한다**
+         * `[사용자 요청 2026-09-07]`.
+         *
+         * **`min-h-0`이 함께 있어야 한다.** 본문은 `flex-1`이라 flex 자식의 기본
+         * `min-height: auto`가 걸리는데, CSS에서 `min-height`는 `max-height`를 이긴다 —
+         * 그것만 빠뜨리면 상한이 **아무 일도 하지 않고** 카드가 그대로 늘어난다.
+         *
+         * 흐름에서 들어내는 방법(`absolute inset-0`)도 재 봤다. 알람이 행 높이에 아예
+         * 기여하지 않아 더 깔끔하지만, **0건·1건에서 무너진다** — 절대 배치는 높이에
+         * 기여하지 않으므로 빈 상태 문구가 사라지고, 바닥값을 주면 한 건짜리 카드가 텅 빈다.
+         *
+         * 상한은 **이 화면만의 것**이다. 알람 이력(`SCR-OP-007`)은 목록이 본문이라 자른다.
+         */}
+        <Panel title="알람" bodyClassName={`${ALARM_PREVIEW_MAX_HEIGHT} min-h-0 overflow-y-auto`}>
           <AlarmList alarms={alarms} nowIso={DEMO_NOW_ISO} selectedSiteId={siteId} />
         </Panel>
       </div>
 
+      {/*
+        * **판정의 근거를 함께 둔다** `[사용자 결정 2026-08-28]`. 통합 관제·관내 감독에서
+        * 넘어오는 화면이 되면서, 출발지에 있던 수질 8종이 여기 없으면 **보던 것을 잃는다.**
+        * 근거를 감추고 판정만 보이면 **E3**과 어긋난다 — `SCR-GU-001` §7.1이 같은 이유로
+        * 판정 셋을 뺐다가 철회했다.
+        *
+        * 예측·이상 타임라인은 더하지 않는다 — 전용 화면이 정본이고 아래 바로가기가 잇는다.
+        */}
       <Panel
-        eyebrow="설비 이상 탐지"
-        title="설비 상태"
-        action={<span className="text-[12px] text-fg-subtle">상태 나쁜 순</span>}
+        title="수질·설비 실시간 계측"
+        titleAside={
+          <InfoTip
+            label="조회 조건과 결측 표시"
+            content={`최근 ${WINDOW_HOURS}시간 · ${COLLECTION_INTERVAL_MINUTES}분 주기 · ${DISPLAY_TIMEZONE}. ${outageNotice(site.online, detail.outage)}`}
+          />
+        }
       >
-        <EquipmentPanel items={detail.equipment} online={site.online} />
+        {/* 유량을 소절로 가른다 — 농도와 부피/시간을 한 격자에 두면 옆 칸과 비교된다는 신호를 준다 */}
+        <WaterQualityGrid
+          absentCodes={instruments.absent}
+          pending={seriesPending}
+          data={detail.series}
+          /* 이 화면은 한 사업장만 그린다 — 카드가 그 사업장 주기로 «지금 값»을 받는다 */
+          siteId={siteId}
+          sections={[
+            { title: '수질 8종', codes: WATER_SERIES_CODES },
+            {
+              title: '유량 — 들어온 양과 나간 양',
+              codes: FLOW_SERIES_CODES,
+              diff: { of: ['inflow', 'flow'], label: '유입 − 유출' },
+            },
+          ]}
+          limits={limits.table}
+          windowHours={WINDOW_HOURS}
+        />
+      </Panel>
+
+      <Panel
+        title="설비 상태"
+        titleAside={<InfoTip label="정렬 기준" content="상태가 나쁜 설비부터 정렬합니다." />}
+      >
+        <EquipmentPanel
+          items={detail.equipment}
+          online={site.online}
+          meteredIds={metering.ids}
+        />
       </Panel>
 
       <nav className="flex flex-wrap gap-2" aria-label="상세 화면 바로가기">
@@ -166,7 +319,7 @@ export function AdminOverviewView() {
           <Link
             key={shortcut.href}
             href={withSite(shortcut.href)}
-            className="rounded-[4px] border border-border bg-surface px-2.5 py-1.5 text-[12px] text-fg-muted transition-colors duration-200 hover:border-border-strong hover:bg-surface-2 hover:text-fg"
+            className={ACTION_BUTTON_QUIET}
           >
             {shortcut.label}
           </Link>

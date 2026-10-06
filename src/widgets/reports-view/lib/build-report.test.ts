@@ -7,11 +7,11 @@ const HOURS = 24;
 
 describe('buildSiteReport', () => {
   it('실증 사업장 전체를 한 행씩 낸다', () => {
-    expect(buildSiteReport(HOURS)).toHaveLength(SITES.length);
+    expect(buildSiteReport(SITES, HOURS)).toHaveLength(SITES.length);
   });
 
   it('통신이 두절된 사업장은 집계값을 비우고 결측만 센다', () => {
-    const rows = buildSiteReport(HOURS);
+    const rows = buildSiteReport(SITES, HOURS);
     const offline = rows.filter((row) => !row.online);
 
     expect(offline.length).toBeGreaterThan(0);
@@ -25,7 +25,7 @@ describe('buildSiteReport', () => {
   });
 
   it('결측이 있어도 수신된 표본만으로 평균을 낸다', () => {
-    const rows = buildSiteReport(HOURS).filter((row) => row.online && row.missingCount > 0);
+    const rows = buildSiteReport(SITES, HOURS).filter((row) => row.online && row.missingCount > 0);
 
     expect(rows.length).toBeGreaterThan(0);
     for (const row of rows) {
@@ -35,14 +35,14 @@ describe('buildSiteReport', () => {
   });
 
   it('집계 구간을 좁히면 표본 수도 함께 줄어든다', () => {
-    const short = buildSiteReport(6).find((row) => row.online)!;
-    const long = buildSiteReport(24).find((row) => row.online)!;
+    const short = buildSiteReport(SITES, 6).find((row) => row.online)!;
+    const long = buildSiteReport(SITES, 24).find((row) => row.online)!;
 
     expect(short.totalCount).toBeLessThan(long.totalCount);
   });
 
   it('이상 점수는 0~100 범위를 벗어나지 않는다', () => {
-    for (const row of buildSiteReport(HOURS)) {
+    for (const row of buildSiteReport(SITES, HOURS)) {
       if (row.maxScore === null) continue;
       expect(row.maxScore).toBeGreaterThanOrEqual(0);
       expect(row.maxScore).toBeLessThanOrEqual(100);
@@ -51,7 +51,7 @@ describe('buildSiteReport', () => {
 });
 
 describe('toCsv', () => {
-  const csv = () => toCsv(buildSiteReport(HOURS), PROVISIONAL_STATUS_LABELS);
+  const csv = () => toCsv(buildSiteReport(SITES, HOURS), PROVISIONAL_STATUS_LABELS);
 
   it('헤더 1줄과 사업장 수만큼의 본문을 낸다', () => {
     expect(csv().split('\n')).toHaveLength(SITES.length + 1);
@@ -67,7 +67,7 @@ describe('toCsv', () => {
   });
 
   it('값이 없는 칸은 0이 아니라 빈 칸이다 — 표의 —와 같은 뜻이어야 한다', () => {
-    const offline = buildSiteReport(HOURS).find((row) => !row.online)!;
+    const offline = buildSiteReport(SITES, HOURS).find((row) => !row.online)!;
     const line = csv()
       .split('\n')
       .find((l) => l.startsWith(offline.siteId))!;
@@ -78,7 +78,7 @@ describe('toCsv', () => {
   });
 
   it('구분자를 깨뜨리는 값이 섞여 있지 않다', () => {
-    for (const row of buildSiteReport(HOURS)) {
+    for (const row of buildSiteReport(SITES, HOURS)) {
       for (const field of [row.siteId, row.siteName, row.region, row.industry]) {
         expect(field).not.toContain(',');
         expect(field).not.toContain('\n');

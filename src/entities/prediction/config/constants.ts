@@ -1,4 +1,5 @@
 import { PROVISIONAL_DECIMALS } from '@/shared/config/provisional';
+import type { SeriesOrigin } from '../model/types';
 
 /**
  * 계열이 덮는 시간. **예측 구간이 아니라 관측 구간이다** `[INC-109]`.
@@ -21,7 +22,23 @@ export type ForecastTargetCode = (typeof FORECAST_TARGET_CODES)[number];
  * 자릿수도 다르고, 원문도 "수질·**수량**"으로 나눠 부른다 `[원문 발표 p.11]`.
  */
 export const FLOW_FORECAST_CODE = 'flow';
-export type ForecastSeriesCode = ForecastTargetCode | typeof FLOW_FORECAST_CODE;
+export const INFLOW_FORECAST_CODE = 'inflow';
+export type ForecastSeriesCode =
+  | ForecastTargetCode
+  | typeof FLOW_FORECAST_CODE
+  | typeof INFLOW_FORECAST_CODE;
+
+/**
+ * 이 화면이 계측 서버에서 받아 오는 계열 전부 — 오염도 3항목 + 수량 2항목.
+ *
+ * 타입만으로는 원소를 돌 수 없어 값으로도 둔다. **`toMeasuredSeries`가 이 목록을 돈다** —
+ * 항목이 늘면 그 함수와 `SeriesSample`이 함께 컴파일 에러로 걸린다.
+ */
+export const FORECAST_SERIES_CODES = [
+  ...FORECAST_TARGET_CODES,
+  INFLOW_FORECAST_CODE,
+  FLOW_FORECAST_CODE,
+] as const satisfies readonly ForecastSeriesCode[];
 
 export interface ForecastTargetProfile {
   code: ForecastSeriesCode;
@@ -125,7 +142,7 @@ export const FORECAST_TARGETS: Record<ForecastTargetCode, ForecastTargetProfile>
  */
 export const FLOW_FORECAST: ForecastTargetProfile = {
   code: FLOW_FORECAST_CODE,
-  label: '유량',
+  label: '유출 유량',
   unit: 'm³/day',
   decimals: PROVISIONAL_DECIMALS.flow,
   r2: null,
@@ -137,4 +154,58 @@ export const FLOW_FORECAST: ForecastTargetProfile = {
   forecastGain: 24,
   spreadBase: 18,
   spreadStep: 7.5,
+};
+
+/**
+ * 유입 유량 예측. **유출과 같은 규약**이고 기저값만 다르다 — 계측 fixture의 기저(430)와
+ * 맞춘다. 같은 사업장의 같은 항목이 화면마다 다른 크기로 보이면 예측선과 실측선이 서로
+ * 다른 것을 그리는 셈이 된다.
+ */
+export const INFLOW_FORECAST: ForecastTargetProfile = {
+  ...FLOW_FORECAST,
+  code: INFLOW_FORECAST_CODE,
+  label: '유입 유량',
+  base: 430,
+};
+
+/**
+ * **겹침 차트에서 항목을 가르는 색 — 정해진 순서다** `[사용자 요청 2026-09-07]`.
+ *
+ * 이 화면은 TOC·TN·TP를 한 그림에, 유입·유출을 또 한 그림에 겹친다. 그런데 색이
+ * **출처**(계측/AI)를 맡고 있어 **TN과 TP가 같은 색**이었고, 유입·유출도 둘 다 계측이라
+ * 같은 색이었다 — 항목은 파선·점선의 간격 차이로만 갈려 셋이 한 선처럼 보였다.
+ *
+ * 그래서 이 차트에서만 **색이 항목을, 실선·파선이 출처를** 맡는다(`ORIGIN_DASH`). 바꿔
+ * 끼운 것이지 어느 하나를 버린 것이 아니라 **E3**(산출값은 원천을 밝힌다)는 그대로다 —
+ * 범례·툴팁이 `TN · 소프트 센싱 추정`이라 글자로도 적는다.
+ *
+ * **순서를 돌려 쓰지 않는다.** 색은 항목에 붙고 목록의 자리에 붙지 않는다 — 필터로 항목이
+ * 빠져도 남은 것의 색이 바뀌면 같은 항목이 화면마다 다른 색이 된다.
+ *
+ * 값과 검증 결과는 `globals.css`의 `--series-*`가 갖는다. 상태색·포인트색은 예약이라
+ * 쓸 수 없고, 남은 색 공간에서 `dataviz` 검증기를 통과한 셋이다.
+ */
+export const SERIES_INK: Record<ForecastSeriesCode, string> = {
+  TOC: 'var(--series-1)',
+  TN: 'var(--series-2)',
+  TP: 'var(--series-3)',
+  /* 유량은 그림이 다르다 — 슬롯 1·2를 처음부터 다시 쓴다 */
+  [INFLOW_FORECAST_CODE]: 'var(--series-1)',
+  [FLOW_FORECAST_CODE]: 'var(--series-2)',
+};
+
+/**
+ * **출처는 선 질감이 맡는다.** 색을 항목에 넘긴 자리를 이것이 받는다.
+ *
+ * 실선은 «잰 값», 파선은 «잰 것이 아닌 값»이다 — 예전에는 질감이 항목을 맡아 `7 4`와 `2 3`을
+ * 갈라야 했고, 2px 선에서 그 둘은 거의 같아 보였다.
+ *
+ * **`preModel`도 파선이다** `[사용자 요청 2026-09-08]`. 계측 서버에서 오는 값이지만 실증에서는
+ * 센서가 없는 항목이라, 실선으로 그리면 «잰 값»으로 읽힌다 — 무엇으로 대신 채운 자리인지는
+ * 범례·툴팁이 글자로 적는다(`SERIES_ORIGIN_LABELS`).
+ */
+export const ORIGIN_DASH: Record<SeriesOrigin, string | undefined> = {
+  measured: undefined,
+  softSensed: '6 4',
+  preModel: '6 4',
 };

@@ -12,34 +12,19 @@ export const ENERGY_SAVING_TARGET = 10;
 /** 총 운영비 절감 목표 ≥12% (사업계획서 p.27·p.31·p.64) */
 export const OPEX_SAVING_TARGET = 12;
 
-/**
- * 사업계획서 p.34·p.40이 든 **원화 예시**다. 특정 사업장의 실제 비용이 아니다 —
- * 사업장별 약품 단가·계약 전력이 원문에 없어 금액을 사업장마다 만들 수 없다(TBD-41).
- * 화면에도 예시임을 적는다.
+/*
+ * **원화 금액 상수 넷이 여기 있었다** `[사용자 요청 2026-09-15]` — `COST_EXAMPLE_KRW` ·
+ * `INCIDENT_AVOIDED_KRW_RANGE` · `TMS_AVOIDED_KRW_RANGE` · `ANNUAL_SAVING_KRW_RANGE`.
+ *
+ * 쓰던 곳은 `SCR-AD-001 비용 절감 현황` **하나뿐**이었고 그 화면이 통째로 걷혔다 —
+ * `[회의 2026-08-20: 검증이 힘든 페이지라 빼는 것이 맞다]`로 메뉴에서 감춘 뒤 아무도 쓰지
+ * 않았다. 계산(`lib/cost-savings.ts`)도 함께 지웠다.
+ *
+ * **여기 남은 것은 «절감률»이지 «금액»이 아니다** — `CHEMICAL_SAVING_RANGE`·
+ * `ENERGY_SAVING_TARGET`·`OPEX_SAVING_TARGET`은 `/optimization`이 목표 막대로 계속 쓴다.
+ * 되살릴 일이 생기면 `git`에서 꺼낸다 — 근거(`[원문 p.34·40]`·`[INC-93]`·`[INC-36]`·
+ * `[INC-70]`)는 `data-definition.md` §9.2와 `source-inconsistencies.md`에 그대로 있다.
  */
-export const COST_EXAMPLE_KRW = {
-  annualChemical: 10_000_000,
-  annualPower: 5_000_000,
-  /** 사고 1회 대응 비용 (p.34·p.40이 같은 값을 쓴다) */
-  incidentResponse: 30_000_000,
-} as const;
-
-/**
- * 사고 1건을 미리 잡았을 때의 절감액. **원문이 두 값을 준다(INC-93)** —
- * p.34는 1,500만 원, p.40은 2,500만 원이며 둘 다 "사고 시 평균 3,000만 원"을 전제한다.
- * 하나를 고르면 그것이 확정값으로 읽히므로 범위로 두고 화면에 두 출처를 밝힌다.
- */
-export const INCIDENT_AVOIDED_KRW_RANGE: readonly [number, number] = [15_000_000, 25_000_000];
-
-/**
- * TMS 구축 비용 회피 (p.40). **초년도 1회성이라 연간 절감과 합치지 않는다** —
- * 합치면 초년도에만 유효한 값이 매년 반복되는 것처럼 읽힌다.
- * 기존 TMS 구축비 2~3억은 원문 안에서 값이 갈린다(INC-36).
- */
-export const TMS_AVOIDED_KRW_RANGE: readonly [number, number] = [150_000_000, 250_000_000];
-
-/** 2년차 이후 연간 절감 합계 (p.40). 항목 합계와 맞지 않는다(INC-70) */
-export const ANNUAL_SAVING_KRW_RANGE: readonly [number, number] = [27_500_000, 33_500_000];
 
 /**
  * 운전 조건 제안이 보는 창. **두 구간을 겹치지 않게 나눈다.**

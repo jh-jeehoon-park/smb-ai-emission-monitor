@@ -1,7 +1,13 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { OPERATING_FILL, OPERATING_UNKNOWN_OPACITY } from '@/shared/config/operating-visual';
+import {
+  MISSING_HATCH,
+  OPERATING_ANOMALY_GRADIENT,
+  OPERATING_CELL_HIGHLIGHT,
+  OPERATING_FILL,
+  OPERATING_GRADIENT,
+} from '@/shared/config/operating-visual';
 import { MISSING_HEX, STATUS_VISUAL } from '@/shared/config/status-visual';
 import { DISPLAY_TIMEZONE, formatClock } from '@/shared/lib/format';
 import { ChartTooltipRow, ChartTooltipShell } from '@/shared/ui/chart-tooltip';
@@ -9,10 +15,8 @@ import {
   EQUIPMENT_SIGNAL_LABELS,
   STATUS_TIMELINE_HOURS,
   getRunTimeline,
-  getTreatmentTimeline,
   type Equipment,
   type EquipmentRunCell,
-  type TreatmentCell,
 } from '@/entities/equipment';
 import {
   HEATMAP_CELL_MIN_PX,
@@ -21,18 +25,16 @@ import {
   HEATMAP_TOOLTIP_OFFSET_PX,
   HEATMAP_TOOLTIP_WIDTH_PX,
 } from '../config/constants';
+import { cn } from '@/shared/lib/cn';
+import { TABLE_SCROLL } from '@/shared/ui/table';
 
-/** 값이 없는 시간을 여백과 구분해 드러낸다 — 빈 칸으로 두면 "여기 아무 일 없었다"로 읽힌다 */
-const MISSING_FILL = `repeating-linear-gradient(45deg, ${MISSING_HEX} 0 2px, transparent 2px 5px)`;
-
-/** 방지시설 줄은 설비가 아니라 별도 축이라 행 키를 따로 든다 */
-const TREATMENT_ROW_KEY = 'treatment';
-
-/** 이상이 걸린 칸에 얹는 형태 부호. 색만으로 가르지 않는다 */
-const ANOMALY_GLYPH = '▲';
+/**
+ * 값이 없는 시간을 여백과 구분해 드러낸다 — 빈 칸으로 두면 "여기 아무 일 없었다"로 읽힌다.
+ * 일간 운전 리본이 같은 «모름»을 그리게 되면서 값은 `shared/config`로 올렸다.
+ */
+const MISSING_FILL = MISSING_HATCH;
 
 const RUN_LABEL = { on: '가동', off: '정지', unknown: '모름' } as const;
-const TREATMENT_LABEL = { on: '가동', off: '미가동', unknown: '모름' } as const;
 
 type RunState = keyof typeof RUN_LABEL;
 
@@ -40,12 +42,11 @@ const runStateOf = (running: boolean | null): RunState =>
   running === null ? 'unknown' : running ? 'on' : 'off';
 
 interface HoverTarget {
-  /** 어느 행인가 — 설비 id 또는 `treatment` */
+  /** 어느 설비 행인가 */
   rowKey: string;
   column: number;
   iso: string;
-  /** 설비 행이면 설비명, 방지시설 줄이면 `null` */
-  equipmentName: string | null;
+  equipmentName: string;
   body: React.ReactNode;
   /** 격자 바깥 기준면에서의 좌표(px) */
   x: number;
@@ -61,11 +62,15 @@ interface HoverTarget {
  * **칸이 말하는 것은 등급이 아니라 가동 여부다** `[회의 2026-08-20]` `[INC-107]`. 회의가
  * 확인 가능하다고 정리한 것이 on/off와 이상 알림 둘이라 격자도 그 둘만 담는다.
  *
- * 색은 가동/정지/모름이고 **이상은 글리프로** 얹는다. 등급 색을 채움에 쓰지 않는 이유는
- * 켜짐/꺼짐이 등급이 아니기 때문이다(`design-system §2`: 색은 상태를 뜻할 때만 쓴다) —
- * 방지시설 줄이 이미 같은 규칙을 쓴다.
+ * 색은 가동/정지/모름이고 **이상은 위험색 칸으로** 드러낸다. 등급 색을 가동 채움에 쓰지 않는
+ * 이유는 켜짐/꺼짐이 등급이 아니기 때문이다(`design-system §2`: 색은 상태를 뜻할 때만 쓴다).
  *
- * `<table>`로 짠다. 격자를 `div`로 그리면 스크린리더에 120개의 색만 남는다. 표는 행·열
+ * **행은 설비뿐이다** `[사용자 요청 2026-09-08]`. 사업장 단위 축인 `방지시설 가동` 줄이
+ * 아래에 붙어 있었는데, 그 사실이 뜻을 갖는 곳은 방류 여부와 나란히 놓이는 이상 탐지의
+ * `방지시설 미가동 중 방류 의심`(REQ-AD-032)이다 — 이 화면에는 함께 읽을 축이 없어
+ * 구분선·별도 범례·별도 툴팁 이름을 치르고도 닿는 결론이 없었다.
+ *
+ * `<table>`로 짠다. 격자를 `div`로 그리면 스크린리더에 96개의 색만 남는다. 표는 행·열
  * 머리글을 함께 읽어 주므로 "폭기 블로워 #1, 14시, 가동, 진동 이상"이 그대로 전달된다.
  */
 export function StatusHeatmap({ siteId, items }: { siteId: string; items: Equipment[] }) {
@@ -73,7 +78,6 @@ export function StatusHeatmap({ siteId, items }: { siteId: string; items: Equipm
     equipment,
     cells: getRunTimeline(siteId, equipment),
   }));
-  const treatment = getTreatmentTimeline(siteId);
   const [hover, setHover] = useState<HoverTarget | null>(null);
   const frame = useRef<HTMLDivElement>(null);
 
@@ -108,34 +112,48 @@ export function StatusHeatmap({ siteId, items }: { siteId: string; items: Equipm
 
   const hasMissing = rows.some((row) => row.cells.some((cell) => cell.running === null));
   const hasAnomaly = rows.some((row) => row.cells.some((cell) => cell.signals.length > 0));
+  /* 모든 행이 같은 시간 축이다(`getRunTimeline`) — 눈금은 아무 행에서나 읽어도 같다 */
+  const ticks = rows[0]!.cells;
 
   return (
     <div className="space-y-2">
       <div className="relative" ref={frame} onMouseLeave={() => setHover(null)}>
-        <div className="overflow-x-auto">
+        {/*
+         * 격자를 **홈 안에 앉힌다** `[사용자 지시 2026-08-24]` — 옅은 면 + 안쪽 그림자
+         * (`--track-inset`, 막대·게이지 트랙과 같은 값)라 칸들이 파인 자리에 놓인 것으로 읽힌다.
+         * 홈이 없던 판본은 120칸이 카드 면 위에 떠 있어 어디까지가 격자인지 경계가 없었다.
+         */}
+        {/* 가리개는 상자 뒤 면과 같은 색이어야 한다 — 흰 면 기본값을 쓰면 홈 위에 흰 띠가 남는다 */}
+        <div
+          className={cn(
+            TABLE_SCROLL,
+            '[--scroll-hint-bg:var(--surface-2)]',
+            'rounded-nested bg-surface-2 p-2.5 shadow-track',
+          )}
+        >
           <table
-            className="w-full table-fixed border-separate border-spacing-[1px]"
+            className="w-full table-fixed border-separate border-spacing-[1px] text-center"
             style={{ minWidth: STATUS_TIMELINE_HOURS * HEATMAP_CELL_MIN_PX + HEATMAP_LABEL_PX }}
           >
             <caption className="sr-only">
               설비별 24시간 가동 상태. 행은 설비, 열은 시각, 칸은 그 시간의 가동 여부와 이상
-              신호다. 마지막 행은 방지시설 가동 여부다.
+              신호다.
             </caption>
 
             <thead>
               <tr>
                 <th
                   scope="col"
-                  className="pb-1 text-left text-[11px] font-normal text-fg-subtle"
+                  className="pb-1 text-left text-[12px] font-normal text-fg-subtle"
                   style={{ width: HEATMAP_LABEL_PX }}
                 >
                   설비
                 </th>
-                {treatment.map((cell) => (
+                {ticks.map((cell) => (
                   <th
                     key={cell.hourOffset}
                     scope="col"
-                    className="num pb-1 text-[10px] font-normal text-fg-subtle"
+                    className="num pb-1 text-[12px] font-normal text-fg-subtle"
                   >
                     {/* 24칸에 눈금을 다 달면 겹친다. 눈으로는 3시간마다, 스크린리더에는 전부 */}
                     <span aria-hidden>
@@ -152,7 +170,7 @@ export function StatusHeatmap({ siteId, items }: { siteId: string; items: Equipm
                 <tr key={equipment.id}>
                   <th
                     scope="row"
-                    className="truncate pr-2 text-left text-[11px] font-normal text-fg-muted"
+                    className="truncate pr-2 text-left text-[12px] font-normal text-fg-muted"
                   >
                     {equipment.name}
                   </th>
@@ -160,39 +178,12 @@ export function StatusHeatmap({ siteId, items }: { siteId: string; items: Equipm
                     <RunCell
                       key={cell.hourOffset}
                       cell={cell}
-                      level={equipment.status}
                       active={hover?.rowKey === equipment.id && hover.column === cell.hourOffset}
                       onMove={(e) => track(e, (x, y) => runHover(equipment, cell, x, y))}
                     />
                   ))}
                 </tr>
               ))}
-
-              {/* 설비 넷과 다른 축이라는 것이 선으로도 드러나야 한다 */}
-              <tr aria-hidden>
-                <td colSpan={STATUS_TIMELINE_HOURS + 1} className="h-2 border-b border-border" />
-              </tr>
-
-              {/*
-               * 방지시설은 사업장 단위 사실이라 설비 칸에 섞지 않는다 — 방지시설은 멈췄는데
-               * 방류 펌프는 돌았다는 것이 무단방류 의심의 요지다(TBD-46). 겹치면 그 구분이 사라진다.
-               */}
-              <tr>
-                <th
-                  scope="row"
-                  className="truncate pr-2 pt-2 text-left text-[11px] font-normal text-fg-subtle"
-                >
-                  방지시설 가동
-                </th>
-                {treatment.map((cell) => (
-                  <TreatmentCellView
-                    key={cell.hourOffset}
-                    cell={cell}
-                    active={hover?.rowKey === TREATMENT_ROW_KEY && hover.column === cell.hourOffset}
-                    onMove={(e) => track(e, (x, y) => treatmentHover(cell, x, y))}
-                  />
-                ))}
-              </tr>
             </tbody>
           </table>
         </div>
@@ -214,13 +205,10 @@ export function StatusHeatmap({ siteId, items }: { siteId: string; items: Equipm
  */
 function RunCell({
   cell,
-  level,
   active,
   onMove,
 }: {
   cell: EquipmentRunCell;
-  /** 이상 글리프에 쓸 등급 색. 채움에는 쓰지 않는다 */
-  level: Equipment['status'];
   active: boolean;
   onMove: (event: React.MouseEvent) => void;
 }) {
@@ -233,7 +221,7 @@ function RunCell({
     return (
       <td
         onMouseMove={onMove}
-        className="h-5 rounded-[2px]"
+        className="h-5 rounded-[3px]"
         style={{ backgroundImage: MISSING_FILL, outline: active ? OUTLINE : undefined }}
       >
         <span className="sr-only">{hour} 수신 없음</span>
@@ -244,77 +232,21 @@ function RunCell({
   return (
     <td
       onMouseMove={onMove}
-      className="h-5 rounded-[2px] text-center align-middle"
+      className="h-5 rounded-[3px] text-center align-middle"
       style={{
-        backgroundColor: OPERATING_FILL[state],
+        /*
+         * 같은 색의 위아래 농도 차 + 윗면 하이라이트 — 칸이 면에 얹힌 조각으로 읽힌다.
+         * **이상 신호가 걸린 칸은 위험색으로 칠한다** `[사용자 지시 2026-08-24: 세모는 지워라]` —
+         * 8px 도형은 20px 칸에서 거의 보이지 않았다. 무엇이 걸렸는지는 툴팁과 아래 숨은 문구가 말한다.
+         */
+        backgroundImage: anomaly ? OPERATING_ANOMALY_GRADIENT : OPERATING_GRADIENT[state],
+        boxShadow: OPERATING_CELL_HIGHLIGHT,
         outline: active ? OUTLINE : undefined,
       }}
     >
-      {anomaly && (
-        <span
-          aria-hidden
-          className="text-[8px] leading-none"
-          style={{ color: STATUS_VISUAL[level].hex }}
-        >
-          {ANOMALY_GLYPH}
-        </span>
-      )}
       <span className="sr-only">
         {hour} {RUN_LABEL[state]}
         {anomaly && ` · ${cell.signals.map((s) => EQUIPMENT_SIGNAL_LABELS[s]).join(' · ')}`}
-      </span>
-    </td>
-  );
-}
-
-/**
- * 방지시설 가동 줄.
- *
- * **등급 색을 쓰지 않는다** — 이 축은 등급이 아니라 켜짐/꺼짐이고, 초록으로 칠한 `가동`은
- * 화면에서 `정상 등급`으로 읽힌다(`design-system §2`: 색은 상태를 뜻할 때만 쓴다).
- * 일간 운전 리본과 같은 `OPERATING_FILL`을 쓴다.
- *
- * 띠를 `td`가 아니라 안쪽 `span`에 그린다. `td`는 같은 행의 글자 높이만큼 늘어나 설비 행과
- * 구분되지 않는다 — 다섯 번째 설비처럼 읽힌다.
- */
-function TreatmentCellView({
-  cell,
-  active,
-  onMove,
-}: {
-  cell: TreatmentCell;
-  active: boolean;
-  onMove: (event: React.MouseEvent) => void;
-}) {
-  const state = cell.idle === null ? 'unknown' : cell.idle ? 'off' : 'on';
-
-  return (
-    <td
-      onMouseMove={onMove}
-      className="pt-2 align-middle"
-      style={{ outline: active ? OUTLINE : undefined }}
-    >
-      {/*
-       * **칸 간격을 덮어 연속된 띠로 만든다.** 이 줄은 시각이 아니라 **구간**의 축이고,
-       * 끊긴 자리가 곧 미가동이다. 1px 간격이 남으면 띠가 이미 잘게 쪼개져 있어 진짜 끊김이
-       * 간격과 구분되지 않는다 — 다크에서 실제로 미가동 구간이 묻혔다(라이트는 보였다).
-       */}
-      <span
-        aria-hidden
-        className="-mx-px block h-2.5 w-[calc(100%+2px)]"
-        style={
-          /*
-           * 모름은 격자와 **같은 빗금**이다. 리본은 옅은 채움으로 표시하지만 이 줄은 8px라
-           * 옅게 깐 `모름`과 중립면인 `미가동`이 구분되지 않는다 — 실제로 두 칸이 같아 보였다.
-           * 빗금이면 결측 열이 격자 위아래로 한 줄기로 이어져 세로로 훑을 때 바로 읽힌다.
-           */
-          state === 'unknown'
-            ? { backgroundImage: MISSING_FILL, opacity: OPERATING_UNKNOWN_OPACITY }
-            : { backgroundColor: OPERATING_FILL[state] }
-        }
-      />
-      <span className="sr-only">
-        {formatClock(cell.iso)} {TREATMENT_LABEL[state]}
       </span>
     </td>
   );
@@ -343,7 +275,7 @@ function HeatmapTooltip({ hover }: { hover: HoverTarget }) {
       }}
     >
       <ChartTooltipShell label={`${formatClock(hover.iso)} ${DISPLAY_TIMEZONE}`}>
-        {hover.equipmentName && <p className="text-[11px] text-fg-muted">{hover.equipmentName}</p>}
+        <p className="text-[12px] text-fg-muted">{hover.equipmentName}</p>
         {hover.body}
       </ChartTooltipShell>
     </div>
@@ -385,26 +317,6 @@ function runHover(equipment: Equipment, cell: EquipmentRunCell, x: number, y: nu
   };
 }
 
-function treatmentHover(cell: TreatmentCell, x: number, y: number): HoverTarget {
-  const state = cell.idle === null ? 'unknown' : cell.idle ? 'off' : 'on';
-  return {
-    rowKey: TREATMENT_ROW_KEY,
-    column: cell.hourOffset,
-    iso: cell.iso,
-    equipmentName: null,
-    x,
-    y,
-    flip: false,
-    body: (
-      <ChartTooltipRow
-        color={OPERATING_FILL[state]}
-        name="방지시설"
-        value={TREATMENT_LABEL[state]}
-      />
-    ),
-  };
-}
-
 /** 짚은 **그 칸만** 응답한다는 것을 보인다(`dataviz` — the hovered mark lifts) */
 const OUTLINE = '1px solid var(--border-strong)';
 
@@ -416,11 +328,11 @@ function HeatmapLegend({
   hasAnomaly: boolean;
 }) {
   return (
-    <ul className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-border pt-2 text-[11px] text-fg-subtle">
+    <ul className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-border pt-2 text-[12px] text-fg-subtle">
       <li className="flex items-center gap-1">
         <span
           aria-hidden
-          className="h-2.5 w-3.5 rounded-[1px]"
+          className="h-2.5 w-3.5 rounded-[2px]"
           style={{ backgroundColor: OPERATING_FILL.on }}
         />
         가동
@@ -428,7 +340,7 @@ function HeatmapLegend({
       <li className="flex items-center gap-1">
         <span
           aria-hidden
-          className="h-2.5 w-3.5 rounded-[1px]"
+          className="h-2.5 w-3.5 rounded-[2px]"
           style={{ backgroundColor: OPERATING_FILL.off }}
         />
         정지
@@ -437,13 +349,12 @@ function HeatmapLegend({
       {/* 일어나지 않은 상태의 범례는 잡음이다. 격자에 있을 때만 설명한다 */}
       {hasAnomaly && (
         <li className="flex items-center gap-1">
+          {/* 칸과 같은 채움을 축소해 보인다 — 범례와 격자가 다른 표기를 쓰면 범례가 거짓이 된다 */}
           <span
             aria-hidden
-            className="flex h-2.5 w-3.5 items-center justify-center text-[7px] leading-none"
-            style={{ color: STATUS_VISUAL.warning.hex }}
-          >
-            {ANOMALY_GLYPH}
-          </span>
+            className="h-2.5 w-3.5 rounded-[2px]"
+            style={{ backgroundImage: OPERATING_ANOMALY_GRADIENT }}
+          />
           이상 신호
         </li>
       )}
@@ -452,27 +363,12 @@ function HeatmapLegend({
         <li className="flex items-center gap-1">
           <span
             aria-hidden
-            className="h-2.5 w-3.5 rounded-[1px]"
+            className="h-2.5 w-3.5 rounded-[2px]"
             style={{ backgroundImage: MISSING_FILL }}
           />
           수신 없음
         </li>
       )}
-
-      <li className="ml-auto flex items-center gap-1">
-        <span
-          aria-hidden
-          className="h-2 w-3.5 rounded-[1px]"
-          style={{ backgroundColor: OPERATING_FILL.on }}
-        />
-        방지시설 가동
-        <span
-          aria-hidden
-          className="ml-1.5 h-2 w-3.5 rounded-[1px]"
-          style={{ backgroundColor: OPERATING_FILL.off }}
-        />
-        미가동
-      </li>
     </ul>
   );
 }

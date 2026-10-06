@@ -1,16 +1,17 @@
 'use client';
 
+import { useId } from 'react';
 import {
+  Area,
   CartesianGrid,
   ComposedChart,
-  Line,
   ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from 'recharts';
-import { ACTUAL_HEX, AI_HEX, AXIS_TEXT_HEX, GRID_HEX } from '@/shared/config/status-visual';
+import { AXIS_TEXT_HEX, GRID_HEX } from '@/shared/config/status-visual';
 import { formatClock } from '@/shared/lib/format';
 import { ChartFigure } from '@/shared/ui/chart-figure';
 import { ChartTooltipRow, ChartTooltipShell } from '@/shared/ui/chart-tooltip';
@@ -20,6 +21,8 @@ import {
   type DischargeLimitTable,
 } from '@/shared/config/discharge-limits';
 import {
+  ORIGIN_DASH,
+  SERIES_INK,
   hasPlottableValues,
   type ForecastSeriesCode,
   type ForecastSummary,
@@ -27,6 +30,7 @@ import {
   type SeriesOrigin,
 } from '@/entities/prediction';
 import { COMPACT_HEIGHT, FULL_HEIGHT } from '../config/constants';
+import { useChartHover } from '@/shared/lib/use-chart-hover';
 
 interface ForecastChartProps {
   summary: ForecastSummary;
@@ -63,8 +67,11 @@ interface ForecastChartProps {
  * 것이 아니고 6시간 예측의 대상은 아직 정해지지 않았다(`[TBD-52]`) — 없는 데이터로 곡선을
  * 그리면 산출된 예측처럼 읽힌다(E3).
  *
- * 계열의 색은 **값의 출처**를 따른다 — TN·TP는 소프트 센싱 추정이라 계측과 같은 색으로
- * 그리지 않는다. 색만으로 가르지 않고 범례와 표가 함께 적는다.
+ * **색은 항목을 따른다** `[사용자 요청 2026-09-07]`. 한때 출처(계측/AI)를 따랐는데, 겹침
+ * 차트에서 TN·TP가 같은 색이 되어 갈리지 않았다 — 색과 질감을 바꿔 끼웠고 이 단일 차트도
+ * 같은 규약을 쓴다. 한 항목이 겹침 보기와 3단 보기에서 다른 색이면 그것이 더 헷갈린다.
+ *
+ * 출처는 실선·파선과 범례 글자가 말한다(**E3**).
  */
 export function ForecastChart({
   summary,
@@ -74,11 +81,14 @@ export function ForecastChart({
   showNowLabel = true,
   limits,
 }: ForecastChartProps) {
+  const { hoverProps, tooltipActive } = useChartHover();
+  /* 그라데이션 id는 문서 전역이다 — 같은 화면에 계열 차트가 여럿이라 고유값을 받는다 */
+  const areaId = `forecast-area-${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
   const data = summary.points;
   const show = (v: number) => v.toFixed(summary.decimals);
   const height = compact ? COMPACT_HEIGHT : FULL_HEIGHT;
-  /* 추정 계열은 계측과 다른 색을 쓴다 — 한 화면에서 둘이 섞이면 추정이 계측으로 읽힌다(E3) */
-  const stroke = summary.origin === 'measured' ? ACTUAL_HEX : AI_HEX;
+  const stroke = SERIES_INK[summary.code];
+  const dash = ORIGIN_DASH[summary.origin];
   const originLabel = SERIES_ORIGIN_LABELS[summary.origin];
 
   /*
@@ -93,9 +103,17 @@ export function ForecastChart({
   }
 
   const chart = (
-    <ResponsiveContainer width="100%" height={height}>
+    <div className="w-full" style={{ height }} {...hoverProps}>
+      <ResponsiveContainer width="100%" height="100%">
       {/* 포커스로 툴팁이 고정되는 것을 막는다 — 근거는 `water-quality-grid.tsx` */}
       <ComposedChart data={data} margin={{ top: 6, right: 10, bottom: 0, left: 0 }} accessibilityLayer={false}>
+        {/* 선 아래를 같은 색 그라데이션으로 채운다 — 근거는 `anomaly-timeline`과 같다 */}
+        <defs>
+          <linearGradient id={areaId} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={stroke} stopOpacity={0.24} />
+            <stop offset="100%" stopColor={stroke} stopOpacity={0} />
+          </linearGradient>
+        </defs>
         <CartesianGrid stroke={GRID_HEX} strokeDasharray="2 4" vertical={false} />
         <XAxis
           dataKey="t"
@@ -136,18 +154,25 @@ export function ForecastChart({
          * 계열 하나뿐이다. `connectNulls={false}`로 결측 구간을 **끊는다** — 이어 그리면
          * 수신하지 못한 시간에도 값이 있었던 것처럼 보인다(E4).
          */}
-        <Line
+        <Area
           type="monotone"
+          strokeLinecap="round"
+          strokeLinejoin="round"
           dataKey="value"
           stroke={stroke}
-          strokeWidth={2}
+          /* 출처를 질감이 맡는다 — 색은 항목으로 넘어갔다 */
+          strokeDasharray={dash}
+          strokeWidth={2.5}
+          fill={`url(#${areaId})`}
           dot={false}
           connectNulls={false}
           isAnimationActive={false}
-          activeDot={{ r: 3, strokeWidth: 0, fill: stroke }}
+          activeDot={{ r: 4, strokeWidth: 2, stroke: 'var(--surface)', fill: stroke }}
         />
 
         <Tooltip
+          /* 포인터가 밖이면 끈다 — 근거는 `shared/lib/use-chart-hover.ts` */
+          active={tooltipActive}
           cursor={{ stroke: 'var(--border-strong)', strokeWidth: 1 }}
           content={({ active, payload, label }) => {
             if (!active || !payload?.length) return null;
@@ -165,7 +190,8 @@ export function ForecastChart({
           }}
         />
       </ComposedChart>
-    </ResponsiveContainer>
+      </ResponsiveContainer>
+    </div>
   );
 
   if (compact) return chart;
@@ -187,12 +213,26 @@ export function ForecastChart({
         {chart}
       </ChartFigure>
 
-      <ForecastLegend origin={summary.origin} />
-      <ForecastHorizonNote />
+      <ForecastLegend code={summary.code} origin={summary.origin} />
       <ForecastLimitNote code={summary.code} limits={limits} />
     </div>
   );
 }
+
+/**
+ * **6시간 예측을 그리지 않는다는 사실을 화면에 남긴다.**
+ *
+ * 원문은 1~6시간 예측을 요구하고(`[원문 p.30·32·65]`) 발표자료가 화면 예시까지 둔다.
+ * 없는 것을 조용히 빼면 누락으로 보이므로 왜 없는지를 남긴다 — 있는 것처럼 그리는 것보다
+ * 없다고 적는 것이 맞다(E3).
+ *
+ * **차트가 직접 그리지 않고 글로 내보낸다** `[사용자 요청 2026-08-28]`. 한때 차트 아래
+ * 문단이었는데 설명은 제목 옆 툴팁이라는 것이 §8이다 — 그런데 이 차트는 한 화면에 여럿
+ * 놓이므로(3단 보기) 문단으로 두면 같은 말이 세 번 적힌다. 카드 제목을 가진 부모가 받아
+ * 한 번만 적는다.
+ */
+export const FORECAST_HORIZON_NOTE =
+  '향후 6시간 예측은 그리지 않습니다 — 예측 대상 항목과 입력 데이터가 정해지지 않았습니다. TN·TP는 6시간 예측 대상이 아니라 소프트 센싱으로 지금 값을 추정하는 항목입니다.';
 
 /**
  * 기준 초과 **가능성**은 판정하지 않는다.
@@ -215,11 +255,19 @@ export function ForecastLimitNote({
 }) {
   const limit = limits[code];
   if (!limit) return null;
-  if (limit.unavailableReason === null) return null;
+
+  /*
+   * **시연 임계값일 때도 고지한다** `[사용자 요청 2026-09-28: 설정 재설계 검토]`.
+   * 한때 `unavailableReason === null`이면 조용히 빠졌는데, 시연 임계값이 바로 그 상태라
+   * 차트가 선을 긋고도 그것이 법정 기준이 아니라는 말을 하지 않았다.
+   */
+  if (limit.unavailableReason === null && limit.basis === 'legal') return null;
 
   return (
-    <p className="mt-1.5 px-1 text-[11px] text-fg-subtle">
-      {UNRESOLVED_LIMIT_TEXT} — 초과 가능성은 판정하지 않는다
+    <p className="mt-1.5 px-1 text-[12px] text-fg-subtle">
+      {limit.unavailableReason === null
+        ? '시연 임계값 — 법정 배출허용기준 초과 가능성은 판정하지 않는다'
+        : `${UNRESOLVED_LIMIT_TEXT} — 초과 가능성은 판정하지 않는다`}
     </p>
   );
 }
@@ -240,35 +288,25 @@ export function ForecastEmpty({ height }: { height: number }) {
 }
 
 /**
- * **6시간 예측을 그리지 않는다는 사실을 화면에 적는다.**
+ * 그 차트 한 줄이 무엇인가.
  *
- * 원문은 1~6시간 예측을 요구하고(`[원문 p.30·32·65]`) 발표자료가 화면 예시까지 둔다.
- * 없는 것을 조용히 빼면 누락으로 보이므로 왜 없는지를 남긴다 — 있는 것처럼 그리는 것보다
- * 없다고 적는 것이 맞다(E3).
+ * **견본 색은 항목이고 글자는 출처다** `[사용자 요청 2026-09-07]` — 선과 같은 색이어야
+ * 범례가 그 선을 가리킨다. 한때 색이 출처라 항목마다 견본이 같았다.
  */
-export function ForecastHorizonNote() {
-  return (
-    <p className="mt-1.5 px-1 text-[11px] leading-relaxed text-fg-subtle">
-      향후 6시간 예측은 그리지 않습니다 — 예측 대상 항목과 입력 데이터가 정해지지 않았습니다
-      [TBD-52]. TN·TP는 6시간 예측 대상이 아니라 소프트 센싱으로 **지금 값을 추정**하는
-      항목입니다 [회의 2026-08-20].
-    </p>
-  );
-}
-
-/** 3단 보기는 이 범례를 스택 전체에 하나만 둔다 — 계열 규약이 세 단에서 같기 때문이다 */
-export function ForecastLegend({ origin }: { origin: SeriesOrigin }) {
+export function ForecastLegend({ code, origin }: { code: ForecastSeriesCode; origin: SeriesOrigin }) {
   return (
     <ul className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 px-1">
       <LegendItem
-        color={origin === 'measured' ? ACTUAL_HEX : AI_HEX}
+        color={SERIES_INK[code]}
+        dashed={ORIGIN_DASH[origin] !== undefined}
         label={SERIES_ORIGIN_LABELS[origin]}
       />
     </ul>
   );
 }
 
-function LegendItem({
+/** 겹침 차트도 같은 조각을 쓴다 — 두 차트의 범례가 다른 모양이면 같은 뜻으로 안 읽힌다 */
+export function LegendItem({
   color,
   label,
   dashed,
@@ -280,7 +318,7 @@ function LegendItem({
   swatch?: boolean;
 }) {
   return (
-    <li className="flex items-center gap-1.5 text-[11px] text-fg-muted">
+    <li className="flex items-center gap-1.5 text-[12px] text-fg-muted">
       {swatch ? (
         <span
           className="inline-block h-2.5 w-3.5 rounded-[2px]"

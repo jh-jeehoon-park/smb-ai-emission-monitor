@@ -24,17 +24,42 @@ export interface ForecastPoint {
 }
 
 /**
- * 계열의 값이 어디서 왔는가. 화면이 실측과 추정을 같은 선으로 그리면 안 된다(E3).
+ * 계열의 값이 어디서 왔는가. 화면이 실측과 추정을 같은 선으로 그리면 안 된다(**E3**).
  *
- * `measured` 직접 계측 — TOC·유량 `[원문 p.55]`
- * `softSensed` 소프트 센싱 추정 — TN·TP는 센서가 없다 `[원문 발표 p.17]` `[회의 2026-08-20]`
+ * | | |
+ * |---|---|
+ * | `measured` | 직접 계측 — TOC·유량 `[원문 p.55]` |
+ * | `softSensed` | 소프트 센싱 추정 — AI가 낸 값 |
+ * | `preModel` | **계측 서버가 임시로 보내 주는 값** — 그 자리를 AI가 대신할 예정 |
+ *
+ * **`preModel`이 세 번째로 붙었다** `[사용자 요청 2026-09-08]`. TN·TP가 그것이다 — 실증에서는
+ * 센서가 없어 소프트 센싱이 낼 항목인데 `[원문 발표 p.17]` `[회의 2026-08-20]` 그 모델이 아직
+ * 없고, 프로토타입에서는 **화면에 값이 그려지는 것이 1순위**라 백엔드가 넣어 둔 에뮬레이터
+ * 채널을 그대로 받는다.
+ *
+ * **`softSensed`로 두지 않는 이유가 이 타입의 존재 이유다.** 그렇게 적으면 화면이 «AI가
+ * 추정한 값»이라 말하는데 지금 그것을 낸 AI가 없다 — 없는 산출을 주장하게 된다. `measured`도
+ * 안 된다: 실증에서 없는 센서를 있다고 말한다. 둘 다 거짓이라 자리를 하나 더 뒀다.
+ *
+ * 과제가 성공해 소프트 센싱이 붙으면 **TN·TP를 `softSensed`로 옮기고 이 값을 지운다.**
  */
-export type SeriesOrigin = 'measured' | 'softSensed';
+export type SeriesOrigin = 'measured' | 'softSensed' | 'preModel';
 
 export const SERIES_ORIGIN_LABELS: Record<SeriesOrigin, string> = {
   measured: '직접 계측',
   softSensed: '소프트 센싱 추정',
+  preModel: '계측 서버 수신 · AI 산출 예정',
 };
+
+/**
+ * 밖에서 받은 계열 — **계측 서버에서 온 값이다** `[사용자 요청 2026-09-08]`.
+ *
+ * 이 slice는 계측을 직접 읽지 않는다(FSD §8). 계측을 읽어 이 모양으로 옮기는 일은
+ * `lib/measured-series.ts`가 **구조적 타입**으로 받아 한다 — 부르는 쪽은 화면이다.
+ *
+ * **넘기지 않으면 내장 생성값을 쓴다.** 서버에 못 닿을 때의 대체다.
+ */
+export type MeasuredSeries = Record<ForecastSeriesCode, ForecastPoint[]>;
 
 export interface TrendEstimate {
   label: string;

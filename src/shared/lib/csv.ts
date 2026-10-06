@@ -40,8 +40,22 @@ export function downloadCsv(fileName: string, csv: string): void {
   const link = document.createElement('a');
   link.href = url;
   link.download = fileName;
+
+  /*
+   * **문서에 붙여야 눌린다.** 떼어 둔 `<a>`의 `click()`을 Firefox는 무시한다 —
+   * 크롬에서만 확인하면 "되는데요"가 되는 자리다. 누른 뒤 곧바로 걷어낸다.
+   */
+  link.style.display = 'none';
+  document.body.append(link);
   link.click();
-  URL.revokeObjectURL(url);
+  link.remove();
+
+  /*
+   * **주소를 바로 버리지 않는다.** `click()`은 저장을 걸어 두기만 하고 바로 끝나서,
+   * 같은 줄에서 `revokeObjectURL`을 부르면 브라우저가 읽기도 전에 주소가 사라져
+   * 빈 파일이나 실패로 끝난다(Safari에서 잘 난다). 다음 프레임 뒤에 버린다.
+   */
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 /**

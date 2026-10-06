@@ -1,7 +1,7 @@
 'use client';
 
-import { cn } from '@/shared/lib/cn';
 import type { Alarm, AlarmState } from '@/entities/alarm';
+import { ACTION_BUTTON } from '@/shared/ui/action-button';
 
 /** 상태는 미확인 → 확인 → 조치 완료로만 흐른다. 되돌리는 동선은 두지 않는다 */
 const NEXT_STATE: Record<AlarmState, AlarmState | null> = {
@@ -31,11 +31,8 @@ export function AlarmStateActions({
       type="button"
       onClick={() => onChange(alarm.id, next)}
       aria-label={`${alarm.title} ${actionLabel}`}
-      className={cn(
-        'cursor-pointer whitespace-nowrap rounded-[3px] border px-2 py-1 text-[11px]',
-        'border-border text-fg-muted transition-colors duration-200',
-        'hover:border-border-strong hover:bg-surface-2 hover:text-fg',
-      )}
+      /* 이 줄에서 하려던 일이다 — 곁들이는 조작(내보내기 등)과 색으로 갈린다 */
+      className={ACTION_BUTTON}
     >
       {actionLabel}
     </button>

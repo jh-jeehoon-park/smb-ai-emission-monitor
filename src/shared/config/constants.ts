@@ -8,16 +8,16 @@
  */
 export const BRAND_NAME = 'AI 기반 지능형 배출관리 플랫폼';
 
-/**
- * 브랜드 마크 파일 — **테마마다 한 벌씩**.
+/*
+ * **누적 배출량의 자릿수·단위(`VOLUME_DECIMALS`·`VOLUME_UNIT`·`VOLUME_UNIT_KO`)가 여기
+ * 있었다** `[회의 2026-09-08: 금일 누적 배출량은 필요 없다]`.
  *
- * 로고 초록이 한 벌뿐이면 한쪽 테마에서 묻힌다. 진한 초록은 어두운 배경에서 대비 3.9,
- * 밝은 초록은 흰 배경에서 2.5까지 떨어진다. 짝을 맞춰 쓰면 4.97 / 7.69다.
+ * 그 값을 적던 화면이 둘(`SCR-OP-011`·`SCR-AD-006`)이라 여기까지 올라와 있던 상수이고,
+ * 둘 다 걷히며 소비처가 0이 됐다. 계산(`dailyDischargeVolume`)과 함께 지운다 — 쓰이지 않는
+ * 상수는 다음 사람에게 «이 값이 화면 어딘가에 있다»는 거짓 신호가 된다. 되살릴 일이 생기면
+ * `git`에서 꺼낸다.
  *
- * 목록으로 두는 이유는 **대체 텍스트와 로딩 방식을 한 번만 쓰기 위해서다.** 두 장을 각각
- * 적으면 한쪽에만 alt가 붙거나 한쪽만 lazy로 남는다 — 실제로 두 번 다 그랬다.
+ * **`MEASUREMENT_ITEMS.flow`와 혼동하지 않는다** — 그쪽은 «유량»이라 `m³/day`이고, 지워진
+ * 이 값은 그것을 시간으로 적분한 **부피**(`m³`)였다.
  */
-export const BRAND_MARK_VARIANTS = [
-  { theme: 'light', src: '/logo-light.png', themeClass: 'theme-when-light' },
-  { theme: 'dark', src: '/logo-dark.png', themeClass: 'theme-when-dark absolute inset-0' },
-] as const;
+

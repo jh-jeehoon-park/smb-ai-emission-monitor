@@ -1,16 +1,16 @@
 'use client';
 
-import { Droplets, Filter, Gauge, Layers, ShieldCheck, Wind } from 'lucide-react';
+import { Droplets, Filter, FlaskConical, Gauge, Layers, Wind } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import {
   PROVISIONAL_MEASUREMENT_GRADE_DASH,
   PROVISIONAL_MEASUREMENT_GRADE_LABELS,
-  type MeasurementGrade,
 } from '@/shared/config/provisional';
 import { MEASUREMENT_ITEMS } from '@/shared/config/measurement';
-import { ACTUAL_HEX, AI_HEX, MISSING_HEX } from '@/shared/config/status-visual';
+import type { MeasurementPoint } from '@/entities/measurement';
+import { ACTUAL_HEX, AI_HEX, MEASUREMENT_GRADE_HEX } from '@/shared/config/status-visual';
 import { formatValue } from '@/shared/lib/format';
-import type { ProcessStage } from '@/entities/process';
+import { TREATMENT_TYPE_LABELS, type ProcessStage, type TreatmentType } from '@/entities/process';
 import type { ResolvedStage } from '@/features/process-settings';
 import {
   BASIN_FLOOR,
@@ -22,24 +22,8 @@ import {
   nodeCenterY,
   nodeX,
 } from '../config/layout';
+import { nodeNameLines } from '../lib/node-name';
 import { stageReadings, type StageReading } from '../lib/stage-readings';
-
-/**
- * 계측 등급 색. **상태 등급 색이 아니다** — `status-visual.ts`가 실측·추정·결측을 가르는
- * 계열색을 이미 갖고 있고, E3가 "실측과 추정을 구분하라"고 요구한다.
- */
-const GRADE_HEX: Record<MeasurementGrade, string> = {
-  actual: ACTUAL_HEX,
-  estimated: AI_HEX,
-  none: MISSING_HEX,
-};
-
-const TYPE_LABELS: Record<ProcessStage['type'], string> = {
-  physical: '물리',
-  biological: '생물',
-  chemical: '화학',
-  monitoring: '측정',
-};
 
 /** 단계가 하는 일을 한 눈에 — 거름·침전·폭기·분리·소독·계측 */
 const STAGE_ICONS: Record<string, LucideIcon> = {
@@ -50,8 +34,23 @@ const STAGE_ICONS: Record<string, LucideIcon> = {
   advanced: Gauge,
 };
 
-/** 아이콘이 없는 플러스 알파 단계의 기본값. 목록이 오면 위 표에 넣는다 `[TBD-53]` */
-const FALLBACK_ICON = ShieldCheck;
+/**
+ * 표준 단계가 아닌 단계는 **처리 유형**으로 아이콘을 고른다 — 사업장이 더한 단계(목록·직접 입력)는
+ * id가 제각각이라 id로 고를 수 없다.
+ */
+const TYPE_ICONS: Record<TreatmentType, LucideIcon> = {
+  physical: Layers,
+  chemical: FlaskConical,
+  biological: Wind,
+  monitoring: Gauge,
+};
+
+/**
+ * 노드 안 글자의 세로 자리(노드 윗변 기준). **이름이 두 줄이면 등급 줄이 한 단 내려간다** —
+ * 계측값 줄(`NODE_TOP + 104`)은 그대로라 두 경우 모두 겹치지 않는다.
+ */
+const NAME_Y = { single: [68], double: [62, 77] } as const;
+const GRADE_Y = { single: 86, double: 92 } as const;
 
 /**
  * 노드 하나에 적는 계측값의 최대 개수.
@@ -61,15 +60,30 @@ const FALLBACK_ICON = ShieldCheck;
  */
 const MAX_READINGS = 4;
 
+/**
+ * 대기 중에 계측값 자리를 덮는 막대의 폭(px).
+ *
+ * 한 줄에 두 항목이 `기호 값  기호 값` 꼴로 들어가는 자리다 — 실제 글자보다 넓게 잡으면
+ * 노드를 넘고, 좁으면 값이 올 때 줄이 늘어난 것으로 보인다.
+ */
+const READING_SKELETON_WIDTH = 92;
+
 interface Props {
   /** **켠 단계만** 온다. 무엇을 켤지는 `features/process-settings`가 정한다 */
   stages: readonly ResolvedStage[];
-  siteId: string;
+  points: MeasurementPoint[];
   selectedId: string;
   onSelect: (id: string) => void;
+  /**
+   * 첫 응답을 기다리는 중인가 `[사용자 지적 2026-09-07]`.
+   *
+   * **도해의 뼈대는 계측이 아니라 설정이 정한다** — 단계·이름·등급·배치는 다 알고 있어
+   * 그대로 그린다. 모르는 것은 노드에 적히는 계측값뿐이라 **그 줄만** 덮는다.
+   */
+  pending?: boolean;
 }
 
-export function ProcessDiagram({ stages, siteId, selectedId, onSelect }: Props) {
+export function ProcessDiagram({ stages, points, selectedId, onSelect, pending = false }: Props) {
   const width = diagramWidth(stages.length);
 
   return (
@@ -79,27 +93,11 @@ export function ProcessDiagram({ stages, siteId, selectedId, onSelect }: Props) 
       role="group"
       aria-label="폐수처리 공정 흐름"
     >
-      <defs>
-        {/* 계측 화면의 눈금 질감. 값을 뜻하지 않는 배경이다 */}
-        <pattern id="process-grid" width="22" height="22" patternUnits="userSpaceOnUse">
-          <path d="M22 0 L0 0 0 22" fill="none" stroke="var(--border)" strokeWidth="0.6" />
-        </pattern>
-        <linearGradient id="process-grid-fade" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#fff" stopOpacity="0.9" />
-          <stop offset="100%" stopColor="#fff" stopOpacity="0" />
-        </linearGradient>
-        <mask id="process-grid-mask">
-          <rect width={width} height={DIAGRAM_HEIGHT} fill="url(#process-grid-fade)" />
-        </mask>
-      </defs>
-
-      <rect
-        width={width}
-        height={DIAGRAM_HEIGHT}
-        fill="url(#process-grid)"
-        mask="url(#process-grid-mask)"
-      />
-
+      {/*
+       * **배경 눈금을 두지 않는다** `[회의 피드백 2026-08-24]`. 값을 뜻하지 않는 질감인데
+       * 차트의 격자선(`--grid`)과 같은 어휘라 도해가 그래프로 읽혔다 — 이 화면의 선은
+       * 공정의 흐름이지 눈금이 아니다. 도해가 놓이는 옅은 면이 경계를 이미 말한다.
+       */}
       {stages.slice(0, -1).map((resolved, index) => (
         <Pipe key={resolved.stage.id} index={index} />
       ))}
@@ -108,16 +106,28 @@ export function ProcessDiagram({ stages, siteId, selectedId, onSelect }: Props) 
         <BasinNode
           key={resolved.stage.id}
           stage={resolved.stage}
+          reuseBranch={resolved.reuseBranch}
           index={index}
-          readings={stageReadings(siteId, resolved)}
+          readings={stageReadings(points, resolved)}
+          pending={pending}
           selected={resolved.stage.id === selectedId}
           onSelect={onSelect}
         />
       ))}
 
-      <EstimateBranch count={stages.length} />
+      <EstimateBranch index={outletIndex(stages)} />
     </svg>
   );
+}
+
+/**
+ * AI 추정이 갈라져 나오는 자리 — **방류 유량 채널이 걸린 단계**다. T-N·T-P는 방류수의 수질에서
+ * 추정하므로 그 지점에 달려야 한다. 예전에는 늘 마지막 단계였는데, 사업장이 방류 뒤에 단계를
+ * 붙이면(파샬플룸 등) 엉뚱한 단계에 달린다. 방류 유량을 건 단계가 없으면 마지막 단계다.
+ */
+function outletIndex(stages: readonly ResolvedStage[]): number {
+  const found = stages.findIndex((s) => s.channels.some((c) => c.item === 'flow' && c.key !== null));
+  return found >= 0 ? found : stages.length - 1;
 }
 
 /** 수조 사이를 잇는 관. 굵은 관 안쪽으로 물이 흐른다 */
@@ -151,21 +161,28 @@ function Pipe({ index }: { index: number }) {
 
 function BasinNode({
   stage,
+  reuseBranch,
   index,
   readings,
+  pending,
   selected,
   onSelect,
 }: {
   stage: ProcessStage;
+  /** 처리수 일부가 여기서 재이용으로 갈라지는가 — 표시만 한다 `[사용자 결정 2026-09-29: (가)]` */
+  reuseBranch: boolean;
   index: number;
   readings: StageReading[];
+  pending: boolean;
   selected: boolean;
   onSelect: (id: string) => void;
 }) {
   const x = nodeX(index);
-  const hex = GRADE_HEX[stage.grade];
+  const hex = MEASUREMENT_GRADE_HEX[stage.grade];
   const floorY = NODE_TOP + NODE_HEIGHT - BASIN_FLOOR;
-  const Icon = STAGE_ICONS[stage.id] ?? FALLBACK_ICON;
+  const Icon = STAGE_ICONS[stage.id] ?? TYPE_ICONS[stage.type];
+  const nameLines = nodeNameLines(stage.name);
+  const layout = nameLines.length > 1 ? 'double' : 'single';
   /* 설정된 항목이 있으면 그것이 곧 계측 지점이다 — 등급 상수보다 사용자 설정이 먼저다 */
   const measured = readings.length > 0 || stage.grade === 'actual';
 
@@ -174,8 +191,15 @@ function BasinNode({
       role="button"
       tabIndex={0}
       aria-pressed={selected}
-      aria-label={`${stage.order}. ${stage.name} — ${PROVISIONAL_MEASUREMENT_GRADE_LABELS[stage.grade]}`}
-      className="cursor-pointer outline-none"
+      aria-label={`${stage.order}. ${stage.name} — ${PROVISIONAL_MEASUREMENT_GRADE_LABELS[stage.grade]}${
+        reuseBranch ? ' · 재이용 분기' : ''
+      }`}
+      /*
+       * `group`은 아래 초점 테두리가 이 `<g>`의 `:focus-visible`을 보기 위한 것이다.
+       * `outline`을 쓰지 않는 이유는 SVG 요소의 outline 렌더가 브라우저마다 갈리기 때문이다 —
+       * 직접 그린 테두리는 어디서나 같은 자리에 같은 굵기로 나온다.
+       */
+      className="group cursor-pointer outline-none"
       onClick={() => onSelect(stage.id)}
       onKeyDown={(e) => {
         if (e.key !== 'Enter' && e.key !== ' ') return;
@@ -183,6 +207,23 @@ function BasinNode({
         onSelect(stage.id);
       }}
     >
+      {/*
+       * **키보드 초점 테두리.** 이 노드는 `role="button" tabIndex={0}`이라 Tab으로 닿는데,
+       * `outline-none`만 걸려 있어 **어디에 있는지 보이지 않았다** — 여섯 단계를 눈 감고 지나는 셈이다.
+       * 마우스로 눌렀을 때는 나오지 않는다(`focus-visible`).
+       */}
+      <rect
+        className="hidden group-focus-visible:block"
+        x={x - 3}
+        y={NODE_TOP - 3}
+        width={NODE_WIDTH + 6}
+        height={NODE_HEIGHT + 6}
+        rx={11}
+        fill="none"
+        stroke="var(--accent)"
+        strokeWidth={2}
+      />
+
       {/* 수조 몸통 */}
       <rect
         x={x}
@@ -190,7 +231,8 @@ function BasinNode({
         width={NODE_WIDTH}
         height={NODE_HEIGHT}
         rx={8}
-        fill={selected ? 'var(--surface-2)' : 'var(--surface)'}
+        /* 고른 단계는 포인트색 면 — 테두리는 계측 등급이 쓰므로 면으로 표시한다 */
+        fill={selected ? 'var(--accent-weak)' : 'var(--surface)'}
         stroke={hex}
         strokeWidth={selected ? 2 : 1.2}
         strokeDasharray={PROVISIONAL_MEASUREMENT_GRADE_DASH[stage.grade]}
@@ -223,21 +265,40 @@ function BasinNode({
       <Icon x={x + 12} y={NODE_TOP + 12} width={17} height={17} stroke={hex} strokeWidth={1.8} />
 
       <text x={x + 12} y={NODE_TOP + 48} className="fill-fg-subtle text-[10px]">
-        {TYPE_LABELS[stage.type]}
+        {TREATMENT_TYPE_LABELS[stage.type]}
       </text>
-      <text x={x + 12} y={NODE_TOP + 68} className="fill-fg text-[13px] font-semibold">
-        {stage.name}
+      <text className="fill-fg text-[13px] font-semibold">
+        <title>{stage.name}</title>
+        {nameLines.map((line, row) => (
+          <tspan key={row} x={x + 12} y={NODE_TOP + NAME_Y[layout][row]!}>
+            {line}
+          </tspan>
+        ))}
       </text>
-      <text x={x + 12} y={NODE_TOP + 86} className="text-[10px]" style={{ fill: hex }}>
+      <text x={x + 12} y={NODE_TOP + GRADE_Y[layout]} className="text-[10px]" style={{ fill: hex }}>
         {PROVISIONAL_MEASUREMENT_GRADE_LABELS[stage.grade]}
       </text>
+      {/*
+       * **재이용 분기는 글자로만 적는다** `[사용자 결정 2026-09-29: (가)]`. 갈래 선을 그리면 그 양을
+       * 재는 것처럼 보이는데 재이용량은 계측하지 않는다. 포인트색은 조작·선택에만 쓰므로 무채색이다.
+       */}
+      {reuseBranch && (
+        <text
+          x={x + NODE_WIDTH - 12}
+          y={NODE_TOP + GRADE_Y[layout]}
+          textAnchor="end"
+          className="fill-fg-muted text-[10px] font-semibold"
+        >
+          ↻ 재이용
+        </text>
+      )}
 
       {/*
        * **그 지점의 지금 값.** 회의가 요구한 것이 이것이다 — HMI가 공정마다 값을 띄우는
        * 것처럼 노드에 적는다 `[회의 2026-08-20]`. 설정하지 않은 단계는 비운다 —
        * 지어내면 없는 계측을 주장한다(`[TBD-53]`).
        */}
-      <Readings x={x} readings={readings} />
+      <Readings x={x} readings={readings} pending={pending} />
 
       {/* 실측 지점은 센서가 실제로 꽂혀 있다는 표시를 준다 */}
       {measured && (
@@ -256,13 +317,43 @@ function BasinNode({
  * **값이 없으면 `수신 없음`이다** — 0으로 채우면 그 지점이 0을 재고 있다는 뜻이 된다(E4).
  * 넘치는 것은 `+n`으로 접는다. 다 적으면 글자가 노드를 넘는다.
  */
-function Readings({ x, readings }: { x: number; readings: StageReading[] }) {
+function Readings({
+  x,
+  readings,
+  pending,
+}: {
+  x: number;
+  readings: StageReading[];
+  pending: boolean;
+}) {
   if (readings.length === 0) return null;
 
   const shown = readings.slice(0, MAX_READINGS);
   const rest = readings.length - shown.length;
   /* 두 개씩 두 줄. 한 줄에 넷을 넣으면 140px에서 잘린다 */
   const lines = [shown.slice(0, 2), shown.slice(2)].filter((line) => line.length > 0);
+
+  /*
+   * **아직 모르는 값을 `—`로 적지 않는다**(**E4**). 자리는 그대로 두어야 값이 도착할 때
+   * 노드가 흔들리지 않는다 — 줄 수는 항목 수가 정하므로 계측 없이도 안다.
+   */
+  if (pending) {
+    return (
+      <g aria-hidden>
+        {lines.map((_, row) => (
+          <rect
+            key={row}
+            x={x + 12}
+            y={NODE_TOP + 96 + row * 14}
+            width={READING_SKELETON_WIDTH}
+            height={8}
+            rx={2}
+            className="fill-surface-3 motion-safe:animate-pulse"
+          />
+        ))}
+      </g>
+    );
+  }
 
   return (
     <g>
@@ -291,13 +382,13 @@ function Readings({ x, readings }: { x: number; readings: StageReading[] }) {
 }
 
 /**
- * 마지막 단계에서 갈라져 나오는 AI 추정. **직접 재지 않는 항목이라 선을 나눈다** —
+ * 방류 지점에서 갈라져 나오는 AI 추정. **직접 재지 않는 항목이라 선을 나눈다** —
  * 같은 관에 이어 그리면 프로브가 TN·TP도 재는 것처럼 읽힌다(E3).
  */
-function EstimateBranch({ count }: { count: number }) {
-  if (count === 0) return null;
+function EstimateBranch({ index }: { index: number }) {
+  if (index < 0) return null;
 
-  const x = nodeX(count - 1) + NODE_WIDTH / 2;
+  const x = nodeX(index) + NODE_WIDTH / 2;
   const y1 = NODE_TOP + NODE_HEIGHT;
   const y2 = y1 + 30;
 

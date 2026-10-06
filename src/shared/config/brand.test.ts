@@ -1,40 +1,8 @@
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import sharp from 'sharp';
 import { describe, expect, it } from 'vitest';
-import { BRAND_MARK_VARIANTS, BRAND_NAME } from './constants';
-
-describe('브랜드 마크 — 테마마다 한 벌', () => {
-  it('밝은 테마와 어두운 테마용이 각각 하나씩 있다', () => {
-    expect(BRAND_MARK_VARIANTS.map((v) => v.theme)).toEqual(['light', 'dark']);
-  });
-
-  /**
-   * 서버는 테마를 모른다. 두 벌을 모두 렌더하고 CSS가 고르는 방식이라
-   * `globals.css`의 `.theme-when-*`와 짝이 맞아야 한다 — 클래스 이름이 갈리면
-   * 두 장이 동시에 보이거나 둘 다 사라진다.
-   */
-  it('테마 선택 클래스가 globals.css의 유틸과 짝이 맞는다', () => {
-    const css = join(process.cwd(), 'src/app/globals.css');
-    expect(existsSync(css)).toBe(true);
-    for (const variant of BRAND_MARK_VARIANTS) {
-      expect(variant.themeClass).toContain(`theme-when-${variant.theme}`);
-    }
-  });
-
-  it('파일이 public에 실제로 있다', () => {
-    for (const variant of BRAND_MARK_VARIANTS) {
-      expect(existsSync(join(process.cwd(), 'public', variant.src))).toBe(true);
-    }
-  });
-
-  /** 겹쳐 쌓아야 한 자리에서 갈아 끼워진다 — 한 장만 흐름에 남기고 나머지는 겹친다 */
-  it('두 번째 이후는 첫 장 위에 겹친다', () => {
-    expect(BRAND_MARK_VARIANTS[0]!.themeClass).not.toContain('absolute');
-    for (const variant of BRAND_MARK_VARIANTS.slice(1)) {
-      expect(variant.themeClass).toContain('absolute');
-    }
-  });
-});
+import { BRAND_NAME } from './constants';
 
 describe('플랫폼 이름', () => {
   /** 원문 국문 정식명. 폭이 좁다고 줄이면 A2 위반이다 */
@@ -64,6 +32,29 @@ describe('공유 카드·앱 아이콘 파일 규약', () => {
   /** 8MB를 넘으면 빌드가 실패한다(Next 문서). 여유를 두고 훨씬 낮게 잡는다 */
   it('공유 카드가 지나치게 무겁지 않다', () => {
     expect(statSync(app('opengraph-image.png')).size).toBeLessThan(1_000_000);
+  });
+
+  /**
+   * **자산이 지금 로고에서 나왔는지**를 색으로 확인한다 `[사용자 지시 2026-08-24]`.
+   *
+   * 로고가 초록 PNG에서 파란 물방울로 바뀐 뒤에도 탭 아이콘·공유 카드는 옛 초록으로 남아
+   * 있었다. 화면과 자산이 갈라진 것을 눈으로만 잡으면 다음에도 같은 일이 난다 —
+   * 아이콘의 주색이 **파랑 계열**(B > R)인지 재서 못박는다. 다시 구우려면
+   * `node scripts/build-brand-assets.mjs`.
+   */
+  it.each([['icon.png'], ['apple-icon.png']])('%s이 파란 물방울 마크다', async (name) => {
+    const { dominant } = await sharp(app(name)).stats();
+    expect(dominant.b).toBeGreaterThan(dominant.r + 60);
+    expect(dominant.b).toBeGreaterThan(dominant.g + 40);
+  });
+
+  /** 파비콘은 ICO 컨테이너다 — 앞 4바이트가 예약 0 + 종류 1이면 아이콘 파일이다 */
+  it('favicon.ico가 ICO 컨테이너 형식이다', () => {
+    const head = readFileSync(app('favicon.ico'));
+    expect(head.readUInt16LE(0)).toBe(0);
+    expect(head.readUInt16LE(2)).toBe(1);
+    /* 16·32·48 세 벌을 담는다 — 한 벌만 담으면 작은 탭에서 축소 흐림이 생긴다 */
+    expect(head.readUInt16LE(4)).toBe(3);
   });
 
   /** 카드에 시연 고지가 없으면 생성 데이터가 실측으로 읽힌다 */

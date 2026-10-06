@@ -210,19 +210,15 @@ class Specs:
 
     # screens.md §5 — 조작 축 권한
     def _perms(self) -> dict[str, tuple[str, str, str]]:
-        found = table_with(self.screens_md, "화면 ID", "관리자", "운영자", "게스트")
+        found = table_with(self.screens_md, "화면 ID", *ROLE_COLUMNS)
         if not found:
-            raise SystemExit("screens.md §5 권한 매트릭스를 못 찾았다")
+            raise SystemExit(f"screens.md §5 권한 매트릭스를 못 찾았다 (열: {ROLE_COLUMNS})")
         header, rows = found
         col = {name: k for k, name in enumerate(header)}
         out = {}
         for r in rows:
             # 매트릭스는 강조를 쓴다(`**✕**` — 닫힌 화면을 눈에 띄게). xlsx 셀에는 부호만 남긴다
-            out[r[col["화면 ID"]]] = (
-                plain(r[col["관리자"]]),
-                plain(r[col["운영자"]]),
-                plain(r[col["게스트"]]),
-            )
+            out[r[col["화면 ID"]]] = tuple(plain(r[col[name]]) for name in ROLE_COLUMNS)
         return out
 
     # items.md — 항목 사전
@@ -355,6 +351,58 @@ class Specs:
 
 # ──────────────────────────── xlsx 쓰기 ────────────────────────────
 
+"""역할 셋 — `사업장 / 기초지자체 / 시스템 관리자` `[회의 2026-08-20]` `[사용자 요청 2026-08-24]`.
+
+**X7이 옛 이름을 금지한다** — `관리자`·`운영자`·`게스트`는 이 시스템에 없다. 그런데 양식은
+그 이름으로 시트와 권한 열을 만들어 두었고, 회의가 역할을 교체한 뒤 생성기가 그 자리에
+멈춰 있었다: `screens.md` §5는 새 이름으로 바뀌었는데 여기서 옛 이름을 찾아 **매트릭스를
+못 찾겠다며 종료**했다. 그래서 커밋 `c2679ab` 이후 산출물이 한 번도 다시 만들어지지 않았다.
+
+**순서가 `screens.md` §5 열 순서와 같아야 한다** — 권한 부호만 옮기므로 순서가 어긋나면
+누구의 권한인지 조용히 뒤바뀐다. 그래서 열 이름 한 곳에서 순서까지 정한다.
+"""
+ROLE_COLUMNS = ("사업장", "기초지자체", "시스템 관리자")
+
+"""양식이 달고 온 옛 권한 열 이름. **이 시스템에 없는 역할이다**(X7).
+
+한 번 개명하면 사라지지만, 빈 양식을 git에서 다시 꺼내 쓸 수 있으므로(§7.2) 남겨 둔다 —
+`write_role_header`가 옛 이름과 새 이름을 **둘 다 권한 열로 알아본다.**
+"""
+LEGACY_ROLE_COLUMNS = ("관리자", "운영자", "게스트")
+
+
+def rename_sheets(wb, renames: dict[str, str]) -> None:
+    """양식이 옛 역할 이름으로 만든 시트를 새 이름으로 고친다(X7). 이미 새 이름이면 지나간다."""
+    for old, new in renames.items():
+        if old in wb.sheetnames:
+            wb[old].title = new
+            print(f"  [{old}] → {new}")
+
+
+def write_role_header(ws, header_row: int) -> list[int]:
+    """권한 열 머리를 `ROLE_COLUMNS`로 **위치에 맞춰 덮어쓴다.** 서식은 두고 값만 고친다.
+
+    **옛 이름을 찾아 바꾸는 방식이면 안 된다.** 그렇게 만들었더니 한 번 개명한 뒤로는
+    바꿀 이름이 없어 헤더가 굳고, `ROLE_COLUMNS` 순서를 바꿨을 때 **값만 새 순서로 움직여
+    권한이 조용히 뒤바뀌었다** — 종료 코드 0으로 통과했다. 순서를 바꿔 실측해 확인했다.
+
+    그래서 이름이 아니라 **자리**로 쓴다. 옛 이름·새 이름 아무거나 있는 칸 셋을 왼쪽부터
+    골라 `ROLE_COLUMNS`를 그대로 얹으므로, 몇 번 돌려도 헤더와 값이 같은 순서를 갖는다.
+    """
+    found = []
+    for cell in ws[header_row]:
+        key = re.sub(r"\s+", " ", str(cell.value).replace("\n", " ")).strip() if cell.value else ""
+        if key in LEGACY_ROLE_COLUMNS or key in ROLE_COLUMNS:
+            found.append(cell.column)
+    if len(found) != len(ROLE_COLUMNS):
+        raise SystemExit(
+            f"[{ws.title}] 권한 열을 {len(ROLE_COLUMNS)}개 찾지 못했다: {len(found)}개"
+        )
+    for col, name in zip(sorted(found), ROLE_COLUMNS):
+        ws.cell(row=header_row, column=col).value = name
+    return sorted(found)
+
+
 def find_header_row(ws, *must: str) -> int:
     """헤더 행을 **문자열로 찾는다.** 요구사항정의서는 시트마다 3행/4행으로 다르다."""
     for row in ws.iter_rows(min_row=1, max_row=12):
@@ -420,8 +468,12 @@ def drop_column(ws, col: int) -> None:
 
 # ──────────────────────────── 화면설계서 ────────────────────────────
 
-SHEET_FOR = {"AD": "관리자용", "OP": "운영자용", "GU": "게스트용"}
+SHEET_FOR = {"AD": "사업장용", "OP": "시스템 관리자용", "GU": "기초지자체용"}
 NEW_COLUMNS = ["근거", "비고"]
+
+# 역할 시트를 옛 이름으로 만들어 둔 양식을 새 이름으로 고친다. `ws.title` 대입이라
+# 서식·인쇄설정·병합은 그대로 따라온다 — 시트를 새로 만들면 그것을 잃는다
+SCREEN_SHEET_RENAMES = {"관리자용": "사업장용", "운영자용": "시스템 관리자용", "게스트용": "기초지자체용"}
 
 
 def screen_evidence(sp: Specs, item: dict) -> str:
@@ -456,6 +508,7 @@ def screen_evidence(sp: Specs, item: dict) -> str:
 def build_screen_design(sp: Specs) -> None:
     path = XLSX["screen"]
     wb = openpyxl.load_workbook(path)
+    rename_sheets(wb, SCREEN_SHEET_RENAMES)
 
     by_sheet: dict[str, list[list]] = {name: [] for name in SHEET_FOR.values()}
     appendix_items: list[list] = []
@@ -541,6 +594,11 @@ def build_screen_design(sp: Specs) -> None:
     for sheet, rows in by_sheet.items():
         ws = wb[sheet]
         header_row = find_header_row(ws, "화면 ID", "구성요소", "After Action")
+        # 권한 열 머리도 옛 역할 이름이다 — 시트만 고치면 안에서 다시 어긋난다(X7)
+        role_cols = write_role_header(ws, header_row)
+        # 값을 쓸 자리와 머리를 쓴 자리가 같은지 못박는다 — 어긋나면 권한이 조용히 뒤바뀐다
+        if role_cols != [7, 8, 9]:
+            raise SystemExit(f"[{sheet}] 권한 열이 7~9열이 아니다: {role_cols}")
         cols = header_map(ws, header_row)
         if "PC" in cols:
             drop_column(ws, cols["PC"])
@@ -628,16 +686,22 @@ def add_appendix(wb, title: str, header: list[str], rows: list[list], model) -> 
 
 REQ_SHEETS = {
     "CO": "시스템 공통",
-    "AD": "관리자",
-    "OP": "운영자",
-    "GU": "게스트",
+    "AD": "사업장",
+    "OP": "시스템 관리자",
+    "GU": "기초지자체",
     "NF": "비기능요구사항",
 }
+
+REQ_SHEET_RENAMES = {"관리자": "사업장", "운영자": "시스템 관리자", "게스트": "기초지자체"}
+
+# 역할 시트 A1의 제목 셀이 `오염물질 배출관리_<시트 이름>` 꼴이다
+DOC_PREFIX = "오염물질 배출관리"
 
 
 def build_requirements(sp: Specs) -> None:
     path = XLSX["req"]
     wb = openpyxl.load_workbook(path)
+    rename_sheets(wb, REQ_SHEET_RENAMES)
 
     buckets: dict[str, list[list]] = {name: [] for name in REQ_SHEETS.values()}
     for header, rows in tables(sp.req_md):
@@ -673,6 +737,10 @@ def build_requirements(sp: Specs) -> None:
 
     for sheet, rows in buckets.items():
         ws = wb[sheet]
+        # 시트 제목 셀도 옛 역할 이름을 들고 있었다 — `오염물질 배출관리_운영자`.
+        # 시트 이름에서 만들어 넣으면 개명할 때마다 따라온다(X7)
+        if isinstance(ws["A1"].value, str) and ws["A1"].value.startswith(f"{DOC_PREFIX}_"):
+            ws["A1"].value = f"{DOC_PREFIX}_{sheet}"
         header_row = find_header_row(ws, "요구사항ID", "변경구분", "수용여부")
         style = capture_style(ws, header_row + 1, 13)
         clear_below(ws, header_row, 13)

@@ -68,10 +68,3 @@ export interface EquipmentRunCell {
   /** 그 시간에 걸린 이상 신호. 모르는 시간은 빈 배열이다 */
   signals: readonly EquipmentSignal[];
 }
-
-/** 방지시설이 그 시간에 멈춰 있었는가. `null`은 모름 */
-export interface TreatmentCell {
-  hourOffset: number;
-  iso: string;
-  idle: boolean | null;
-}

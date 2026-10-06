@@ -25,9 +25,9 @@ describe('알람 목록 위 여백', () => {
     const items = [...container.querySelectorAll('article')];
     expect(items).toHaveLength(alarms.length);
 
-    expect(items[0]!.className).not.toMatch(/(^|\s)pt-2\.5(\s|$)/);
+    expect(items[0]!.className).not.toMatch(/(^|\s)pt-3(\s|$)/);
     for (const item of items.slice(1)) {
-      expect(item.className).toMatch(/(^|\s)pt-2\.5(\s|$)/);
+      expect(item.className).toMatch(/(^|\s)pt-3(\s|$)/);
     }
   });
 
@@ -35,7 +35,7 @@ describe('알람 목록 위 여백', () => {
     const { container } = render(
       <AlarmList alarms={alarms.slice(0, 1)} nowIso={DEMO_NOW_ISO} selectedSiteId="S-02" />,
     );
-    expect(container.querySelector('article')!.className).not.toMatch(/(^|\s)pt-2\.5(\s|$)/);
+    expect(container.querySelector('article')!.className).not.toMatch(/(^|\s)pt-3(\s|$)/);
   });
 
   /** 아래 여백은 모든 항목이 갖는다 — 구분선과 다음 항목이 붙어 보이면 안 된다 */
@@ -44,7 +44,7 @@ describe('알람 목록 위 여백', () => {
       <AlarmList alarms={alarms} nowIso={DEMO_NOW_ISO} selectedSiteId="S-02" />,
     );
     for (const item of container.querySelectorAll('article')) {
-      expect(item.className).toMatch(/(^|\s)pb-2\.5(\s|$)/);
+      expect(item.className).toMatch(/(^|\s)pb-3(\s|$)/);
     }
   });
 });

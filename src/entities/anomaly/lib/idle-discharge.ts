@@ -1,8 +1,9 @@
-import { PROVISIONAL_IDLE_DISCHARGE_MIN_SAMPLES } from '@/shared/config/provisional';
+import { PROVISIONAL_IDLE_DISCHARGE_MIN_MINUTES } from '@/shared/config/provisional';
 import {
   TIMELINE_POINT_COUNT,
   isDischargingAt,
   isTreatmentIdleAt,
+  minutesToSamples,
   timelineIsoAt,
 } from '@/shared/lib/timeline';
 
@@ -36,7 +37,7 @@ export interface IdleDischargeRun {
  */
 export function findIdleDischargeRuns(
   siteId: string,
-  minSamples: number = PROVISIONAL_IDLE_DISCHARGE_MIN_SAMPLES,
+  minSamples: number = minutesToSamples(PROVISIONAL_IDLE_DISCHARGE_MIN_MINUTES),
 ): IdleDischargeRun[] {
   const runs: IdleDischargeRun[] = [];
   let start: number | null = null;

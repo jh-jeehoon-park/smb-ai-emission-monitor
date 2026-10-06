@@ -5,7 +5,7 @@
 | 항목 | 내용 |
 |------|------|
 | 문서명 | 프론트엔드 코딩 규칙 (Core + Project Profile) |
-| 버전 | v2.2.0 |
+| 버전 | v2.5.0 |
 | 작성일 | 2026-08-06 |
 | 기반 문서 | /docs/applications/AIoT_Emission_Control_System.pdf, /docs/applications/HSKorea_AI_Application_Proposal.pdf |
 
@@ -13,10 +13,13 @@
 
 | 버전 | 날짜 | 작성자 | 변경 내용 |
 |------|------|--------|-----------|
+| v2.5.0 | 2026-09-01 | Claude | **P11·P12 갱신** `[사용자 확인 2026-09-01]` — P11이 fixture를 남기는 근거로 적던 *"계측 서버가 사설망 http라 배포본에서 닿지 않아"* 가 **더는 사실이 아니다**(공인 IP 포트포워딩, 배포본도 실측을 본다). 폴백이 필요한 이유는 남으므로(재기동·토큰 만료·순단) 그 근거만 바꿨다. P12의 `[TBD-57]`은 **`TBD-58`**로 정정 — `develop`이 같은 번호를 방류 수조 수위에 먼저 쓰고 있었다 |
+| v2.4.0 | 2026-08-27 | Claude | **계측이 실 API가 됐다**(ThingsBoard) — P3 실시간 방식을 `[TBD]`에서 **폴링 확정**으로, P11에 fixture의 지위 변경(임시물 → 폴백 원천), P12를 `source-inconsistencies.md`로 일원화, **P14의 A1을 `보류`에서 `예외`로** 바꿨다. A1(Mock 전량 제거)과 사용자의 폴백 결정이 정면으로 부딪히며 사용자 지시가 이긴다(§5 레벨 1). Core(§2~§6) 미수정 |
 | v0.1.0 | 2026-08-06 | Claude | 신규 작성 — 스택·프로젝트 무관 이식형 프론트엔드 코딩 규칙. Core(절대규칙 A1~A4·컨벤션 R1~R20) + Project Profile(P1~P15) 구조 |
 | v2.0.0 | 2026-08-06 | Claude | §8 프로젝트 프로필을 타 프로젝트 값에서 본 프로젝트(소규모 사업장 오염물질 배출 관리 시스템, 단일 Next.js 웹 대시보드) 값으로 전면 교체. 공유 패키지 alias 제거(`@/*`만 사용), 디자인 토큰·Figma 관련 슬롯 [TBD] 표기, 차트(P9)를 대시보드 필수 영역으로 상향. Core(§2~§6) 미수정 |
 | v2.2.0 | 2026-08-13 | Claude | P13 데이터 문서 경로를 `docs/page-data-spec/<page>.md` → `docs/specs/`로 교체(흡수 후 삭제됨). 근거 표기 규약 6종을 P13에 명시. Core(§2~§6) 미수정 |
 | v2.1.0 | 2026-08-11 | Claude | §8에 "백엔드 없는 프론트 전용 프로토타입" 전제 추가. P1 스타일링(Tailwind+shadcn/ui)·P9 차트(Recharts) 확정, P7 토큰 원천을 `design-system/<slug>/MASTER.md`로 지정, P11을 MSW→`entities/<slice>/api/fixtures/`로 교체, P3 실시간 방식을 fixture 시뮬레이션으로 한정, P12 미적용·P13 as-is 미적용 표기, P14에 A1 보류·A3 미적용·A4 자동충족·A2 범위 분리 기재, P15에 디자인 스킬 라우팅 포인터 추가. §8.1 E2에 잠정 4단계 등급과 이상 점수 구간(0–49/50–69/70–79/80–100) 명시, E6에 서버 부재 시 mock 역할 전환 예외 추가. Core(§2~§6) 미수정 |
+| v2.3.0 | 2026-08-25 | Claude | **P7 디자인 토큰의 원천 교체** `[사용자 지시 2026-08-25]` — `design-system/<slug>/MASTER.md` → **`src/app/globals.css`(값) + `docs/specs/screens.md` §8(규칙)**. 디자이너 작업(`49593cf`)이 병합되어 그것이 유일한 기준선이 됐는데 이 슬롯이 착수 전 산출물을 계속 가리키고 있었다 — **팔레트가 실제로 다르다**(그쪽 Accent `#0891B2` 시안 vs 지금 `--accent #0d47a1`). 그대로 따르면 화면이 옛 색으로 되돌아간다. `MASTER.md`는 지우지 않고 착수 전 근거로 강등했다 |
 
 ---
 
@@ -151,18 +154,18 @@
 |----|------|-----|
 | P1 | 대상 스택 | React + **Next.js(App Router)** / TypeScript / (Next 빌드) / **Tailwind CSS + shadcn/ui** / 서버상태 TanStack Query(fixture를 비동기 반환) + 전역 스토어 [TBD](현 단계 미도입 — URL 파라미터로 충분) / fetch 기반 client / 차트 **Recharts** |
 | P2 | 범위 | 활성 `src/**/*.{ts,tsx}` · 비활성 `dist/`·`build/`·`.next/`·`docs/` |
-| P3 | 빌드·렌더 모드 | **CSR 중심**(실시간 계측·차트·대시보드) + 필요 시 SSR(목록/리포트 초기 렌더). 서버 전용 API를 클라이언트에서 남용 금지, dev/운영 분기 인지. 실시간 수신 방식(폴링/SSE/WebSocket)은 [TBD] — **현 단계는 fixture 기반 고정 간격 시뮬레이션**으로 표현하고, 실제 방식 선택은 백엔드 확정 시로 미룬다 |
+| P3 | 빌드·렌더 모드 | **CSR 중심**(실시간 계측·차트·대시보드) + 필요 시 SSR(목록/리포트 초기 렌더). 서버 전용 API를 클라이언트에서 남용 금지, dev/운영 분기 인지. 실시간 수신 방식은 **폴링으로 확정**(2026-08-27) — 계측 API 명세 §7.4가 권하고 주기가 분 단위라 WebSocket의 이득이 없다. `refetchInterval = 수집 주기`. 계측 외 도메인은 여전히 fixture다 |
 | P4 | 경로 별칭 | `@/*` (내부 전용) — 공유 패키지 없음(단일 웹 앱) |
 | P5 | 프레임워크 관용구 | 클라이언트 경계 `'use client'` · `next/dynamic`+`<Suspense>`(차트 등 무거운 클라이언트 위젯) · `react-hooks/exhaustive-deps` · 함수형 컴포넌트만 |
 | P6 | 상태 관리 | 전역 스토어 + URL 쿼리 파라미터(사업장·기간·항목 필터는 URL로) · props drilling 3단계 초과 시 분리 |
-| P7 | 디자인 토큰 | **원천 = `design-system/<slug>/MASTER.md`**(`ui-ux-pro-max` 스킬 생성) → `shared/config` + Tailwind theme에 토큰으로 등록해 사용. 색·타이포·spacing 하드코딩은 여전히 금지(R9). Figma 미보유 상태의 대체 원천이며, Figma가 확정되면 `figma-implementation.rule.md` D3로 되돌린다. 상태 등급 색은 아래 E2의 잠정 4단계에 맞춰 의미별 고정 토큰으로 정의해 전 화면 동일 적용 |
+| P7 | 디자인 토큰 | **값 = `src/app/globals.css` · 규칙 = `docs/specs/screens.md` §8**(전 화면 공통 사항). 루트 `CLAUDE.md`의 `디자인 기준선` 절이 단일 기준이며 **`49593cf` 이후가 유일한 기준선**이다 `[사용자 지시 2026-08-25]`. 색·타이포·spacing 하드코딩은 여전히 금지(R9) — 테마를 따라가면 안 되는 색만 §8 `토큰 밖 색`에 등재해 예외로 쓴다. **`design-system/<slug>/MASTER.md`(`ui-ux-pro-max` 산출물)는 착수 전 기준 수립에 쓴 것이고 지금의 원천이 아니다** — 팔레트가 실제로 다르다(그쪽 Accent `#0891B2` 시안 vs 지금 `--accent #0d47a1`). 어긋나면 §8이 이긴다. Figma가 확정되면 `figma-implementation.rule.md` D3로 되돌린다. 상태 등급 색은 아래 E2의 잠정 4단계에 맞춰 의미별 고정 토큰으로 정의해 전 화면 동일 적용 |
 | P8 | 공용 컴포넌트 | `shared/ui` (Button/Input/Badge/Modal/Table/Tabs/EmptyState/StatusTag 등) — **shadcn/ui 기반**, 인라인 재구현 금지 |
 | P9 | 차트 | **필수 영역**(실시간 시계열·예측·이상점수·설비 상태). **Recharts 단일 사용** — 다른 차트 라이브러리 혼용 금지 · 계열 색은 P7 토큰 · 의미별 색 고정(정상/주의/경고/위험) · 커스텀 tooltip 패턴 통일 · 차트 작성 전 `dataviz` 스킬 로드 |
 | P10 | 투명도 정책 | 배경 불투명 원칙(투명도는 사용자 명시 지시 시) |
-| P11 | Mock 격리 | **`entities/<slice>/api/fixtures/`** — 컴포넌트 인라인 금지. **MSW는 쓰지 않는다**(가로챌 네트워크 요청이 없다). 백엔드가 생기면 이 폴더가 A1의 제거 대상이 된다 |
-| P12 | API 갭 문서 | `docs/api-gaps.md` — **현 단계 미적용**(백엔드가 없어 갭 개념이 성립하지 않는다). 백엔드 착수 시 활성 |
+| P11 | Mock 격리 | **`entities/<slice>/api/fixtures/`** — 컴포넌트 인라인 금지. **MSW는 쓰지 않는다**(폴백이 같은 일을 한다). **계측만 실 API가 됐다**(2026-08-27, ThingsBoard) — 그런데 **fixture는 제거 대상이 아니다**: 계측 서버 접속이 재기동·토큰 만료·순단으로 끊기면 **자동 폴백의 원천**으로 남는다 — 근거가 세 번 뒤집혔다 — *"사설망 http라 배포본에서 닿지 않아"* → 공인 IP 포트포워딩(2026-09-01) → 그 포트포워딩이 죽어 다시 사내망뿐(2026-09-15) → **다시 공인 IP**(2026-09-16, 번호도 바뀌었다). **폴백은 네 판본 내내 필요했다** `[사용자 결정 2026-08-27]`. **주소를 규칙 문서에 적지 않는다** — `.env.local`이 정본이다. 지위가 *임시물*에서 **서버 미도달 시의 정식 대체 원천**으로 바뀌었다 → `docs/integration/README.md` §5 |
+| P12 | API 갭 문서 | `docs/api-gaps.md` — **여전히 미적용.** 계측 API의 갭은 `source-inconsistencies.md`에 등록한다(`[TBD-58]` 유입유량·진동 미수신) — 갭 대장을 따로 두면 미정 항목이 두 곳으로 갈린다 |
 | P13 | 데이터 문서 | to-be **`docs/specs/`** 사용 — 화면별 요구 데이터는 `docs/specs/screens/<화면ID>.md` §4, 필드 정규화는 `docs/specs/data-definition.md`, 표기 규약·ID 체계는 `docs/specs/README.md`. **모든 수치·라벨에 근거 표기가 붙는다**(`[원문 p.nn]`·`[파생: 식]`·`[PROVISIONAL]`·`[TBD-nn]`·`[INC-nn]`·`[설계]`) · as-is `docs/page-api-map/<page>.md` — 현 단계 미적용 |
-| P14 | 절대규칙 채택 | A1~A4 채택. 단 현 단계는 **A1 보류**(제거할 실 API 없음, fixture가 정식 원천) · **A3 미적용**(P12 참조) · **A4 자동 충족**(백엔드 설계를 하지 않음). **A2는 유지하되 범위를 나눈다** — *무엇을 보여주는가*(항목·라벨·단위·수치)는 `docs/` 근거를 따르고, *어떻게 보이는가*(레이아웃·색·타이포·모션)는 디자인 스킬이 정한다 |
+| P14 | 절대규칙 채택 | A1~A4 채택. 단 현 단계는 **A1 예외**(계측이 실 API가 됐으나 **폴백이 fixture를 요구한다** `[사용자 결정 2026-08-27]` — 사용자 지시가 절대규칙보다 위다(§5 레벨 1). 계측 외 도메인은 애초에 제거할 실 API가 없다) · **A3 미적용**(P12 참조) · **A4 자동 충족**(백엔드 설계를 하지 않음). **A2는 유지하되 범위를 나눈다** — *무엇을 보여주는가*(항목·라벨·단위·수치)는 `docs/` 근거를 따르고, *어떻게 보이는가*(레이아웃·색·타이포·모션)는 디자인 스킬이 정한다 |
 | P15 | 하우스 규칙 | 본 저장소 `CLAUDE.md` + `.claude/rules/*`(frontend-architecture·code-organization·code-comments·figma-implementation·test-guide·unclear·document-template) + 사용자 글로벌 `CLAUDE.md`. 디자인 스킬(`ui-ux-pro-max`·`impeccable`·`frontend-design`·`dataviz`)의 사용 시점·라우팅은 루트 `CLAUDE.md`의 "디자인 스킬" 절을 따른다 |
 
 ### 8.1 도메인 특성상 추가로 지켜야 할 사항
