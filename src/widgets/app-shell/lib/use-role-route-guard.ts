@@ -19,7 +19,7 @@ import {
   type Role,
   type RoleScope,
 } from '@/entities/user';
-import { FORBIDDEN_PATH, homeHrefFor, isBlockedFor } from '../config/navigation';
+import { ENTRY_PATH, FORBIDDEN_PATH, homeHrefFor, isBlockedFor } from '../config/navigation';
 
 /**
  * 역할을 바꿨을 때 지금 보고 있는 화면이 그 역할에 닫혀 있으면 볼 수 있는 첫 화면으로 옮긴다.
@@ -84,6 +84,19 @@ export function useRoleRouteGuard() {
      */
     if (switched && pathname !== home) {
       router.replace(withScope(home, role, adminAccount, resetScopeToAllSites(params)));
+      return;
+    }
+
+    /*
+     * **입구(`/`)는 403이 아니라 그 역할의 첫 화면으로 보낸다** `[사용자 요청 2026-10-07]`.
+     *
+     * `/`는 통합 관제(시스템 관리자 전용)이면서 앱의 입구다 — 로그인과 오류 화면의 로고가 역할을
+     * 모른 채 이리로 보낸다. 아래 403 갈래에 맡기면 사업장·기초지자체는 로그인하자마자, 그리고
+     * 403 화면의 로고를 누를 때마다 다시 403을 만났다. 다른 닫힌 주소는 그대로 403이다 —
+     * 그쪽은 사용자가 열려고 한 화면이 따로 있다.
+     */
+    if (pathname === ENTRY_PATH && isBlockedFor(pathname, role)) {
+      router.replace(withScope(home, role, adminAccount, params));
       return;
     }
 

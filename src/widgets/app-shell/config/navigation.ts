@@ -284,6 +284,12 @@ export const FORBIDDEN_PATH = '/403';
 export const SERVER_ERROR_PATH = '/500';
 
 /**
+ * 앱의 입구. 로그인(`signIn`)과 오류 화면의 로고가 역할을 모른 채 이리로 보낸다 —
+ * 그래서 이 주소는 «통합 관제»이기 전에 «각 역할의 첫 화면으로 가는 문»이다.
+ */
+export const ENTRY_PATH = '/';
+
+/**
  * 이 역할에게 **닫힌 화면인가.**
  *
  * 메뉴에 없는 경로는 가르지 않는다 — `canRoleSee`가 미등재를 전 역할 차단으로 읽어서, 그대로
