@@ -9,7 +9,8 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "verify:docs": "node scripts/verify-docs.mjs"
+    "verify:docs": "node scripts/verify-docs.mjs",
+    "link:skills": "node scripts/link-skills.mjs"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.23",

@@ -5,14 +5,15 @@
 | 항목 | 내용 |
 |------|------|
 | 문서명 | 항목 사전 |
-| 버전 | v1.9.0 |
+| 버전 | v1.9.1 |
 | 작성일 | 2026-08-20 |
-| 기반 문서 | /.claude/rules/deliverable-xlsx.rule.md, /docs/specs/README.md, /docs/specs/data-definition.md, /docs/applications/HSKorea_AI_Application_Proposal.pdf, /docs/applications/AIoT_Emission_Control_System.pdf |
+| 기반 문서 | /.ai/rules/deliverable-xlsx.rule.md, /docs/specs/README.md, /docs/specs/data-definition.md, /docs/applications/HSKorea_AI_Application_Proposal.pdf, /docs/applications/AIoT_Emission_Control_System.pdf |
 
 ### 변경 이력
 
 | 버전 | 날짜 | 작성자 | 변경 내용 |
 |------|------|--------|-----------|
+| v1.9.1 | 2026-10-07 | Claude | 규칙 파일 위치 이동 반영 — `.claude/rules/` → `.ai/rules/`(Claude Code·Codex 공용) `[사용자 요청 2026-10-07]`. 경로 표기를 새 위치로 바꿨다 |
 | v1.9.0 | 2026-09-10 | Claude | **용어 셋을 바꿨다 — 값·규칙·데이터는 하나도 바뀌지 않았다** `[사용자 요청 2026-09-10: 처리 미흡 의심 → 처리 상태 확인 · 들어온 물 → 유입수 · 나간 물 → 유출수]`. `ALC-treatmentStall`의 라벨 한 칸. **낱말만 바뀌었다** — 판정 규칙·유사 임계·알람 발생 조건·조건 키(`treatmentStall`)·`kind: 'stall'`은 그대로다. `[사용자 …]` 인용 안의 옛 낱말은 **그때 사용자가 실제로 쓴 말이라 고치지 않았다** — 인용을 새 용어로 바꾸면 근거가 아니라 우리가 지은 말이 된다. |
 | v1.8.0 | 2026-09-10 | Claude | **계측 항목 16 → 24 · 알람 조건 4 → 5 · 합계 77 → 86** `[사용자 요청 2026-09-10]`. ① 유입 수질 8종 등재 — 회의가 프로브를 유입·유출 양 끝에 달기로 정했고 `[회의 2026-09-08]` 두 지점의 **수질 차이**가 «처리가 됐는가»의 증거다. 위 8종(`MEAS-pH`~`MEAS-TOC`)은 이제 **유출**을 뜻하며 이름은 바꾸지 않는다(화면·문서·CSV·서버 채널에 박혀 있다). **계측 서버에 유입 수질 채널이 없어**(2026-09-10 실측) 유출 실측에서 역산한 시연값이고 화면이 항목마다 밝힌다 `[TBD-59]` ② `ALC-treatmentStall` 등재 — 원문 4종 밖이지만 `[원문 p.32]`가 «등»으로 열어 두었다 |
 | v1.7.0 | 2026-09-08 | Claude | **`MEAS-TN`·`MEAS-TP`에 단서 추가** `[사용자 요청 2026-09-08]` — 계측 서버가 두 채널을 보내 주어 프로토타입 화면이 그 값을 그린다. `계측 방식` 칸은 `AI 추정` 그대로 둔다: 실증의 사실이 바뀐 것이 아니라 **모델이 붙기 전의 임시 원천**이다. 화면 라벨(`preModel`)과 `ESTIMATE_SERIES_CODES`가 그 구분을 지킨다 |

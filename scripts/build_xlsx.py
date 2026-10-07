@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """산출물 xlsx 3종을 docs/specs/*.md 에서 생성한다.
 
-규칙은 `.claude/rules/deliverable-xlsx.rule.md`. 요점만 옮기면,
+규칙은 `.ai/rules/deliverable-xlsx.rule.md`. 요점만 옮기면,
 
 * 원천은 마크다운이고 xlsx는 생성물이다(X6). 엑셀에서 직접 고치면 다음 실행 때 사라진다.
 * **기존 파일의 셀만 바꾼다.** 발주처 양식의 서식·인쇄 설정·시트 구성을 통째로 새로

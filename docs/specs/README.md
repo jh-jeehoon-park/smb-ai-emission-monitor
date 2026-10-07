@@ -5,7 +5,7 @@
 | 항목 | 내용 |
 |------|------|
 | 문서명 | 설계 명세 색인 |
-| 버전 | v2.3.0 |
+| 버전 | v2.3.1 |
 | 작성일 | 2026-08-13 |
 | 기반 문서 | /docs/requirements/functional-requirements.md, /docs/requirements/source-inconsistencies.md, /docs/analysis/data-dictionary.md, /docs/specs/오염물질 배출관리_화면설계서_v0.1.xlsx, /docs/specs/오염물질 배출관리_요구사항정의서_v0.1.xlsx, /docs/specs/오염물질 배출관리_데이터 정의서_v0.1.xlsx |
 
@@ -13,6 +13,7 @@
 
 | 버전 | 날짜 | 작성자 | 변경 내용 |
 |------|------|--------|-----------|
+| v2.3.1 | 2026-10-07 | Claude | 규칙 파일 위치 이동 반영 — `.claude/rules/` → `.ai/rules/`(Claude Code·Codex 공용) `[사용자 요청 2026-10-07]`. 경로 표기를 새 위치로 바꿨다 · 검사 5의 범위에 `AGENTS.md` 추가(본문이 그리로 옮겨 갔다) · 지침 내용을 가리키던 `CLAUDE.md` 표기를 `AGENTS.md`로(«`CLAUDE.md`의 ○○»를 따라가면 `@AGENTS.md` 한 줄만 나온다 — Codex는 `AGENTS.md`를 직접 읽고 그 한 줄을 펼치지 않는다) · 검사 5가 `AGENTS.md`·`.ai/rules/`가 없으면 실패한다는 것을 표에 적었다 |
 | v2.3.0 | 2026-08-26 | Claude | §4.4 기초지자체 범위를 **`관할 지역 (시도)` → `관할 시·군·구`** 로 정정 — 개명 `[사용자 요청 2026-08-24]`으로 한 단 좁아졌는데 이 표만 낡아 있었다(타입은 이미 `own-municipality`). "정의만 있고 동작하지 않는다" 절을 **동작한다**로 `[사용자 결정 2026-08-26]` |
 | v2.1.0 | 2026-08-24 | Claude | 옛 역할 이름을 새 셋으로 바꿨다 `[사용자 요청 2026-08-24: 일괄로 시스템 관리자 \| 기초지자체 \| 사업장 기준으로 수정할 것]`. 매핑은 `[사용자 확인 2026-08-24]` — **운영자→시스템 관리자 · 관리자→사업장(사업주) · 게스트→기초지자체**(게스트는 당시 미정이었고 기초지자체가 그 자리를 받았다). 범위도 함께 확인했다 — 시스템 관리자 전 지역 · 기초지자체 관할 구역 · 사업장 자사 1개소. **원문 p.69 인용·변경 이력·폐기 선언은 손대지 않았다** |
 | v1.0.0 | 2026-08-13 | Claude | 신규 작성 — 근거 표기 규약·ID 체계·문서 구성·xlsx 매핑 정의. `docs/page-data-spec/` 2종을 흡수하며 공통 URL 규약과 백엔드 확인사항을 이관 |
@@ -179,7 +180,7 @@ npm run verify:docs
 | 2 | 인용 형식 | `[발표 p.nn]` 축약형 |
 | 3 | 화면 수 | 목록·문서·라우트가 갈리는 것 |
 | 4 | FR 커버리지 | FR-01~42 누락 |
-| 5 | 문서 링크 | 깨진 상대 링크 — `docs/` · `CLAUDE.md` · `.claude/rules/` |
+| 5 | 문서 링크 | 깨진 상대 링크 — `docs/` · `AGENTS.md` · `CLAUDE.md` · `.ai/rules/`(`AGENTS.md`·`.ai/rules/`가 없으면 건너뛰지 않고 실패) |
 | 6 | 필드 커버리지 | 타입에 필드를 더하고 문서를 안 고치는 것 |
 | 7 | 문서 규격 | 문서정보 4필드·변경 이력 누락 |
 | 8 | 화면 목록 정합 | `screens.md`와 화면 문서가 다른 말을 하는 것 |
@@ -377,7 +378,7 @@ FR-16 (원문 요구)  ↔  REQ-AD-014 (산출물 ID)  ↔  SCR-OP-006 (화면) 
 >
 > **`Figma node-id` 열은 실제 파일에 없다.** 예전 이 표가 "미보유 → 공란"이라 적었으나 열 자체가 없으므로 채울 것도 없다.
 >
-> 열의 정본 사양과 부록 시트는 [`deliverable-xlsx.rule.md`](../../.claude/rules/deliverable-xlsx.rule.md) §5.2가 갖는다 — 실측한 값이며 이 표와 어긋나면 그쪽이 이긴다.
+> 열의 정본 사양과 부록 시트는 [`deliverable-xlsx.rule.md`](../../.ai/rules/deliverable-xlsx.rule.md) §5.2가 갖는다 — 실측한 값이며 이 표와 어긋나면 그쪽이 이긴다.
 
 **요구사항정의서** ← `requirements.md`
 
@@ -465,7 +466,7 @@ FR-16 (원문 요구)  ↔  REQ-AD-014 (산출물 ID)  ↔  SCR-OP-006 (화면) 
 - [ ] `screens/<화면ID>-<이름>.md` 1개 작성 (§9 템플릿 복사)
 - [ ] [`requirements.md`](requirements.md)의 해당 FR 행에 화면 ID와 구현 상태 갱신
 - [ ] [`data-definition.md`](data-definition.md)에 신규 필드 추가
-- [ ] 새 임시값이 있으면 `provisional.ts` + 루트 `CLAUDE.md` 임시값 표에 등록
+- [ ] 새 임시값이 있으면 `provisional.ts` + 루트 `AGENTS.md` 임시값 표에 등록
 
 ### 8.1 검증
 

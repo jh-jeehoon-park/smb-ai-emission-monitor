@@ -5,9 +5,9 @@
 | 항목 | 내용 |
 |------|------|
 | 문서명 | 코드 구조 전략 — 상수 & 타입 관리 |
-| 버전 | v3.1.1 |
+| 버전 | v3.1.2 |
 | 작성일 | 2026-08-06 |
-| 기반 문서 | .claude/rules/frontend-architecture.rule.md |
+| 기반 문서 | .ai/rules/frontend-architecture.rule.md |
 
 ### 변경 이력
 
@@ -15,6 +15,7 @@
 |------|------|--------|-----------|
 | v3.1.0 | 2026-08-13 | Claude | §3 상수 배치표에 **임시값** 행 추가 — 원문 미확정 값은 공통 상수보다 우선해 `provisional.ts` 한 파일에만 둔다(루트 `CLAUDE.md` 임시값 규약과의 우선순위 명시). `STATUS_LEVELS` 예시는 `provisional.ts`로 이관되어 공통 상수 예시에서 제거 |
 | v3.1.1 | 2026-08-13 | Claude | §3 배치원칙 #5에 "한 세트"의 뜻을 명시 — 한 파일이 아니라 같은 `StatusLevel` 키를 공유한다는 뜻이며 `Record`가 이미 강제한다. 라벨(`provisional.ts`)과 색(`status-visual.ts`)을 합치지 말 것 |
+| v3.1.2 | 2026-10-07 | Claude | 규칙 파일 위치 이동 반영 — `.claude/rules/` → `.ai/rules/`(Claude Code·Codex 공용) `[사용자 요청 2026-10-07]`. 경로 표기를 새 위치로 바꿨다 · 지침 내용을 가리키던 `CLAUDE.md` 표기를 `AGENTS.md`로(«`CLAUDE.md`의 ○○»를 따라가면 `@AGENTS.md` 한 줄만 나온다 — Codex는 `AGENTS.md`를 직접 읽고 그 한 줄을 펼치지 않는다) |
 
 ---
 
@@ -32,7 +33,7 @@
 | **공통 상수**(2개 이상 slice·앱 전역) | `shared/config/constants.ts` | `ROWS_PER_PAGE`, `MEASUREMENT_ITEM_UNITS` |
 | **도메인 상수**(특정 slice 전용) | `entities|features/<slice>/config/constants.ts` | `ANOMALY_SCORE_THRESHOLDS`, `PREDICTION_HORIZON_HOURS`, `ALARM_CHANNEL_LABELS` |
 
-> **임시값이 공통 상수보다 우선한다.** 원문 근거가 없는 값은 공통으로 쓰이더라도 `constants.ts`가 아니라 `provisional.ts`에 둔다 — 확정될 때 한 파일만 고치면 전 화면이 바뀌게 하려는 규약이다(루트 `CLAUDE.md` 임시값 규약). 두 곳에 나뉘면 그 목적이 깨진다. `npm run verify:docs`의 검사 10이 이를 확인한다.
+> **임시값이 공통 상수보다 우선한다.** 원문 근거가 없는 값은 공통으로 쓰이더라도 `constants.ts`가 아니라 `provisional.ts`에 둔다 — 확정될 때 한 파일만 고치면 전 화면이 바뀌게 하려는 규약이다(루트 `AGENTS.md` 임시값 규약). 두 곳에 나뉘면 그 목적이 깨진다. `npm run verify:docs`의 검사 10이 이를 확인한다.
 >
 > `shared/config/constants.ts`는 현재 비어 있다(파일 없음). 위 예시에 해당하는 값이 생기면 그때 만든다.
 

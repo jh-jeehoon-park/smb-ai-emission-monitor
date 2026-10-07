@@ -21,7 +21,7 @@ export const PROVISIONAL_STATUS_LABELS: Record<StatusLevel, string> = {
 
 /**
  * 이상 점수(0~100, 사업계획서 p.64)를 등급으로 나누는 경계. 원문에 근거가 없다(TBD-02).
- * 위험 하한 80은 저장소 내 유일한 수치 앵커(.claude/rules/unclear.rule.md §5 예시)에서 가져왔고
+ * 위험 하한 80은 저장소 내 유일한 수치 앵커(.ai/rules/unclear.rule.md §5 예시)에서 가져왔고
  * 나머지는 그 위에서 균등 배분했다. 실제 점수 분포 확보 후 오탐지율 <10%(p.30) 기준으로 재조정한다.
  */
 export const PROVISIONAL_ANOMALY_BANDS: { level: StatusLevel; min: number; max: number }[] = [

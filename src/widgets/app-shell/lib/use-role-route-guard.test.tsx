@@ -179,6 +179,49 @@ describe('닫힌 화면 — 403으로 보낸다', () => {
 });
 
 /**
+ * **입구(`/`)는 403이 아니라 그 역할의 첫 화면으로 보낸다** `[사용자 요청 2026-10-07]`.
+ *
+ * 로그인과 오류 화면의 로고가 역할을 모른 채 `/`로 보낸다. 여기서 403을 내면 사업장·기초지자체는
+ * 로그인하자마자 403을 만난다.
+ */
+describe('입구 — 그 역할의 첫 화면으로 보낸다', () => {
+  it('사업장이 / 로 들어오면 자사 사업장 상세로 간다', () => {
+    stub.pathname = '/';
+    stub.search = '';
+    stub.role = 'site';
+
+    render(<Probe />);
+
+    expect(stub.replace).toHaveBeenCalledTimes(1);
+    expect(movedTo()).toMatch(/^\/overview\?/);
+    expect(movedTo()).toContain('site=S-02');
+    expect(movedTo()).toContain('scope=site');
+  });
+
+  it('기초지자체가 / 로 들어오면 관내 감독 현황으로 간다', () => {
+    stub.pathname = '/';
+    stub.search = '';
+    stub.role = 'gov';
+
+    render(<Probe />);
+
+    expect(stub.replace).toHaveBeenCalledTimes(1);
+    expect(movedTo()).toMatch(/^\/jurisdiction\?/);
+    expect(movedTo()).toContain('scope=municipality');
+  });
+
+  it('시스템 관리자는 / 에 그대로 머문다', () => {
+    stub.pathname = '/';
+    stub.search = '';
+    stub.role = 'system';
+
+    render(<Probe />);
+
+    expect(movedTo()).toBeNull();
+  });
+});
+
+/**
  * **역할 전환이 403보다 먼저다** `[설계 2026-09-16: 리다이렉트 검토]`.
  *
  * 역할을 바꿔 지금 화면이 닫히는 순간, 두 갈래가 같은 effect 안에서 부딪힌다. 순서가

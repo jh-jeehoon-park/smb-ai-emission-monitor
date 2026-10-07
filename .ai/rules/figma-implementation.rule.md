@@ -5,14 +5,15 @@
 | 항목 | 내용 |
 |------|------|
 | 문서명 | Figma node-id 기반 UI 구현 규칙 |
-| 버전 | v2.0.0 |
+| 버전 | v2.0.1 |
 | 작성일 | 2026-08-06 |
-| 기반 문서 | .claude/rules/frontend.rule.md, .claude/rules/code-organization.rule.md |
+| 기반 문서 | .ai/rules/frontend.rule.md, .ai/rules/code-organization.rule.md |
 
 ### 변경 이력
 
 | 버전 | 날짜 | 작성자 | 변경 내용 |
 |------|------|--------|-----------|
+| v2.0.1 | 2026-10-07 | Claude | 규칙 파일 위치 이동 반영 — `.claude/rules/` → `.ai/rules/`(Claude Code·Codex 공용) `[사용자 요청 2026-10-07]`. 경로 표기를 새 위치로 바꿨다 |
 
 ---
 

@@ -5,6 +5,13 @@
 # 팀 공유가 필요하면 키를 환경변수로 빼고 .mcp.json 을 다시 추적할 것.
 .mcp.json
 
+# Codex 개인 설정 — .mcp.json 과 같은 이유다(MCP 서버의 Figma API 키가 평문으로 들어 있다).
+.codex/
+
+# Codex용 스킬 연결 — 원본은 .claude/skills 하나다. `npm run link:skills`가 기기마다 만든다.
+# 링크를 커밋하면 Windows git(core.symlinks=false)이 글자 파일로 받아 깨진다.
+/.agents/skills
+
 # 환경 변수
 .env
 .env.*

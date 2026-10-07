@@ -234,11 +234,15 @@ check('FR 커버리지', () => {
 });
 
 // 5. 문서 링크 — 상대 링크가 실존하는가
-//    docs/ 뿐 아니라 CLAUDE.md·규칙 파일도 본다. 규칙이 docs/specs/를 가리키기 시작했다.
+//    docs/ 뿐 아니라 AGENTS.md·CLAUDE.md·규칙 파일도 본다. 규칙이 docs/specs/를 가리키기 시작했다.
+//    본문은 AGENTS.md에 있고 CLAUDE.md는 `@AGENTS.md` 한 줄이다 — AGENTS.md를 빼면 이 검사가 빈 파일만 본다.
 check('문서 링크', () => {
-  const targets = [...walk(join(ROOT, 'docs')), join(ROOT, 'CLAUDE.md')];
-  if (existsSync(join(ROOT, '.claude/rules'))) targets.push(...walk(join(ROOT, '.claude/rules')));
+  const targets = [...walk(join(ROOT, 'docs')), join(ROOT, 'AGENTS.md'), join(ROOT, 'CLAUDE.md')];
+  // 지침 본문과 규칙 폴더는 없으면 건너뛰지 않고 실패로 알린다 — 건너뛰면 아무것도 보지 않고 통과한다
   const fails = [];
+  if (!existsSync(join(ROOT, 'AGENTS.md'))) fails.push('AGENTS.md 없음 — 지침 본문이 든 파일이다');
+  if (existsSync(join(ROOT, '.ai/rules'))) targets.push(...walk(join(ROOT, '.ai/rules')));
+  else fails.push('.ai/rules 없음 — 규칙 폴더다');
   for (const f of targets) {
     if (!existsSync(f)) continue;
     const dir = dirname(f);
@@ -371,7 +375,7 @@ check('자릿수 하드코딩', () => {
   return fails;
 });
 
-// 10. 임시값 위치 — `PROVISIONAL_` 값은 provisional.ts 한 파일에만 (CLAUDE.md 임시값 규약 1·2)
+// 10. 임시값 위치 — `PROVISIONAL_` 값은 provisional.ts 한 파일에만 (AGENTS.md 임시값 규약 1·2)
 //     확정되면 한 파일만 고쳐 전 화면이 바뀌게 하려는 규약이다. 흩어지면 한쪽만 바뀐다.
 check('임시값 위치', () => {
   const fails = [];
